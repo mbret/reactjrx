@@ -1,7 +1,11 @@
-import { DependencyList, useCallback, useSyncExternalStore } from "react"
-import { Observable, BehaviorSubject, tap, distinctUntilChanged } from "rxjs"
-import { useConstant } from "./utils/useConstant"
-import { shallowEqual } from "./utils/shallowEqual"
+import {
+  DependencyList,
+  useCallback,
+  useRef,
+  useSyncExternalStore,
+} from "react";
+import { Observable, tap, distinctUntilChanged } from "rxjs";
+import { shallowEqual } from "./utils/shallowEqual";
 
 /**
  * Hook that subscribes to an RxJS Observable and
@@ -30,27 +34,24 @@ export function useObserve<T>(
   { defaultValue }: { defaultValue: T },
   deps: DependencyList = []
 ) {
-  const state$ = useConstant(() => new BehaviorSubject(defaultValue))
+  const valueRef = useRef(defaultValue);
 
-  const subscribe = useCallback(
-    (next: () => void) => {
-      const sourceAsFn = typeof source$ === "function" ? source$ : () => source$
+  const subscribe = useCallback((next: () => void) => {
+    const sourceAsFn = typeof source$ === "function" ? source$ : () => source$;
 
-      const sub = sourceAsFn()
-        .pipe(
-          distinctUntilChanged(shallowEqual),
-          tap((value) => {
-            state$.next(value)
-          })
-        )
-        .subscribe(next)
+    const sub = sourceAsFn()
+      .pipe(
+        distinctUntilChanged(shallowEqual),
+        tap((value) => {
+          valueRef.current = value;
+        })
+      )
+      .subscribe(next);
 
-      return () => sub.unsubscribe()
-    },
-    [state$, ...deps]
-  )
+    return () => sub.unsubscribe();
+  }, deps);
 
-  const getSnapshot = useCallback(() => state$.getValue(), [state$])
+  const getSnapshot = useCallback(() => valueRef.current, []);
 
-  return useSyncExternalStore(subscribe, getSnapshot)
+  return useSyncExternalStore(subscribe, getSnapshot);
 }
