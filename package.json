@@ -1,5 +1,5 @@
 {
-  "name": "reactjx",
+  "name": "reactjrx",
   "private": false,
   "version": "0.0.0-development",
   "type": "module",
@@ -35,6 +35,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mbret/reactjx.git"
+    "url": "https://github.com/mbret/reactjrx.git"
   }
 }
