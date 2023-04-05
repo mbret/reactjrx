@@ -6,6 +6,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+ },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
