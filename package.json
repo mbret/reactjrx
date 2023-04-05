@@ -1,12 +1,16 @@
 {
   "name": "reactrx",
-  "private": true,
-  "version": "0.0.1",
+  "private": false,
+  "version": "0.0.0-development",
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "semantic-release": "semantic-release"
   },
   "peerDependencies": {
     "react": "18",
@@ -18,11 +22,16 @@
     "@types/react-dom": "^18.0.11",
     "@vitejs/plugin-react": "^3.1.0",
     "rxjs": "^7.8.0",
+    "semantic-release": "^21.0.1",
     "typescript": "^5.0.2",
     "vite": "^4.2.1",
     "vitest": "^0.29.8"
   },
   "dependencies": {
     "@types/node": "^18.15.11"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mbret/reactrx.git"
   }
 }
