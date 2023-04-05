@@ -10,7 +10,7 @@ export default defineConfig({
       entry: resolve(__dirname, "src/lib/index.ts"),
       name,
       // the proper extensions will be added
-      fileName: name,
+      fileName: "index",
     },
     minify: false,
     rollupOptions: {
