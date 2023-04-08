@@ -51,7 +51,9 @@ export function useObserve<T>(
     return () => sub.unsubscribe();
   }, deps);
 
-  const getSnapshot = useCallback(() => valueRef.current, []);
+  const getSnapshot = useCallback(() => {
+    return valueRef.current;
+  }, []);
 
-  return useSyncExternalStore(subscribe, getSnapshot);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
