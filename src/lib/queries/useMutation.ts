@@ -4,7 +4,6 @@ import {
   BehaviorSubject,
   Subject,
   catchError,
-  delay,
   from,
   map,
   of,
@@ -27,12 +26,12 @@ import { useObserve } from "../useObserve";
  * If you need to execute mutation independently of the component lifecycle or
  * execute functions in parallel you should not use this hook.
  */
-export const useMutation = <R>(
-  query: () => Promise<R>,
+export const useMutation = <A, R>(
+  query: (args: A) => Promise<R>,
   options: { onError?: (error: unknown) => void; onSuccess?: () => void } = {}
 ) => {
   const queryRef = useLiveRef(query);
-  const triggerSubject = useRef(new Subject()).current;
+  const triggerSubject = useRef(new Subject<A>()).current;
   const optionsRef = useLiveRef(options);
   const data$ = useConstant(
     () =>
@@ -60,9 +59,8 @@ export const useMutation = <R>(
             isLoading: true,
           });
         }),
-        delay(2000),
-        switchMap(() =>
-          from(queryRef.current()).pipe(
+        switchMap((args) =>
+          from(queryRef.current(args)).pipe(
             map((response) => [response] as const),
             catchError((error: unknown) => {
               optionsRef.current.onError && optionsRef.current.onError(error);
@@ -72,7 +70,9 @@ export const useMutation = <R>(
           )
         ),
         tap(([response, error]) => {
-          optionsRef.current.onSuccess && optionsRef.current.onSuccess();
+          if (response) {
+            optionsRef.current.onSuccess && optionsRef.current.onSuccess();
+          }
 
           data$.next({
             ...data$.getValue(),
@@ -96,9 +96,12 @@ export const useMutation = <R>(
     defaultValue: data$.getValue(),
   });
 
-  const mutate = useCallback(() => {
-    triggerSubject.next(undefined);
-  }, [triggerSubject]);
+  const mutate = useCallback(
+    (args: A) => {
+      triggerSubject.next(args);
+    },
+    [triggerSubject]
+  );
 
   return { ...result, mutate };
 };
