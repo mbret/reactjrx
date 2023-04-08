@@ -4,6 +4,7 @@ import {
   BehaviorSubject,
   Subject,
   catchError,
+  defer,
   from,
   map,
   of,
@@ -12,6 +13,8 @@ import {
 } from "rxjs";
 import { useConstant } from "../utils/useConstant";
 import { useObserve } from "../useObserve";
+import { querx } from "./querx";
+import { QuerxOptions } from "./types";
 
 /**
  * @important
@@ -28,7 +31,7 @@ import { useObserve } from "../useObserve";
  */
 export const useMutation = <A, R>(
   query: (args: A) => Promise<R>,
-  options: { onError?: (error: unknown) => void; onSuccess?: () => void } = {}
+  options: QuerxOptions = {}
 ) => {
   const queryRef = useLiveRef(query);
   const triggerSubject = useRef(new Subject<A>()).current;
@@ -50,7 +53,7 @@ export const useMutation = <A, R>(
     const sub = triggerSubject
       .pipe(
         tap(() => {
-          console.log("trigger");
+          console.log("trigger", optionsRef.current);
         }),
         tap(() => {
           data$.next({
@@ -60,7 +63,8 @@ export const useMutation = <A, R>(
           });
         }),
         switchMap((args) =>
-          from(queryRef.current(args)).pipe(
+          from(defer(() => queryRef.current(args))).pipe(
+            querx(optionsRef.current),
             map((response) => [response] as const),
             catchError((error: unknown) => {
               optionsRef.current.onError && optionsRef.current.onError(error);

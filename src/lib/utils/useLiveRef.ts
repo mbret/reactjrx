@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from "react";
+import { useMemo, useRef } from "react";
 
 export const useLiveRef = <T>(value: T) => {
   const ref = useRef(value);
@@ -11,10 +11,10 @@ export const useLiveRef = <T>(value: T) => {
    * is being called after render but before effect?
    * I am not sure of that one.
    *
-   * `useLayoutEffect` is a good compromise since it runs after render but before
+   * `useMemo` is a good compromise since it runs during render but before
    * repain. It prevents the concurrency mode issue.
    */
-  useLayoutEffect(() => {
+  useMemo(() => {
     ref.current = value;
   }, [value]);
 
