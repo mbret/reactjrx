@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import ReactDOM from "react-dom/client";
-import { signal } from "./lib";
+import { signal } from "./lib/signal";
 
 const [useFoo, setFoo] = signal({
   default: 0,
