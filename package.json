@@ -43,6 +43,7 @@
     "vitest": "^0.29.8"
   },
   "dependencies": {
+    "@testing-library/react": "^14.0.0",
     "@types/node": "^18.15.11"
   },
   "repository": {
