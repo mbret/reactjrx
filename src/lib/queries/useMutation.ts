@@ -29,7 +29,7 @@ import { QuerxOptions } from "./types";
  * If you need to execute mutation independently of the component lifecycle or
  * execute functions in parallel you should not use this hook.
  */
-export const useMutation = <A, R>(
+export const useMutation = <A = unknown, R = unknown>(
   query: (args: A) => Promise<R>,
   options: QuerxOptions = {}
 ) => {
