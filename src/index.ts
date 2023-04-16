@@ -5,6 +5,7 @@ export * from "./lib/useSubscribe"
 
 // utils
 export * from "./lib/utils/useUnmountObservable"
+export * from "./lib/utils/retryBackoff"
 
 // state handling
 export * from "./lib/state/signal"

@@ -34,9 +34,9 @@ export function useQuery<T>(
   error: unknown;
   refetch: () => void;
 } {
-  const params$ = useRef(new BehaviorSubject({ key, options }));
   const queryRef = useLiveRef(fn);
-  const refetchSubject = useConstant(() => new Subject()).current;
+  const params$ = useRef(new BehaviorSubject({ key, options }));
+  const refetchSubject$ = useConstant(() => new Subject());
   const data$ = useConstant(
     () =>
       new BehaviorSubject<{
@@ -48,7 +48,7 @@ export function useQuery<T>(
         error: undefined,
         isLoading: false,
       })
-  ).current;
+  );
 
   useEffect(() => {
     params$.current.next({
@@ -56,6 +56,15 @@ export function useQuery<T>(
       options,
     });
   }, [key, options]);
+
+  useEffect(
+    () => () => {
+      data$.current.complete();
+      refetchSubject$.current.complete();
+      params$.current.complete();
+    },
+    []
+  );
 
   useEffect(() => {
     const options$ = params$.current.pipe(
@@ -76,15 +85,15 @@ export function useQuery<T>(
     const executeFn$ = combineLatest([
       key$,
       enabledOption$,
-      refetchSubject.pipe(startWith(undefined)),
+      refetchSubject$.current.pipe(startWith(undefined)),
     ]).pipe(
       tap(([, enabled]) => {
         // we know that any ongoing promise will be cancelled
         // so we can safely stop loading. We don't do it in finalize
         // because it would conflict with concurrency
         if (!enabled) {
-          data$.next({
-            ...data$.getValue(),
+          data$.current.next({
+            ...data$.current.getValue(),
             isLoading: false,
           });
         }
@@ -99,8 +108,8 @@ export function useQuery<T>(
       .pipe(
         withLatestFrom(options$),
         tap(() => {
-          data$.next({
-            ...data$.getValue(),
+          data$.current.next({
+            ...data$.current.getValue(),
             error: undefined,
             isLoading: true,
           });
@@ -116,8 +125,8 @@ export function useQuery<T>(
           )
         ),
         tap(([response, error]) => {
-          data$.next({
-            ...data$.getValue(),
+          data$.current.next({
+            ...data$.current.getValue(),
             isLoading: false,
             error,
             data: response,
@@ -133,15 +142,15 @@ export function useQuery<T>(
       });
 
     return () => sub.unsubscribe();
-  }, [refetchSubject, data$]);
+  }, [refetchSubject$, data$]);
 
-  const result = useObserve(data$, {
-    defaultValue: data$.getValue(),
+  const result = useObserve(data$.current, {
+    defaultValue: data$.current.getValue(),
   });
 
   const refetch = useCallback(
-    () => refetchSubject.next(undefined),
-    [refetchSubject]
+    () => refetchSubject$.current.next(undefined),
+    [refetchSubject$]
   );
 
   return { ...result, refetch };

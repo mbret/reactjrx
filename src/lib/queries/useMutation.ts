@@ -2,9 +2,11 @@ import { useCallback, useEffect, useRef } from "react";
 import { useLiveRef } from "../utils/useLiveRef";
 import {
   BehaviorSubject,
+  Observable,
   Subject,
   catchError,
   defer,
+  first,
   from,
   map,
   of,
@@ -28,13 +30,17 @@ import { QuerxOptions } from "./types";
  *
  * If you need to execute mutation independently of the component lifecycle or
  * execute functions in parallel you should not use this hook.
+ *
+ * @important
+ * If you return an observable, the stream will be unsubscribed after receiving
+ * the first value. This hook is not meant to be running long running effects.
  */
 export const useMutation = <A = unknown, R = unknown>(
-  query: (args: A) => Promise<R>,
+  query: (args: A) => Promise<R> | Observable<R>,
   options: QuerxOptions = {}
 ) => {
   const queryRef = useLiveRef(query);
-  const triggerSubject = useRef(new Subject<A>()).current;
+  const triggerSubject = useRef(new Subject<A>());
   const optionsRef = useLiveRef(options);
   const data$ = useConstant(
     () =>
@@ -47,17 +53,25 @@ export const useMutation = <A = unknown, R = unknown>(
         error: undefined,
         isLoading: false,
       })
-  ).current;
+  );
+
+  useEffect(
+    () => () => {
+      data$.current.complete();
+      triggerSubject.current.complete();
+    },
+    []
+  );
 
   useEffect(() => {
-    const sub = triggerSubject
+    const sub = triggerSubject.current
       .pipe(
         tap(() => {
           console.log("trigger", optionsRef.current);
         }),
         tap(() => {
-          data$.next({
-            ...data$.getValue(),
+          data$.current.next({
+            ...data$.current.getValue(),
             error: undefined,
             isLoading: true,
           });
@@ -66,6 +80,7 @@ export const useMutation = <A = unknown, R = unknown>(
           from(defer(() => queryRef.current(args))).pipe(
             querx(optionsRef.current),
             map((response) => [response] as const),
+            first(),
             catchError((error: unknown) => {
               optionsRef.current.onError && optionsRef.current.onError(error);
 
@@ -78,8 +93,8 @@ export const useMutation = <A = unknown, R = unknown>(
             optionsRef.current.onSuccess && optionsRef.current.onSuccess();
           }
 
-          data$.next({
-            ...data$.getValue(),
+          data$.current.next({
+            ...data$.current.getValue(),
             isLoading: false,
             error,
             data: response,
@@ -96,13 +111,13 @@ export const useMutation = <A = unknown, R = unknown>(
     };
   }, [triggerSubject, data$]);
 
-  const result = useObserve(data$, {
-    defaultValue: data$.getValue(),
+  const result = useObserve(data$.current, {
+    defaultValue: data$.current.getValue(),
   });
 
   const mutate = useCallback(
     (args: A) => {
-      triggerSubject.next(args);
+      triggerSubject.current.next(args);
     },
     [triggerSubject]
   );
