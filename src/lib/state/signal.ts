@@ -1,17 +1,21 @@
-import { BehaviorSubject, identity } from "rxjs";
-import { useObserve } from "./useObserve";
-import { trackSubscriptions } from "./utils/trackSubscriptions";
+import { BehaviorSubject, Observable, identity } from "rxjs";
+import { trackSubscriptions } from "../utils/trackSubscriptions";
+import { useObserve } from "../useObserve";
 
-export const signal = <T>({
+export const signal = <T = undefined>({
   default: defaultValue,
   scoped = false,
   key,
 }: {
-  default: T;
+  default?: T;
   scoped?: boolean;
   key?: string;
-}) => {
-  const subject = new BehaviorSubject(defaultValue);
+}): [
+  () => T,
+  (stateOrUpdater: T | ((prev: T) => T)) => void,
+  Observable<T>
+] => {
+  const subject = new BehaviorSubject(defaultValue as T);
   const subject$ = subject.asObservable().pipe(
     scoped
       ? trackSubscriptions((numberOfSubscriptions) => {
@@ -19,13 +23,14 @@ export const signal = <T>({
             numberOfSubscriptions < 1 &&
             subject.getValue() !== defaultValue
           ) {
-            subject.next(defaultValue);
+            subject.next(defaultValue as T);
           }
         })
       : identity
   );
 
-  const hook = () => useObserve(subject$, { defaultValue, key });
+  const hook = () =>
+    useObserve(subject$, { defaultValue: defaultValue as T, key });
 
   const setValue = <F extends (prev: T) => T>(arg: T | F) => {
     // prevent unnecessary state update if equals
@@ -42,5 +47,5 @@ export const signal = <T>({
     return subject.next(arg);
   };
 
-  return [hook, setValue, subject$] as const;
+  return [hook, setValue, subject$];
 };

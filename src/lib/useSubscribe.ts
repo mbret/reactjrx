@@ -1,8 +1,4 @@
-import {
-  DependencyList,
-  useCallback,
-  useEffect,
-} from "react";
+import { DependencyList, useCallback, useEffect } from "react";
 import {
   Observable,
   distinctUntilChanged,
@@ -13,6 +9,13 @@ import {
 } from "rxjs";
 import { shallowEqual } from "./utils/shallowEqual";
 import { useConstant } from "./utils/useConstant";
+
+export function useSubscribe<T>(source: Observable<T>): void;
+
+export function useSubscribe<T>(
+  source$: () => Observable<T>,
+  deps: DependencyList
+): void;
 
 export function useSubscribe<T>(
   source$: Observable<T> | (() => Observable<T>),

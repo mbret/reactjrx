@@ -1,19 +1,7 @@
-import React, { useEffect } from "react";
+import React, {  } from "react";
 import ReactDOM from "react-dom/client";
-import { signal } from "./lib/signal";
-
-const [useFoo, setFoo] = signal({
-  default: 0,
-});
 
 const App = () => {
-  const foo = useFoo();
-
-  useEffect(() => {
-    setFoo(5);
-    setFoo((state) => state);
-  }, []);
-
   return null;
 };
 

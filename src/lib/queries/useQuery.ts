@@ -36,7 +36,7 @@ export function useQuery<T>(
 } {
   const params$ = useRef(new BehaviorSubject({ key, options }));
   const queryRef = useLiveRef(fn);
-  const refetchSubject = useConstant(() => new Subject());
+  const refetchSubject = useConstant(() => new Subject()).current;
   const data$ = useConstant(
     () =>
       new BehaviorSubject<{

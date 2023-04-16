@@ -58,16 +58,16 @@ export function useObserve<T, R>(
     isSourceFn ? deps : [source$]
   );
 
-  // useEffect(() => {
-  //   params$.current.next({ deps });
-  // }, deps);
+  useEffect(() => {
+    params$.current.next({ deps });
+  }, deps);
 
-  // useEffect(
-  //   () => () => {
-  //     params$.current.complete();
-  //   },
-  //   []
-  // );
+  useEffect(
+    () => () => {
+      params$.current.complete();
+    },
+    []
+  );
 
   const subscribe = useCallback((next: () => void) => {
     const sub = params$.current
