@@ -47,7 +47,7 @@ export const useMutation = <A = unknown, R = unknown>(
         error: undefined,
         isLoading: false,
       })
-  );
+  ).current;
 
   useEffect(() => {
     const sub = triggerSubject

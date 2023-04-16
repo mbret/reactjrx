@@ -1,59 +1,111 @@
 import {
   DependencyList,
   useCallback,
+  useEffect,
   useRef,
   useSyncExternalStore,
 } from "react";
-import { Observable, tap, distinctUntilChanged } from "rxjs";
-import { shallowEqual } from "./utils/shallowEqual";
+import {
+  Observable,
+  tap,
+  distinctUntilChanged,
+  catchError,
+  EMPTY,
+  BehaviorSubject,
+  switchMap,
+} from "rxjs";
+import { useConstant } from "./utils/useConstant";
+import { primitiveEqual } from "./utils/primitiveEqual";
 
-/**
- * Hook that subscribes to an RxJS Observable and
- * synchronizes its latest value with an external store.
- *
- * @example
- * function MyComponent(props) {
- *   const source$ = useMemo(() => ... // Create and memoize an RxJS Observable here
- *
- *   const value = useObserve(source$);
- *
- *   // Render your component here
- *   return <div>The value is: {value}</div>;
- * }
- *
- * @remarks
- * It's important to memoize the Observable using a hook
- * such as `useMemo` or `useCallback` to ensure that the same
- * Observable instance is passed to `useObserve` on every render.
- * Otherwise, the hook will subscribe to a new Observable
- * instance every time the component renders, leading to memory
- * leaks and unexpected behavior.
- */
+type Option<R = undefined> = { defaultValue: R; key?: string };
+
+export function useObserve<T>(source: Observable<T>): T | undefined;
+
 export function useObserve<T>(
+  source: () => Observable<T>,
+  deps: DependencyList
+): T | undefined;
+
+export function useObserve<T, R = undefined>(
+  source: Observable<T>,
+  options: Option<R>
+): T | R;
+
+export function useObserve<T, R = undefined>(
+  source: () => Observable<T>,
+  options: Option<R>,
+  deps: DependencyList
+): T | R;
+
+export function useObserve<T, R>(
   source$: Observable<T> | (() => Observable<T>),
-  { defaultValue }: { defaultValue: T },
-  deps: DependencyList = []
-) {
-  const valueRef = useRef(defaultValue);
+  unsafeOptions?: Option<R> | DependencyList,
+  unsafeDeps?: DependencyList
+): T | R {
+  const options =
+    unsafeOptions && !Array.isArray(unsafeOptions)
+      ? (unsafeOptions as Option<R>)
+      : { defaultValue: undefined };
+  const deps =
+    !unsafeDeps && Array.isArray(unsafeOptions)
+      ? unsafeOptions
+      : unsafeDeps ?? [];
+  const valueRef = useRef({ data: options.defaultValue, error: undefined });
+  const params$ = useConstant(() => new BehaviorSubject({ deps }));
+  const isSourceFn = typeof source$ === "function";
+  const makeObservable = useCallback(
+    isSourceFn ? source$ : () => source$,
+    isSourceFn ? deps : [source$]
+  );
+
+  // useEffect(() => {
+  //   params$.current.next({ deps });
+  // }, deps);
+
+  // useEffect(
+  //   () => () => {
+  //     params$.current.complete();
+  //   },
+  //   []
+  // );
 
   const subscribe = useCallback((next: () => void) => {
-    const sourceAsFn = typeof source$ === "function" ? source$ : () => source$;
-
-    const sub = sourceAsFn()
+    const sub = params$.current
       .pipe(
-        distinctUntilChanged(shallowEqual),
-        tap((value) => {
-          valueRef.current = value;
-        })
+        switchMap(() =>
+          makeObservable().pipe(
+            /**
+             * @important
+             * We only check primitives because underlying subscription might
+             * be using objects and keeping same reference but pushing new
+             * properties values
+             */
+            distinctUntilChanged(primitiveEqual),
+            tap((value) => {
+              valueRef.current = { data: value, error: undefined };
+            }),
+            catchError((error) => {
+              console.error(error);
+
+              valueRef.current = { ...valueRef.current, error };
+
+              return EMPTY;
+            })
+          )
+        )
       )
       .subscribe(next);
 
-    return () => sub.unsubscribe();
-  }, deps);
+    return () => {
+      sub.unsubscribe();
+    };
+  }, []);
 
   const getSnapshot = useCallback(() => {
     return valueRef.current;
   }, []);
 
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const result = useSyncExternalStore(subscribe, getSnapshot, getSnapshot).data;
+
+  return result as T | R;
 }

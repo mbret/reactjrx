@@ -1,31 +1,27 @@
-import * as React from "react";
+import { useEffect, useRef } from "react";
 
-/**
- * useConstant hook returns a constant value computed by
- * calling the provided function only once during the
- * component's lifetime.
- *
- * @param {() => T} fn A function that computes and returns the constant value. The function is called only once, during the first render of the component.
- * @returns {T} The constant value computed by the provided function.
- *
- * @example
- * function MyComponent(props) {
- *   const constantValue = useConstant(() => {
- *     // Compute and return the constant value here
- *     return "Hello, world!";
- *   });
- *
- *   // Use the constant value in your component
- *   return <div>{constantValue}</div>;
- * }
- *
- */
-export const useConstant = <T>(fn: () => T): T => {
-  const ref = React.useRef<{ value: T }>();
+export const useConstant = <T>(fn: () => T) => {
+  const ref = useRef<T>();
 
   if (!ref.current) {
-    ref.current = { value: fn() };
+    ref.current = fn();
   }
 
-  return ref.current.value;
+  useEffect(() => {
+    /**
+     * Because strict mode keep reference to the same ref when the component
+     * is re-mounted we force a rewrite here to prevent weird behavior.
+     * I don't know why react does that since it is I believe technically
+     * wrong. useRef should persist across re-render, not re-mount.
+     *
+     * @important
+     * The downside is that during dev the factory will be called again every
+     * mount.
+     */
+    if (process.env.NODE_ENV === "development") {
+      ref.current = fn();
+    }
+  }, []);
+
+  return ref as { current: T };
 };

@@ -48,7 +48,7 @@ export function useQuery<T>(
         error: undefined,
         isLoading: false,
       })
-  );
+  ).current;
 
   useEffect(() => {
     params$.current.next({

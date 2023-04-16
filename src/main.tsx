@@ -14,8 +14,6 @@ const App = () => {
     setFoo((state) => state);
   }, []);
 
-  console.log({ foo });
-
   return null;
 };
 

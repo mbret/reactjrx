@@ -1,4 +1,7 @@
 export * from "./lib/signal"
+export * from "./lib/bind"
+export * from "./lib/trigger"
 export * from "./lib/useObserve"
+export * from "./lib/useSubscribe"
 export * from "./lib/queries/useMutation"
 export * from "./lib/queries/useQuery"

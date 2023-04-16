@@ -4,9 +4,7 @@ import { name } from "./package.json";
 import dts from "vite-plugin-dts";
 
 export default defineConfig({
-  plugins: [
-    dts(),
-  ],
+  plugins: [dts()],
   build: {
     lib: {
       // Could also be a dictionary or array of multiple entry points
@@ -14,7 +12,7 @@ export default defineConfig({
       name,
       // the proper extensions will be added
       fileName: "index",
-      formats: ['es', 'cjs']
+      formats: ["es", "cjs"],
     },
     minify: false,
     rollupOptions: {
