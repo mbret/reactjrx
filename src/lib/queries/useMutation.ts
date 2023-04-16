@@ -18,6 +18,18 @@ import { useObserve } from "../useObserve";
 import { querx } from "./querx";
 import { QuerxOptions } from "./types";
 
+type Result<A, R> = {
+  isLoading: boolean;
+  data: R | undefined;
+  error: unknown | undefined;
+  mutate: (args: A) => void;
+};
+
+export function useMutation<A = void, R = undefined>(
+  query: (args: A) => Promise<R> | Observable<R>,
+  options?: QuerxOptions
+): Result<A, R>;
+
 /**
  * @important
  * Your mutation function is cancelled whenever you call a new mutate or
@@ -35,10 +47,10 @@ import { QuerxOptions } from "./types";
  * If you return an observable, the stream will be unsubscribed after receiving
  * the first value. This hook is not meant to be running long running effects.
  */
-export const useMutation = <A = unknown, R = unknown>(
+export function useMutation<A = void, R = undefined>(
   query: (args: A) => Promise<R> | Observable<R>,
   options: QuerxOptions = {}
-) => {
+): Result<A, R> {
   const queryRef = useLiveRef(query);
   const triggerSubject = useRef(new Subject<A>());
   const optionsRef = useLiveRef(options);
@@ -123,4 +135,4 @@ export const useMutation = <A = unknown, R = unknown>(
   );
 
   return { ...result, mutate };
-};
+}
