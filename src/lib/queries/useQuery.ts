@@ -151,9 +151,7 @@ export function useQuery<T>(
     )
   }, [])
 
-  const result = useObserve(data$.current, {
-    defaultValue: data$.current.getValue()
-  })
+  const result = useObserve(data$.current)
 
   const refetch = useCallback(() => refetch$.current.next(undefined), [])
 

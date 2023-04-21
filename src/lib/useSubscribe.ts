@@ -1,19 +1,6 @@
 import { DependencyList, useEffect } from "react"
-import {
-  Observable,
-  distinctUntilChanged,
-  catchError,
-  EMPTY,
-  switchMap,
-  withLatestFrom,
-  defer,
-  map,
-  finalize,
-  tap
-} from "rxjs"
-import { shallowEqual } from "./utils/shallowEqual"
-import { useBehaviorSubject } from "./useBehaviorSubject"
-import { arrayEqual } from "./utils/arrayEqual"
+import { Observable, catchError, EMPTY } from "rxjs"
+import { useLiveRef } from "./utils/useLiveRef"
 
 export function useSubscribe<T>(source: Observable<T>): void
 
@@ -26,46 +13,26 @@ export function useSubscribe<T>(
   source: Observable<T> | (() => Observable<T>),
   deps: DependencyList = []
 ) {
-  const params$ = useBehaviorSubject({ deps, source })
+  const sourceRef = useLiveRef(source)
+  const sourceAsObservable = typeof source === "function" ? undefined : source
 
   useEffect(() => {
-    params$.current.next({ deps, source })
-  }, [params$, ...deps, source])
+    const source = sourceRef.current
+    const makeObservable = typeof source === "function" ? source : () => source
 
-  useEffect(() => {
-    const source$ = params$.current.pipe(map((params) => params.source))
-
-    // @todo trigger on source obserable change
-    const deps$ = params$.current.pipe(
-      map(({ deps }) => deps as any[]),
-      distinctUntilChanged(arrayEqual),
-      tap(() => {
-        console.log("deps$ change", deps)
-      }),
-      finalize(() => {
-        console.log("deps$ finalized")
-      })
-    )
-
-    const sub = deps$
+    const sub = makeObservable()
       .pipe(
-        withLatestFrom(source$),
-        switchMap(([, source]) =>
-          defer(() => (typeof source === "function" ? source() : source)).pipe(
-            distinctUntilChanged(shallowEqual),
-            catchError((error) => {
-              console.error(error)
+        catchError((error) => {
+          console.error("Uncaught error at useSubscribe. Please consider adding a catchError or other handling.")
+          console.error(error)
 
-              return EMPTY
-            })
-          )
-        )
-        // takeUntil(deps$)
+          return EMPTY
+        })
       )
       .subscribe()
 
     return () => {
       sub.unsubscribe()
     }
-  }, [params$])
+  }, [...deps, sourceAsObservable])
 }
