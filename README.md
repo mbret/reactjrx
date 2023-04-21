@@ -16,8 +16,8 @@ npm install reactjrx
 
 ## Low level API: RxJS bindings
 
-The low level API is basically all the building blocks to bind rxjs to react. For example let's assume
-you have a library that expose observables, you can bind them easily:
+The low level API provide all the building blocks to bind rxjs to react and the higher API. For example let's assume
+you have a package that expose observables, you can bind them easily:
 
 ```typescript
 const interval$ = interval(100)
@@ -43,7 +43,7 @@ const App = () => {
 ```
 
 You may also want to use rxjs intentionally with react to have greater flow control.
-These two bindings are the main building block but we provide more utils to help you:
+`useObserveCallback` is a version of `useCallback` which use `useSubscribe`:
 
 ```typescript
 /**
@@ -72,8 +72,7 @@ const App = () => {
 }
 ```
 
-It is recommended to use native hook as much as possible but observable can help dealing with more complex
-use case when needed.
+It is recommended to use native hooks as much as possible but observables can help dealing with more complex use case when needed.
 
 ## Higher level API: Queries & Mutations
 
@@ -114,7 +113,7 @@ const App = () => {
 
 # Side effects, mutations and their scopes
 
-`reactjrx` provide conveniant way or running mutation or side effect both locally or globally.
+`reactjrx` provide convenient way or running mutation or side effect both locally or globally.
 `useMutation` is designed to run locally in a component scope and will by default cancel any ongoing mutation
 once you run the same mutation again or if the component unmount. `useSubscribeEffect` and `trigger` however will give
 you a base to build global long running side effects.
