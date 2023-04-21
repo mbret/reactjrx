@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { Subject, map, of, timer } from "rxjs"
+import { BehaviorSubject, Subject, map, of, timer } from "rxjs"
 import { useObserve } from "./useObserve"
 import { act, render, renderHook } from "@testing-library/react"
 import React, { memo, useEffect, useRef } from "react"
@@ -11,22 +11,32 @@ afterEach(() => {
 })
 
 describe("useObserve", () => {
-  it("should return undefined before subscription", async () => {
-    /**
-     * @important
-     * Because renderHook use act inside, the first returned value
-     * is usually not the first render. We would not catch the undefined
-     * value if we did not intentionally wait for next tick.
-     */
-    const source$ = timer(1).pipe(map(() => 123))
+  describe("Given a non BehaviorSubject observable", () => {
+    it("should return undefined before subscription", async () => {
+      const values: (string | undefined)[] = []
+      const source$ = of("foo")
 
-    const { result } = renderHook(() => useObserve(source$), {})
+      renderHook(() => {
+        values.push(useObserve(source$))
+      }, {})
 
-    expect(result.current).toBe(undefined)
+      expect(values[0]).toBe(undefined)
+    })
+  })
 
-    await new Promise((resolve) => setTimeout(resolve, 1))
+  describe("Given a BehaviorSubject observable", () => {
+    it("should return subject current value before subscription", async () => {
+      const values: string[] = []
+      const source$ = new BehaviorSubject("foo")
 
-    expect(result.current).toBe(123)
+      renderHook(() => {
+        values.push(useObserve(source$))
+      }, {})
+
+      console.log(values)
+
+      expect(values[0]).toBe("foo")
+    })
   })
 
   it("should return custom default value", async ({ expect }) => {

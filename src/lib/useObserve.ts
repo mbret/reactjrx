@@ -11,23 +11,19 @@ import {
   distinctUntilChanged,
   catchError,
   EMPTY,
-  switchMap,
-  map,
   finalize,
-  takeUntil,
-  share,
-  skip
+  BehaviorSubject
 } from "rxjs"
 import { primitiveEqual } from "./utils/primitiveEqual"
 import { useLiveRef } from "./utils/useLiveRef"
-import { useBehaviorSubject } from "./useBehaviorSubject"
-import { arrayEqual } from "./utils/arrayEqual"
 
 type Option<R = undefined> = { defaultValue: R; key?: string }
 
 /**
  * @todo return first value if source is behavior subject
  */
+
+export function useObserve<T>(source: BehaviorSubject<T>): T
 
 export function useObserve<T>(source: Observable<T>): T | undefined
 
