@@ -23,7 +23,9 @@ export function useSubscribe<T>(
     const sub = makeObservable()
       .pipe(
         catchError((error) => {
-          console.error("Uncaught error at useSubscribe. Please consider adding a catchError or other handling.")
+          console.error(
+            "Uncaught error at useSubscribe. Please consider adding a catchError or other handling."
+          )
           console.error(error)
 
           return EMPTY

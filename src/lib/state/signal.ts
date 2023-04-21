@@ -47,5 +47,15 @@ export const signal = <T = undefined>({
     return subject.next(arg)
   }
 
-  return [hook, setValue, subject$]
+  return [
+    hook,
+    setValue,
+    /**
+     * @important
+     * We return the original behavior subject for two reasons:
+     * - useObserve may return the default value directly instead of undefined
+     * - the scope exist for react binding, this observable is a direct access outside of it
+     */
+    subject
+  ]
 }
