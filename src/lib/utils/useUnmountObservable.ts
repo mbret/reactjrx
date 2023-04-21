@@ -1,16 +1,11 @@
-import { useEffect } from "react";
-import { useConstant } from "./useConstant";
-import { Subject } from "rxjs";
+import { useSubject } from "../useSubject"
 
 export const useUnmountObservable = () => {
-  const subject = useConstant(() => new Subject<void>());
+  const subject = useSubject<void>({
+    onBeforeComplete: () => {
+      subject.current.next()
+    }
+  })
 
-  useEffect(() => {
-    return () => {
-      subject.current.next();
-      subject.current.complete();
-    };
-  }, []);
-
-  return subject;
-};
+  return subject
+}

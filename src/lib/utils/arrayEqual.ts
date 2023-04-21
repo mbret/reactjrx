@@ -1,2 +1,2 @@
-export const arrayEqual = (a: any[], b: any[]) =>
-  a.length === b.length && a.every((v, i) => v === b[i]);
+export const arrayEqual = <A extends any[], B extends any[]>(a: A, b: B) =>
+  a.length === b.length && a.every((v, i) => v === b[i])

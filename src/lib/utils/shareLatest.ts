@@ -1,4 +1,4 @@
-import { MonoTypeOperatorFunction, ReplaySubject, share } from "rxjs";
+import { MonoTypeOperatorFunction, ReplaySubject, share } from "rxjs"
 
 /**
  * Share the latest value to every new observers but clean up
@@ -13,5 +13,5 @@ export const shareLatest = <T>(): MonoTypeOperatorFunction<T> =>
     connector: () => new ReplaySubject<T>(1),
     resetOnError: true,
     resetOnComplete: true,
-    resetOnRefCountZero: true,
-  });
+    resetOnRefCountZero: true
+  })

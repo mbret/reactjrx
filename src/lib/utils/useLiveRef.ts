@@ -1,7 +1,7 @@
-import { useMemo, useRef } from "react";
+import { useMemo, useRef } from "react"
 
 export const useLiveRef = <T>(value: T) => {
-  const ref = useRef(value);
+  const ref = useRef(value)
 
   /**
    * We dont update the value on render because of potential
@@ -12,11 +12,11 @@ export const useLiveRef = <T>(value: T) => {
    * I am not sure of that one.
    *
    * `useMemo` is a good compromise since it runs during render but before
-   * repain. It prevents the concurrency mode issue.
+   * repaint. It prevents the concurrency mode issue.
    */
   useMemo(() => {
-    ref.current = value;
-  }, [value]);
+    ref.current = value
+  }, [value])
 
-  return ref;
-};
+  return ref
+}
