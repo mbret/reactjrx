@@ -3,39 +3,49 @@ import {
   useCallback,
   useEffect,
   useRef,
-  useSyncExternalStore,
-} from "react";
+  useSyncExternalStore
+} from "react"
 import {
   Observable,
   tap,
   distinctUntilChanged,
   catchError,
   EMPTY,
-  BehaviorSubject,
   switchMap,
-} from "rxjs";
-import { useConstant } from "./utils/useConstant";
-import { primitiveEqual } from "./utils/primitiveEqual";
+  map,
+  finalize,
+  takeUntil,
+  share,
+  skip
+} from "rxjs"
+import { primitiveEqual } from "./utils/primitiveEqual"
+import { useLiveRef } from "./utils/useLiveRef"
+import { useBehaviorSubject } from "./useBehaviorSubject"
+import { arrayEqual } from "./utils/arrayEqual"
 
-type Option<R = undefined> = { defaultValue: R; key?: string };
+type Option<R = undefined> = { defaultValue: R; key?: string }
 
-export function useObserve<T>(source: Observable<T>): T | undefined;
+/**
+ * @todo return first value if source is behavior subject
+ */
+
+export function useObserve<T>(source: Observable<T>): T | undefined
 
 export function useObserve<T>(
   source: () => Observable<T>,
   deps: DependencyList
-): T | undefined;
+): T | undefined
 
 export function useObserve<T, R = undefined>(
   source: Observable<T>,
   options: Option<R>
-): T | R;
+): T | R
 
 export function useObserve<T, R = undefined>(
   source: () => Observable<T>,
   options: Option<R>,
   deps: DependencyList
-): T | R;
+): T | R
 
 export function useObserve<T, R>(
   source$: Observable<T> | (() => Observable<T>),
@@ -45,67 +55,68 @@ export function useObserve<T, R>(
   const options =
     unsafeOptions && !Array.isArray(unsafeOptions)
       ? (unsafeOptions as Option<R>)
-      : { defaultValue: undefined };
+      : ({ defaultValue: undefined, key: "" } satisfies Option<undefined>)
   const deps =
     !unsafeDeps && Array.isArray(unsafeOptions)
       ? unsafeOptions
-      : unsafeDeps ?? [];
-  const valueRef = useRef({ data: options.defaultValue, error: undefined });
-  const params$ = useConstant(() => new BehaviorSubject({ deps }));
-  const isSourceFn = typeof source$ === "function";
-  const makeObservable = useCallback(
-    isSourceFn ? source$ : () => source$,
-    isSourceFn ? deps : [source$]
-  );
+      : typeof source$ === "function"
+      ? unsafeDeps ?? []
+      : [source$]
+  const valueRef = useRef({
+    data:
+      "getValue" in source$ && typeof source$.getValue === "function"
+        ? source$.getValue()
+        : options.defaultValue,
+    error: undefined
+  })
+  const sourceRef = useLiveRef(source$)
 
   useEffect(() => {
-    params$.current.next({ deps });
-  }, deps);
+    valueRef.current.data = undefined
+    valueRef.current.error = undefined
+  }, [])
 
-  useEffect(
-    () => () => {
-      params$.current.complete();
-    },
-    []
-  );
+  const subscribe = useCallback(
+    (next: () => void) => {
+      const source = sourceRef.current
+      const makeObservable =
+        typeof source === "function" ? source : () => source
 
-  const subscribe = useCallback((next: () => void) => {
-    const sub = params$.current
-      .pipe(
-        switchMap(() =>
-          makeObservable().pipe(
-            /**
-             * @important
-             * We only check primitives because underlying subscription might
-             * be using objects and keeping same reference but pushing new
-             * properties values
-             */
-            distinctUntilChanged(primitiveEqual),
-            tap((value) => {
-              valueRef.current = { data: value, error: undefined };
-            }),
-            catchError((error) => {
-              console.error(error);
+      const sub = makeObservable()
+        .pipe(
+          /**
+           * @important
+           * We only check primitives because underlying subscription might
+           * be using objects and keeping same reference but pushing new
+           * properties values
+           */
+          distinctUntilChanged(primitiveEqual),
+          tap((value) => {
+            valueRef.current = { data: value as any, error: undefined }
+          }),
+          finalize(next),
+          catchError((error) => {
+            console.error(error)
 
-              valueRef.current = { ...valueRef.current, error };
+            valueRef.current = { ...valueRef.current, error }
 
-              return EMPTY;
-            })
-          )
+            return EMPTY
+          })
         )
-      )
-      .subscribe(next);
+        .subscribe(next)
 
-    return () => {
-      sub.unsubscribe();
-    };
-  }, []);
+      return () => {
+        sub.unsubscribe()
+      }
+    },
+    [...deps]
+  )
 
   const getSnapshot = useCallback(() => {
-    return valueRef.current;
-  }, []);
+    return valueRef.current
+  }, [])
 
-  const result = useSyncExternalStore(subscribe, getSnapshot, getSnapshot).data;
+  const result = useSyncExternalStore(subscribe, getSnapshot, getSnapshot).data
 
-  return result as T | R;
+  return result as T | R
 }
