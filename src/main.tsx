@@ -1,12 +1,21 @@
-import React, {  } from "react";
-import ReactDOM from "react-dom/client";
+import React from "react"
+import ReactDOM from "react-dom/client"
+import { useQuery } from "./lib/queries/useQuery"
+import { interval, of, take, timer } from "rxjs"
+
+const s = interval(100).pipe(take(5))
 
 const App = () => {
-  return null;
-};
+  console.log(
+    "FOOOO",
+    useQuery(() => timer(10))
+  )
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+  return null
+}
+
+ReactDOM.createRoot(document.getElementById("app") as HTMLElement).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>
-);
+)

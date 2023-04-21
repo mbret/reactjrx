@@ -1,5 +1,4 @@
 // react binding
-export * from "./lib/bind"
 export * from "./lib/useObserve"
 export * from "./lib/useSubscribe"
 
