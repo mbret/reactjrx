@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import { BehaviorSubject } from "rxjs"
 
 /**
@@ -7,7 +7,7 @@ import { BehaviorSubject } from "rxjs"
  * - concurrency means that effect can run more than once without committing
  * - state & ref can be reused across remount
  *
- * This means that using regular useRef for subject and callind a complete() on
+ * This means that using regular useRef for subject and calling a complete() on
  * unmount will not have the desired effects. Next effects will run with a completed
  * subject and crash.
  *
@@ -21,51 +21,8 @@ import { BehaviorSubject } from "rxjs"
  * @see https://github.com/reactwg/react-18/discussions/19
  */
 export const useBehaviorSubject = <S>(state: S) => {
-  // const [params, setParams] = useState(() => ({
-  //   subject: new BehaviorSubject(state),
-  //   completed: false,
-  // }));
   const subject = useRef(new BehaviorSubject(state))
   const completed = useRef(false)
-
-  // useEffect(() => {
-  //   // console.log("useBehaviorSubject params", params.subject.getValue());
-  // }, [params]);
-
-  // useEffect(() => {
-  //   // console.log("useBehaviorSubject mount");
-
-  //   // setParams((s) => {
-  //   //   if (!s.completed) {
-  //   //     return s;
-  //   //   } else {
-  //   //     return {
-  //   //       subject: new BehaviorSubject(state),
-  //   //       completed: false,
-  //   //     };
-  //   //   }
-  //   // });
-
-  //   return () => {
-  //     /**
-  //      * We complete subject in a timeout to give a chance to consumer
-  //      * to eventually dispatch next() or other operation during
-  //      * same effect cycle. Otherwise this would complete the subject
-  //      * before any other operation can be done
-  //      */
-  //     const _p = params;
-
-  //     // setTimeout(() => {
-  //     console.log("useBehaviorSubject complete");
-  //     _p.subject.complete();
-  //     // });
-
-  //     setParams((s) => ({
-  //       subject: new BehaviorSubject(state),
-  //       completed: true,
-  //     }));
-  //   };
-  // }, []);
 
   useEffect(() => {
     if (completed.current) {

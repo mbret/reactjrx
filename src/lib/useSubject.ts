@@ -12,31 +12,6 @@ export const useSubject = <S>({
   const subject = useRef(new Subject<S>())
   const completed = useRef(false)
   const onBeforeCompleteRef = useLiveRef(onBeforeComplete)
-  // useEffect(() => {
-  // setParams((s) => {
-  //   if (!s.completed) {
-  //     return s;
-  //   } else {
-  //     return {
-  //       subject: new Subject(),
-  //       completed: false,
-  //     };
-  //   }
-  // });
-
-  //   return () => {
-  //     /**
-  //      * We complete subject in a timeout to give a chance to consumer
-  //      * to eventually dispatch next() or other operation during
-  //      * same effect cycle. Otherwise this would complete the subject
-  //      * before any other operation can be done
-  //      */
-  //     // setTimeout(() => {
-  //     params.subject.complete();
-  //     // });
-  //     setParams((s) => ({ subject: new Subject(), completed: true }));
-  //   };
-  // }, []);
 
   useEffect(() => {
     if (completed.current) {
