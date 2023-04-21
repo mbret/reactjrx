@@ -1,7 +1,7 @@
-import { resolve } from "path";
-import { defineConfig } from "vite";
-import { name } from "./package.json";
-import dts from "vite-plugin-dts";
+import { resolve } from "path"
+import { defineConfig } from "vite"
+import { name } from "./package.json"
+import dts from "vite-plugin-dts"
 
 export default defineConfig({
   plugins: [dts()],
@@ -12,13 +12,13 @@ export default defineConfig({
       name,
       // the proper extensions will be added
       fileName: "index",
-      formats: ["es", "cjs"],
+      formats: ["es", "cjs"]
     },
     minify: false,
     rollupOptions: {
       // make sure to externalize deps that shouldn't be bundled
       // into your library
-      external: ["rxjs", "rxjs/operators", "react"],
-    },
-  },
-});
+      external: ["rxjs", "rxjs/operators", "react"]
+    }
+  }
+})
