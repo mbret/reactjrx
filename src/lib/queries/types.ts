@@ -1,13 +1,13 @@
 export type QuerxOptions = {
-  enabled?: boolean;
+  enabled?: boolean
   // eslint-disable-next-line no-unused-vars
-  retry?: number | ((attempt: number, error: unknown) => boolean);
+  retry?: number | ((attempt: number, error: unknown) => boolean)
   // @todo
-  refetchOnWindowFocus?: boolean;
+  refetchOnWindowFocus?: boolean
   // @todo
-  refetchOnMount?: boolean;
+  refetchOnMount?: boolean
   // @todo
-  staleTime?: number;
-  onError?: (error: unknown) => void;
-  onSuccess?: () => void;
-};
+  staleTime?: number
+  onError?: (error: unknown) => void
+  onSuccess?: () => void
+}

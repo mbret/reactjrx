@@ -1,9 +1,7 @@
-import { useCallback, useEffect, useRef } from "react";
-import { useLiveRef } from "../utils/useLiveRef";
+import { useCallback, useEffect } from "react"
+import { useLiveRef } from "../utils/useLiveRef"
 import {
-  BehaviorSubject,
   Observable,
-  Subject,
   catchError,
   defer,
   first,
@@ -11,24 +9,25 @@ import {
   map,
   of,
   switchMap,
-  tap,
-} from "rxjs";
-import { useConstant } from "../utils/useConstant";
-import { useObserve } from "../useObserve";
-import { querx } from "./querx";
-import { QuerxOptions } from "./types";
+  tap
+} from "rxjs"
+import { useObserve } from "../useObserve"
+import { querx } from "./querx"
+import { QuerxOptions } from "./types"
+import { useBehaviorSubject } from "../useBehaviorSubject"
+import { useSubject } from "../useSubject"
 
 type Result<A, R> = {
-  isLoading: boolean;
-  data: R | undefined;
-  error: unknown | undefined;
-  mutate: (args: A) => void;
-};
+  isLoading: boolean
+  data: R | undefined
+  error: unknown | undefined
+  mutate: (args: A) => void
+}
 
 export function useMutation<A = void, R = undefined>(
   query: (args: A) => Promise<R> | Observable<R>,
   options?: QuerxOptions
-): Result<A, R>;
+): Result<A, R>
 
 /**
  * @important
@@ -51,42 +50,31 @@ export function useMutation<A = void, R = undefined>(
   query: (args: A) => Promise<R> | Observable<R>,
   options: QuerxOptions = {}
 ): Result<A, R> {
-  const queryRef = useLiveRef(query);
-  const triggerSubject = useRef(new Subject<A>());
-  const optionsRef = useLiveRef(options);
-  const data$ = useConstant(
-    () =>
-      new BehaviorSubject<{
-        data: R | undefined;
-        isLoading: boolean;
-        error: unknown;
-      }>({
-        data: undefined,
-        error: undefined,
-        isLoading: false,
-      })
-  );
-
-  useEffect(
-    () => () => {
-      data$.current.complete();
-      triggerSubject.current.complete();
-    },
-    []
-  );
+  const queryRef = useLiveRef(query)
+  const triggerSubject = useSubject<A>()
+  const optionsRef = useLiveRef(options)
+  const data$ = useBehaviorSubject<{
+    data: R | undefined
+    isLoading: boolean
+    error: unknown
+  }>({
+    data: undefined,
+    error: undefined,
+    isLoading: false
+  })
 
   useEffect(() => {
     const sub = triggerSubject.current
       .pipe(
         tap(() => {
-          console.log("trigger", optionsRef.current);
+          console.log("trigger", optionsRef.current)
         }),
         tap(() => {
           data$.current.next({
             ...data$.current.getValue(),
             error: undefined,
-            isLoading: true,
-          });
+            isLoading: true
+          })
         }),
         switchMap((args) =>
           from(defer(() => queryRef.current(args))).pipe(
@@ -94,45 +82,49 @@ export function useMutation<A = void, R = undefined>(
             map((response) => [response] as const),
             first(),
             catchError((error: unknown) => {
-              optionsRef.current.onError && optionsRef.current.onError(error);
+              optionsRef.current.onError && optionsRef.current.onError(error)
 
-              return of([undefined, error] as const);
+              return of([undefined, error] as const)
             })
           )
         ),
         tap(([response, error]) => {
           if (response) {
-            optionsRef.current.onSuccess && optionsRef.current.onSuccess();
+            optionsRef.current.onSuccess && optionsRef.current.onSuccess()
           }
 
           data$.current.next({
             ...data$.current.getValue(),
             isLoading: false,
             error,
-            data: response,
-          });
+            data: response
+          })
         }),
         tap(() => {
-          console.log("settled");
+          console.log("settled")
         })
       )
-      .subscribe();
+      .subscribe()
 
     return () => {
-      sub.unsubscribe();
-    };
-  }, [triggerSubject, data$]);
+      sub.unsubscribe()
+    }
+  }, [triggerSubject, data$])
 
-  const result = useObserve(data$.current, {
-    defaultValue: data$.current.getValue(),
-  });
+  const result = useObserve(
+    () => data$.current,
+    {
+      defaultValue: data$.current.getValue()
+    },
+    []
+  )
 
   const mutate = useCallback(
     (args: A) => {
-      triggerSubject.current.next(args);
+      triggerSubject.current.next(args)
     },
     [triggerSubject]
-  );
+  )
 
-  return { ...result, mutate };
+  return { ...result, mutate }
 }
