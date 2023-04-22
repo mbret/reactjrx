@@ -14,7 +14,7 @@ import {
 import { useObserve } from "../useObserve"
 import { querx } from "./querx"
 import { QuerxOptions } from "./types"
-import { useBehaviorSubject } from "../useBehaviorSubject"
+import { useBehaviorSubject } from "../binding/useBehaviorSubject"
 import { useSubject } from "../useSubject"
 
 type Result<A, R> = {

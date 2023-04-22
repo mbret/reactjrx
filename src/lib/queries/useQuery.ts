@@ -21,7 +21,7 @@ import { shallowEqual } from "../utils/shallowEqual"
 import { useObserve } from "../useObserve"
 import { querx } from "./querx"
 import { QuerxOptions } from "./types"
-import { useBehaviorSubject } from "../useBehaviorSubject"
+import { useBehaviorSubject } from "../binding/useBehaviorSubject"
 import { useSubject } from "../useSubject"
 import { useSubscribe } from "../useSubscribe"
 
