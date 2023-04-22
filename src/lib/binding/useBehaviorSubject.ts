@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react"
 import { BehaviorSubject } from "rxjs"
+import { useConstant } from "../utils/useConstant"
 
 /**
  * @important
@@ -21,7 +22,7 @@ import { BehaviorSubject } from "rxjs"
  * @see https://github.com/reactwg/react-18/discussions/19
  */
 export const useBehaviorSubject = <S>(state: S) => {
-  const subject = useRef(new BehaviorSubject(state))
+  const subject = useConstant(() => new BehaviorSubject(state))
   const completed = useRef(false)
 
   useEffect(() => {

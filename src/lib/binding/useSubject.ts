@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react"
 import { Subject } from "rxjs"
 import { useLiveRef } from "../utils/useLiveRef"
+import { useConstant } from "../utils/useConstant"
 
 /**
  * @see
@@ -9,7 +10,7 @@ import { useLiveRef } from "../utils/useLiveRef"
 export const useSubject = <S>({
   onBeforeComplete
 }: { onBeforeComplete?: () => void } = {}) => {
-  const subject = useRef(new Subject<S>())
+  const subject = useConstant(() => new Subject<S>())
   const completed = useRef(false)
   const onBeforeCompleteRef = useLiveRef(onBeforeComplete)
 
