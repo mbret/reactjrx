@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react"
+import { useEffect } from "react"
 import {
   Observable,
   catchError,
@@ -18,12 +18,12 @@ import {
 } from "rxjs"
 import { arrayEqual } from "../utils/arrayEqual"
 import { shallowEqual } from "../utils/shallowEqual"
-import { useObserve } from "../useObserve"
 import { querx } from "./querx"
 import { QuerxOptions } from "./types"
 import { useBehaviorSubject } from "../binding/useBehaviorSubject"
-import { useSubject } from "../useSubject"
-import { useSubscribe } from "../useSubscribe"
+import { useSubscribe } from "../binding/useSubscribe"
+import { useObserve } from "../binding/useObserve"
+import { useTrigger } from "../binding/useTrigger"
 
 type Query<T> = (() => Promise<T>) | (() => Observable<T>) | Observable<T>
 
@@ -55,7 +55,7 @@ export function useQuery<T>(
     {}) as QuerxOptions
   const key = Array.isArray(keyOrQuery) ? keyOrQuery : undefined
   const params$ = useBehaviorSubject({ key, options, query })
-  const refetch$ = useSubject<void>()
+  const [refetch$, refetch] = useTrigger<void>()
   const data$ = useBehaviorSubject<{
     data: T | undefined
     isLoading: boolean
@@ -104,7 +104,7 @@ export function useQuery<T>(
       newKeyReceived$,
       enabledOptionChanged$,
       queryAsObservableObjectChanged$.pipe(startWith(undefined)),
-      refetch$.current.pipe(startWith(undefined))
+      refetch$.pipe(startWith(undefined))
     ])
 
     const disabled$ = enabledOptionChanged$.pipe(
@@ -152,8 +152,6 @@ export function useQuery<T>(
   }, [])
 
   const result = useObserve(data$.current)
-
-  const refetch = useCallback(() => refetch$.current.next(undefined), [])
 
   return { ...result, refetch }
 }

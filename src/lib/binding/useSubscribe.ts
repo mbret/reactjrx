@@ -1,6 +1,6 @@
 import { DependencyList, useEffect } from "react"
 import { Observable, catchError, EMPTY } from "rxjs"
-import { useLiveRef } from "./utils/useLiveRef"
+import { useLiveRef } from "../utils/useLiveRef"
 
 export function useSubscribe<T>(source: Observable<T>): void
 

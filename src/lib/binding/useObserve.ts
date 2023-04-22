@@ -14,8 +14,8 @@ import {
   finalize,
   BehaviorSubject
 } from "rxjs"
-import { primitiveEqual } from "./utils/primitiveEqual"
-import { useLiveRef } from "./utils/useLiveRef"
+import { useLiveRef } from "../utils/useLiveRef";
+import { primitiveEqual } from "../utils/primitiveEqual";
 
 type Option<R = undefined> = { defaultValue: R; key?: string }
 
