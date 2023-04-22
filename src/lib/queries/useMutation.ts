@@ -14,8 +14,9 @@ import { querx } from "./querx"
 import { QuerxOptions } from "./types"
 import { useBehaviorSubject } from "../binding/useBehaviorSubject"
 import { useObserve } from "../binding/useObserve"
-import { useTrigger } from "../binding/useTrigger"
 import { useSubscribe } from "../binding/useSubscribe"
+import { useSubject } from "../binding/useSubject"
+import { useCallback } from "react"
 
 type Result<A, R> = {
   isLoading: boolean
@@ -51,7 +52,7 @@ export function useMutation<A = void, R = undefined>(
   options: QuerxOptions = {}
 ): Result<A, R> {
   const queryRef = useLiveRef(query)
-  const [triggerSubject, mutate] = useTrigger<A>()
+  const triggerSubject = useSubject<A>()
   const optionsRef = useLiveRef(options)
   const data$ = useBehaviorSubject<{
     data: R | undefined
@@ -65,7 +66,7 @@ export function useMutation<A = void, R = undefined>(
 
   useSubscribe(
     () =>
-      triggerSubject.pipe(
+      triggerSubject.current.pipe(
         tap(() => {
           console.log("trigger", optionsRef.current)
         }),
@@ -108,6 +109,10 @@ export function useMutation<A = void, R = undefined>(
   )
 
   const result = useObserve(data$.current)
+
+  const mutate = useCallback((arg: A) => {
+    triggerSubject.current.next(arg)
+  }, [])
 
   return { ...result, mutate }
 }

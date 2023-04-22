@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useCallback, useEffect } from "react"
 import {
   Observable,
   catchError,
@@ -23,7 +23,8 @@ import { QuerxOptions } from "./types"
 import { useBehaviorSubject } from "../binding/useBehaviorSubject"
 import { useSubscribe } from "../binding/useSubscribe"
 import { useObserve } from "../binding/useObserve"
-import { useTrigger } from "../binding/useTrigger"
+import { useCacheOperator } from "./useCacheOperator"
+import { useSubject } from "../binding/useSubject"
 
 type Query<T> = (() => Promise<T>) | (() => Observable<T>) | Observable<T>
 
@@ -55,7 +56,7 @@ export function useQuery<T>(
     {}) as QuerxOptions
   const key = Array.isArray(keyOrQuery) ? keyOrQuery : undefined
   const params$ = useBehaviorSubject({ key, options, query })
-  const [refetch$, refetch] = useTrigger<void>()
+  const refetch$ = useSubject<void>()
   const data$ = useBehaviorSubject<{
     data: T | undefined
     isLoading: boolean
@@ -65,6 +66,7 @@ export function useQuery<T>(
     error: undefined,
     isLoading: true
   })
+  const withCache = useCacheOperator()
 
   useEffect(() => {
     params$.current.next({
@@ -104,7 +106,7 @@ export function useQuery<T>(
       newKeyReceived$,
       enabledOptionChanged$,
       queryAsObservableObjectChanged$.pipe(startWith(undefined)),
-      refetch$.pipe(startWith(undefined))
+      refetch$.current.pipe(startWith(undefined))
     ])
 
     const disabled$ = enabledOptionChanged$.pipe(
@@ -132,6 +134,7 @@ export function useQuery<T>(
       }),
       switchMap(([, options, query]) =>
         from(defer(() => (typeof query === "function" ? query() : query))).pipe(
+          withCache,
           querx(options),
           map((response) => [response] as const),
           catchError((error) => {
@@ -152,6 +155,10 @@ export function useQuery<T>(
   }, [])
 
   const result = useObserve(data$.current)
+
+  const refetch = useCallback((arg: void) => {
+    refetch$.current.next(arg)
+  }, [])
 
   return { ...result, refetch }
 }

@@ -1,15 +1,19 @@
 import { Observable } from "rxjs"
 import { useSubscribe } from "./useSubscribe"
-import { useTrigger } from "./useTrigger"
-import { DependencyList } from "react"
+import { DependencyList, useCallback } from "react"
+import { useSubject } from "./useSubject"
 
-export const useObserveCallback = <T = void, R>(
+export const useObserveCallback = <T = void, R = void>(
   callback: (source: Observable<T>) => Observable<R>,
   deps: DependencyList
 ) => {
-  const [trigger$, trigger] = useTrigger<T>()
+  const trigger$ = useSubject<T>()
 
-  useSubscribe(() => callback(trigger$), [trigger$, ...deps])
+  useSubscribe(() => callback(trigger$.current), [trigger$, ...deps])
+
+  const trigger = useCallback((arg: T) => {
+    trigger$.current.next(arg)
+  }, [])
 
   return [trigger, trigger$] as const
 }
