@@ -1,9 +1,8 @@
 // react binding
 export * from "./lib/binding/useObserve"
 export * from "./lib/binding/useSubscribe"
-export * from "./lib/binding/useTrigger"
 export * from "./lib/binding/useObserveCallback"
-export * from "./lib/binding/signal"
+export * from "./lib/state/signal"
 export * from "./lib/binding/trigger"
 
 // utils

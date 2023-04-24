@@ -1,20 +1,23 @@
 import { BehaviorSubject, Observable, identity } from "rxjs"
 import { trackSubscriptions } from "../utils/trackSubscriptions"
-import { useObserve } from "../useObserve"
+import { useObserve } from "../binding/useObserve"
 
-export const signal = <T = undefined>({
-  default: defaultValue,
-  scoped = false,
-  key
-}: {
+type Option<T> = {
   default?: T
   scoped?: boolean
   key?: string
-}): [
+}
+
+type Return<T> = [
   () => T,
   (stateOrUpdater: T | ((prev: T) => T)) => void,
-  Observable<T>
-] => {
+  () => T,
+  Observable<T>,
+  Option<T>
+]
+
+export const signal = <T = undefined>(options: Option<T>): Return<T> => {
+  const { default: defaultValue, scoped = false, key } = options
   const subject = new BehaviorSubject(defaultValue as T)
   const subject$ = subject.asObservable().pipe(
     scoped
@@ -29,7 +32,7 @@ export const signal = <T = undefined>({
       : identity
   )
 
-  const hook = () =>
+  const useValue = () =>
     useObserve(subject$, { defaultValue: defaultValue as T, key })
 
   const setValue = <F extends (prev: T) => T>(arg: T | F) => {
@@ -47,15 +50,19 @@ export const signal = <T = undefined>({
     return subject.next(arg)
   }
 
+  const getValue = () => subject.getValue()
+
   return [
-    hook,
+    useValue,
     setValue,
+    getValue,
     /**
      * @important
      * We return the original behavior subject for two reasons:
      * - useObserve may return the default value directly instead of undefined
      * - the scope exist for react binding, this observable is a direct access outside of it
      */
-    subject
+    subject,
+    options
   ]
 }
