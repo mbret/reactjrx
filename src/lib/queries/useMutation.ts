@@ -68,9 +68,6 @@ export function useMutation<A = void, R = undefined>(
     () =>
       triggerSubject.current.pipe(
         tap(() => {
-          console.log("trigger", optionsRef.current)
-        }),
-        tap(() => {
           data$.current.next({
             ...data$.current.getValue(),
             error: undefined,
