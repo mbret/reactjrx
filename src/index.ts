@@ -2,8 +2,14 @@
 export * from "./lib/binding/useObserve"
 export * from "./lib/binding/useSubscribe"
 export * from "./lib/binding/useObserveCallback"
-export * from "./lib/state/signal"
 export * from "./lib/binding/trigger"
+
+// state
+export * from "./lib/state/signal"
+export * from "./lib/state/persistance/PersistSignals"
+export * from "./lib/state/persistance/withPersistance"
+export * from "./lib/state/persistance/createSharedStoreAdapter"
+export * from "./lib/state/persistance/createLocalforageAdapter"
 
 // utils
 export * from "./lib/utils/useUnmountObservable"

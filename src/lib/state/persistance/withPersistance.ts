@@ -1,9 +1,11 @@
 import { Observable } from "rxjs"
 import { signal } from "../signal"
+import { Adapter, PersistanceEntry } from "./types"
+import { getNormalizedPersistanceValue } from "./getNormalizedPersistanceValue"
 
-type Return<T> = [
-  () => Promise<void>,
-  () => Promise<void>,
+type WithPersistanceReturn<T> = [
+  (params: { adapter: Adapter }) => Promise<void>,
+  (params: { adapter: Adapter }) => Promise<void>,
   Observable<T>,
   { key?: string }
 ]
@@ -11,7 +13,7 @@ type Return<T> = [
 export function withPersistance<T>(
   _signal: ReturnType<typeof signal<T>>,
   { version = 0 }: { version?: number } = {}
-): [Return<T>, ...ReturnType<typeof signal<T>>] {
+): [WithPersistanceReturn<T>, ...ReturnType<typeof signal<T>>] {
   const [hook, setState, getState, state$, options] = _signal
 
   if (!options.key) {
@@ -20,34 +22,49 @@ export function withPersistance<T>(
     )
   }
 
-  const hydrate = async () => {
-    if (!options.key) return
+  const hydrate = async ({
+    adapter,
+    key = options.key
+  }: {
+    adapter: Adapter
+    key?: string
+  }) => {
+    if (!key) return
 
-    const value = localStorage.getItem(options.key)
+    const value = await adapter.getItem(key)
 
-    if (!value) return
+    const normalizedValue = getNormalizedPersistanceValue(value)
 
-    const hydratedValue = JSON.parse(value)
+    if (!normalizedValue) return
 
-    if (version > hydratedValue.migration.version) {
+    if (
+      normalizedValue.migrationVersion &&
+      version > normalizedValue.migrationVersion
+    ) {
       return
     }
 
-    setState(hydratedValue.value)
-
-    console.log(`hydrate ${options.key}`, hydratedValue)
+    setState((value as any).value)
   }
 
-  const persist = async () => {
-    if (!options.key) return
+  const persist = async ({
+    adapter,
+    key = options.key
+  }: {
+    adapter: Adapter
+    key?: string
+  }) => {
+    if (!key) return
 
     const state = getState()
 
-    const value = JSON.stringify({ value: state, migration: { version } })
+    const value = {
+      value: state,
+      __key: "reactjrx_persistance",
+      migrationVersion: version
+    } satisfies PersistanceEntry
 
-    localStorage.setItem(options.key, value)
-
-    console.log(`persist ${options.key}`, value)
+    await adapter.setItem(key, value)
   }
 
   return [
