@@ -16,7 +16,7 @@ import {
 } from "rxjs"
 import { useSubscribe } from "../../binding/useSubscribe"
 import { Adapter } from "./types"
-import { createLocalStorageAdapter } from "./createLocalstorageAdapter"
+import { createLocalStorageAdapter } from "./createLocalStorageAdapter"
 
 export const PersistSignals = ({
   children,
