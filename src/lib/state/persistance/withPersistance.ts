@@ -3,18 +3,19 @@ import { signal } from "../signal"
 import { Adapter, PersistanceEntry } from "./types"
 import { getNormalizedPersistanceValue } from "./getNormalizedPersistanceValue"
 
-type WithPersistanceReturn<T> = [
-  (params: { adapter: Adapter }) => Promise<void>,
-  (params: { adapter: Adapter }) => Promise<void>,
-  Observable<T>,
-  { key?: string }
-]
+type WithPersistanceReturn<T> = {
+  hydrateValue: (params: { adapter: Adapter }) => Promise<void>
+  persistValue: (params: { adapter: Adapter }) => Promise<void>
+  setValue: ReturnType<typeof signal<T>>[1]
+  $: Observable<T>
+  options: { key?: string }
+}
 
 export function withPersistance<T>(
   _signal: ReturnType<typeof signal<T>>,
   { version = 0 }: { version?: number } = {}
 ): [WithPersistanceReturn<T>, ...ReturnType<typeof signal<T>>] {
-  const [hook, setState, getState, state$, options] = _signal
+  const [hook, setValue, getState, $, options, ...rest] = _signal
 
   if (!options.key) {
     console.error(
@@ -22,7 +23,7 @@ export function withPersistance<T>(
     )
   }
 
-  const hydrate = async ({
+  const hydrateValue = async ({
     adapter,
     key = options.key
   }: {
@@ -44,10 +45,10 @@ export function withPersistance<T>(
       return
     }
 
-    setState((value as any).value)
+    setValue((value as any).value)
   }
 
-  const persist = async ({
+  const persistValue = async ({
     adapter,
     key = options.key
   }: {
@@ -68,11 +69,12 @@ export function withPersistance<T>(
   }
 
   return [
-    [hydrate, persist, state$, options],
+    { hydrateValue, persistValue, setValue, $, options },
     hook,
-    setState,
+    setValue,
     getState,
-    state$,
-    options
+    $,
+    options,
+    ...rest
   ]
 }

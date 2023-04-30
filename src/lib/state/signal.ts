@@ -4,7 +4,7 @@ import { useObserve } from "../binding/useObserve"
 import { SIGNAL_RESET } from "./constants"
 
 type Option<R = undefined> = {
-  scoped?: boolean
+  // scoped?: boolean
   key?: string
 } & (R extends undefined
   ? {
@@ -14,20 +14,34 @@ type Option<R = undefined> = {
       default: R
     })
 
+type SetState<S> = (
+  stateOrUpdater: typeof SIGNAL_RESET | S | ((prev: S) => S)
+) => void
+
+export type Signal<S> = {
+  setState: SetState<S>
+}
+
 type Return<S, R> = [
   () => R,
-  (stateOrUpdater: typeof SIGNAL_RESET | S | ((prev: S) => S)) => void,
+  SetState<S>,
   () => R,
   Observable<R>,
-  Option<S>
+  Option<S>,
+  Signal<S>
 ]
+
+// @todo turn into signal.$, signal.getValue, signal.setValue, signal.options, etc
+// useSignal(signal)
 
 export function signal<T = undefined>(options: Option<T>): Return<T, T>
 export function signal<T = undefined>(options: Option<T>): Return<T, T> {
-  const { default: defaultValue, scoped = false, key } = options ?? {}
+  // const { default: defaultValue, scoped = false, key } = options ?? {}
+  const { default: defaultValue, key } = options ?? {}
   const subject = new BehaviorSubject(defaultValue as T)
   const subject$ = subject.asObservable().pipe(
-    scoped
+    // scoped
+    false
       ? trackSubscriptions((numberOfSubscriptions) => {
           if (
             numberOfSubscriptions < 1 &&
@@ -40,7 +54,7 @@ export function signal<T = undefined>(options: Option<T>): Return<T, T> {
   )
 
   const useValue = () =>
-    useObserve(subject$, { defaultValue: defaultValue as T, key })
+    useObserve(subject$, { defaultValue: subject.getValue(), key })
 
   const setValue = <F extends (prev: T) => T>(
     arg: T | F | typeof SIGNAL_RESET
@@ -76,6 +90,7 @@ export function signal<T = undefined>(options: Option<T>): Return<T, T> {
      * - the scope exist for react binding, this observable is a direct access outside of it
      */
     subject,
-    options
+    options,
+    { setState: setValue }
   ]
 }

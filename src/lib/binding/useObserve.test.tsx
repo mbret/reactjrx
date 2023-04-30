@@ -33,8 +33,6 @@ describe("useObserve", () => {
         values.push(useObserve(source$))
       }, {})
 
-      console.log(values)
-
       expect(values[0]).toBe("foo")
     })
   })
