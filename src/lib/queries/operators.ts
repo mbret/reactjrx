@@ -9,6 +9,6 @@ export const retryFromOptions = (options: QuerxOptions) =>
           shouldRetry: options.retry
         }
       : {
-          maxRetries: options.retry ?? 3
+          maxRetries: options.retry === false ? 0 : options.retry ?? 3
         })
   })
