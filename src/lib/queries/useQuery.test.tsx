@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { interval, of } from "rxjs"
 import { render } from "@testing-library/react"
-import React, { memo, useEffect, useRef } from "react"
+import React, { memo, useEffect, useRef, useState } from "react"
 import { cleanup } from "@testing-library/react"
 import { useQuery } from "./useQuery"
 
@@ -10,29 +10,43 @@ afterEach(() => {
 })
 
 describe("useQuery", () => {
-  it("a", async () => {
-    const Comp = () => {
-      const { data } = useQuery(() => interval(1))
+  describe("Given a query that returns an interval stream", () => {
+    it("should return consecutive results", async () => {
+      const Comp = () => {
+        const [values, setValues] = useState<(number | undefined)[]>([])
 
-      return <>{data}</>
-    }
+        const { data } = useQuery(() => interval(1))
 
-    const { findByText } = render(
-      <React.StrictMode>
-        <Comp />
-      </React.StrictMode>
-    )
+        useEffect(() => {
+          data && setValues((v) => [...v, data])
+        }, [data])
 
-    expect(await findByText("3")).toBeDefined()
+        return <>{values.join(",")}</>
+      }
+
+      const { findByText } = render(
+        <React.StrictMode>
+          <Comp />
+        </React.StrictMode>
+      )
+
+      expect(await findByText("1,2,3")).toBeDefined()
+    })
   })
 
-  it("b", async () => {
+  it("should return consecutive results", async () => {
     const source = interval(1)
 
     const Comp = () => {
+      const [values, setValues] = useState<(number | undefined)[]>([])
+
       const { data } = useQuery(source)
 
-      return <>{data}</>
+      useEffect(() => {
+        data && setValues((v) => [...v, data])
+      }, [data])
+
+      return <>{values.join(",")}</>
     }
 
     const { findByText } = render(
@@ -41,14 +55,10 @@ describe("useQuery", () => {
       </React.StrictMode>
     )
 
-    expect(await findByText("3")).toBeDefined()
+    expect(await findByText("1,2,3")).toBeDefined()
   })
 
   describe("Given a new source every render", () => {
-    it("", () => {
-      expect(true).toBe(true)
-    })
-
     it("should infinite render and throw", async () => {
       const Comp = () => {
         const renderCount = useRef(0)

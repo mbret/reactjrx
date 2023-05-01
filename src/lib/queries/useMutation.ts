@@ -76,9 +76,30 @@ type Result<A, R> = {
   mutate: (args: A) => void
 }
 
+/**
+ * The default value `merge` is suitable for most use case.
+ * You should not have to worry too much about it and only consider changing
+ * it when specific need arise.
+ * 
+ * `merge`:
+ * Run each mutation as they are triggered without any cancellation or queue system.
+ * The result is always from the latest mutation triggered, not necessarily
+ * the latest one running.
+ * 
+ * `concat`:
+ * Unlike merge, it will trigger each mutation sequentially following
+ * a queue system. The result is not necessarily the last triggered mutation
+ * but the current running mutation.
+ * 
+ * `switch`:
+ * Only run the latest mutation triggered and cancel any previously running one.
+ * Result correspond to the current running mutation.
+ */
+type MapOperator = "switch" | "concat" | "merge"
+
 export function useMutation<A = void, R = undefined>(
   query: (args: A) => Promise<R> | Observable<R>,
-  mapOperatorOrOptions?: "switch" | "concat" | "merge",
+  mapOperatorOrOptions?: MapOperator,
   options?: MutationOptions<R>
 ): Result<A, R>
 
@@ -110,7 +131,7 @@ export function useMutation<A = void, R = undefined>(
  */
 export function useMutation<A = void, R = undefined>(
   query: (args: A) => Promise<R> | Observable<R>,
-  mapOperatorOrOptions?: "switch" | "concat" | "merge" | MutationOptions<R>,
+  mapOperatorOrOptions?: MapOperator | MutationOptions<R>,
   options: MutationOptions<R> = {}
 ): Result<A, R> {
   const queryRef = useLiveRef(query)

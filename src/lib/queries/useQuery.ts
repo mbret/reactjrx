@@ -3,6 +3,7 @@ import {
   Observable,
   catchError,
   combineLatest,
+  concat,
   defer,
   distinctUntilChanged,
   filter,
@@ -23,8 +24,11 @@ import { QuerxOptions } from "./types"
 import { useBehaviorSubject } from "../binding/useBehaviorSubject"
 import { useSubscribe } from "../binding/useSubscribe"
 import { useObserve } from "../binding/useObserve"
-import { useCacheOperator } from "./useCacheOperator"
+// import { useCacheOperator } from "./useCacheOperator"
 import { useSubject } from "../binding/useSubject"
+import { useProvider } from "./Provider"
+import { serializeKey } from "./serializeKey"
+import { deduplicate } from "./deduplication/deduplicate"
 
 type Query<T> = (() => Promise<T>) | (() => Observable<T>) | Observable<T>
 
@@ -66,7 +70,8 @@ export function useQuery<T>(
     error: undefined,
     isLoading: true
   })
-  const withCache = useCacheOperator()
+  const { queryStore } = useProvider()
+  // const withCache = useCacheOperator()
 
   useEffect(() => {
     params$.current.next({
@@ -87,11 +92,11 @@ export function useQuery<T>(
       distinctUntilChanged(arrayEqual)
     )
 
-    const query$ = params$.current.pipe(
+    const newQuery$ = params$.current.pipe(
       map(({ query }) => query ?? (() => of(undefined)))
     )
 
-    const queryAsObservableObjectChanged$ = query$.pipe(
+    const queryAsObservableObjectChanged$ = newQuery$.pipe(
       filter((query) => typeof query !== "function"),
       distinctUntilChanged(shallowEqual)
     )
@@ -124,7 +129,8 @@ export function useQuery<T>(
 
     return queryTrigger$.pipe(
       filter(([, enabled]) => enabled),
-      withLatestFrom(options$, query$),
+      withLatestFrom(options$, newQuery$),
+      map(([[key], options, query]) => [key, options, query] as const),
       tap(() => {
         data$.current.next({
           ...data$.current.getValue(),
@@ -132,29 +138,47 @@ export function useQuery<T>(
           isLoading: true
         })
       }),
-      switchMap(([, options, query]) =>
-        from(defer(() => (typeof query === "function" ? query() : query))).pipe(
-          withCache,
-          querx(options),
-          map((response) => [response] as const),
-          catchError((error) => {
-            return of([undefined, error] as const)
-          }),
-          takeUntil(disabled$)
+      switchMap(([key, options, query]) => {
+        const serializedKey = serializeKey(key)
+
+        const query$ = from(
+          defer(() => (typeof query === "function" ? query() : query))
         )
-      ),
-      tap(([response, error]) => {
-        data$.current.next({
-          ...data$.current.getValue(),
-          isLoading: false,
-          error,
-          data: response
-        })
+
+        return concat(
+          query$.pipe(
+            deduplicate(serializedKey, queryStore),
+            // key.length > 0 ? withCache(key) : identity,
+            querx(options),
+            map((response) => [response] as const),
+            catchError((error) => {
+              return of([undefined, error] as const)
+            }),
+            tap(([response, error]) => {
+              data$.current.next({
+                ...data$.current.getValue(),
+                isLoading: false,
+                error,
+                data: response
+              })
+            })
+          )
+          // timer(500).pipe(
+          //   tap(() => {
+          //     console.log("stale query")
+          //     refetch$.current.next()
+          //   })
+          // )
+        ).pipe(takeUntil(disabled$))
       })
     )
   }, [])
 
-  const result = useObserve(data$.current)
+  const result = useObserve(
+    () => data$.current,
+    { defaultValue: data$.current.getValue() },
+    []
+  )
 
   const refetch = useCallback((arg: void) => {
     refetch$.current.next(arg)
