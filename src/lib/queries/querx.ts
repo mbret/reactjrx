@@ -3,6 +3,6 @@ import { retryFromOptions } from "./operators"
 import { QuerxOptions } from "./types"
 
 export const querx =
-  <T>(options: QuerxOptions) =>
+  <T>(options: Pick<QuerxOptions, "retry">) =>
   (source: Observable<T>) =>
     source.pipe(retryFromOptions(options))

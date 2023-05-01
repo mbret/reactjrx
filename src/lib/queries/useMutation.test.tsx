@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { Observable, Subject, finalize, takeUntil, timer } from "rxjs"
 import { render } from "@testing-library/react"
-import React, { useEffect } from "react"
+import React, { useEffect, useState } from "react"
 import { cleanup } from "@testing-library/react"
 import { useMutation } from "./useMutation"
 
@@ -10,6 +10,117 @@ afterEach(() => {
 })
 
 describe("useMutation", () => {
+  describe("Given two consecutive mutation triggered", () => {
+    describe("when map operator is merge", () => {
+      it("should only show the second mutation result", async () => {
+        const Comp = () => {
+          const [done, setDone] = useState({ 1: false, 2: false })
+          const [values, setValues] = useState<(number | undefined)[]>([])
+          const { data, mutate } = useMutation(
+            async ({ res, timeout }: { res: number; timeout: number }) => {
+              return new Promise<number>((resolve) =>
+                setTimeout(() => resolve(res), timeout)
+              )
+            },
+            {
+              onSuccess: (data) => {
+                setDone((s) => ({ ...s, [data]: true }))
+              }
+            }
+          )
+
+          useEffect(() => {
+            data && setValues((v) => [...v, data])
+          }, [data])
+
+          useEffect(() => {
+            mutate({ res: 1, timeout: 3 })
+            mutate({ res: 2, timeout: 1 })
+          }, [])
+
+          // we only display content once all mutations are done
+          // this way when we text string later we know exactly
+          return <>{done[1] && done[2] ? values : ``}</>
+        }
+
+        const { findByText } = render(
+          <React.StrictMode>
+            <Comp />
+          </React.StrictMode>
+        )
+
+        expect(await findByText("2")).toBeDefined()
+      })
+    })
+
+    describe("when map operator is concat", () => {
+      it("should show results sequentially", async () => {
+        const Comp = () => {
+          const [done, setDone] = useState({ 1: false, 2: false })
+          const [values, setValues] = useState<(number | undefined)[]>([])
+          const { data, mutate } = useMutation(
+            async ({ res, timeout }: { res: number; timeout: number }) => {
+              return new Promise<number>((resolve) =>
+                setTimeout(() => resolve(res), timeout)
+              )
+            },
+            "concat",
+            {
+              onSuccess: (data) => {
+                setDone((s) => ({ ...s, [data]: true }))
+              }
+            }
+          )
+
+          useEffect(() => {
+            data && setValues((v) => [...v, data])
+          }, [data])
+
+          useEffect(() => {
+            mutate({ res: 1, timeout: 3 })
+            mutate({ res: 2, timeout: 1 })
+          }, [])
+
+          // we only display content once all mutations are done
+          // this way when we text string later we know exactly
+          return <>{done[1] && done[2] ? values.join(",") : ``}</>
+        }
+
+        const { findByText } = render(
+          <React.StrictMode>
+            <Comp />
+          </React.StrictMode>
+        )
+
+        expect(await findByText("1,2")).toBeDefined()
+      })
+    })
+  })
+
+  describe("Given async function which returns 2", () => {
+    describe("and component renders its data", () => {
+      it("should returns 2 when called", async () => {
+        const Comp = () => {
+          const { data, mutate } = useMutation(async () => 2)
+
+          useEffect(() => {
+            mutate()
+          }, [])
+
+          return <>{data}</>
+        }
+
+        const { findByText } = render(
+          <React.StrictMode>
+            <Comp />
+          </React.StrictMode>
+        )
+
+        expect(await findByText("2")).toBeDefined()
+      })
+    })
+  })
+
   describe("Given a call to mutate when component is unmounted", () => {
     it("should not call the function", async () => {
       let called = 0

@@ -1,7 +1,6 @@
 import {
   DependencyList,
   useCallback,
-  useEffect,
   useRef,
   useSyncExternalStore
 } from "react"
@@ -14,8 +13,8 @@ import {
   finalize,
   BehaviorSubject
 } from "rxjs"
-import { useLiveRef } from "../utils/useLiveRef";
-import { primitiveEqual } from "../utils/primitiveEqual";
+import { useLiveRef } from "../utils/useLiveRef"
+import { primitiveEqual } from "../utils/primitiveEqual"
 
 type Option<R = undefined> = { defaultValue: R; key?: string }
 
@@ -58,19 +57,12 @@ export function useObserve<T, R>(
       : typeof source$ === "function"
       ? unsafeDeps ?? []
       : [source$]
-  const valueRef = useRef({
-    data:
-      "getValue" in source$ && typeof source$.getValue === "function"
-        ? source$.getValue()
-        : options.defaultValue,
-    error: undefined
-  })
+  const valueRef = useRef(
+    "getValue" in source$ && typeof source$.getValue === "function"
+      ? source$.getValue()
+      : options.defaultValue
+  )
   const sourceRef = useLiveRef(source$)
-
-  useEffect(() => {
-    valueRef.current.data = undefined
-    valueRef.current.error = undefined
-  }, [])
 
   const subscribe = useCallback(
     (next: () => void) => {
@@ -88,13 +80,13 @@ export function useObserve<T, R>(
            */
           distinctUntilChanged(primitiveEqual),
           tap((value) => {
-            valueRef.current = { data: value as any, error: undefined }
+            valueRef.current = value as any
           }),
           finalize(next),
           catchError((error) => {
             console.error(error)
 
-            valueRef.current = { ...valueRef.current, error }
+            valueRef.current = undefined
 
             return EMPTY
           })
@@ -112,7 +104,7 @@ export function useObserve<T, R>(
     return valueRef.current
   }, [])
 
-  const result = useSyncExternalStore(subscribe, getSnapshot, getSnapshot).data
+  const result = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 
   return result as T | R
 }

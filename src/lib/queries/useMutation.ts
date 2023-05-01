@@ -3,6 +3,7 @@ import {
   MonoTypeOperatorFunction,
   Observable,
   catchError,
+  combineLatest,
   concatMap,
   defer,
   first,
@@ -11,7 +12,9 @@ import {
   map,
   mergeMap,
   of,
+  startWith,
   switchMap,
+  take,
   tap
 } from "rxjs"
 import { querx } from "./querx"
@@ -20,10 +23,20 @@ import { useObserve } from "../binding/useObserve"
 import { useSubject } from "../binding/useSubject"
 import { useCallback, useEffect } from "react"
 
-export type MutationOptions = {
+export type MutationOptions<R> = {
   retry?: false | number | ((attempt: number, error: unknown) => boolean)
+  /**
+   * Called for every mutation on error.
+   * `merge` mapping will run callback as they happen.
+   * Use `concat` if you need to run callbacks in order of calling.
+   */
   onError?: (error: unknown) => void
-  onSuccess?: () => void
+  /**
+   * Called for every mutation on success.
+   * `merge` mapping will run callback as they happen.
+   * Use `concat` if you need to run callbacks in order of calling.
+   */
+  onSuccess?: (data: R) => void
   /**
    * When true, any running mutation will be cancelled (when possible) on unmount.
    * You need to handle it yourself for promises if needed.
@@ -42,16 +55,36 @@ export type MutationOptions = {
 }
 
 type Result<A, R> = {
+  status: "idle" | "loading" | "error" | "success"
   isLoading: boolean
+  /**
+   * If the latest mutation is in a success state, data contains its result.
+   *
+   * @important
+   * The value does not automatically reset when a new mutation run. It will be updated
+   * when a new mutation success or error.
+   */
   data: R | undefined
+  /**
+   * If the latest mutation is in a error state, error contains its error.
+   *
+   * @important
+   * The value does not automatically reset when a new mutation run. It will be updated
+   * when a new mutation success or error.
+   */
   error: unknown | undefined
   mutate: (args: A) => void
 }
 
 export function useMutation<A = void, R = undefined>(
   query: (args: A) => Promise<R> | Observable<R>,
-  mapOperatorOrOptions?: ("switch" | "concat" | "merge") | MutationOptions,
-  options?: MutationOptions
+  mapOperatorOrOptions?: "switch" | "concat" | "merge",
+  options?: MutationOptions<R>
+): Result<A, R>
+
+export function useMutation<A = void, R = undefined>(
+  query: (args: A) => Promise<R> | Observable<R>,
+  mapOperatorOrOptions?: MutationOptions<R>
 ): Result<A, R>
 
 /**
@@ -77,10 +110,8 @@ export function useMutation<A = void, R = undefined>(
  */
 export function useMutation<A = void, R = undefined>(
   query: (args: A) => Promise<R> | Observable<R>,
-  mapOperatorOrOptions:
-    | ("switch" | "concat" | "merge")
-    | MutationOptions = "merge",
-  options: MutationOptions = {}
+  mapOperatorOrOptions?: "switch" | "concat" | "merge" | MutationOptions<R>,
+  options: MutationOptions<R> = {}
 ): Result<A, R> {
   const queryRef = useLiveRef(query)
   const triggerSubject = useSubject<A>()
@@ -89,12 +120,12 @@ export function useMutation<A = void, R = undefined>(
   )
   const data$ = useBehaviorSubject<{
     data: R | undefined
-    isLoading: boolean
+    status: "idle" | "loading" | "error" | "success"
     error: unknown
   }>({
     data: undefined,
     error: undefined,
-    isLoading: false
+    status: "idle"
   })
   const mapOperator =
     typeof mapOperatorOrOptions === "string" ? mapOperatorOrOptions : "merge"
@@ -109,37 +140,62 @@ export function useMutation<A = void, R = undefined>(
 
     const subscription = triggerSubject.current
       .pipe(
-        tap(() => {
+        // tap(() => {
+        //   data$.current.next({
+        //     ...data$.current.getValue(),
+        //     status: "loading"
+        //   })
+        // }),
+        switchOperator((args) => {
+          const newMutationCalled$ = triggerSubject.current.pipe(
+            take(1),
+            map(() => (mapOperator === "concat" ? true : false)),
+            startWith(true)
+          )
+
           data$.current.next({
             ...data$.current.getValue(),
-            error: undefined,
-            isLoading: true
+            status: "loading"
           })
-        }),
-        switchOperator((args) =>
-          from(defer(() => queryRef.current(args))).pipe(
-            querx(optionsRef.current),
-            first(),
-            map((response) => [response] as const),
-            catchError((error: unknown) => {
-              optionsRef.current.onError && optionsRef.current.onError(error)
 
-              return of([undefined, error] as const)
-            }),
-            tap(([response, error]) => {
+          return combineLatest([
+            from(defer(() => queryRef.current(args))).pipe(
+              querx(optionsRef.current),
+              first(),
+              map((response) => [response] as const),
+              catchError((error: unknown) => {
+                optionsRef.current.onError && optionsRef.current.onError(error)
+
+                return of([undefined, error] as const)
+              })
+            ),
+            newMutationCalled$
+          ]).pipe(
+            tap(([[response, error], isLastMutation]) => {
               if (response) {
-                optionsRef.current.onSuccess && optionsRef.current.onSuccess()
+                optionsRef.current.onSuccess &&
+                  optionsRef.current.onSuccess(response)
               }
 
-              data$.current.next({
-                ...data$.current.getValue(),
-                isLoading: false,
-                error,
-                data: response
-              })
+              if (isLastMutation) {
+                data$.current.next({
+                  ...data$.current.getValue(),
+                  ...(error
+                    ? {
+                        status: "error",
+                        error,
+                        data: undefined
+                      }
+                    : {
+                        status: "success",
+                        error: undefined,
+                        data: response
+                      })
+                })
+              }
             })
           )
-        ),
+        }),
         optionsRef.current.hooks ?? identity
       )
       .subscribe()
@@ -151,11 +207,17 @@ export function useMutation<A = void, R = undefined>(
     }
   }, [mapOperator])
 
-  const result = useObserve(data$.current)
+  const result = useObserve(
+    () => data$.current,
+    {
+      defaultValue: data$.current.getValue()
+    },
+    []
+  )
 
   const mutate = useCallback((arg: A) => {
     triggerSubject.current.next(arg)
   }, [])
 
-  return { ...result, mutate }
+  return { ...result, isLoading: result.status === "loading", mutate }
 }

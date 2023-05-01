@@ -115,17 +115,17 @@ describe("useObserve", () => {
   it("should return correct result with use ref source under strict mode", async () => {
     const Comp = memo(() => {
       const source = useBehaviorSubject(3)
-      const a = useObserve(source.current)
+      const result = useObserve(() => source.current, [])
 
       useEffect(() => {
-        const s = setTimeout(() => {
+        const timer = setTimeout(() => {
           source.current.next(4)
         }, 5)
 
-        return () => clearTimeout(s)
+        return () => clearTimeout(timer)
       }, [])
 
-      return <>{a}</>
+      return <>{result}</>
     })
 
     const { findByText } = render(
