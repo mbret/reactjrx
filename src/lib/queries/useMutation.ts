@@ -140,12 +140,6 @@ export function useMutation<A = void, R = undefined>(
 
     const subscription = triggerSubject.current
       .pipe(
-        // tap(() => {
-        //   data$.current.next({
-        //     ...data$.current.getValue(),
-        //     status: "loading"
-        //   })
-        // }),
         switchOperator((args) => {
           const newMutationCalled$ = triggerSubject.current.pipe(
             take(1),
