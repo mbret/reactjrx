@@ -6,7 +6,6 @@ export type QuerxOptions = {
   refetchOnWindowFocus?: boolean
   // @todo
   refetchOnMount?: boolean
-  // @todo
   staleTime?: number
   onError?: (error: unknown) => void
   onSuccess?: () => void
