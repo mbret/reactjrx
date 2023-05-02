@@ -4,7 +4,9 @@ import { QueryStore } from "./useQueryStore"
 export const deduplicate =
   <T>(key: string, queryStore?: QueryStore) =>
   (source: Observable<T>) => {
-    const sourceFromStore = queryStore?.get(key)
+    if (!key) return source
+
+    const sourceFromStore: Observable<T> | undefined = queryStore?.get(key)
 
     const finalSource =
       sourceFromStore ??

@@ -3,7 +3,6 @@ import {
   Observable,
   catchError,
   combineLatest,
-  concat,
   defer,
   distinctUntilChanged,
   filter,
@@ -29,6 +28,7 @@ import { useSubject } from "../binding/useSubject"
 import { useProvider } from "./Provider"
 import { serializeKey } from "./serializeKey"
 import { deduplicate } from "./deduplication/deduplicate"
+import { autoRefetch } from "./invalidation/autoRefetch"
 
 type Query<T> = (() => Promise<T>) | (() => Observable<T>) | Observable<T>
 
@@ -128,48 +128,51 @@ export function useQuery<T>(
     )
 
     return queryTrigger$.pipe(
-      filter(([, enabled]) => enabled),
       withLatestFrom(options$, newQuery$),
-      map(([[key], options, query]) => [key, options, query] as const),
-      tap(() => {
-        data$.current.next({
-          ...data$.current.getValue(),
-          error: undefined,
-          isLoading: true
-        })
-      }),
-      switchMap(([key, options, query]) => {
+      map(([[key, enabled], options, query]) => ({
+        key,
+        enabled,
+        options,
+        query
+      })),
+      filter(({ enabled }) => enabled),
+      switchMap(({ key, options, query }) => {
         const serializedKey = serializeKey(key)
 
-        const query$ = from(
-          defer(() => (typeof query === "function" ? query() : query))
-        )
-
-        return concat(
-          query$.pipe(
-            deduplicate(serializedKey, queryStore),
-            // key.length > 0 ? withCache(key) : identity,
-            querx(options),
-            map((response) => [response] as const),
-            catchError((error) => {
-              return of([undefined, error] as const)
-            }),
-            tap(([response, error]) => {
-              data$.current.next({
-                ...data$.current.getValue(),
-                isLoading: false,
-                error,
-                data: response
-              })
+        return of(null).pipe(
+          tap(() => {
+            data$.current.next({
+              ...data$.current.getValue(),
+              error: undefined,
+              isLoading: true
             })
-          )
-          // timer(500).pipe(
-          //   tap(() => {
-          //     console.log("stale query")
-          //     refetch$.current.next()
-          //   })
-          // )
-        ).pipe(takeUntil(disabled$))
+          }),
+          switchMap(() => {
+            const query$ = from(
+              defer(() => (typeof query === "function" ? query() : query))
+            )
+
+            return query$.pipe(
+              querx(options),
+              deduplicate(serializedKey, queryStore),
+              // key.length > 0 ? withCache(key) : identity,
+              map((response) => [response] as const),
+              catchError((error) => {
+                return of([undefined, error] as const)
+              }),
+              tap(([response, error]) => {
+                data$.current.next({
+                  ...data$.current.getValue(),
+                  isLoading: false,
+                  error,
+                  data: response
+                })
+              })
+            )
+          }),
+          autoRefetch(options),
+          takeUntil(disabled$)
+        )
       })
     )
   }, [])

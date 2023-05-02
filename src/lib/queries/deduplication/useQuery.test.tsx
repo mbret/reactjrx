@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest"
-import { delay, interval, of, tap } from "rxjs"
+import { afterEach, describe, expect, it, vi } from "vitest"
+import { delay, interval, of, tap, timer } from "rxjs"
 import { render } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
 import { cleanup } from "@testing-library/react"
@@ -46,7 +46,7 @@ describe("useQuery", () => {
     describe("when useQuery unmount", () => {
       it("should remove query from the store", async () => {
         const query = async () =>
-          new Promise((resolve) => setTimeout(resolve, Infinity))
+          new Promise((resolve) => setTimeout(resolve, 100))
         let _queryStore: QueryStore | undefined
 
         const Comp2 = () => {
@@ -92,6 +92,27 @@ describe("useQuery", () => {
     })
 
     describe("when a second useQuery is mounted with the same key", () => {
+      describe("and the key is empty", () => {
+        it("it should call function each time individually", () => {
+          const queryMock = vi.fn().mockImplementation(() => timer(100))
+
+          const Comp = () => {
+            useQuery([], queryMock)
+            useQuery([], queryMock)
+
+            return null
+          }
+
+          render(
+            <Provider>
+              <Comp />
+            </Provider>
+          )
+
+          expect(queryMock).toHaveBeenCalledTimes(2)
+        })
+      })
+
       it("should run observable only once", async () => {
         let tapped = 0
         let mounted = 0
