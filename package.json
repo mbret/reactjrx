@@ -48,8 +48,8 @@
     "eslint-plugin-n": "^15.7.0",
     "eslint-plugin-promise": "^6.1.1",
     "eslint-plugin-react": "^7.32.2",
-    "global-jsdom": "^8.8.0",
-    "jsdom": "^21.1.1",
+    "global-jsdom": "^9.0.1",
+    "jsdom": "^22.0.0",
     "prettier": "^2.8.7",
     "rollup-plugin-node-externals": "^5.1.2",
     "rxjs": "^7.8.0",
@@ -57,7 +57,7 @@
     "typescript": "^5.0.4",
     "vite": "^4.2.1",
     "vite-plugin-dts": "^2.2.0",
-    "vitest": "^0.30.1"
+    "vitest": "^0.31.0"
   },
   "dependencies": {
     "@testing-library/react": "^14.0.0",
