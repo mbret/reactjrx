@@ -22,8 +22,10 @@ export const useCreateCacheStore = () => {
                 acc[key] = entry
               }
 
+              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
               // @ts-expect-error
               acc[key]._debug = {
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-expect-error
                 eol: new Date(store[key].date + store[key].ttl)
               }

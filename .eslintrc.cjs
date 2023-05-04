@@ -8,9 +8,10 @@ module.exports = {
   parserOptions: {
     ecmaVersion: "latest",
     sourceType: "module",
-    project: "./tsconfig.json"
+    project: "tsconfig.json"
   },
   plugins: ["react"],
+  ignorePatterns: ["vitest.config.ts", "vite.config.ts"],
   rules: {
     "@typescript-eslint/explicit-function-return-type": 0,
     "react/display-name": 0,

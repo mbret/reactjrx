@@ -22,7 +22,7 @@ export const useSubject = <S>({
 
     return () => {
       if (!completed.current) {
-        onBeforeCompleteRef.current != null && onBeforeCompleteRef.current()
+        if (onBeforeCompleteRef.current != null) onBeforeCompleteRef.current()
         subject.current.complete()
         completed.current = true
       }

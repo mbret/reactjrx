@@ -1,5 +1,5 @@
-import { BehaviorSubject, type Observable, identity } from "rxjs"
-import { trackSubscriptions } from "../utils/trackSubscriptions"
+import { BehaviorSubject, type Observable } from "rxjs"
+// import { trackSubscriptions } from "../utils/trackSubscriptions"
 import { useObserve } from "../binding/useObserve"
 import { SIGNAL_RESET } from "./constants"
 
@@ -40,19 +40,20 @@ export function signal<T = undefined>(options: Option<T>): Return<T, T> {
   // const { default: defaultValue, scoped = false, key } = options ?? {}
   const { default: defaultValue, key } = options ?? {}
   const subject = new BehaviorSubject(defaultValue as T)
-  const subject$ = subject.asObservable().pipe(
-    // scoped
-    false
-      ? trackSubscriptions((numberOfSubscriptions) => {
-          if (
-            numberOfSubscriptions < 1 &&
-            subject.getValue() !== defaultValue
-          ) {
-            subject.next(defaultValue as T)
-          }
-        })
-      : identity
-  )
+  const subject$ = subject.asObservable()
+  // .pipe(
+  //   // scoped
+  //   false
+  //     ? trackSubscriptions((numberOfSubscriptions) => {
+  //         if (
+  //           numberOfSubscriptions < 1 &&
+  //           subject.getValue() !== defaultValue
+  //         ) {
+  //           subject.next(defaultValue as T)
+  //         }
+  //       })
+  //     : identity
+  // )
 
   const useValue = () =>
     useObserve(subject$, { defaultValue: subject.getValue(), key })
