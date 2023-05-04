@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { delay, interval, of, tap, timer } from "rxjs"
+import { Subject, delay, interval, merge, of, tap, timer } from "rxjs"
 import { render } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
 import { cleanup } from "@testing-library/react"
@@ -119,11 +119,10 @@ describe("useQuery", () => {
 
         const Comp = () => {
           const query = () =>
-            of(undefined).pipe(
+            merge(of(undefined), new Subject()).pipe(
               tap(() => {
                 tapped++
-              }),
-              delay(999999)
+              })
             )
 
           useQuery(["foo"], query)

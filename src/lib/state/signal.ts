@@ -18,8 +18,9 @@ type SetState<S> = (
   stateOrUpdater: typeof SIGNAL_RESET | S | ((prev: S) => S)
 ) => void
 
-export type Signal<S> = {
+export type Signal<S, R> = {
   setState: SetState<S>
+  useState: () => R
 }
 
 type Return<S, R> = [
@@ -28,7 +29,7 @@ type Return<S, R> = [
   () => R,
   Observable<R>,
   Option<S>,
-  Signal<S>
+  Signal<S, R>
 ]
 
 // @todo turn into signal.$, signal.getValue, signal.setValue, signal.options, etc
@@ -91,6 +92,6 @@ export function signal<T = undefined>(options: Option<T>): Return<T, T> {
      */
     subject,
     options,
-    { setState: setValue }
+    { setState: setValue, useState: useValue }
   ]
 }

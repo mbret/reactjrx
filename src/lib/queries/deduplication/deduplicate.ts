@@ -1,4 +1,4 @@
-import { Observable, finalize, share } from "rxjs"
+import { Observable, finalize, shareReplay } from "rxjs"
 import { QueryStore } from "./useQueryStore"
 
 export const deduplicate =
@@ -14,7 +14,10 @@ export const deduplicate =
         finalize(() => {
           queryStore?.delete(key)
         }),
-        share()
+        shareReplay({
+          refCount: true,
+          bufferSize: 1
+        })
       )
 
     if (!sourceFromStore) {

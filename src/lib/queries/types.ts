@@ -1,4 +1,4 @@
-export type QuerxOptions = {
+export type QuerxOptions<R = unknown> = {
   enabled?: boolean
   // eslint-disable-next-line no-unused-vars
   retry?: false | number | ((attempt: number, error: unknown) => boolean)
@@ -7,6 +7,7 @@ export type QuerxOptions = {
   // @todo
   refetchOnMount?: boolean
   staleTime?: number
+  cacheTime?: number
   onError?: (error: unknown) => void
-  onSuccess?: () => void
+  onSuccess?: (data: R) => void
 }

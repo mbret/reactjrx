@@ -6,7 +6,7 @@ import { SIGNAL_RESET } from "./constants"
 /**
  * Will reset signals when the scope is unmounted
  */
-export const useScopeSignals = (signals: Signal<any>[]) => {
+export const useScopeSignals = (signals: Signal<any, any>[]) => {
   const signalsRef = useLiveRef(signals)
 
   useEffect(

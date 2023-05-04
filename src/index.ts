@@ -6,6 +6,7 @@ export * from "./lib/binding/trigger"
 
 // state
 export * from "./lib/state/signal"
+export * from "./lib/state/useSignal"
 export * from "./lib/state/useScopeSignals"
 export * from "./lib/state/constants"
 export * from "./lib/state/persistance/PersistSignals"
@@ -16,9 +17,10 @@ export * from "./lib/state/persistance/createLocalforageAdapter"
 // utils
 export * from "./lib/utils/useUnmountObservable"
 export * from "./lib/utils/retryBackoff"
+export * from "./lib/utils/useLiveRef"
 
 // higher helpers
 export * from "./lib/queries/useMutation"
 export * from "./lib/queries/useQuery"
 export * from "./lib/queries/useSubscribeEffect"
-export * from "./lib/queries/Provider"
+export { Provider as ReactjrxQueryProvider } from "./lib/queries/Provider"

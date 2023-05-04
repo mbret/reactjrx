@@ -39,25 +39,28 @@ type Result<R> = {
   refetch: () => void
 }
 
-export function useQuery<T>(query: Query<T>, options?: QuerxOptions): Result<T>
+export function useQuery<T>(
+  query: Query<T>,
+  options?: QuerxOptions<T>
+): Result<T>
 
 export function useQuery<T>(
   key: any[],
   query: Query<T>,
-  options?: QuerxOptions
+  options?: QuerxOptions<T>
 ): Result<T>
 
 export function useQuery<T>(
   keyOrQuery: any[] | Query<T>,
   queryOrOptionOrNothing?: Query<T> | QuerxOptions,
-  optionsOrNothing?: QuerxOptions
+  optionsOrNothing?: QuerxOptions<T>
 ): Result<T> {
   const query = Array.isArray(keyOrQuery)
     ? (queryOrOptionOrNothing as Query<T> | undefined)
     : keyOrQuery
   const options = (optionsOrNothing ??
     (queryOrOptionOrNothing !== query ? queryOrOptionOrNothing : undefined) ??
-    {}) as QuerxOptions
+    {}) as QuerxOptions<T>
   const key = Array.isArray(keyOrQuery) ? keyOrQuery : undefined
   const params$ = useBehaviorSubject({ key, options, query })
   const refetch$ = useSubject<void>()
@@ -136,6 +139,7 @@ export function useQuery<T>(
         query
       })),
       filter(({ enabled }) => enabled),
+
       switchMap(({ key, options, query }) => {
         const serializedKey = serializeKey(key)
 
@@ -161,6 +165,10 @@ export function useQuery<T>(
                 return of([undefined, error] as const)
               }),
               tap(([response, error]) => {
+                if (response) {
+                  options.onSuccess && options.onSuccess(response)
+                }
+
                 data$.current.next({
                   ...data$.current.getValue(),
                   isLoading: false,
