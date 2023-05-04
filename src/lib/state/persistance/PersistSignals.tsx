@@ -6,7 +6,7 @@ import {
   useContext,
   useMemo
 } from "react"
-import { type withPersistance } from "./withPersistance"
+import type { WithPersistanceReturn } from "./withPersistance"
 import { useLiveRef } from "../../utils/useLiveRef"
 import { useObserve } from "../../binding/useObserve"
 import {
@@ -41,7 +41,7 @@ export const PersistSignals = memo(
     adapter = createLocalStorageAdapter(localStorage)
   }: {
     children: ReactNode
-    signals?: Array<ReturnType<typeof withPersistance<any>>[0]>
+    signals?: Array<WithPersistanceReturn<any>>
     onReady?: () => void
     adapter?: Adapter
   }) => {

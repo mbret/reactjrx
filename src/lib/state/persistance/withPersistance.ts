@@ -3,7 +3,7 @@ import { type signal } from "../signal"
 import { type Adapter, type PersistanceEntry } from "./types"
 import { getNormalizedPersistanceValue } from "./getNormalizedPersistanceValue"
 
-interface WithPersistanceReturn<T> {
+export interface WithPersistanceReturn<T> {
   hydrateValue: (params: { adapter: Adapter }) => Promise<void>
   persistValue: (params: { adapter: Adapter }) => Promise<void>
   setValue: ReturnType<typeof signal<T>>[1]
