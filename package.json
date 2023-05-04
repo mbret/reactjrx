@@ -26,6 +26,7 @@
     "prepublishOnly": "npm run build",
     "semantic-release": "semantic-release",
     "test": "vitest",
+    "test:ci": "vitest run",
     "tsc": "tsc",
     "lint": "eslint '**/*.{js,ts,tsx}'",
     "format": "prettier -w . && eslint --fix '**/*.{js,ts,tsx}'"
