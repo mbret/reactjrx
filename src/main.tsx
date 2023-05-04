@@ -1,12 +1,8 @@
 import React from "react"
 import ReactDOM from "react-dom/client"
-import {
-  interval,
-  map,
-  tap
-} from "rxjs"
-import { useSubscribe } from "./lib/useSubscribe"
-import { useObserve } from "./lib/useObserve"
+import { interval, map, tap } from "rxjs"
+import { useObserve } from "./lib/binding/useObserve"
+import { useSubscribe } from "./lib/binding/useSubscribe"
 
 const App = () => {
   useObserve(() => interval(1000), [])
