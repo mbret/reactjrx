@@ -3,7 +3,7 @@ import {
   useCallback,
   useRef,
   useSyncExternalStore
-} from 'react'
+} from "react"
 import {
   type Observable,
   tap,
@@ -12,9 +12,9 @@ import {
   EMPTY,
   finalize,
   type BehaviorSubject
-} from 'rxjs'
-import { useLiveRef } from '../utils/useLiveRef'
-import { primitiveEqual } from '../utils/primitiveEqual'
+} from "rxjs"
+import { useLiveRef } from "../utils/useLiveRef"
+import { primitiveEqual } from "../utils/primitiveEqual"
 
 interface Option<R = undefined> {
   defaultValue: R
@@ -25,27 +25,27 @@ interface Option<R = undefined> {
  * @todo return first value if source is behavior subject
  */
 
-export function useObserve<T> (source: BehaviorSubject<T>): T
+export function useObserve<T>(source: BehaviorSubject<T>): T
 
-export function useObserve<T> (source: Observable<T>): T | undefined
+export function useObserve<T>(source: Observable<T>): T | undefined
 
-export function useObserve<T> (
+export function useObserve<T>(
   source: () => Observable<T>,
   deps: DependencyList
 ): T | undefined
 
-export function useObserve<T, R = undefined> (
+export function useObserve<T, R = undefined>(
   source: Observable<T>,
   options: Option<R>
 ): T | R
 
-export function useObserve<T, R = undefined> (
+export function useObserve<T, R = undefined>(
   source: () => Observable<T>,
   options: Option<R>,
   deps: DependencyList
 ): T | R
 
-export function useObserve<T, R> (
+export function useObserve<T, R>(
   source$: Observable<T> | (() => Observable<T>),
   unsafeOptions?: Option<R> | DependencyList,
   unsafeDeps?: DependencyList
@@ -53,15 +53,15 @@ export function useObserve<T, R> (
   const options =
     unsafeOptions != null && !Array.isArray(unsafeOptions)
       ? (unsafeOptions as Option<R>)
-      : ({ defaultValue: undefined, key: '' } satisfies Option<undefined>)
+      : ({ defaultValue: undefined, key: "" } satisfies Option<undefined>)
   const deps =
     unsafeDeps == null && Array.isArray(unsafeOptions)
       ? unsafeOptions
-      : typeof source$ === 'function'
-        ? unsafeDeps ?? []
-        : [source$]
+      : typeof source$ === "function"
+      ? unsafeDeps ?? []
+      : [source$]
   const valueRef = useRef(
-    'getValue' in source$ && typeof source$.getValue === 'function'
+    "getValue" in source$ && typeof source$.getValue === "function"
       ? source$.getValue()
       : options.defaultValue
   )
@@ -71,7 +71,7 @@ export function useObserve<T, R> (
     (next: () => void) => {
       const source = sourceRef.current
       const makeObservable =
-        typeof source === 'function' ? source : () => source
+        typeof source === "function" ? source : () => source
 
       const sub = makeObservable()
         .pipe(

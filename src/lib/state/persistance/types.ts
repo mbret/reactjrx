@@ -6,5 +6,5 @@ export interface Adapter {
 export interface PersistanceEntry {
   value: unknown
   migrationVersion?: number
-  __key: 'reactjrx_persistance'
+  __key: "reactjrx_persistance"
 }

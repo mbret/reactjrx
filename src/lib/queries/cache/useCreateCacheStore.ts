@@ -1,8 +1,8 @@
-import { interval, skip, tap, withLatestFrom } from 'rxjs'
-import { useBehaviorSubject } from '../../binding/useBehaviorSubject'
-import { useSubscribe } from '../../binding/useSubscribe'
+import { interval, skip, tap, withLatestFrom } from "rxjs"
+import { useBehaviorSubject } from "../../binding/useBehaviorSubject"
+import { useSubscribe } from "../../binding/useSubscribe"
 
-type CacheStore = Record<string, { value: any, date: number, ttl: number }>
+type CacheStore = Record<string, { value: any; date: number; ttl: number }>
 
 export const useCreateCacheStore = () => {
   const cacheStore = useBehaviorSubject<CacheStore>({})
@@ -14,7 +14,7 @@ export const useCreateCacheStore = () => {
         tap(() => {
           const store = cacheStore.current.getValue()
           console.log(
-            '[cache] update',
+            "[cache] update",
             Object.keys(store).reduce<CacheStore>((acc, key) => {
               const entry = store[key]
 

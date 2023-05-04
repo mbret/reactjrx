@@ -1,7 +1,7 @@
-import { BehaviorSubject, type Observable, identity } from 'rxjs'
-import { trackSubscriptions } from '../utils/trackSubscriptions'
-import { useObserve } from '../binding/useObserve'
-import { SIGNAL_RESET } from './constants'
+import { BehaviorSubject, type Observable, identity } from "rxjs"
+import { trackSubscriptions } from "../utils/trackSubscriptions"
+import { useObserve } from "../binding/useObserve"
+import { SIGNAL_RESET } from "./constants"
 
 type Option<R = undefined> = {
   // scoped?: boolean
@@ -35,8 +35,8 @@ type Return<S, R> = [
 // @todo turn into signal.$, signal.getValue, signal.setValue, signal.options, etc
 // useSignal(signal)
 
-export function signal<T = undefined> (options: Option<T>): Return<T, T>
-export function signal<T = undefined> (options: Option<T>): Return<T, T> {
+export function signal<T = undefined>(options: Option<T>): Return<T, T>
+export function signal<T = undefined>(options: Option<T>): Return<T, T> {
   // const { default: defaultValue, scoped = false, key } = options ?? {}
   const { default: defaultValue, key } = options ?? {}
   const subject = new BehaviorSubject(defaultValue as T)
@@ -44,13 +44,13 @@ export function signal<T = undefined> (options: Option<T>): Return<T, T> {
     // scoped
     false
       ? trackSubscriptions((numberOfSubscriptions) => {
-        if (
-          numberOfSubscriptions < 1 &&
+          if (
+            numberOfSubscriptions < 1 &&
             subject.getValue() !== defaultValue
-        ) {
-          subject.next(defaultValue as T)
-        }
-      })
+          ) {
+            subject.next(defaultValue as T)
+          }
+        })
       : identity
   )
 
@@ -63,7 +63,7 @@ export function signal<T = undefined> (options: Option<T>): Return<T, T> {
     // prevent unnecessary state update if equals
     if (arg === subject.getValue()) return
 
-    if (typeof arg === 'function') {
+    if (typeof arg === "function") {
       const change = (arg as F)(subject.getValue())
 
       if (change === subject.getValue()) return

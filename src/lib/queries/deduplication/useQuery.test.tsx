@@ -1,23 +1,23 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { Subject, delay, interval, merge, of, tap, timer } from 'rxjs'
-import { render, cleanup } from '@testing-library/react'
-import React, { useEffect, useState } from 'react'
-import { useQuery } from '../useQuery'
-import { Provider, useProvider } from '../Provider'
-import { type QueryStore } from './useQueryStore'
+import { afterEach, describe, expect, it, vi } from "vitest"
+import { Subject, delay, interval, merge, of, tap, timer } from "rxjs"
+import { render, cleanup } from "@testing-library/react"
+import React, { useEffect, useState } from "react"
+import { useQuery } from "../useQuery"
+import { Provider, useProvider } from "../Provider"
+import { type QueryStore } from "./useQueryStore"
 
 afterEach(() => {
   cleanup()
 })
 
-describe('useQuery', () => {
-  describe('Given a query that complete', () => {
-    it('should remove query from the store', async () => {
+describe("useQuery", () => {
+  describe("Given a query that complete", () => {
+    it("should remove query from the store", async () => {
       const query = async () => 2
       let _queryStore: QueryStore | undefined
 
       const Comp = () => {
-        const { data } = useQuery(['foo'], query)
+        const { data } = useQuery(["foo"], query)
 
         const { queryStore } = useProvider()
 
@@ -35,21 +35,21 @@ describe('useQuery', () => {
       )
       expect(_queryStore?.size).toBe(1)
 
-      expect(await findByText('2')).toBeDefined()
+      expect(await findByText("2")).toBeDefined()
 
       expect(_queryStore?.size).toBe(0)
     })
   })
 
-  describe('Given a query that takes time to finish', () => {
-    describe('when useQuery unmount', () => {
-      it('should remove query from the store', async () => {
+  describe("Given a query that takes time to finish", () => {
+    describe("when useQuery unmount", () => {
+      it("should remove query from the store", async () => {
         const query = async () =>
           await new Promise((resolve) => setTimeout(resolve, 100))
         let _queryStore: QueryStore | undefined
 
         const Comp2 = () => {
-          useQuery(['foo'], query)
+          useQuery(["foo"], query)
 
           const { queryStore } = useProvider()
 
@@ -84,15 +84,15 @@ describe('useQuery', () => {
 
         expect(_queryStore?.size).toBe(1)
 
-        expect(await findByText('unmounted')).toBeDefined()
+        expect(await findByText("unmounted")).toBeDefined()
 
         expect(_queryStore?.size).toBe(0)
       })
     })
 
-    describe('when a second useQuery is mounted with the same key', () => {
-      describe('and the key is empty', () => {
-        it('it should call function each time individually', () => {
+    describe("when a second useQuery is mounted with the same key", () => {
+      describe("and the key is empty", () => {
+        it("it should call function each time individually", () => {
           const queryMock = vi.fn().mockImplementation(() => timer(100))
 
           const Comp = () => {
@@ -112,7 +112,7 @@ describe('useQuery', () => {
         })
       })
 
-      it('should run observable only once', async () => {
+      it("should run observable only once", async () => {
         let tapped = 0
         let mounted = 0
 
@@ -124,8 +124,8 @@ describe('useQuery', () => {
               })
             )
 
-          useQuery(['foo'], query)
-          useQuery(['foo'], query)
+          useQuery(["foo"], query)
+          useQuery(["foo"], query)
 
           useEffect(() => {
             mounted++
@@ -145,12 +145,12 @@ describe('useQuery', () => {
         expect(tapped).toBe(mounted)
       })
 
-      it('should run observable only once', async () => {
+      it("should run observable only once", async () => {
         const Comp = () => {
           const query = () => interval(1)
 
-          const { data } = useQuery(['foo'], query)
-          const { data: data2 } = useQuery(['foo'], query)
+          const { data } = useQuery(["foo"], query)
+          const { data: data2 } = useQuery(["foo"], query)
 
           return (
             <>
@@ -167,7 +167,7 @@ describe('useQuery', () => {
           </React.StrictMode>
         )
 
-        expect(await findByText('1,1')).toBeDefined()
+        expect(await findByText("1,1")).toBeDefined()
       })
     })
   })

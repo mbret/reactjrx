@@ -1,7 +1,7 @@
-import { type Observable } from 'rxjs'
-import { useSubscribe } from './useSubscribe'
-import { type DependencyList, useCallback } from 'react'
-import { useSubject } from './useSubject'
+import { type Observable } from "rxjs"
+import { useSubscribe } from "./useSubscribe"
+import { type DependencyList, useCallback } from "react"
+import { useSubject } from "./useSubject"
 
 export const useObserveCallback = <T = void, R = void>(
   callback: (source: Observable<T>) => Observable<R>,

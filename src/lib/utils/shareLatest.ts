@@ -1,4 +1,4 @@
-import { type MonoTypeOperatorFunction, ReplaySubject, share } from 'rxjs'
+import { type MonoTypeOperatorFunction, ReplaySubject, share } from "rxjs"
 
 /**
  * Share the latest value to every new observers but clean up

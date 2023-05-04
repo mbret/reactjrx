@@ -1,19 +1,19 @@
-import { afterEach, describe, expect, it } from 'vitest'
-import { BehaviorSubject, Subject, map, of, timer } from 'rxjs'
-import { useObserve } from './useObserve'
-import { act, render, renderHook, cleanup } from '@testing-library/react'
-import React, { memo, useEffect, useRef } from 'react'
-import { useBehaviorSubject } from './useBehaviorSubject'
+import { afterEach, describe, expect, it } from "vitest"
+import { BehaviorSubject, Subject, map, of, timer } from "rxjs"
+import { useObserve } from "./useObserve"
+import { act, render, renderHook, cleanup } from "@testing-library/react"
+import React, { memo, useEffect, useRef } from "react"
+import { useBehaviorSubject } from "./useBehaviorSubject"
 
 afterEach(() => {
   cleanup()
 })
 
-describe('useObserve', () => {
-  describe('Given a non BehaviorSubject observable', () => {
-    it('should return undefined before subscription', async () => {
+describe("useObserve", () => {
+  describe("Given a non BehaviorSubject observable", () => {
+    it("should return undefined before subscription", async () => {
       const values: Array<string | undefined> = []
-      const source$ = of('foo')
+      const source$ = of("foo")
 
       renderHook(() => {
         values.push(useObserve(source$))
@@ -23,20 +23,20 @@ describe('useObserve', () => {
     })
   })
 
-  describe('Given a BehaviorSubject observable', () => {
-    it('should return subject current value before subscription', async () => {
+  describe("Given a BehaviorSubject observable", () => {
+    it("should return subject current value before subscription", async () => {
       const values: string[] = []
-      const source$ = new BehaviorSubject('foo')
+      const source$ = new BehaviorSubject("foo")
 
       renderHook(() => {
         values.push(useObserve(source$))
       }, {})
 
-      expect(values[0]).toBe('foo')
+      expect(values[0]).toBe("foo")
     })
   })
 
-  it('should return custom default value', async ({ expect }) => {
+  it("should return custom default value", async ({ expect }) => {
     const source$ = new Subject<number>()
 
     const { result } = renderHook(
@@ -47,7 +47,7 @@ describe('useObserve', () => {
     expect(result.current).toBe(null)
   })
 
-  it('should return the value after subscription', async ({ expect }) => {
+  it("should return the value after subscription", async ({ expect }) => {
     const source$ = of(123)
 
     const { result } = renderHook(() => useObserve(source$), {})
@@ -57,7 +57,7 @@ describe('useObserve', () => {
     expect(result.current).toBe(123)
   })
 
-  it('should return new value after a stream change', async ({ expect }) => {
+  it("should return new value after a stream change", async ({ expect }) => {
     const source$ = new Subject<number>()
 
     const { result } = renderHook(() => useObserve(source$), {})
@@ -79,7 +79,7 @@ describe('useObserve', () => {
     expect(result.current).toBe(1)
   })
 
-  it('should return correct result with observable under normal mode', async () => {
+  it("should return correct result with observable under normal mode", async () => {
     const source = timer(1).pipe(map(() => 2))
 
     const Comp = () => {
@@ -90,10 +90,10 @@ describe('useObserve', () => {
 
     const { findByText } = render(<Comp />)
 
-    expect(await findByText('2')).toBeDefined()
+    expect(await findByText("2")).toBeDefined()
   })
 
-  it('should return correct result with observable under strict mode', async () => {
+  it("should return correct result with observable under strict mode", async () => {
     const source = timer(1).pipe(map(() => 2))
 
     const Comp = () => {
@@ -108,10 +108,10 @@ describe('useObserve', () => {
       </React.StrictMode>
     )
 
-    expect(await findByText('2')).toBeDefined()
+    expect(await findByText("2")).toBeDefined()
   })
 
-  it('should return correct result with use ref source under strict mode', async () => {
+  it("should return correct result with use ref source under strict mode", async () => {
     const Comp = memo(() => {
       const source = useBehaviorSubject(3)
       const result = useObserve(() => source.current, [])
@@ -135,10 +135,10 @@ describe('useObserve', () => {
       </React.StrictMode>
     )
 
-    expect(await findByText('4')).toBeDefined()
+    expect(await findByText("4")).toBeDefined()
   })
 
-  it('should return correct result with factory under strict mode', async () => {
+  it("should return correct result with factory under strict mode", async () => {
     const Comp = () => {
       const data = useObserve(() => of(3), [])
 
@@ -151,10 +151,10 @@ describe('useObserve', () => {
       </React.StrictMode>
     )
 
-    expect(getByText('3')).toBeDefined()
+    expect(getByText("3")).toBeDefined()
   })
 
-  it('should disable query once render count reach 10 and therefore return 10', async () => {
+  it("should disable query once render count reach 10 and therefore return 10", async () => {
     const Comp = memo(() => {
       const renderCount = useRef(0)
 
@@ -178,6 +178,6 @@ describe('useObserve', () => {
       </React.StrictMode>
     )
 
-    expect(await findByText('10')).toBeDefined()
+    expect(await findByText("10")).toBeDefined()
   })
 })

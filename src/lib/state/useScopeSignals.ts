@@ -1,7 +1,7 @@
-import { useLiveRef } from '../utils/useLiveRef'
-import { useEffect } from 'react'
-import { type Signal } from './signal'
-import { SIGNAL_RESET } from './constants'
+import { useLiveRef } from "../utils/useLiveRef"
+import { useEffect } from "react"
+import { type Signal } from "./signal"
+import { SIGNAL_RESET } from "./constants"
 
 /**
  * Will reset signals when the scope is unmounted

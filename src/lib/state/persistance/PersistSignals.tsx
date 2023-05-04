@@ -5,10 +5,10 @@ import {
   useCallback,
   useContext,
   useMemo
-} from 'react'
-import { type withPersistance } from './withPersistance'
-import { useLiveRef } from '../../utils/useLiveRef'
-import { useObserve } from '../../binding/useObserve'
+} from "react"
+import { type withPersistance } from "./withPersistance"
+import { useLiveRef } from "../../utils/useLiveRef"
+import { useObserve } from "../../binding/useObserve"
 import {
   EMPTY,
   catchError,
@@ -20,12 +20,12 @@ import {
   tap,
   throttleTime,
   zip
-} from 'rxjs'
-import { useSubscribe } from '../../binding/useSubscribe'
-import { type Adapter } from './types'
-import { createLocalStorageAdapter } from './createLocalStorageAdapter'
-import { SIGNAL_RESET } from '../constants'
-import { useSubject } from '../../binding/useSubject'
+} from "rxjs"
+import { useSubscribe } from "../../binding/useSubscribe"
+import { type Adapter } from "./types"
+import { createLocalStorageAdapter } from "./createLocalStorageAdapter"
+import { SIGNAL_RESET } from "../constants"
+import { useSubject } from "../../binding/useSubject"
 
 const PersistSignalsContext = createContext({
   resetSignals: () => {}
@@ -67,18 +67,18 @@ export const PersistSignals = memo(
           items.length === 0
             ? of(true)
             : zip(
-              ...items.map(({ hydrateValue }) =>
-                from(hydrateValue({ adapter: adapterRef.current }))
-              )
-            ).pipe(map(() => true))
+                ...items.map(({ hydrateValue }) =>
+                  from(hydrateValue({ adapter: adapterRef.current }))
+                )
+              ).pipe(map(() => true))
 
         return stream.pipe(
           tap(() => {
-            console.log('hydration complete')
+            console.log("hydration complete")
             onReadyRef.current != null && onReadyRef.current()
           }),
           catchError((error) => {
-            console.error('Unable to hydrate', error)
+            console.error("Unable to hydrate", error)
 
             return EMPTY
           })
@@ -90,28 +90,26 @@ export const PersistSignals = memo(
         !isHydrated
           ? EMPTY
           : merge(
-            ...persistanceRef.current.map(({ persistValue, $ }) =>
-            // @todo test the reset
-              merge(
-                resetSignalSubject.current,
-                $.pipe(
-                  throttleTime(500, undefined, {
-                    trailing: true,
-                    leading: false
-                  })
-                )
-              ).pipe(switchMap(() => from(persistValue({ adapter }))))
-            )
-          ),
+              ...persistanceRef.current.map(({ persistValue, $ }) =>
+                // @todo test the reset
+                merge(
+                  resetSignalSubject.current,
+                  $.pipe(
+                    throttleTime(500, undefined, {
+                      trailing: true,
+                      leading: false
+                    })
+                  )
+                ).pipe(switchMap(() => from(persistValue({ adapter }))))
+              )
+            ),
       [isHydrated, adapter]
     )
 
-    return isHydrated
-      ? (
+    return isHydrated ? (
       <PersistSignalsContext.Provider value={value}>
         {children}
       </PersistSignalsContext.Provider>
-        )
-      : null
+    ) : null
   }
 )

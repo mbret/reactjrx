@@ -1,14 +1,14 @@
-import { type Observable, finalize, shareReplay } from 'rxjs'
-import { type QueryStore } from './useQueryStore'
+import { type Observable, finalize, shareReplay } from "rxjs"
+import { type QueryStore } from "./useQueryStore"
 
 export const deduplicate =
   <T>(key: string, queryStore?: QueryStore) =>
-    (source: Observable<T>) => {
-      if (!key) return source
+  (source: Observable<T>) => {
+    if (!key) return source
 
-      const sourceFromStore: Observable<T> | undefined = queryStore?.get(key)
+    const sourceFromStore: Observable<T> | undefined = queryStore?.get(key)
 
-      const finalSource =
+    const finalSource =
       sourceFromStore ??
       source.pipe(
         finalize(() => {
@@ -20,9 +20,9 @@ export const deduplicate =
         })
       )
 
-      if (sourceFromStore == null) {
-        queryStore?.set(key, finalSource)
-      }
-
-      return finalSource
+    if (sourceFromStore == null) {
+      queryStore?.set(key, finalSource)
     }
+
+    return finalSource
+  }

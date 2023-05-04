@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect } from "react"
 import {
   type Observable,
   catchError,
@@ -15,20 +15,20 @@ import {
   takeUntil,
   tap,
   withLatestFrom
-} from 'rxjs'
-import { arrayEqual } from '../utils/arrayEqual'
-import { shallowEqual } from '../utils/shallowEqual'
-import { querx } from './querx'
-import { type QuerxOptions } from './types'
-import { useBehaviorSubject } from '../binding/useBehaviorSubject'
-import { useSubscribe } from '../binding/useSubscribe'
-import { useObserve } from '../binding/useObserve'
+} from "rxjs"
+import { arrayEqual } from "../utils/arrayEqual"
+import { shallowEqual } from "../utils/shallowEqual"
+import { querx } from "./querx"
+import { type QuerxOptions } from "./types"
+import { useBehaviorSubject } from "../binding/useBehaviorSubject"
+import { useSubscribe } from "../binding/useSubscribe"
+import { useObserve } from "../binding/useObserve"
 // import { useCacheOperator } from "./useCacheOperator"
-import { useSubject } from '../binding/useSubject'
-import { useProvider } from './Provider'
-import { serializeKey } from './serializeKey'
-import { deduplicate } from './deduplication/deduplicate'
-import { autoRefetch } from './invalidation/autoRefetch'
+import { useSubject } from "../binding/useSubject"
+import { useProvider } from "./Provider"
+import { serializeKey } from "./serializeKey"
+import { deduplicate } from "./deduplication/deduplicate"
+import { autoRefetch } from "./invalidation/autoRefetch"
 
 type Query<T> = (() => Promise<T>) | (() => Observable<T>) | Observable<T>
 
@@ -39,18 +39,18 @@ interface Result<R> {
   refetch: () => void
 }
 
-export function useQuery<T> (
+export function useQuery<T>(
   query: Query<T>,
   options?: QuerxOptions<T>
 ): Result<T>
 
-export function useQuery<T> (
+export function useQuery<T>(
   key: any[],
   query: Query<T>,
   options?: QuerxOptions<T>
 ): Result<T>
 
-export function useQuery<T> (
+export function useQuery<T>(
   keyOrQuery: any[] | Query<T>,
   queryOrOptionOrNothing?: Query<T> | QuerxOptions,
   optionsOrNothing?: QuerxOptions<T>
@@ -100,7 +100,7 @@ export function useQuery<T> (
     )
 
     const queryAsObservableObjectChanged$ = newQuery$.pipe(
-      filter((query) => typeof query !== 'function'),
+      filter((query) => typeof query !== "function"),
       distinctUntilChanged(shallowEqual)
     )
 
@@ -154,7 +154,7 @@ export function useQuery<T> (
           switchMap(() => {
             const query$ = from(
               defer(async () =>
-                typeof query === 'function' ? await query() : query
+                typeof query === "function" ? await query() : query
               )
             )
 
