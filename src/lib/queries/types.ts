@@ -1,4 +1,4 @@
-export type QuerxOptions<R = unknown> = {
+export interface QuerxOptions<R = unknown> {
   enabled?: boolean
   // eslint-disable-next-line no-unused-vars
   retry?: false | number | ((attempt: number, error: unknown) => boolean)

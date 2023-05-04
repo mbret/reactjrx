@@ -1,6 +1,6 @@
-import { useCallback, useContext } from "react"
-import { Context } from "./Provider"
-import { Observable, tap } from "rxjs"
+import { useCallback, useContext } from 'react'
+import { Context } from './Provider'
+import { Observable, tap } from 'rxjs'
 
 export const useCacheOperator = () => {
   const { cacheStore } = useContext(Context) ?? {}
@@ -19,7 +19,7 @@ export const useCacheOperator = () => {
             existingValue
           )
 
-          if (existingValue) {
+          if (existingValue != null) {
             console.log(`[cache] using cache value for ${serializedKey}`)
             subscriber.next(existingValue.value)
             subscriber.complete()
@@ -30,7 +30,7 @@ export const useCacheOperator = () => {
           const sub = source
             .pipe(
               tap((value) => {
-                if (cacheStore?.current) {
+                if (cacheStore?.current != null) {
                   console.log(
                     `[cache] update cache for ${serializedKey}`,
                     value
@@ -49,7 +49,9 @@ export const useCacheOperator = () => {
             )
             .subscribe(subscriber)
 
-          return () => sub.unsubscribe()
+          return () => {
+            sub.unsubscribe()
+          }
         })
       }
     },

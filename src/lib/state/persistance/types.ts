@@ -1,10 +1,10 @@
-export type Adapter = {
+export interface Adapter {
   getItem: (key: string) => Promise<unknown> | unknown
   setItem: (key: string, value: any) => Promise<unknown> | unknown
 }
 
-export type PersistanceEntry = {
+export interface PersistanceEntry {
   value: unknown
   migrationVersion?: number
-  __key: "reactjrx_persistance"
+  __key: 'reactjrx_persistance'
 }

@@ -27,6 +27,7 @@
     "semantic-release": "semantic-release",
     "test": "vitest",
     "tsc": "tsc",
+    "lint": "eslint '**/*.{js,ts,tsx}'",
     "format": "prettier -w . && eslint --fix '**/*.{js,ts,tsx}'"
   },
   "peerDependencies": {

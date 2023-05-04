@@ -1,5 +1,5 @@
-import { Observable } from "rxjs"
-import { useState } from "react"
+import { type Observable } from 'rxjs'
+import { useState } from 'react'
 
 export type QueryStore = Map<string, Observable<any>>
 

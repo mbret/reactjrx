@@ -1,5 +1,5 @@
-import { defer, iif, Observable, throwError, timer } from "rxjs"
-import { concatMap, retryWhen, tap } from "rxjs/operators"
+import { defer, iif, type Observable, throwError, timer } from 'rxjs'
+import { concatMap, retryWhen, tap } from 'rxjs/operators'
 
 export interface RetryBackoffConfig {
   // Initial interval. It will eventually go as high as maxInterval.
@@ -19,12 +19,12 @@ export interface RetryBackoffConfig {
 }
 
 /** Calculates the actual delay which can be limited by maxInterval */
-export function getDelay(backoffDelay: number, maxInterval: number) {
+export function getDelay (backoffDelay: number, maxInterval: number) {
   return Math.min(backoffDelay, maxInterval)
 }
 
 /** Exponential backoff delay */
-export function exponentialBackoffDelay(
+export function exponentialBackoffDelay (
   iteration: number,
   initialInterval: number
 ) {
@@ -39,7 +39,7 @@ export function exponentialBackoffDelay(
  * resubscriptions (if provided). Retrying can be cancelled at any point if
  * shouldRetry returns false.
  */
-export function retryBackoff(
+export function retryBackoff (
   config: number | RetryBackoffConfig
   // eslint-disable-next-line no-unused-vars
 ): <T>(source: Observable<T>) => Observable<T> {
@@ -50,7 +50,7 @@ export function retryBackoff(
     shouldRetry = () => true,
     resetOnSuccess = false,
     backoffDelay = exponentialBackoffDelay
-  } = typeof config === "number" ? { initialInterval: config } : config
+  } = typeof config === 'number' ? { initialInterval: config } : config
   return <T>(source: Observable<T>) =>
     defer(() => {
       let index = 0

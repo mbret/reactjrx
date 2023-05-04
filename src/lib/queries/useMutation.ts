@@ -1,7 +1,7 @@
-import { useLiveRef } from "../utils/useLiveRef"
+import { useLiveRef } from '../utils/useLiveRef'
 import {
-  MonoTypeOperatorFunction,
-  Observable,
+  type MonoTypeOperatorFunction,
+  type Observable,
   catchError,
   combineLatest,
   concatMap,
@@ -16,14 +16,14 @@ import {
   switchMap,
   take,
   tap
-} from "rxjs"
-import { querx } from "./querx"
-import { useBehaviorSubject } from "../binding/useBehaviorSubject"
-import { useObserve } from "../binding/useObserve"
-import { useSubject } from "../binding/useSubject"
-import { useCallback, useEffect } from "react"
+} from 'rxjs'
+import { querx } from './querx'
+import { useBehaviorSubject } from '../binding/useBehaviorSubject'
+import { useObserve } from '../binding/useObserve'
+import { useSubject } from '../binding/useSubject'
+import { useCallback, useEffect } from 'react'
 
-export type MutationOptions<R> = {
+export interface MutationOptions<R> {
   retry?: false | number | ((attempt: number, error: unknown) => boolean)
   /**
    * Called for every mutation on error.
@@ -54,8 +54,8 @@ export type MutationOptions<R> = {
   hooks?: MonoTypeOperatorFunction<any>
 }
 
-type Result<A, R> = {
-  status: "idle" | "loading" | "error" | "success"
+interface Result<A, R> {
+  status: 'idle' | 'loading' | 'error' | 'success'
   isLoading: boolean
   /**
    * If the latest mutation is in a success state, data contains its result.
@@ -80,30 +80,30 @@ type Result<A, R> = {
  * The default value `merge` is suitable for most use case.
  * You should not have to worry too much about it and only consider changing
  * it when specific need arise.
- * 
+ *
  * `merge`:
  * Run each mutation as they are triggered without any cancellation or queue system.
  * The result is always from the latest mutation triggered, not necessarily
  * the latest one running.
- * 
+ *
  * `concat`:
  * Unlike merge, it will trigger each mutation sequentially following
  * a queue system. The result is not necessarily the last triggered mutation
  * but the current running mutation.
- * 
+ *
  * `switch`:
  * Only run the latest mutation triggered and cancel any previously running one.
  * Result correspond to the current running mutation.
  */
-type MapOperator = "switch" | "concat" | "merge"
+type MapOperator = 'switch' | 'concat' | 'merge'
 
-export function useMutation<A = void, R = undefined>(
+export function useMutation<A = void, R = undefined> (
   query: (args: A) => Promise<R> | Observable<R>,
   mapOperatorOrOptions?: MapOperator,
   options?: MutationOptions<R>
 ): Result<A, R>
 
-export function useMutation<A = void, R = undefined>(
+export function useMutation<A = void, R = undefined> (
   query: (args: A) => Promise<R> | Observable<R>,
   mapOperatorOrOptions?: MutationOptions<R>
 ): Result<A, R>
@@ -129,7 +129,7 @@ export function useMutation<A = void, R = undefined>(
  * callback should return unmount$ variables
  * options.cancelOnUnmount should be false by default
  */
-export function useMutation<A = void, R = undefined>(
+export function useMutation<A = void, R = undefined> (
   query: (args: A) => Promise<R> | Observable<R>,
   mapOperatorOrOptions?: MapOperator | MutationOptions<R>,
   options: MutationOptions<R> = {}
@@ -137,49 +137,50 @@ export function useMutation<A = void, R = undefined>(
   const queryRef = useLiveRef(query)
   const triggerSubject = useSubject<A>()
   const optionsRef = useLiveRef(
-    typeof mapOperatorOrOptions === "object" ? mapOperatorOrOptions : options
+    typeof mapOperatorOrOptions === 'object' ? mapOperatorOrOptions : options
   )
   const data$ = useBehaviorSubject<{
     data: R | undefined
-    status: "idle" | "loading" | "error" | "success"
+    status: 'idle' | 'loading' | 'error' | 'success'
     error: unknown
   }>({
     data: undefined,
     error: undefined,
-    status: "idle"
+    status: 'idle'
   })
   const mapOperator =
-    typeof mapOperatorOrOptions === "string" ? mapOperatorOrOptions : "merge"
+    typeof mapOperatorOrOptions === 'string' ? mapOperatorOrOptions : 'merge'
 
   useEffect(() => {
     const switchOperator =
-      mapOperator === "concat"
+      mapOperator === 'concat'
         ? concatMap
-        : mapOperator === "switch"
-        ? switchMap
-        : mergeMap
+        : mapOperator === 'switch'
+          ? switchMap
+          : mergeMap
 
     const subscription = triggerSubject.current
       .pipe(
         switchOperator((args) => {
           const newMutationCalled$ = triggerSubject.current.pipe(
             take(1),
-            map(() => (mapOperator === "concat" ? true : false)),
+            map(() => mapOperator === 'concat'),
             startWith(true)
           )
 
           data$.current.next({
             ...data$.current.getValue(),
-            status: "loading"
+            status: 'loading'
           })
 
           return combineLatest([
-            from(defer(() => queryRef.current(args))).pipe(
+            from(defer(async () => await queryRef.current(args))).pipe(
               querx(optionsRef.current),
               first(),
               map((response) => [response] as const),
               catchError((error: unknown) => {
-                optionsRef.current.onError && optionsRef.current.onError(error)
+                optionsRef.current.onError != null &&
+                  optionsRef.current.onError(error)
 
                 return of([undefined, error] as const)
               })
@@ -188,7 +189,7 @@ export function useMutation<A = void, R = undefined>(
           ]).pipe(
             tap(([[response, error], isLastMutation]) => {
               if (response) {
-                optionsRef.current.onSuccess &&
+                optionsRef.current.onSuccess != null &&
                   optionsRef.current.onSuccess(response)
               }
 
@@ -197,12 +198,12 @@ export function useMutation<A = void, R = undefined>(
                   ...data$.current.getValue(),
                   ...(error
                     ? {
-                        status: "error",
+                        status: 'error',
                         error,
                         data: undefined
                       }
                     : {
-                        status: "success",
+                        status: 'success',
                         error: undefined,
                         data: response
                       })
@@ -234,5 +235,5 @@ export function useMutation<A = void, R = undefined>(
     triggerSubject.current.next(arg)
   }, [])
 
-  return { ...result, isLoading: result.status === "loading", mutate }
+  return { ...result, isLoading: result.status === 'loading', mutate }
 }

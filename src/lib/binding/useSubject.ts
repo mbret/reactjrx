@@ -1,7 +1,7 @@
-import { useEffect, useRef } from "react"
-import { Subject } from "rxjs"
-import { useLiveRef } from "../utils/useLiveRef"
-import { useConstant } from "../utils/useConstant"
+import { useEffect, useRef } from 'react'
+import { Subject } from 'rxjs'
+import { useLiveRef } from '../utils/useLiveRef'
+import { useConstant } from '../utils/useConstant'
 
 /**
  * @see
@@ -22,7 +22,7 @@ export const useSubject = <S>({
 
     return () => {
       if (!completed.current) {
-        onBeforeCompleteRef.current && onBeforeCompleteRef.current()
+        onBeforeCompleteRef.current != null && onBeforeCompleteRef.current()
         subject.current.complete()
         completed.current = true
       }

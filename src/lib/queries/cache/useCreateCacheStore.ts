@@ -1,8 +1,8 @@
-import { interval, skip, tap, withLatestFrom } from "rxjs"
-import { useBehaviorSubject } from "../../binding/useBehaviorSubject"
-import { useSubscribe } from "../../binding/useSubscribe"
+import { interval, skip, tap, withLatestFrom } from 'rxjs'
+import { useBehaviorSubject } from '../../binding/useBehaviorSubject'
+import { useSubscribe } from '../../binding/useSubscribe'
 
-type CacheStore = Record<string, { value: any; date: number; ttl: number }>
+type CacheStore = Record<string, { value: any, date: number, ttl: number }>
 
 export const useCreateCacheStore = () => {
   const cacheStore = useBehaviorSubject<CacheStore>({})
@@ -14,22 +14,22 @@ export const useCreateCacheStore = () => {
         tap(() => {
           const store = cacheStore.current.getValue()
           console.log(
-            "[cache] update",
-            Object.keys(store).reduce((acc, key) => {
+            '[cache] update',
+            Object.keys(store).reduce<CacheStore>((acc, key) => {
               const entry = store[key]
 
-              if (entry) {
+              if (entry != null) {
                 acc[key] = entry
               }
 
-              // @ts-ignore
+              // @ts-expect-error
               acc[key]._debug = {
-                // @ts-ignore
+                // @ts-expect-error
                 eol: new Date(store[key].date + store[key].ttl)
               }
 
               return acc
-            }, {} as CacheStore)
+            }, {})
           )
         })
       ),
@@ -50,7 +50,7 @@ export const useCreateCacheStore = () => {
           const validKeys = keys.filter((key) => {
             const value = store[key]
 
-            if (value && value.date + value.ttl > now) {
+            if (value != null && value.date + value.ttl > now) {
               return true
             }
 
@@ -61,15 +61,15 @@ export const useCreateCacheStore = () => {
             return
           }
 
-          const newStore = validKeys.reduce((acc, key) => {
+          const newStore = validKeys.reduce<CacheStore>((acc, key) => {
             const entry = store[key]
 
-            if (entry) {
+            if (entry != null) {
               acc[key] = entry
             }
 
             return acc
-          }, {} as CacheStore)
+          }, {})
 
           cacheStore.current.next(newStore)
         })

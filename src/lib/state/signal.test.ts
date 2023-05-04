@@ -1,11 +1,11 @@
-import { renderHook } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
-import { signal } from "./signal"
-import { SIGNAL_RESET } from "./constants"
+import { renderHook } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
+import { signal } from './signal'
+import { SIGNAL_RESET } from './constants'
 
-describe("signal", () => {
-  describe("Given a number signal with default value", () => {
-    it("should reset to default value", () => {
+describe('signal', () => {
+  describe('Given a number signal with default value', () => {
+    it('should reset to default value', () => {
       const [useValue, setValue] = signal({ default: 5 })
 
       const { result, rerender } = renderHook(() => {
@@ -28,8 +28,8 @@ describe("signal", () => {
     })
   })
 
-  describe("Given a number signal with non default value", () => {
-    it("should reset to undefined", () => {
+  describe('Given a number signal with non default value', () => {
+    it('should reset to undefined', () => {
       const [useValue, setValue] = signal<number | undefined>({})
 
       const { result, rerender } = renderHook(() => {

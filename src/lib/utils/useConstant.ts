@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef } from 'react'
 
 export const useConstant = <T>(fn: () => T) => {
   const ref = useRef<T>()
@@ -18,7 +18,7 @@ export const useConstant = <T>(fn: () => T) => {
      * The downside is that during dev the factory will be called again every
      * mount.
      */
-    if (process.env.NODE_ENV === "development") {
+    if (process.env.NODE_ENV === 'development') {
       // ref.current = fn();
     }
   }, [])

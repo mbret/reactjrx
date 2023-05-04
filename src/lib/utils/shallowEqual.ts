@@ -1,4 +1,4 @@
-export function shallowEqual<A extends any, B extends any>(
+export function shallowEqual<A extends any, B extends any> (
   objA: A,
   objB: B
 ): boolean {
@@ -13,7 +13,7 @@ export function shallowEqual<A extends any, B extends any>(
   }
 
   // Check if both objects are primitives
-  if (typeof objA !== "object" || typeof objB !== "object") {
+  if (typeof objA !== 'object' || typeof objB !== 'object') {
     return (objA as any) === (objB as any)
   }
 

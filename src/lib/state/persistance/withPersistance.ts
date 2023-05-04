@@ -1,9 +1,9 @@
-import { Observable } from "rxjs"
-import { signal } from "../signal"
-import { Adapter, PersistanceEntry } from "./types"
-import { getNormalizedPersistanceValue } from "./getNormalizedPersistanceValue"
+import { type Observable } from 'rxjs'
+import { type signal } from '../signal'
+import { type Adapter, type PersistanceEntry } from './types'
+import { getNormalizedPersistanceValue } from './getNormalizedPersistanceValue'
 
-type WithPersistanceReturn<T> = {
+interface WithPersistanceReturn<T> {
   hydrateValue: (params: { adapter: Adapter }) => Promise<void>
   persistValue: (params: { adapter: Adapter }) => Promise<void>
   setValue: ReturnType<typeof signal<T>>[1]
@@ -11,7 +11,7 @@ type WithPersistanceReturn<T> = {
   options: { key?: string }
 }
 
-export function withPersistance<T>(
+export function withPersistance<T> (
   _signal: ReturnType<typeof signal<T>>,
   { version = 0 }: { version?: number } = {}
 ): [WithPersistanceReturn<T>, ...ReturnType<typeof signal<T>>] {
@@ -19,7 +19,7 @@ export function withPersistance<T>(
 
   if (!options.key) {
     console.error(
-      "You need to specify a key to use persistance with this signal"
+      'You need to specify a key to use persistance with this signal'
     )
   }
 
@@ -36,7 +36,7 @@ export function withPersistance<T>(
 
     const normalizedValue = getNormalizedPersistanceValue(value)
 
-    if (!normalizedValue) return
+    if (normalizedValue == null) return
 
     if (
       normalizedValue.migrationVersion &&
@@ -61,7 +61,7 @@ export function withPersistance<T>(
 
     const value = {
       value: state,
-      __key: "reactjrx_persistance",
+      __key: 'reactjrx_persistance',
       migrationVersion: version
     } satisfies PersistanceEntry
 

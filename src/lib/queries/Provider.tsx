@@ -1,18 +1,18 @@
-import { ReactNode, createContext, memo, useContext, useMemo } from "react"
-import { BehaviorSubject } from "rxjs"
-import { useCreateCacheStore } from "./cache/useCreateCacheStore"
-import { useQueryStore } from "./deduplication/useQueryStore"
+import { type ReactNode, createContext, memo, useContext, useMemo } from 'react'
+import { type BehaviorSubject } from 'rxjs'
+import { useCreateCacheStore } from './cache/useCreateCacheStore'
+import { useQueryStore } from './deduplication/useQueryStore'
 
-type CacheStore = Record<string, { value: any; date: number; ttl: number }>
+type CacheStore = Record<string, { value: any, date: number, ttl: number }>
 
 export const Context = createContext<
-  | undefined
-  | {
-      cacheStore: {
-        current: BehaviorSubject<CacheStore>
-      }
-      queryStore: ReturnType<typeof useQueryStore>
-    }
+| undefined
+| {
+  cacheStore: {
+    current: BehaviorSubject<CacheStore>
+  }
+  queryStore: ReturnType<typeof useQueryStore>
+}
 >(undefined)
 
 export const Provider = memo(({ children }: { children: ReactNode }) => {
