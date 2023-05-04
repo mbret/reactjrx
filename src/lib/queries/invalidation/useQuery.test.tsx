@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { Subject, of } from "rxjs"
+import { of } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import { useQuery } from "../useQuery"
 
@@ -60,7 +60,6 @@ describe("useQuery", () => {
 
       describe("when the query take longer than the stale timeout", () => {
         it("should not refetch", async () => {
-          const triggerSubject = new Subject()
           const queryFn = vi.fn().mockImplementation(async () => undefined)
           const staleTimeout = 1
 

@@ -16,6 +16,7 @@ module.exports = {
     "react/display-name": 0,
     "@typescript-eslint/no-invalid-void-type": 0,
     "react/react-in-jsx-scope": 0,
-    "@typescript-eslint/triple-slash-reference": 0
+    "@typescript-eslint/triple-slash-reference": 0,
+    "@typescript-eslint/strict-boolean-expressions": 0
   }
 }

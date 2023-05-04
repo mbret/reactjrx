@@ -174,13 +174,14 @@ export function useMutation<A = void, R = undefined>(
           })
 
           return combineLatest([
-            from(defer(async () => await queryRef.current(args))).pipe(
+            defer(() => from(queryRef.current(args))).pipe(
               querx(optionsRef.current),
               first(),
               map((response) => [response] as const),
               catchError((error: unknown) => {
-                optionsRef.current.onError != null &&
+                if (optionsRef.current.onError != null) {
                   optionsRef.current.onError(error)
+                }
 
                 return of([undefined, error] as const)
               })
@@ -189,7 +190,7 @@ export function useMutation<A = void, R = undefined>(
           ]).pipe(
             tap(([[response, error], isLastMutation]) => {
               if (response) {
-                optionsRef.current.onSuccess != null &&
+                if (optionsRef.current.onSuccess != null)
                   optionsRef.current.onSuccess(response)
               }
 

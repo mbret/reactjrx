@@ -1,7 +1,4 @@
-export function shallowEqual<A extends any, B extends any>(
-  objA: A,
-  objB: B
-): boolean {
+export function shallowEqual<A, B>(objA: A, objB: B): boolean {
   // Check if both objects are null or undefined
   if (
     objA === null ||
@@ -32,6 +29,7 @@ export function shallowEqual<A extends any, B extends any>(
 
   // Check if the values of the keys are equal
   for (const key of keysA) {
+    // eslint-disable-next-line no-prototype-builtins
     if (!objB.hasOwnProperty(key) || objA[key] !== (objB as any)[key]) {
       return false
     }

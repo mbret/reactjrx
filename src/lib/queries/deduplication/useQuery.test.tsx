@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { Subject, delay, interval, merge, of, tap, timer } from "rxjs"
+import { Subject, interval, merge, of, tap, timer } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
 import { useQuery } from "../useQuery"

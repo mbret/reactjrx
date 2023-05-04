@@ -75,7 +75,7 @@ export const PersistSignals = memo(
         return stream.pipe(
           tap(() => {
             console.log("hydration complete")
-            onReadyRef.current != null && onReadyRef.current()
+            if (onReadyRef.current != null) onReadyRef.current()
           }),
           catchError((error) => {
             console.error("Unable to hydrate", error)

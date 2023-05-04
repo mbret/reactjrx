@@ -152,11 +152,12 @@ export function useQuery<T>(
             })
           }),
           switchMap(() => {
-            const query$ = from(
-              defer(async () =>
-                typeof query === "function" ? await query() : query
-              )
-            )
+            const query$ = defer(() => {
+              const queryOrResponse =
+                typeof query === "function" ? query() : query
+
+              return from(queryOrResponse)
+            })
 
             return query$.pipe(
               querx(options),
@@ -168,7 +169,7 @@ export function useQuery<T>(
               }),
               tap(([response, error]) => {
                 if (response) {
-                  options.onSuccess != null && options.onSuccess(response)
+                  if (options.onSuccess != null) options.onSuccess(response)
                 }
 
                 data$.current.next({
