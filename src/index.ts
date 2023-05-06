@@ -7,6 +7,8 @@ export * from "./lib/binding/trigger"
 // state
 export * from "./lib/state/signal"
 export * from "./lib/state/useSignal"
+export * from "./lib/state/useSetSignal"
+export * from "./lib/state/useSignalValue"
 export * from "./lib/state/useScopeSignals"
 export * from "./lib/state/constants"
 export * from "./lib/state/persistance/PersistSignals"

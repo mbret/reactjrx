@@ -1,5 +1,7 @@
 import { type Signal } from "./signal"
+import { useSetSignal } from "./useSetSignal"
+import { useSignalValue } from "./useSignalValue"
 
 export const useSignal = <S, R>(signal: Signal<S, R>) => {
-  return [signal.useState(), signal.setState] as const
+  return [useSignalValue(signal), useSetSignal(signal)] as const
 }
