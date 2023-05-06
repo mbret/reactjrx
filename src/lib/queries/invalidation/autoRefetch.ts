@@ -7,7 +7,7 @@ export const autoRefetch =
 
     return source.pipe(
       repeat({
-        delay: options.staleTime ?? 1000
+        delay: options.staleTime ?? 999999
       })
     )
   }
