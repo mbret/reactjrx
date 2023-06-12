@@ -8,11 +8,13 @@ import { useConstant } from "../utils/useConstant"
  * useBehaviorSubject
  */
 export const useSubject = <S>({
-  onBeforeComplete
-}: { onBeforeComplete?: () => void } = {}) => {
+  onBeforeComplete,
+  completeOnUnmount = true
+}: { onBeforeComplete?: () => void; completeOnUnmount?: boolean } = {}) => {
   const subject = useConstant(() => new Subject<S>())
   const completed = useRef(false)
   const onBeforeCompleteRef = useLiveRef(onBeforeComplete)
+  const completeOnUnmountRef = useLiveRef(completeOnUnmount)
 
   useEffect(() => {
     if (completed.current) {
@@ -21,6 +23,17 @@ export const useSubject = <S>({
     }
 
     return () => {
+      /**
+       * @important
+       * In case we don't want to complete we still want to
+       * flag it in order to be replaced with new subject on remount.
+       */
+      if (!completeOnUnmountRef.current) {
+        completed.current = true
+
+        return
+      }
+
       if (!completed.current) {
         if (onBeforeCompleteRef.current != null) onBeforeCompleteRef.current()
         subject.current.complete()
