@@ -162,7 +162,7 @@ export function useMutation<A = void, R = undefined>(
     const subscription = triggerSubject.current
       .pipe(
         switchOperator((args) => {
-          const newMutationCalled$ = triggerSubject.current.pipe(
+          const isLastMutationCalled = triggerSubject.current.pipe(
             take(1),
             map(() => mapOperator === "concat"),
             startWith(true)
@@ -177,36 +177,36 @@ export function useMutation<A = void, R = undefined>(
             defer(() => from(queryRef.current(args))).pipe(
               querx(optionsRef.current),
               first(),
-              map((response) => [response] as const),
+              map((data) => ({ data, isError: false })),
               catchError((error: unknown) => {
                 if (optionsRef.current.onError != null) {
                   optionsRef.current.onError(error)
                 }
 
-                return of([undefined, error] as const)
+                return of({ data: error, isError: true })
               })
             ),
-            newMutationCalled$
+            isLastMutationCalled
           ]).pipe(
-            tap(([[response, error], isLastMutation]) => {
-              if (response) {
+            tap(([{ data, isError }, isLastMutationCalled]) => {
+              if (!isError) {
                 if (optionsRef.current.onSuccess != null)
-                  optionsRef.current.onSuccess(response)
+                  optionsRef.current.onSuccess(data as R)
               }
 
-              if (isLastMutation) {
+              if (isLastMutationCalled) {
                 data$.current.next({
                   ...data$.current.getValue(),
-                  ...(error
+                  ...(isError
                     ? {
                         status: "error",
-                        error,
+                        error: data,
                         data: undefined
                       }
                     : {
                         status: "success",
                         error: undefined,
-                        data: response
+                        data: data as R
                       })
                 })
               }
