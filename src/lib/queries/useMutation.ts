@@ -15,13 +15,24 @@ import {
   startWith,
   switchMap,
   take,
-  tap
+  takeUntil,
+  finalize,
+  merge,
+  distinctUntilChanged,
+  filter
 } from "rxjs"
 import { querx } from "./querx"
 import { useBehaviorSubject } from "../binding/useBehaviorSubject"
 import { useObserve } from "../binding/useObserve"
 import { useSubject } from "../binding/useSubject"
 import { useCallback, useEffect } from "react"
+import { shallowEqual } from "../utils/shallowEqual"
+
+interface QueryState<R> {
+  data: R | undefined
+  status: "idle" | "loading" | "error" | "success"
+  error: unknown
+}
 
 export interface MutationOptions<R> {
   retry?: false | number | ((attempt: number, error: unknown) => boolean)
@@ -49,9 +60,10 @@ export interface MutationOptions<R> {
    */
   cancelOnUnMount?: boolean
   /**
-   * Only use for debugging
+   * Only use for debugging.
+   * It is not the main subscription hook, only the one following the trigger.
    */
-  hooks?: MonoTypeOperatorFunction<any>
+  triggerHook?: MonoTypeOperatorFunction<Partial<QueryState<R>> | undefined>
 }
 
 interface Result<A, R> {
@@ -74,6 +86,7 @@ interface Result<A, R> {
    */
   error: unknown | undefined
   mutate: (args: A) => void
+  reset: () => void
 }
 
 /**
@@ -136,6 +149,15 @@ export function useMutation<A = void, R = undefined>(
 ): Result<A, R> {
   const queryRef = useLiveRef(query)
   const triggerSubject = useSubject<A>()
+  const resetSubject = useSubject<void>({
+    /**
+     * @important
+     * Because mutation can still run after unmount, the user might
+     * want to use reset for whatever reason. We will only manually complete
+     * this subject whenever the main query hook finalize.
+     */
+    completeOnUnmount: false
+  })
   const optionsRef = useLiveRef(
     typeof mapOperatorOrOptions === "object" ? mapOperatorOrOptions : options
   )
@@ -159,8 +181,18 @@ export function useMutation<A = void, R = undefined>(
         ? switchMap
         : mergeMap
 
-    const subscription = triggerSubject.current
-      .pipe(
+    const subscription = merge(
+      resetSubject.current.pipe(
+        map(
+          () =>
+            ({
+              status: "idle",
+              data: undefined,
+              error: undefined
+            } satisfies QueryState<R>)
+        )
+      ),
+      triggerSubject.current.pipe(
         switchOperator((args) => {
           const isLastMutationCalled = triggerSubject.current.pipe(
             take(1),
@@ -168,54 +200,71 @@ export function useMutation<A = void, R = undefined>(
             startWith(true)
           )
 
-          data$.current.next({
-            ...data$.current.getValue(),
-            status: "loading"
-          })
+          return merge(
+            of<Partial<QueryState<R>>>({
+              status: "loading"
+            }),
+            combineLatest([
+              defer(() => from(queryRef.current(args))).pipe(
+                querx(optionsRef.current),
+                first(),
+                map((data) => ({ data, isError: false })),
+                catchError((error: unknown) => {
+                  if (optionsRef.current.onError != null) {
+                    optionsRef.current.onError(error)
+                  }
 
-          return combineLatest([
-            defer(() => from(queryRef.current(args))).pipe(
-              querx(optionsRef.current),
-              first(),
-              map((data) => ({ data, isError: false })),
-              catchError((error: unknown) => {
-                if (optionsRef.current.onError != null) {
-                  optionsRef.current.onError(error)
+                  return of({ data: error, isError: true })
+                })
+              ),
+              isLastMutationCalled
+            ]).pipe(
+              map(([{ data, isError }, isLastMutationCalled]) => {
+                if (!isError) {
+                  if (optionsRef.current.onSuccess != null)
+                    optionsRef.current.onSuccess(data as R)
                 }
 
-                return of({ data: error, isError: true })
-              })
-            ),
-            isLastMutationCalled
-          ]).pipe(
-            tap(([{ data, isError }, isLastMutationCalled]) => {
-              if (!isError) {
-                if (optionsRef.current.onSuccess != null)
-                  optionsRef.current.onSuccess(data as R)
-              }
-
-              if (isLastMutationCalled) {
-                data$.current.next({
-                  ...data$.current.getValue(),
-                  ...(isError
+                if (isLastMutationCalled) {
+                  return isError
                     ? {
-                        status: "error",
+                        status: "error" as const,
                         error: data,
                         data: undefined
                       }
                     : {
-                        status: "success",
+                        status: "success" as const,
                         error: undefined,
                         data: data as R
-                      })
-                })
-              }
-            })
+                      }
+                }
+
+                return undefined
+              }),
+              takeUntil(resetSubject.current)
+            )
           )
         }),
-        optionsRef.current.hooks ?? identity
+        optionsRef.current.triggerHook ?? identity,
+        finalize(() => {
+          resetSubject.current.complete()
+        })
       )
-      .subscribe()
+    )
+      .pipe(
+        /**
+         * @important
+         * state update optimization
+         */
+        distinctUntilChanged(shallowEqual),
+        filter((state) => !!state && !!Object.keys(state).length)
+      )
+      .subscribe((state) => {
+        data$.current.next({
+          ...data$.current.getValue(),
+          ...state
+        })
+      })
 
     return () => {
       if (optionsRef.current.cancelOnUnMount) {
@@ -236,5 +285,9 @@ export function useMutation<A = void, R = undefined>(
     triggerSubject.current.next(arg)
   }, [])
 
-  return { ...result, isLoading: result.status === "loading", mutate }
+  const reset = useCallback(() => {
+    resetSubject.current.next()
+  }, [])
+
+  return { ...result, isLoading: result.status === "loading", mutate, reset }
 }

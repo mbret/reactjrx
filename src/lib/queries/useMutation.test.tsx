@@ -170,7 +170,7 @@ describe("useMutation", () => {
 
         const Comp = () => {
           useMutation(async () => {}, {
-            hooks: (source: Observable<any>) =>
+            triggerHook: (source: Observable<any>) =>
               source.pipe(
                 finalize(() => {
                   finalized++
@@ -206,7 +206,7 @@ describe("useMutation", () => {
        * I could not find a way to test the completeness of the inner observable without "cheating"
        * by adding a hook. It's anti pattern but will do it until I find better way
        */
-      it("should complete main observable chain", async () => {
+      it("should complete main observable chain foo", async () => {
         let finalized = 0
         let unmountTime = 0
         const manualStop = new Subject<void>()
@@ -215,7 +215,7 @@ describe("useMutation", () => {
           const { mutate } = useMutation(
             () => timer(1000).pipe(takeUntil(manualStop)),
             {
-              hooks: (source: Observable<any>) =>
+              triggerHook: (source: Observable<any>) =>
                 source.pipe(
                   finalize(() => {
                     finalized++
@@ -311,7 +311,7 @@ describe("useMutation", () => {
                 ),
               {
                 cancelOnUnMount: true,
-                hooks: (source: Observable<any>) =>
+                triggerHook: (source: Observable<any>) =>
                   source.pipe(
                     finalize(() => {
                       finalized++

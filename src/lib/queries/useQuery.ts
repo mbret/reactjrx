@@ -139,7 +139,6 @@ export function useQuery<T>(
         query
       })),
       filter(({ enabled }) => enabled),
-
       switchMap(({ key, options, query }) => {
         const serializedKey = serializeKey(key)
 
