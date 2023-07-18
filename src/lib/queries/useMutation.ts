@@ -34,20 +34,20 @@ interface QueryState<R> {
   error: unknown
 }
 
-export interface MutationOptions<R> {
+export interface MutationOptions<Result, Params> {
   retry?: false | number | ((attempt: number, error: unknown) => boolean)
   /**
    * Called for every mutation on error.
    * `merge` mapping will run callback as they happen.
    * Use `concat` if you need to run callbacks in order of calling.
    */
-  onError?: (error: unknown) => void
+  onError?: (error: unknown, params: Params) => void
   /**
    * Called for every mutation on success.
    * `merge` mapping will run callback as they happen.
    * Use `concat` if you need to run callbacks in order of calling.
    */
-  onSuccess?: (data: R) => void
+  onSuccess?: (data: Result, params: Params) => void
   /**
    * When true, any running mutation will be cancelled (when possible) on unmount.
    * You need to handle it yourself for promises if needed.
@@ -63,7 +63,9 @@ export interface MutationOptions<R> {
    * Only use for debugging.
    * It is not the main subscription hook, only the one following the trigger.
    */
-  triggerHook?: MonoTypeOperatorFunction<Partial<QueryState<R>> | undefined>
+  triggerHook?: MonoTypeOperatorFunction<
+    Partial<QueryState<Result>> | undefined
+  >
 }
 
 interface Result<A, R> {
@@ -113,12 +115,12 @@ type MapOperator = "switch" | "concat" | "merge"
 export function useMutation<A = void, R = undefined>(
   query: (args: A) => Promise<R> | Observable<R>,
   mapOperatorOrOptions?: MapOperator,
-  options?: MutationOptions<R>
+  options?: MutationOptions<R, A>
 ): Result<A, R>
 
 export function useMutation<A = void, R = undefined>(
   query: (args: A) => Promise<R> | Observable<R>,
-  mapOperatorOrOptions?: MutationOptions<R>
+  mapOperatorOrOptions?: MutationOptions<R, A>
 ): Result<A, R>
 
 /**
@@ -144,8 +146,8 @@ export function useMutation<A = void, R = undefined>(
  */
 export function useMutation<A = void, R = undefined>(
   query: (args: A) => Promise<R> | Observable<R>,
-  mapOperatorOrOptions?: MapOperator | MutationOptions<R>,
-  options: MutationOptions<R> = {}
+  mapOperatorOrOptions?: MapOperator | MutationOptions<R, A>,
+  options: MutationOptions<R, A> = {}
 ): Result<A, R> {
   const queryRef = useLiveRef(query)
   const triggerSubject = useSubject<A>()
@@ -210,8 +212,10 @@ export function useMutation<A = void, R = undefined>(
                 first(),
                 map((data) => ({ data, isError: false })),
                 catchError((error: unknown) => {
+                  console.error(error)
+
                   if (optionsRef.current.onError != null) {
-                    optionsRef.current.onError(error)
+                    optionsRef.current.onError(error, args)
                   }
 
                   return of({ data: error, isError: true })
@@ -222,7 +226,7 @@ export function useMutation<A = void, R = undefined>(
               map(([{ data, isError }, isLastMutationCalled]) => {
                 if (!isError) {
                   if (optionsRef.current.onSuccess != null)
-                    optionsRef.current.onSuccess(data as R)
+                    optionsRef.current.onSuccess(data as R, args)
                 }
 
                 if (isLastMutationCalled) {
