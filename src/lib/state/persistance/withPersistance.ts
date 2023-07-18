@@ -1,23 +1,22 @@
-import { type Observable } from "rxjs"
-import { type signal } from "../signal"
+import type { Signal } from "../signal"
 import { type Adapter, type PersistanceEntry } from "./types"
 import { getNormalizedPersistanceValue } from "./getNormalizedPersistanceValue"
 
 export interface WithPersistanceReturn<T> {
   hydrateValue: (params: { adapter: Adapter }) => Promise<void>
   persistValue: (params: { adapter: Adapter }) => Promise<void>
-  setValue: ReturnType<typeof signal<T>>[1]
-  $: Observable<T>
+  setValue: Signal<T, T>['setState']
+  $: Signal<T, T>['subject']
   options: { key?: string }
 }
 
 export function withPersistance<T>(
-  _signal: ReturnType<typeof signal<T>>,
+  _signal: Signal<T, T>,
   { version = 0 }: { version?: number } = {}
-): [WithPersistanceReturn<T>, ...ReturnType<typeof signal<T>>] {
-  const [hook, setValue, getState, $, options, ...rest] = _signal
+): [WithPersistanceReturn<T>, Signal<T, T>] {
+  // const [hook, setValue, getState, $, options, ...rest] = _signal
 
-  if (!options.key) {
+  if (!_signal.options.key) {
     console.error(
       "You need to specify a key to use persistance with this signal"
     )
@@ -25,7 +24,7 @@ export function withPersistance<T>(
 
   const hydrateValue = async ({
     adapter,
-    key = options.key
+    key = _signal.options.key
   }: {
     adapter: Adapter
     key?: string
@@ -45,19 +44,19 @@ export function withPersistance<T>(
       return
     }
 
-    setValue((value as any).value)
+    _signal.setState((value as any).value)
   }
 
   const persistValue = async ({
     adapter,
-    key = options.key
+    key = _signal.options.key
   }: {
     adapter: Adapter
     key?: string
   }) => {
     if (!key) return
 
-    const state = getState()
+    const state = _signal.getValue()
 
     const value = {
       value: state,
@@ -69,12 +68,13 @@ export function withPersistance<T>(
   }
 
   return [
-    { hydrateValue, persistValue, setValue, $, options },
-    hook,
-    setValue,
-    getState,
-    $,
-    options,
-    ...rest
+    {
+      hydrateValue,
+      persistValue,
+      setValue: _signal.setState,
+      $: _signal.subject,
+      options: _signal.options
+    },
+    _signal
   ]
 }

@@ -2,25 +2,26 @@ import { renderHook } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { signal } from "./signal"
 import { SIGNAL_RESET } from "./constants"
+import { useSignalValue } from "./useSignalValue"
 
 describe("signal", () => {
   describe("Given a number signal with default value", () => {
     it("should reset to default value", () => {
-      const [useValue, setValue] = signal({ default: 5 })
+      const state = signal({ default: 5 })
 
       const { result, rerender } = renderHook(() => {
-        return useValue()
+        return useSignalValue(state)
       }, {})
 
       expect(result.current).toBe(5)
 
-      setValue(6)
+      state.setState(6)
 
       rerender()
 
       expect(result.current).toBe(6)
 
-      setValue(SIGNAL_RESET)
+      state.setState(SIGNAL_RESET)
 
       rerender()
 
@@ -30,21 +31,21 @@ describe("signal", () => {
 
   describe("Given a number signal with non default value", () => {
     it("should reset to undefined", () => {
-      const [useValue, setValue] = signal<number | undefined>({})
+      const state = signal<number | undefined>({})
 
       const { result, rerender } = renderHook(() => {
-        return useValue()
+        return useSignalValue(state)
       }, {})
 
       expect(result.current).toBe(undefined)
 
-      setValue(6)
+      state.setState(6)
 
       rerender()
 
       expect(result.current).toBe(6)
 
-      setValue(SIGNAL_RESET)
+      state.setState(SIGNAL_RESET)
 
       rerender()
 

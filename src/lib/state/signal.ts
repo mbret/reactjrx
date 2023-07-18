@@ -1,6 +1,5 @@
-import { BehaviorSubject, type Observable } from "rxjs"
-// import { trackSubscriptions } from "../utils/trackSubscriptions"
-import { useObserve } from "../binding/useObserve"
+import { BehaviorSubject } from "rxjs"
+import type { Observable } from "rxjs"
 import { SIGNAL_RESET } from "./constants"
 
 type Option<R = undefined> = {
@@ -20,27 +19,17 @@ type SetState<S> = (
 
 export interface Signal<S, R> {
   setState: SetState<S>
-  useState: () => R
+  getValue: () => R
+  options: Option<S>
+  subject: Observable<S>
 }
 
-type Return<S, R> = [
-  () => R,
-  SetState<S>,
-  () => R,
-  Observable<R>,
-  Option<S>,
-  Signal<S, R>
-]
-
-// @todo turn into signal.$, signal.getValue, signal.setValue, signal.options, etc
-// useSignal(signal)
-
-export function signal<T = undefined>(options: Option<T>): Return<T, T>
-export function signal<T = undefined>(options: Option<T>): Return<T, T> {
+export function signal<T = undefined>(options: Option<T>): Signal<T, T>
+export function signal<T = undefined>(options: Option<T>): Signal<T, T> {
   // const { default: defaultValue, scoped = false, key } = options ?? {}
-  const { default: defaultValue, key } = options ?? {}
+  const { default: defaultValue } = options ?? {}
   const subject = new BehaviorSubject(defaultValue as T)
-  const subject$ = subject.asObservable()
+  // const subject$ = subject.asObservable()
   // .pipe(
   //   // scoped
   //   false
@@ -54,9 +43,6 @@ export function signal<T = undefined>(options: Option<T>): Return<T, T> {
   //       })
   //     : identity
   // )
-
-  const useValue = () =>
-    useObserve(subject$, { defaultValue: subject.getValue(), key })
 
   const setValue = <F extends (prev: T) => T>(
     arg: T | F | typeof SIGNAL_RESET
@@ -83,18 +69,16 @@ export function signal<T = undefined>(options: Option<T>): Return<T, T> {
 
   const getValue = () => subject.getValue()
 
-  return [
-    useValue,
-    setValue,
+  return {
+    setState: setValue,
     getValue,
+    options,
     /**
      * @important
      * We return the original behavior subject for two reasons:
      * - useObserve may return the default value directly instead of undefined
      * - the scope exist for react binding, this observable is a direct access outside of it
      */
-    subject,
-    options,
-    { setState: setValue, useState: useValue }
-  ]
+    subject
+  }
 }
