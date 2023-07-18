@@ -22,7 +22,7 @@ export * from "./lib/utils/retryBackoff"
 export * from "./lib/utils/useLiveRef"
 
 // higher helpers
-export * from "./lib/queries/useMutation"
+export * from "./lib/queries/useAsyncQuery"
 export * from "./lib/queries/useQuery"
 export * from "./lib/queries/useSubscribeEffect"
 export { Provider as ReactjrxQueryProvider } from "./lib/queries/Provider"

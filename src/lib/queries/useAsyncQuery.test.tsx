@@ -2,20 +2,20 @@ import { afterEach, describe, expect, it } from "vitest"
 import { type Observable, Subject, finalize, takeUntil, timer } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
-import { useMutation } from "./useMutation"
+import { useAsyncQuery } from "./useAsyncQuery"
 
 afterEach(() => {
   cleanup()
 })
 
-describe("useMutation", () => {
-  describe("Given two consecutive mutation triggered", () => {
+describe("useAsyncQuery", () => {
+  describe("Given two consecutive async query triggered", () => {
     describe("when map operator is merge", () => {
-      it("should only show the second mutation result", async () => {
+      it("should only show the second query result", async () => {
         const Comp = () => {
           const [done, setDone] = useState({ 1: false, 2: false })
           const [values, setValues] = useState<Array<number | undefined>>([])
-          const { data, mutate } = useMutation(
+          const { data, mutate } = useAsyncQuery(
             async ({ res, timeout }: { res: number; timeout: number }) => {
               return await new Promise<number>((resolve) =>
                 setTimeout(() => {
@@ -39,7 +39,7 @@ describe("useMutation", () => {
             mutate({ res: 2, timeout: 1 })
           }, [])
 
-          // we only display content once all mutations are done
+          // we only display content once all queries are done
           // this way when we text string later we know exactly
           return <>{done[1] && done[2] ? values : ""}</>
         }
@@ -59,7 +59,7 @@ describe("useMutation", () => {
         const Comp = () => {
           const [done, setDone] = useState({ 1: false, 2: false })
           const [values, setValues] = useState<Array<number | undefined>>([])
-          const { data, mutate } = useMutation(
+          const { data, mutate } = useAsyncQuery(
             async ({ res, timeout }: { res: number; timeout: number }) => {
               return await new Promise<number>((resolve) =>
                 setTimeout(() => {
@@ -84,7 +84,7 @@ describe("useMutation", () => {
             mutate({ res: 2, timeout: 1 })
           }, [])
 
-          // we only display content once all mutations are done
+          // we only display content once all queries are done
           // this way when we text string later we know exactly
           return <>{done[1] && done[2] ? values.join(",") : ""}</>
         }
@@ -104,7 +104,7 @@ describe("useMutation", () => {
     describe("and component renders its data", () => {
       it("should returns 2 when called", async () => {
         const Comp = () => {
-          const { data, mutate } = useMutation(async () => 2)
+          const { data, mutate } = useAsyncQuery(async () => 2)
 
           useEffect(() => {
             mutate()
@@ -129,7 +129,7 @@ describe("useMutation", () => {
       let called = 0
 
       const Comp = () => {
-        const { data, mutate } = useMutation(async () => {
+        const { data, mutate } = useAsyncQuery(async () => {
           called++
         })
 
@@ -158,7 +158,7 @@ describe("useMutation", () => {
   })
 
   describe("Given component unmount", () => {
-    describe("when there is no active mutation occurring", () => {
+    describe("when there is no active query occurring", () => {
       /**
        * @disclaimer
        * I could not find a way to test the completeness of the inner observable without "cheating"
@@ -169,7 +169,7 @@ describe("useMutation", () => {
         let unmountTime = 0
 
         const Comp = () => {
-          useMutation(async () => {}, {
+          useAsyncQuery(async () => {}, {
             triggerHook: (source: Observable<any>) =>
               source.pipe(
                 finalize(() => {
@@ -200,7 +200,7 @@ describe("useMutation", () => {
       })
     })
 
-    describe("when there is an active mutation occurring", () => {
+    describe("when there is an active query occurring", () => {
       /**
        * @disclaimer
        * I could not find a way to test the completeness of the inner observable without "cheating"
@@ -212,7 +212,7 @@ describe("useMutation", () => {
         const manualStop = new Subject<void>()
 
         const Comp = () => {
-          const { mutate } = useMutation(
+          const { mutate } = useAsyncQuery(
             () => timer(1000).pipe(takeUntil(manualStop)),
             {
               triggerHook: (source: Observable<any>) =>
@@ -252,13 +252,13 @@ describe("useMutation", () => {
         expect(finalized).toBe(unmountTime)
       })
 
-      describe("and the mutation is a Promise that throws", () => {
+      describe("and the query is a Promise that throws", () => {
         it("should call onError", async () => {
           let onErrorCall = 0
           let unmountTime = 0
 
           const Comp = () => {
-            const { mutate } = useMutation(
+            const { mutate } = useAsyncQuery(
               async () => {
                 throw new Error("foo")
               },
@@ -296,17 +296,17 @@ describe("useMutation", () => {
       })
 
       describe("and option cancelOnUnmount is true", () => {
-        it("should forcefully complete mutation", async () => {
+        it("should forcefully complete query", async () => {
           let finalized = 0
           let unmountTime = 0
-          let mutationClosed = 0
+          let queryClosed = 0
 
           const Comp = () => {
-            const { mutate } = useMutation(
+            const { mutate } = useAsyncQuery(
               () =>
                 timer(1000).pipe(
                   finalize(() => {
-                    mutationClosed++
+                    queryClosed++
                   })
                 ),
               {
@@ -340,16 +340,16 @@ describe("useMutation", () => {
           unmount()
 
           expect(finalized).toBe(unmountTime)
-          expect(mutationClosed).toBe(unmountTime)
-          expect(mutationClosed).toBe(unmountTime)
+          expect(queryClosed).toBe(unmountTime)
+          expect(queryClosed).toBe(unmountTime)
         })
 
-        describe("and the mutation is a Promise that throws", () => {
+        describe("and the query is a Promise that throws", () => {
           it("should not call onError", async () => {
             let onErrorCall = 0
 
             const Comp = () => {
-              const { mutate } = useMutation(
+              const { mutate } = useAsyncQuery(
                 async () => {
                   throw new Error("foo")
                 },

@@ -34,22 +34,22 @@ interface QueryState<R> {
   error: unknown
 }
 
-export interface MutationOptions<Result, Params> {
+export interface AsyncQueryOptions<Result, Params> {
   retry?: false | number | ((attempt: number, error: unknown) => boolean)
   /**
-   * Called for every mutation on error.
+   * Called for every async query on error.
    * `merge` mapping will run callback as they happen.
    * Use `concat` if you need to run callbacks in order of calling.
    */
   onError?: (error: unknown, params: Params) => void
   /**
-   * Called for every mutation on success.
+   * Called for every async query on success.
    * `merge` mapping will run callback as they happen.
    * Use `concat` if you need to run callbacks in order of calling.
    */
   onSuccess?: (data: Result, params: Params) => void
   /**
-   * When true, any running mutation will be cancelled (when possible) on unmount.
+   * When true, any running async query will be cancelled (when possible) on unmount.
    * You need to handle it yourself for promises if needed.
    * Callbacks will not be called as a result.
    *
@@ -72,19 +72,19 @@ interface Result<A, R> {
   status: "idle" | "loading" | "error" | "success"
   isLoading: boolean
   /**
-   * If the latest mutation is in a success state, data contains its result.
+   * If the latest async query is in a success state, data contains its result.
    *
    * @important
-   * The value does not automatically reset when a new mutation run. It will be updated
-   * when a new mutation success or error.
+   * The value does not automatically reset when a new async query run. It will be updated
+   * when a new async query success or error.
    */
   data: R | undefined
   /**
-   * If the latest mutation is in a error state, error contains its error.
+   * If the latest async query is in a error state, error contains its error.
    *
    * @important
-   * The value does not automatically reset when a new mutation run. It will be updated
-   * when a new mutation success or error.
+   * The value does not automatically reset when a new async query run. It will be updated
+   * when a new async query success or error.
    */
   error: unknown | undefined
   mutate: (args: A) => void
@@ -97,35 +97,35 @@ interface Result<A, R> {
  * it when specific need arise.
  *
  * `merge`:
- * Run each mutation as they are triggered without any cancellation or queue system.
- * The result is always from the latest mutation triggered, not necessarily
+ * Run each async query as they are triggered without any cancellation or queue system.
+ * The result is always from the latest async query triggered, not necessarily
  * the latest one running.
  *
  * `concat`:
- * Unlike merge, it will trigger each mutation sequentially following
- * a queue system. The result is not necessarily the last triggered mutation
- * but the current running mutation.
+ * Unlike merge, it will trigger each async query sequentially following
+ * a queue system. The result is not necessarily the last triggered async query
+ * but the current running async query.
  *
  * `switch`:
- * Only run the latest mutation triggered and cancel any previously running one.
- * Result correspond to the current running mutation.
+ * Only run the latest async query triggered and cancel any previously running one.
+ * Result correspond to the current running async query.
  */
 type MapOperator = "switch" | "concat" | "merge"
 
-export function useMutation<A = void, R = undefined>(
+export function useAsyncQuery<A = void, R = undefined>(
   query: (args: A) => Promise<R> | Observable<R>,
   mapOperatorOrOptions?: MapOperator,
-  options?: MutationOptions<R, A>
+  options?: AsyncQueryOptions<R, A>
 ): Result<A, R>
 
-export function useMutation<A = void, R = undefined>(
+export function useAsyncQuery<A = void, R = undefined>(
   query: (args: A) => Promise<R> | Observable<R>,
-  mapOperatorOrOptions?: MutationOptions<R, A>
+  mapOperatorOrOptions?: AsyncQueryOptions<R, A>
 ): Result<A, R>
 
 /**
  * @important
- * Your mutation function is cancelled whenever you call a new mutate or
+ * Your async query function is cancelled whenever you call a new mutate or
  * when the component is unmounted. Same behavior will happens with your
  * callback functions regarding unmounting. None of them will be called.
  *
@@ -133,28 +133,28 @@ export function useMutation<A = void, R = undefined>(
  * as well during unmount or if called again. If you provide anything else you
  * are in charge of controlling the flow.
  *
- * If you need to execute mutation independently of the component lifecycle or
+ * If you need to execute async query independently of the component lifecycle or
  * execute functions in parallel you should not use this hook.
  *
  * @important
  * If you return an observable, the stream will be unsubscribed after receiving
  * the first value. This hook is not meant to be running long running effects.
  *
- * @todo keep mutation running on unmount
+ * @todo keep async query running on unmount
  * callback should return unmount$ variables
  * options.cancelOnUnmount should be false by default
  */
-export function useMutation<A = void, R = undefined>(
+export function useAsyncQuery<A = void, R = undefined>(
   query: (args: A) => Promise<R> | Observable<R>,
-  mapOperatorOrOptions?: MapOperator | MutationOptions<R, A>,
-  options: MutationOptions<R, A> = {}
+  mapOperatorOrOptions?: MapOperator | AsyncQueryOptions<R, A>,
+  options: AsyncQueryOptions<R, A> = {}
 ): Result<A, R> {
   const queryRef = useLiveRef(query)
   const triggerSubject = useSubject<A>()
   const resetSubject = useSubject<void>({
     /**
      * @important
-     * Because mutation can still run after unmount, the user might
+     * Because async query can still run after unmount, the user might
      * want to use reset for whatever reason. We will only manually complete
      * this subject whenever the main query hook finalize.
      */

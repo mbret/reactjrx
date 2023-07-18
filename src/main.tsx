@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react"
 import ReactDOM from "react-dom/client"
-import { useMutation } from "./lib/queries/useMutation"
+import { useAsyncQuery } from "./lib/queries/useAsyncQuery"
 
 let index = 0
 
 const Effects = () => {
-  const { mutate, reset, data } = useMutation(
+  const { mutate, reset, data } = useAsyncQuery(
     async (arg: string) => {
       index++
 
