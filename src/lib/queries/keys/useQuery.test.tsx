@@ -3,7 +3,7 @@ import { Subject } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React from "react"
 import { useQuery } from "../useQuery"
-import { printQuery } from "../../../testUtils"
+import { printQuery } from "../../../tests/testUtils"
 
 afterEach(() => {
   cleanup()
