@@ -26,9 +26,10 @@ import { useObserve } from "../binding/useObserve"
 // import { useCacheOperator } from "./useCacheOperator"
 import { useSubject } from "../binding/useSubject"
 import { useProvider } from "./Provider"
-import { serializeKey } from "./serializeKey"
+import { serializeKey } from "./keys/serializeKey"
 import { deduplicate } from "./deduplication/deduplicate"
 import { autoRefetch } from "./invalidation/autoRefetch"
+import { withKeyComparison } from "./keys/withKeyComparison"
 
 type Query<T> = (() => Promise<T>) | (() => Observable<T>) | Observable<T>
 
@@ -138,14 +139,18 @@ export function useQuery<T>(
         options,
         query
       })),
+      withKeyComparison,
       filter(({ enabled }) => enabled),
-      switchMap(({ key, options, query }) => {
+      switchMap(({ key, options, isUsingDifferentKey, query }) => {
         const serializedKey = serializeKey(key)
 
         return of(null).pipe(
           tap(() => {
             data$.current.next({
               ...data$.current.getValue(),
+              data: isUsingDifferentKey
+                ? undefined
+                : data$.current.getValue().data,
               error: undefined,
               isLoading: true
             })
