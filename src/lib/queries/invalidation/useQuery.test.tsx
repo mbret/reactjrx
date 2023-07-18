@@ -12,24 +12,28 @@ describe("useQuery", () => {
     describe("and the query is a promise", () => {
       describe("when the query finish before the stale timeout", () => {
         it("should refetch", async () => {
-          const queryFn = vi.fn().mockImplementation(async () => undefined)
+          let value = 0
+          const queryFn = vi.fn().mockImplementation(async () => ++value)
           const staleTimeout = 1
 
           const Comp = () => {
-            useQuery(queryFn, {
+            const { data } = useQuery(queryFn, {
               staleTime: staleTimeout
             })
 
-            return null
+            return <>{data}</>
           }
 
-          render(<Comp />)
+          const { findByText } = render(<Comp />)
 
-          expect(queryFn).toHaveBeenCalledTimes(1)
+          expect(await findByText("1")).toBeDefined()
 
-          await new Promise((resolve) => setTimeout(resolve, staleTimeout + 2))
+          expect(queryFn.mock.calls.length).toBeGreaterThanOrEqual(1)
+
+          expect(await findByText("2")).toBeDefined()
 
           expect(queryFn.mock.calls.length).toBeGreaterThanOrEqual(2)
+
         })
       })
     })
@@ -37,22 +41,25 @@ describe("useQuery", () => {
     describe("and the query is an observable", () => {
       describe("when the query finish before the stale timeout", () => {
         it("should refetch", async () => {
-          const queryFn = vi.fn().mockImplementation(async () => of(undefined))
+          let value = 0
+          const queryFn = vi.fn().mockImplementation(() => of(++value))
           const staleTimeout = 1
 
           const Comp = () => {
-            useQuery(queryFn, {
+            const { data } = useQuery(queryFn, {
               staleTime: staleTimeout
             })
 
-            return null
+            return <>{data}</>
           }
 
-          render(<Comp />)
+          const { findByText } = render(<Comp />)
 
-          expect(queryFn).toHaveBeenCalledTimes(1)
+          expect(await findByText("1")).toBeDefined()
 
-          await new Promise((resolve) => setTimeout(resolve, staleTimeout + 1))
+          expect(queryFn.mock.calls.length).toBeGreaterThanOrEqual(1)
+
+          expect(await findByText("2")).toBeDefined()
 
           expect(queryFn.mock.calls.length).toBeGreaterThanOrEqual(2)
         })
@@ -60,7 +67,7 @@ describe("useQuery", () => {
 
       describe("when the query take longer than the stale timeout", () => {
         it("should not refetch", async () => {
-          const queryFn = vi.fn().mockImplementation(async () => undefined)
+          const queryFn = vi.fn().mockImplementation(() => undefined)
           const staleTimeout = 1
 
           const Comp = () => {
