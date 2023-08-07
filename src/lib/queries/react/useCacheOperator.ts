@@ -1,5 +1,5 @@
 import { useCallback, useContext } from "react"
-import { Context } from "./Provider"
+import { Context } from "./react/Provider"
 import { Observable, tap } from "rxjs"
 
 export const useCacheOperator = () => {

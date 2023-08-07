@@ -13,13 +13,13 @@ import {
   identity,
 } from "rxjs"
 import { type QuerxOptions } from "./types"
-import { useObserve } from "../binding/useObserve"
-import { useSubject } from "../binding/useSubject"
+import { useObserve } from "../../binding/useObserve"
+import { useSubject } from "../../binding/useSubject"
 import { useProvider } from "./Provider"
-import { useBehaviorSubject } from "../binding/useBehaviorSubject"
-import { arrayEqual } from "../utils/arrayEqual"
-import { shallowEqual } from "../utils/shallowEqual"
-import { isDefined } from "../utils/isDefined"
+import { useBehaviorSubject } from "../../binding/useBehaviorSubject"
+import { arrayEqual } from "../../utils/arrayEqual"
+import { shallowEqual } from "../../utils/shallowEqual"
+import { isDefined } from "../../utils/isDefined"
 
 type Query<T> = (() => Promise<T>) | (() => Observable<T>) | Observable<T>
 

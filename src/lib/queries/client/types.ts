@@ -6,4 +6,13 @@ export interface QueryResult<T> {
   error: unknown
 }
 
+export interface QueryOptions<R = unknown> {
+  enabled?: boolean
+  retry?: false | number | ((attempt: number, error: unknown) => boolean)
+  staleTime?: number
+  cacheTime?: number
+  onError?: (error: unknown) => void
+  onSuccess?: (data: R) => void
+}
+
 export type QueryStore = Map<string, Observable<any>>

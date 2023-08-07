@@ -7,8 +7,8 @@ import {
   useEffect
 } from "react"
 import { type BehaviorSubject } from "rxjs"
-import { useCreateCacheStore } from "./cache/useCreateCacheStore"
-import { createClient } from "./client/createClient"
+import { useCreateCacheStore } from "../cache/useCreateCacheStore"
+import { createClient } from "../client/createClient"
 
 type CacheStore = Record<string, { value: any; date: number; ttl: number }>
 

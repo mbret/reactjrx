@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react"
 import { useQuery } from "./useQuery"
 import { Provider, useProvider } from "./Provider"
 import { type QueryStore } from "./deduplication/useQueryStore"
-import { createClient } from "./client/createClient"
+import { createClient } from "../client/createClient"
 
 afterEach(() => {
   cleanup()

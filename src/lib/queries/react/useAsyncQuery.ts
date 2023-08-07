@@ -1,4 +1,4 @@
-import { useLiveRef } from "../utils/useLiveRef"
+import { useLiveRef } from "../../utils/useLiveRef"
 import {
   type MonoTypeOperatorFunction,
   type Observable,
@@ -21,12 +21,12 @@ import {
   distinctUntilChanged,
   filter
 } from "rxjs"
-import { querx } from "./querx"
-import { useBehaviorSubject } from "../binding/useBehaviorSubject"
-import { useObserve } from "../binding/useObserve"
-import { useSubject } from "../binding/useSubject"
+import { useBehaviorSubject } from "../../binding/useBehaviorSubject"
+import { useObserve } from "../../binding/useObserve"
+import { useSubject } from "../../binding/useSubject"
 import { useCallback, useEffect } from "react"
-import { shallowEqual } from "../utils/shallowEqual"
+import { shallowEqual } from "../../utils/shallowEqual"
+import { retryQueryOnFailure } from "../client/retryQueryOnFailure"
 
 interface QueryState<R> {
   data: R | undefined
@@ -208,7 +208,7 @@ export function useAsyncQuery<A = void, R = undefined>(
             }),
             combineLatest([
               defer(() => from(queryRef.current(args))).pipe(
-                querx(optionsRef.current),
+                retryQueryOnFailure(optionsRef.current),
                 first(),
                 map((data) => ({ data, isError: false })),
                 catchError((error: unknown) => {

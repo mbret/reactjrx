@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react"
 import ReactDOM from "react-dom/client"
-import { useAsyncQuery } from "./lib/queries/useAsyncQuery"
+import { useAsyncQuery } from "./lib/queries/react/useAsyncQuery"
 
 let index = 0
 

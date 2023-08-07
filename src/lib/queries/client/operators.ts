@@ -4,14 +4,26 @@ import {
   withLatestFrom,
   startWith,
   pairwise,
-  distinctUntilChanged,
+  distinctUntilChanged
 } from "rxjs"
-import { type QuerxOptions } from "../types"
 import { shallowEqual } from "../../utils/shallowEqual"
-import { type QueryResult } from "./types"
+import { type QueryOptions, type QueryResult } from "./types"
+import { retryBackoff } from "../../utils/retryBackoff"
+
+export const retryFromOptions = <T>(options: QueryOptions<T>) =>
+  retryBackoff({
+    initialInterval: 100,
+    ...(typeof options.retry === "function"
+      ? {
+          shouldRetry: options.retry
+        }
+      : {
+          maxRetries: options.retry === false ? 0 : options.retry ?? 3
+        })
+  })
 
 export const notifyQueryResult =
-  <T>(options$: Observable<QuerxOptions<T>>) =>
+  <T>(options$: Observable<QueryOptions<T>>) =>
   (stream$: Observable<Partial<QueryResult<T>>>) =>
     stream$.pipe(
       withLatestFrom(options$),

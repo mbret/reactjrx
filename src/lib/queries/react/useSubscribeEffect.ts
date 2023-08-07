@@ -1,6 +1,6 @@
 import { type DependencyList, useCallback } from "react"
 import { type Observable, catchError, identity, retry } from "rxjs"
-import { useSubscribe } from "../binding/useSubscribe"
+import { useSubscribe } from "../../binding/useSubscribe"
 
 interface Option {
   retry?: boolean

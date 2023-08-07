@@ -18,11 +18,12 @@ import {
   withLatestFrom
 } from "rxjs"
 import { autoRefetch } from "./autoRefetch"
-import { type QuerxOptions } from "../types"
+import { type QuerxOptions } from "../react/types"
 import { deduplicate } from "./deduplicate"
-import { serializeKey } from "../keys/serializeKey"
+import { serializeKey } from "./keys/serializeKey"
 import { mergeResults, notifyQueryResult } from "./operators"
 import { type QueryStore, type QueryResult } from "./types"
+import { retryQueryOnFailure } from "./retryQueryOnFailure"
 
 type Query<T> = (() => Promise<T>) | (() => Observable<T>) | Observable<T>
 
@@ -65,7 +66,8 @@ export const createClient = () => {
         console.log("query$ trigger", { key, params })
       }),
       withLatestFrom(fn$),
-      switchMap(([, query]) => {
+      withLatestFrom(options$),
+      switchMap(([[, query], options]) => {
         const deferredQuery = defer(() => {
           const queryOrResponse = typeof query === "function" ? query() : query
 
@@ -82,6 +84,7 @@ export const createClient = () => {
           merge(
             of({ isLoading: true, error: undefined }),
             deferredQuery.pipe(
+              retryQueryOnFailure(options),
               deduplicate(serializedKey, queryStore),
               map((result) => ({
                 isLoading: false,
