@@ -1,35 +1,25 @@
 import { useCallback, useEffect } from "react"
 import {
   type Observable,
-  catchError,
-  combineLatest,
-  defer,
-  distinctUntilChanged,
-  filter,
-  from,
   map,
-  of,
-  share,
-  startWith,
+  finalize,
+  distinctUntilChanged,
   switchMap,
-  takeUntil,
-  tap,
-  withLatestFrom
+  pairwise,
+  startWith,
+  filter,
+  combineLatest,
+  skip,
+  identity,
 } from "rxjs"
-import { arrayEqual } from "../utils/arrayEqual"
-import { shallowEqual } from "../utils/shallowEqual"
-import { querx } from "./querx"
 import { type QuerxOptions } from "./types"
-import { useBehaviorSubject } from "../binding/useBehaviorSubject"
-import { useSubscribe } from "../binding/useSubscribe"
 import { useObserve } from "../binding/useObserve"
-// import { useCacheOperator } from "./useCacheOperator"
 import { useSubject } from "../binding/useSubject"
 import { useProvider } from "./Provider"
-import { serializeKey } from "./keys/serializeKey"
-import { deduplicate } from "./deduplication/deduplicate"
-import { autoRefetch } from "./invalidation/autoRefetch"
-import { withKeyComparison } from "./keys/withKeyComparison"
+import { useBehaviorSubject } from "../binding/useBehaviorSubject"
+import { arrayEqual } from "../utils/arrayEqual"
+import { shallowEqual } from "../utils/shallowEqual"
+import { isDefined } from "../utils/isDefined"
 
 type Query<T> = (() => Promise<T>) | (() => Observable<T>) | Observable<T>
 
@@ -39,6 +29,8 @@ interface Result<R> {
   error: unknown
   refetch: () => void
 }
+
+const defaultValue = { data: undefined, isLoading: true, error: undefined }
 
 export function useQuery<T>(
   query: Query<T>,
@@ -62,20 +54,10 @@ export function useQuery<T>(
   const options = (optionsOrNothing ??
     (queryOrOptionOrNothing !== query ? queryOrOptionOrNothing : undefined) ??
     {}) as QuerxOptions<T>
+  const internalRefresh$ = useSubject<void>()
+  const { client } = useProvider()
   const key = Array.isArray(keyOrQuery) ? keyOrQuery : undefined
   const params$ = useBehaviorSubject({ key, options, query })
-  const refetch$ = useSubject<void>()
-  const data$ = useBehaviorSubject<{
-    data: T | undefined
-    isLoading: boolean
-    error: unknown
-  }>({
-    data: undefined,
-    error: undefined,
-    isLoading: true
-  })
-  const { queryStore } = useProvider()
-  // const withCache = useCacheOperator()
 
   useEffect(() => {
     params$.current.next({
@@ -85,122 +67,99 @@ export function useQuery<T>(
     })
   }, [key, options, query])
 
-  useSubscribe(() => {
-    const options$ = params$.current.pipe(
-      map(({ options }) => options),
-      distinctUntilChanged(shallowEqual)
-    )
+  const result = useObserve<{
+    data: T | undefined
+    isLoading: boolean
+    error: unknown
+  }>(
+    () => {
+      const computedDefaultValue = {
+        ...defaultValue,
+        isLoading: params$.current.getValue().options.enabled !== false
+      }
 
-    const newKeyReceived$ = params$.current.pipe(
-      map(({ key }) => key ?? []),
-      distinctUntilChanged(arrayEqual)
-    )
+      const newKeyReceived$ = params$.current.pipe(
+        map(({ key }) => key ?? []),
+        distinctUntilChanged(arrayEqual)
+      )
 
-    const newQuery$ = params$.current.pipe(
-      map(({ query }) => query ?? (() => of(undefined)))
-    )
+      const newObservableObjectQuery$ = params$.current.pipe(
+        map(({ query }) => query),
+        distinctUntilChanged(shallowEqual),
+        skip(1),
+        filter((query) => !!query && typeof query !== "function"),
+        startWith(params$.current.getValue().query),
+        filter(isDefined)
+      )
 
-    const queryAsObservableObjectChanged$ = newQuery$.pipe(
-      filter((query) => typeof query !== "function"),
-      distinctUntilChanged(shallowEqual)
-    )
+      const fn$ = params$.current.pipe(
+        map(({ query }) => query),
+        filter(isDefined)
+      )
 
-    const enabledOptionChanged$ = options$.pipe(
-      map(({ enabled = true }) => enabled),
-      distinctUntilChanged(),
-      share()
-    )
+      const options$ = params$.current.pipe(map(({ options }) => options))
 
-    const queryTrigger$ = combineLatest([
-      newKeyReceived$,
-      enabledOptionChanged$,
-      queryAsObservableObjectChanged$.pipe(startWith(undefined)),
-      refetch$.current.pipe(startWith(undefined))
-    ])
+      const triggers$ = combineLatest([
+        newKeyReceived$,
+        newObservableObjectQuery$
+      ])
 
-    const disabled$ = enabledOptionChanged$.pipe(
-      filter((enabled) => !enabled),
-      tap(() => {
-        // we know that any ongoing promise will be cancelled
-        // so we can safely stop loading. We don't do it in finalize
-        // because it would conflict with concurrency
-        data$.current.next({
-          ...data$.current.getValue(),
-          isLoading: false
-        })
-      })
-    )
+      return triggers$.pipe(
+        switchMap(([key]) => {
+          const { query$, refetch$ } = client.query$({
+            key,
+            fn$,
+            options$
+          })
 
-    return queryTrigger$.pipe(
-      withLatestFrom(options$, newQuery$),
-      map(([[key, enabled], options, query]) => ({
-        key,
-        enabled,
-        options,
-        query
-      })),
-      withKeyComparison,
-      filter(({ enabled }) => enabled),
-      switchMap(({ key, options, isUsingDifferentKey, query }) => {
-        const serializedKey = serializeKey(key)
+          const subscriptions = [internalRefresh$.current.subscribe(refetch$)]
 
-        return of(null).pipe(
-          tap(() => {
-            data$.current.next({
-              ...data$.current.getValue(),
-              data: isUsingDifferentKey
-                ? undefined
-                : data$.current.getValue().data,
-              error: undefined,
-              isLoading: true
-            })
-          }),
-          switchMap(() => {
-            const query$ = defer(() => {
-              const queryOrResponse =
-                typeof query === "function" ? query() : query
-
-              return from(queryOrResponse)
-            })
-
-            return query$.pipe(
-              querx(options),
-              deduplicate(serializedKey, queryStore),
-              // key.length > 0 ? withCache(key) : identity,
-              map((response) => [response] as const),
-              catchError((error) => {
-                return of([undefined, error] as const)
-              }),
-              tap(([response, error]) => {
-                if (response) {
-                  if (options.onSuccess != null) options.onSuccess(response)
-                }
-
-                data$.current.next({
-                  ...data$.current.getValue(),
-                  isLoading: false,
-                  error,
-                  data: response
-                })
+          return query$.pipe(
+            finalize(() => {
+              subscriptions.forEach((sub) => {
+                sub.unsubscribe()
+              })
+            }),
+            startWith(computedDefaultValue),
+            pairwise(),
+            map(
+              ([
+                { data: previousData, ...restPrevious },
+                { data: currentData, ...restCurrent }
+              ]) => ({
+                ...restPrevious,
+                ...restCurrent,
+                data:
+                  currentData && "result" in currentData
+                    ? currentData.result
+                    : previousData?.result
               })
             )
-          }),
-          autoRefetch(options),
-          takeUntil(disabled$)
-        )
-      })
-    )
-  }, [])
-
-  const result = useObserve(
-    () => data$.current,
-    { defaultValue: data$.current.getValue() },
-    []
+          )
+        }),
+        /**
+         * @important
+         * We skip the first result as it is comparable to default passed value.
+         * This is assuming all query are async and does not return a result right away.
+         * This is a design choice.
+         */
+        params$.current.getValue().options.enabled !== false
+          ? skip(1)
+          : identity
+      )
+    },
+    {
+      defaultValue: {
+        ...defaultValue,
+        isLoading: params$.current.getValue().options.enabled !== false
+      }
+    },
+    [client]
   )
 
-  const refetch = useCallback((arg: void) => {
-    refetch$.current.next(arg)
-  }, [])
+  const refetch = useCallback(() => {
+    internalRefresh$.current.next()
+  }, [client])
 
   return { ...result, refetch }
 }

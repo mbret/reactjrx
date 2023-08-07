@@ -3,6 +3,7 @@ export * from "./lib/binding/useObserve"
 export * from "./lib/binding/useSubscribe"
 export * from "./lib/binding/useObserveCallback"
 export * from "./lib/binding/trigger"
+export * from "./lib/binding/useSubject"
 
 // state
 export * from "./lib/state/signal"
@@ -25,4 +26,5 @@ export * from "./lib/utils/useLiveRef"
 export * from "./lib/queries/useAsyncQuery"
 export * from "./lib/queries/useQuery"
 export * from "./lib/queries/useSubscribeEffect"
+export * from "./lib/queries/client/createClient"
 export { Provider as ReactjrxQueryProvider } from "./lib/queries/Provider"

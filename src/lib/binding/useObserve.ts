@@ -34,25 +34,22 @@ export function useObserve<T>(
   deps: DependencyList
 ): T | undefined
 
-export function useObserve<T, R = undefined>(
-  source: Observable<T>,
-  options: Option<R>
-): T | R
+export function useObserve<T>(source: Observable<T>, options: Option<T>): T
 
-export function useObserve<T, R = undefined>(
+export function useObserve<T>(
   source: () => Observable<T>,
-  options: Option<R>,
+  options: Option<T>,
   deps: DependencyList
-): T | R
+): T
 
-export function useObserve<T, R>(
+export function useObserve<T>(
   source$: Observable<T> | (() => Observable<T>),
-  unsafeOptions?: Option<R> | DependencyList,
+  unsafeOptions?: Option<T> | DependencyList,
   unsafeDeps?: DependencyList
-): T | R {
+): T {
   const options =
     unsafeOptions != null && !Array.isArray(unsafeOptions)
-      ? (unsafeOptions as Option<R>)
+      ? (unsafeOptions as Option<T>)
       : ({ defaultValue: undefined, key: "" } satisfies Option<undefined>)
   const deps =
     unsafeDeps == null && Array.isArray(unsafeOptions)
@@ -109,5 +106,5 @@ export function useObserve<T, R>(
 
   const result = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 
-  return result as T | R
+  return result as T
 }

@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react"
 import { useQuery } from "../useQuery"
 import { Provider, useProvider } from "../Provider"
 import { type QueryStore } from "./useQueryStore"
+import { createClient } from "../client/createClient"
 
 afterEach(() => {
   cleanup()
@@ -19,16 +20,18 @@ describe("useQuery", () => {
       const Comp = () => {
         const { data } = useQuery(["foo"], query)
 
-        const { queryStore } = useProvider()
+        const { client } = useProvider()
 
-        _queryStore = queryStore
+        _queryStore = client.queryStore
 
         return <>{data}</>
       }
 
+      const client = createClient()
+
       const { findByText } = render(
         <React.StrictMode>
-          <Provider>
+          <Provider client={client}>
             <Comp />
           </Provider>
         </React.StrictMode>
@@ -51,9 +54,9 @@ describe("useQuery", () => {
         const Comp2 = () => {
           useQuery(["foo"], query)
 
-          const { queryStore } = useProvider()
+          const { client } = useProvider()
 
-          _queryStore = queryStore
+          _queryStore = client.queryStore
 
           return null
         }
@@ -74,9 +77,11 @@ describe("useQuery", () => {
           return show ? <Comp2 /> : <>unmounted</>
         }
 
+        const client = createClient()
+
         const { findByText } = render(
           <React.StrictMode>
-            <Provider>
+            <Provider client={client}>
               <Comp />
             </Provider>
           </React.StrictMode>
@@ -102,8 +107,10 @@ describe("useQuery", () => {
             return null
           }
 
+          const client = createClient()
+
           render(
-            <Provider>
+            <Provider client={client}>
               <Comp />
             </Provider>
           )
@@ -134,9 +141,11 @@ describe("useQuery", () => {
           return null
         }
 
+        const client = createClient()
+
         render(
           <React.StrictMode>
-            <Provider>
+            <Provider client={client}>
               <Comp />
             </Provider>
           </React.StrictMode>
@@ -159,9 +168,11 @@ describe("useQuery", () => {
           )
         }
 
+        const client = createClient()
+
         const { findByText } = render(
           <React.StrictMode>
-            <Provider>
+            <Provider client={client}>
               <Comp />
             </Provider>
           </React.StrictMode>

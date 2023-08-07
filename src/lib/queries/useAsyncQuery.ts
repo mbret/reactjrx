@@ -224,6 +224,7 @@ export function useAsyncQuery<A = void, R = undefined>(
               isLastMutationCalled
             ]).pipe(
               map(([{ data, isError }, isLastMutationCalled]) => {
+                console.log("success", { data, isLastMutationCalled })
                 if (!isError) {
                   if (optionsRef.current.onSuccess != null)
                     optionsRef.current.onSuccess(data as R, args)
@@ -256,12 +257,12 @@ export function useAsyncQuery<A = void, R = undefined>(
       )
     )
       .pipe(
+        filter((state) => !!state && !!Object.keys(state).length),
         /**
          * @important
          * state update optimization
          */
-        distinctUntilChanged(shallowEqual),
-        filter((state) => !!state && !!Object.keys(state).length)
+        distinctUntilChanged(shallowEqual)
       )
       .subscribe((state) => {
         data$.current.next({

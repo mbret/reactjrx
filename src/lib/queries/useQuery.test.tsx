@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { interval, of } from "rxjs"
+import { Subject, interval, of, tap } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React, { memo, useEffect, useRef, useState } from "react"
 import { useQuery } from "./useQuery"
+import { printQuery } from "../../tests/testUtils"
+import { useSubscribe } from "../binding/useSubscribe"
 
 afterEach(() => {
   cleanup()
@@ -111,6 +113,56 @@ describe("useQuery", () => {
       )
 
       expect(await findByText("10")).toBeDefined()
+    })
+  })
+
+  describe("Given a query that change every render and a stable key", () => {
+    describe("when user refetch said query", () => {
+      it("foobar should return result of latest query instance", async () => {
+        const changeQueryTrigger = new Subject<void>()
+
+        const Comp = () => {
+          const [query, setQuery] = useState(() => async () => 1)
+
+          const result = useQuery(["foo"], query)
+
+          const { refetch } = result
+
+          useSubscribe(
+            changeQueryTrigger.pipe(
+              tap(() => {
+                setQuery(() => async () => 2)
+              })
+            )
+          )
+
+          useEffect(() => {
+            refetch()
+          }, [query, refetch])
+
+          return <>{printQuery(result)}</>
+        }
+
+        const { findByText } = render(
+          <React.StrictMode>
+            <Comp />
+          </React.StrictMode>
+        )
+
+        expect(
+          await findByText(
+            printQuery({ data: 1, isLoading: false, error: undefined })
+          )
+        ).toBeDefined()
+
+        changeQueryTrigger.next()
+
+        expect(
+          await findByText(
+            printQuery({ data: 2, isLoading: false, error: undefined })
+          )
+        ).toBeDefined()
+      })
     })
   })
 })

@@ -1,13 +1,20 @@
-import { type Observable, repeat } from "rxjs"
+import { type Observable, repeat, timer, of, switchMap, EMPTY } from "rxjs"
+
+const DEFAULT_STALE = 9999
 
 export const autoRefetch =
-  <T>(options: { staleTime?: number } = {}) =>
+  <T>(options$: Observable<{ staleTime?: number }> = of({})) =>
   (source: Observable<T>) => {
-    if (options.staleTime === Infinity) return source
-
     return source.pipe(
       repeat({
-        delay: options.staleTime ?? 999999
+        delay: () =>
+          options$.pipe(
+            switchMap((options) =>
+              options.staleTime === Infinity
+                ? EMPTY
+                : timer(options.staleTime ?? DEFAULT_STALE)
+            )
+          )
       })
     )
   }
