@@ -8,7 +8,6 @@ import {
 } from "react"
 import { type BehaviorSubject } from "rxjs"
 import { useCreateCacheStore } from "./cache/useCreateCacheStore"
-import { useQueryStore } from "./deduplication/useQueryStore"
 import { createClient } from "./client/createClient"
 
 type CacheStore = Record<string, { value: any; date: number; ttl: number }>
@@ -32,9 +31,8 @@ export const Provider = memo(
     client: ReturnType<typeof createClient>
   }) => {
     const cacheStore = useCreateCacheStore()
-    const queryStore = useQueryStore()
 
-    const value = useMemo(() => ({ cacheStore, queryStore, client }), [client])
+    const value = useMemo(() => ({ cacheStore, client }), [client])
 
     useEffect(
       () => () => {

@@ -1,5 +1,5 @@
 import { type Observable, finalize, shareReplay } from "rxjs"
-import { type QueryStore } from "./useQueryStore"
+import { type QueryStore } from "./types"
 
 export const deduplicate =
   <T>(key: string, queryStore?: QueryStore) =>

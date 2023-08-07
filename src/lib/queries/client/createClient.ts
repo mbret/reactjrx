@@ -17,17 +17,17 @@ import {
   take,
   withLatestFrom
 } from "rxjs"
-import { autoRefetch } from "../invalidation/autoRefetch"
+import { autoRefetch } from "./autoRefetch"
 import { type QuerxOptions } from "../types"
-import { deduplicate } from "../deduplication/deduplicate"
+import { deduplicate } from "./deduplicate"
 import { serializeKey } from "../keys/serializeKey"
 import { mergeResults, notifyQueryResult } from "./operators"
-import { type QueryResult } from "./types"
+import { type QueryStore, type QueryResult } from "./types"
 
 type Query<T> = (() => Promise<T>) | (() => Observable<T>) | Observable<T>
 
 export const createClient = () => {
-  const queryStore = new Map()
+  const queryStore: QueryStore = new Map()
   const refetch$ = new Subject<{
     key: any[]
   }>()

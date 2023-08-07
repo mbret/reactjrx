@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { of } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
-import { useQuery } from "../useQuery"
+import { useQuery } from "./useQuery"
 
 afterEach(() => {
   cleanup()
