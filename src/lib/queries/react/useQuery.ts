@@ -1,6 +1,5 @@
 import { useCallback, useEffect } from "react"
 import {
-  type Observable,
   map,
   finalize,
   distinctUntilChanged,
@@ -20,8 +19,7 @@ import { useBehaviorSubject } from "../../binding/useBehaviorSubject"
 import { arrayEqual } from "../../utils/arrayEqual"
 import { shallowEqual } from "../../utils/shallowEqual"
 import { isDefined } from "../../utils/isDefined"
-
-type Query<T> = (() => Promise<T>) | (() => Observable<T>) | Observable<T>
+import { type QueryFn } from "../client/types"
 
 interface Result<R> {
   data: R | undefined
@@ -32,40 +30,25 @@ interface Result<R> {
 
 const defaultValue = { data: undefined, isLoading: true, error: undefined }
 
-export function useQuery<T>(
-  query: Query<T>,
-  options?: QuerxOptions<T>
-): Result<T>
-
-export function useQuery<T>(
-  key: any[],
-  query: Query<T>,
-  options?: QuerxOptions<T>
-): Result<T>
-
-export function useQuery<T>(
-  keyOrQuery: any[] | Query<T>,
-  queryOrOptionOrNothing?: Query<T> | QuerxOptions,
-  optionsOrNothing?: QuerxOptions<T>
-): Result<T> {
-  const query = Array.isArray(keyOrQuery)
-    ? (queryOrOptionOrNothing as Query<T> | undefined)
-    : keyOrQuery
-  const options = (optionsOrNothing ??
-    (queryOrOptionOrNothing !== query ? queryOrOptionOrNothing : undefined) ??
-    {}) as QuerxOptions<T>
+export function useQuery<T>({
+  queryKey,
+  queryFn,
+  ...options
+}: {
+  queryKey?: any[]
+  queryFn?: QueryFn<T>
+} & QuerxOptions<T>): Result<T> {
   const internalRefresh$ = useSubject<void>()
   const { client } = useProvider()
-  const key = Array.isArray(keyOrQuery) ? keyOrQuery : undefined
-  const params$ = useBehaviorSubject({ key, options, query })
+  const params$ = useBehaviorSubject({ queryKey, options, queryFn })
 
   useEffect(() => {
     params$.current.next({
-      key,
+      queryKey,
       options,
-      query
+      queryFn
     })
-  }, [key, options, query])
+  }, [queryKey, options, queryFn])
 
   const result = useObserve<{
     data: T | undefined
@@ -79,21 +62,21 @@ export function useQuery<T>(
       }
 
       const newKeyReceived$ = params$.current.pipe(
-        map(({ key }) => key ?? []),
+        map(({ queryKey }) => queryKey ?? []),
         distinctUntilChanged(arrayEqual)
       )
 
       const newObservableObjectQuery$ = params$.current.pipe(
-        map(({ query }) => query),
+        map(({ queryFn }) => queryFn),
         distinctUntilChanged(shallowEqual),
         skip(1),
         filter((query) => !!query && typeof query !== "function"),
-        startWith(params$.current.getValue().query),
+        startWith(params$.current.getValue().queryFn),
         filter(isDefined)
       )
 
       const fn$ = params$.current.pipe(
-        map(({ query }) => query),
+        map(({ queryFn }) => queryFn),
         filter(isDefined)
       )
 

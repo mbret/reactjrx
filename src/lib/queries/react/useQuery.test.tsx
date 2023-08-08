@@ -16,7 +16,7 @@ describe("useQuery", () => {
       const Comp = () => {
         const [values, setValues] = useState<Array<number | undefined>>([])
 
-        const { data } = useQuery(() => interval(1))
+        const { data } = useQuery({ queryFn: () => interval(1) })
 
         useEffect(() => {
           data && setValues((v) => [...v, data])
@@ -41,7 +41,7 @@ describe("useQuery", () => {
     const Comp = () => {
       const [values, setValues] = useState<Array<number | undefined>>([])
 
-      const { data } = useQuery(source)
+      const { data } = useQuery({ queryFn: source })
 
       useEffect(() => {
         data && setValues((v) => [...v, data])
@@ -64,7 +64,7 @@ describe("useQuery", () => {
       const Comp = () => {
         const renderCount = useRef(0)
 
-        useQuery(of(renderCount.current))
+        useQuery({ queryFn: of(renderCount.current) })
 
         useEffect(() => {
           renderCount.current++
@@ -90,7 +90,8 @@ describe("useQuery", () => {
       const Comp = memo(() => {
         const renderCount = useRef(0)
 
-        const { data } = useQuery(of(renderCount.current), {
+        const { data } = useQuery({
+          queryFn: of(renderCount.current),
           enabled: renderCount.current < 11
         })
 
@@ -124,7 +125,10 @@ describe("useQuery", () => {
         const Comp = () => {
           const [query, setQuery] = useState(() => async () => 1)
 
-          const result = useQuery(["foo"], query)
+          const result = useQuery({
+            queryFn: query,
+            queryKey: ["foo"]
+          })
 
           const { refetch } = result
 

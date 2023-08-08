@@ -6,6 +6,8 @@ export interface QueryResult<T> {
   error: unknown
 }
 
+export type QueryFn<T> = (() => Promise<T>) | (() => Observable<T>) | Observable<T>
+
 export interface QueryOptions<R = unknown> {
   enabled?: boolean
   retry?: false | number | ((attempt: number, error: unknown) => boolean)

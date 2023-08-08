@@ -17,9 +17,7 @@ describe("useQuery", () => {
           const staleTimeout = 1
 
           const Comp = () => {
-            const { data } = useQuery(queryFn, {
-              staleTime: staleTimeout
-            })
+            const { data } = useQuery({ queryFn, staleTime: staleTimeout })
 
             return <>{data}</>
           }
@@ -33,7 +31,6 @@ describe("useQuery", () => {
           expect(await findByText("2")).toBeDefined()
 
           expect(queryFn.mock.calls.length).toBeGreaterThanOrEqual(2)
-
         })
       })
     })
@@ -46,9 +43,7 @@ describe("useQuery", () => {
           const staleTimeout = 1
 
           const Comp = () => {
-            const { data } = useQuery(queryFn, {
-              staleTime: staleTimeout
-            })
+            const { data } = useQuery({ queryFn, staleTime: staleTimeout })
 
             return <>{data}</>
           }
@@ -71,9 +66,7 @@ describe("useQuery", () => {
           const staleTimeout = 1
 
           const Comp = () => {
-            useQuery(queryFn, {
-              staleTime: staleTimeout
-            })
+            useQuery({ queryFn, staleTime: staleTimeout })
 
             return null
           }

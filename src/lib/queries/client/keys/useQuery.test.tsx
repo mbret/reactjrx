@@ -15,10 +15,13 @@ describe("useQuery", () => {
       let count = 0
 
       const Comp = ({ queryKey }: { queryKey: string }) => {
-        const result = useQuery([queryKey], async () => {
-          count++
+        const result = useQuery({
+          queryKey: [queryKey],
+          queryFn: async () => {
+            count++
 
-          return count
+            return count
+          }
         })
 
         return <>{printQuery(result)}</>
@@ -55,7 +58,10 @@ describe("useQuery", () => {
           const triggerSubject = new Subject()
 
           const Comp = ({ queryKey }: { queryKey: string }) => {
-            const result = useQuery([queryKey], triggerSubject)
+            const result = useQuery({
+              queryKey: [queryKey],
+              queryFn: triggerSubject
+            })
 
             return <>{printQuery(result)}</>
           }

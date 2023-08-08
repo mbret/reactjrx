@@ -1,6 +1,6 @@
 import { interval, skip, tap, withLatestFrom } from "rxjs"
-import { useBehaviorSubject } from "../../binding/useBehaviorSubject"
-import { useSubscribe } from "../../binding/useSubscribe"
+import { useBehaviorSubject } from "../../../binding/useBehaviorSubject"
+import { useSubscribe } from "../../../binding/useSubscribe"
 
 type CacheStore = Record<string, { value: any; date: number; ttl: number }>
 

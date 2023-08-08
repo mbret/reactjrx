@@ -4,8 +4,8 @@ import { render, cleanup } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
 import { useQuery } from "./useQuery"
 import { Provider, useProvider } from "./Provider"
-import { type QueryStore } from "./deduplication/useQueryStore"
 import { createClient } from "../client/createClient"
+import { type QueryStore } from "../client/types"
 
 afterEach(() => {
   cleanup()
@@ -18,7 +18,7 @@ describe("useQuery", () => {
       let _queryStore: QueryStore | undefined
 
       const Comp = () => {
-        const { data } = useQuery(["foo"], query)
+        const { data } = useQuery({ queryKey: ["foo"], queryFn: query })
 
         const { client } = useProvider()
 
@@ -52,7 +52,7 @@ describe("useQuery", () => {
         let _queryStore: QueryStore | undefined
 
         const Comp2 = () => {
-          useQuery(["foo"], query)
+          useQuery({ queryKey: ["foo"], queryFn: query })
 
           const { client } = useProvider()
 
@@ -101,8 +101,8 @@ describe("useQuery", () => {
           const queryMock = vi.fn().mockImplementation(() => timer(100))
 
           const Comp = () => {
-            useQuery([], queryMock)
-            useQuery([], queryMock)
+            useQuery({ queryKey: [], queryFn: queryMock })
+            useQuery({ queryKey: [], queryFn: queryMock })
 
             return null
           }
@@ -131,8 +131,8 @@ describe("useQuery", () => {
               })
             )
 
-          useQuery(["foo"], query)
-          useQuery(["foo"], query)
+          useQuery({ queryKey: ["foo"], queryFn: query })
+          useQuery({ queryKey: ["foo"], queryFn: query })
 
           useEffect(() => {
             mounted++
@@ -158,8 +158,11 @@ describe("useQuery", () => {
         const Comp = () => {
           const query = () => interval(1)
 
-          const { data } = useQuery(["foo"], query)
-          const { data: data2 } = useQuery(["foo"], query)
+          const { data } = useQuery({ queryKey: ["foo"], queryFn: query })
+          const { data: data2 } = useQuery({
+            queryKey: ["foo"],
+            queryFn: query
+          })
 
           return (
             <>
