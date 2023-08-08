@@ -18,7 +18,7 @@ import {
   withLatestFrom
 } from "rxjs"
 import { autoRefetch } from "./autoRefetch"
-import { type QuerxOptions } from "../react/types"
+import { type UseQueryOptions } from "../react/types"
 import { deduplicate } from "./deduplicate"
 import { serializeKey } from "./keys/serializeKey"
 import { mergeResults, notifyQueryResult } from "./operators"
@@ -41,7 +41,7 @@ export const createClient = () => {
   }: {
     key: QueryKey
     fn$: Observable<Query<T>>
-    options$: Observable<QuerxOptions<T>>
+    options$: Observable<UseQueryOptions<T>>
   }) => {
     const refetch$ = new Subject<void>()
 

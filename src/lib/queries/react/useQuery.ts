@@ -11,7 +11,7 @@ import {
   skip,
   identity
 } from "rxjs"
-import { type QuerxOptions } from "./types"
+import { type UseQueryResult, type UseQueryOptions } from "./types"
 import { useObserve } from "../../binding/useObserve"
 import { useSubject } from "../../binding/useSubject"
 import { useProvider } from "./Provider"
@@ -20,13 +20,6 @@ import { arrayEqual } from "../../utils/arrayEqual"
 import { shallowEqual } from "../../utils/shallowEqual"
 import { isDefined } from "../../utils/isDefined"
 import { type QueryFn } from "../client/types"
-
-interface Result<R> {
-  data: R | undefined
-  isLoading: boolean
-  error: unknown
-  refetch: () => void
-}
 
 const defaultValue = { data: undefined, isLoading: true, error: undefined }
 
@@ -37,7 +30,7 @@ export function useQuery<T>({
 }: {
   queryKey?: any[]
   queryFn?: QueryFn<T>
-} & QuerxOptions<T>): Result<T> {
+} & UseQueryOptions<T>): UseQueryResult<T> {
   const internalRefresh$ = useSubject<void>()
   const { client } = useProvider()
   const params$ = useBehaviorSubject({ queryKey, options, queryFn })
