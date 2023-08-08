@@ -10,7 +10,7 @@ import {
   filter,
   combineLatest,
   skip,
-  identity,
+  identity
 } from "rxjs"
 import { type QuerxOptions } from "./types"
 import { useObserve } from "../../binding/useObserve"

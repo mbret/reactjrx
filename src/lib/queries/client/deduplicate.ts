@@ -1,10 +1,11 @@
 import { type Observable, finalize, shareReplay } from "rxjs"
 import { type QueryStore } from "./types"
+import { serializeKey } from "./keys/serializeKey"
 
 export const deduplicate =
   <T>(key: string, queryStore?: QueryStore) =>
   (source: Observable<T>) => {
-    if (!key) return source
+    if (key === serializeKey([])) return source
 
     const sourceFromStore: Observable<T> | undefined = queryStore?.get(key)
 

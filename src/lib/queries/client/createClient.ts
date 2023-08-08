@@ -24,6 +24,7 @@ import { serializeKey } from "./keys/serializeKey"
 import { mergeResults, notifyQueryResult } from "./operators"
 import { type QueryStore, type QueryResult } from "./types"
 import { retryQueryOnFailure } from "./retryQueryOnFailure"
+import { type QueryKey } from "./keys/types"
 
 type Query<T> = (() => Promise<T>) | (() => Observable<T>) | Observable<T>
 
@@ -38,7 +39,7 @@ export const createClient = () => {
     fn$,
     options$
   }: {
-    key: any[]
+    key: QueryKey
     fn$: Observable<Query<T>>
     options$: Observable<QuerxOptions<T>>
   }) => {
