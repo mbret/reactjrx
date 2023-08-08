@@ -5,7 +5,6 @@ import {
   from,
   map,
   switchMap,
-  tap,
   merge,
   of,
   distinctUntilChanged,
@@ -18,7 +17,6 @@ import {
   withLatestFrom,
   BehaviorSubject,
   takeWhile,
-  finalize
 } from "rxjs"
 import { autoRefetch } from "./autoRefetch"
 import { deduplicate } from "./deduplicate"
