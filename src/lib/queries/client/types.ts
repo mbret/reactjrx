@@ -13,6 +13,7 @@ export interface QueryOptions<R = unknown> {
   retry?: false | number | ((attempt: number, error: unknown) => boolean)
   staleTime?: number
   cacheTime?: number
+  terminateOnFirstResult?: boolean
   onError?: (error: unknown) => void
   onSuccess?: (data: R) => void
 }

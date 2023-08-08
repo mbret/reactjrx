@@ -119,7 +119,7 @@ describe("useQuery", () => {
 
   describe("Given a query that change every render and a stable key", () => {
     describe("when user refetch said query", () => {
-      it("foobar should return result of latest query instance", async () => {
+      it("should return result of latest query instance", async () => {
         const changeQueryTrigger = new Subject<void>()
 
         const Comp = () => {

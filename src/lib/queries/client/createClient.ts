@@ -15,14 +15,16 @@ import {
   takeUntil,
   catchError,
   take,
-  withLatestFrom
+  withLatestFrom,
+  BehaviorSubject,
+  takeWhile,
+  finalize
 } from "rxjs"
 import { autoRefetch } from "./autoRefetch"
-import { type UseQueryOptions } from "../react/types"
 import { deduplicate } from "./deduplicate"
 import { serializeKey } from "./keys/serializeKey"
 import { mergeResults, notifyQueryResult } from "./operators"
-import { type QueryStore, type QueryResult } from "./types"
+import { type QueryStore, type QueryResult, type QueryOptions } from "./types"
 import { retryQueryOnFailure } from "./retryQueryOnFailure"
 import { type QueryKey } from "./keys/types"
 
@@ -37,14 +39,14 @@ export const createClient = () => {
   const query$ = <T>({
     key,
     fn$,
-    options$
+    refetch$ = new Subject(),
+    options$ = new BehaviorSubject<QueryOptions<T>>({})
   }: {
     key: QueryKey
     fn$: Observable<Query<T>>
-    options$: Observable<UseQueryOptions<T>>
+    refetch$?: Observable<void>
+    options$?: Observable<QueryOptions<T>>
   }) => {
-    const refetch$ = new Subject<void>()
-
     const enabled$ = options$.pipe(map(({ enabled = true }) => enabled))
 
     const disabled$ = enabled$.pipe(
@@ -62,10 +64,10 @@ export const createClient = () => {
 
     const serializedKey = serializeKey(key)
 
-    const query$: Observable<QueryResult<T>> = combineLatest(triggers).pipe(
-      tap((params) => {
-        console.log("query$ trigger", { key, params })
-      }),
+    const result$: Observable<QueryResult<T>> = combineLatest(triggers).pipe(
+      // tap((params) => {
+      //   console.log("query$ trigger", { key, params })
+      // }),
       withLatestFrom(fn$),
       withLatestFrom(options$),
       switchMap(([[, query], options]) => {
@@ -85,6 +87,9 @@ export const createClient = () => {
           merge(
             of({ isLoading: true, error: undefined }),
             deferredQuery.pipe(
+              // tap(() => {
+              //   console.log("after exec")
+              // }),
               retryQueryOnFailure(options),
               deduplicate(serializedKey, queryStore),
               map((result) => ({
@@ -105,15 +110,24 @@ export const createClient = () => {
         )
       }),
       mergeResults,
-      tap((data) => {
-        console.log("query$ return", data)
-      })
+      withLatestFrom(options$),
+      takeWhile(([result, options]) => {
+        const shouldStop =
+          result.data !== undefined && options.terminateOnFirstResult
+
+        return !shouldStop
+      }),
+      map(([result]) => result),
+      // tap((data) => {
+      //   console.log("query$ return", new Date().getTime()  - 1691522856380, data)
+      // }),
+      // finalize(() => {
+      //   console.log("query$ finalize", new Date().getTime()  - 1691522856380)
+      // })
     )
 
     return {
-      query$,
-      refetch$,
-      enabled$
+      result$
     }
   }
 

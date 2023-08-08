@@ -1,7 +1,6 @@
 import { useCallback, useEffect } from "react"
 import {
   map,
-  finalize,
   distinctUntilChanged,
   switchMap,
   pairwise,
@@ -82,20 +81,14 @@ export function useQuery<T>({
 
       return triggers$.pipe(
         switchMap(([key]) => {
-          const { query$, refetch$ } = client.query$({
+          const { result$ } = client.query$({
             key,
             fn$,
-            options$
+            options$,
+            refetch$: internalRefresh$.current
           })
 
-          const subscriptions = [internalRefresh$.current.subscribe(refetch$)]
-
-          return query$.pipe(
-            finalize(() => {
-              subscriptions.forEach((sub) => {
-                sub.unsubscribe()
-              })
-            }),
+          return result$.pipe(
             startWith(computedDefaultValue),
             pairwise(),
             map(

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { Subject, interval, merge, of, tap, timer } from "rxjs"
+import { Subject, interval, tap, timer } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
 import { useQuery } from "./useQuery"
@@ -47,8 +47,9 @@ describe("useQuery", () => {
   describe("Given a query that takes time to finish", () => {
     describe("when useQuery unmount", () => {
       it("should remove query from the store", async () => {
-        const query = async () =>
+        const query = async () => {
           await new Promise((resolve) => setTimeout(resolve, 100))
+        }
         let _queryStore: QueryStore | undefined
 
         const Comp2 = () => {
@@ -67,7 +68,7 @@ describe("useQuery", () => {
           useEffect(() => {
             const timeout = setTimeout(() => {
               setShow(false)
-            }, 1)
+            }, 10)
 
             return () => {
               clearTimeout(timeout)
@@ -121,11 +122,11 @@ describe("useQuery", () => {
 
       it("should run observable only once", async () => {
         let tapped = 0
-        let mounted = 0
+        const trigger = new Subject<void>()
 
         const Comp = () => {
           const query = () =>
-            merge(of(undefined), new Subject()).pipe(
+            trigger.pipe(
               tap(() => {
                 tapped++
               })
@@ -134,24 +135,31 @@ describe("useQuery", () => {
           useQuery({ queryKey: ["foo"], queryFn: query })
           useQuery({ queryKey: ["foo"], queryFn: query })
 
-          useEffect(() => {
-            mounted++
-          }, [])
-
           return null
         }
 
         const client = createClient()
 
         render(
-          <React.StrictMode>
-            <Provider client={client}>
-              <Comp />
-            </Provider>
-          </React.StrictMode>
+          <Provider client={client}>
+            <Comp />
+          </Provider>
         )
 
-        expect(tapped).toBe(mounted)
+        expect(tapped).toBe(0)
+
+        trigger.next()
+
+        expect(tapped).toBe(1)
+
+        /**
+         * Because the stream never finished (subject).
+         * it should stay in the deduplication layer and always
+         * run once
+         */
+        trigger.next()
+
+        expect(tapped).toBe(2)
       })
 
       it("should run observable only once", async () => {
