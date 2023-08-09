@@ -47,6 +47,8 @@ describe("useQuery", () => {
         data && setValues((v) => [...v, data])
       }, [data])
 
+      console.log(values.join(","))
+
       return <>{values.join(",")}</>
     }
 

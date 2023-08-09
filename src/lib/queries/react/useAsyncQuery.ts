@@ -224,7 +224,7 @@ export function useAsyncQuery<A = void, R = undefined>(
               isLastMutationCalled
             ]).pipe(
               map(([{ data, isError }, isLastMutationCalled]) => {
-                console.log("success", { data, isLastMutationCalled })
+                // console.log("success", { data, isLastMutationCalled })
                 if (!isError) {
                   if (optionsRef.current.onSuccess != null)
                     optionsRef.current.onSuccess(data as R, args)
