@@ -36,7 +36,8 @@ describe("useQuery", () => {
   })
 
   it("should return consecutive results", async () => {
-    const source = interval(1)
+    // interval big enough so react does not skip some render
+    const source = interval(5)
 
     const Comp = () => {
       const [values, setValues] = useState<Array<number | undefined>>([])
@@ -46,8 +47,6 @@ describe("useQuery", () => {
       useEffect(() => {
         data && setValues((v) => [...v, data])
       }, [data])
-
-      console.log(values.join(","))
 
       return <>{values.join(",")}</>
     }
