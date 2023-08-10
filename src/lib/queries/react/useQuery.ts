@@ -3,12 +3,14 @@ import {
   map,
   distinctUntilChanged,
   switchMap,
-  startWith,
   filter,
-  combineLatest,
   skip,
   tap,
-  scan
+  scan,
+  merge,
+  withLatestFrom,
+  of,
+  identity
 } from "rxjs"
 import { type UseQueryResult, type UseQueryOptions } from "./types"
 import { useObserve } from "../../binding/useObserve"
@@ -19,6 +21,7 @@ import { arrayEqual } from "../../utils/arrayEqual"
 import { shallowEqual } from "../../utils/shallowEqual"
 import { isDefined } from "../../utils/isDefined"
 import { type QueryResult, type QueryFn } from "../client/types"
+import { createActivityTrigger } from "./triggers/activityTrigger"
 
 const defaultValue = {
   data: undefined,
@@ -36,7 +39,7 @@ export function useQuery<T>({
   queryKey?: any[]
   queryFn?: QueryFn<T>
 } & UseQueryOptions<T>): UseQueryResult<T> {
-  const internalRefresh$ = useSubject<void>()
+  const internalRefresh$ = useSubject<{ ignoreStale: boolean }>()
   const { client } = useReactJrxProvider()
   const params$ = useBehaviorSubject({ queryKey, options, queryFn })
 
@@ -58,18 +61,23 @@ export function useQuery<T>({
 
   const result = useObserve<ObserveResult>(
     () => {
-      const newKeyReceived$ = params$.current.pipe(
-        map(({ queryKey }) => queryKey ?? []),
-        distinctUntilChanged(arrayEqual)
+      const key$ = params$.current.pipe(map(({ queryKey }) => queryKey ?? []))
+
+      const initialTrigger$ = of(null)
+
+      const newKeyTrigger$ = key$.pipe(
+        distinctUntilChanged(arrayEqual),
+        skip(1)
       )
+
+      const isQueryObject = (query: unknown) =>
+        !!query && typeof query !== "function"
 
       const newObservableObjectQuery$ = params$.current.pipe(
         map(({ queryFn }) => queryFn),
+        filter(isQueryObject),
         distinctUntilChanged(shallowEqual),
-        skip(1),
-        filter((query) => !!query && typeof query !== "function"),
-        startWith(params$.current.getValue().queryFn),
-        filter(isDefined)
+        isQueryObject(params$.current.getValue().queryFn) ? skip(1) : identity
       )
 
       const fn$ = params$.current.pipe(
@@ -79,21 +87,25 @@ export function useQuery<T>({
 
       const options$ = params$.current.pipe(map(({ options }) => options))
 
-      const triggers$ = combineLatest([
-        newKeyReceived$,
-        newObservableObjectQuery$
-      ])
+      const activityRefresh$ = createActivityTrigger(params$.current)
 
-      return triggers$.pipe(
+      const newQueryTrigger$ = merge(
+        initialTrigger$,
+        newKeyTrigger$,
+        newObservableObjectQuery$
+      )
+
+      return newQueryTrigger$.pipe(
         tap(() => {
           // console.log("useQuery trigger")
         }),
-        switchMap(([key]) => {
+        withLatestFrom(key$),
+        switchMap(([, key]) => {
           const { result$ } = client.query$({
             key,
             fn$,
             options$,
-            refetch$: internalRefresh$.current
+            refetch$: merge(internalRefresh$.current, activityRefresh$)
           })
 
           return result$.pipe(
@@ -112,7 +124,7 @@ export function useQuery<T>({
           )
         }),
         tap((result) => {
-          console.log("useQuery", "result", result)
+          // console.log("useQuery", "result", result)
         })
         /**
          * @important
@@ -135,7 +147,7 @@ export function useQuery<T>({
   )
 
   const refetch = useCallback(() => {
-    internalRefresh$.current.next()
+    internalRefresh$.current.next({ ignoreStale: true })
   }, [client])
 
   return { ...result, refetch }

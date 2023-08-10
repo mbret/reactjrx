@@ -1,8 +1,7 @@
-import { type QueryOptions } from "../client/types"
+import { type Query, type QueryOptions } from "../client/types"
 
 export interface UseQueryOptions<R = unknown> extends QueryOptions<R> {
-  // @todo
-  refetchOnWindowFocus?: boolean
+  refetchOnWindowFocus?: boolean | "always" | ((query: Query) => boolean | "always")
   // @todo
   refetchOnMount?: boolean
 }

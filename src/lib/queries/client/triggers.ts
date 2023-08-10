@@ -14,7 +14,7 @@ export const createQueryTrigger = <T>({
   refetch$,
   options$
 }: {
-  refetch$: Observable<void>
+  refetch$: Observable<{ ignoreStale: boolean }>
   options$: Observable<QueryOptions<T>>
 }) => {
   const initialTrigger$ = of("initial")
@@ -33,22 +33,19 @@ export const createQueryTrigger = <T>({
     initialTrigger$.pipe(
       map(() => ({
         type: "initial",
-        force: false
+        ignoreStale: false
       }))
     ),
     refetch$.pipe(
-      map(() => ({
-        type: "refetch",
-        /**
-         * bypass stale
-         */
-        force: true
+      map((event) => ({
+        ...event,
+        type: "refetch"
       }))
     ),
     enabledTrigger$.pipe(
       map(() => ({
         type: "enabled",
-        force: false
+        ignoreStale: false
       }))
     )
   ).pipe(

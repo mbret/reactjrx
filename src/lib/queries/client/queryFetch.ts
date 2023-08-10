@@ -57,7 +57,7 @@ export const createQueryFetch = <T>({
     deduplicate(serializedKey, deduplicationStore),
     retryQueryOnFailure(options),
     tap((result) => {
-      console.log("reactjrx", "query", serializedKey, "fetch", "result", result)
+      // console.log("reactjrx", "query", serializedKey, "fetch", "result", result)
 
       if (options.cacheTime !== 0) {
         queryStore.update(serializedKey, {

@@ -38,7 +38,7 @@ export const createClient = () => {
   }: {
     key: QueryKey
     fn$: Observable<QueryFn<T>>
-    refetch$?: Observable<void>
+    refetch$?: Observable<{ ignoreStale: boolean }>
     options$?: Observable<QueryOptions<T>>
   }) => {
     const serializedKey = serializeKey(key)
@@ -73,7 +73,8 @@ export const createClient = () => {
           !!queryStore.get(serializedKey)?.queryCacheResult
         const isNotStale = !queryStore.get(serializedKey)?.stale
 
-        const shouldSkip = !trigger.force && isNotStale && hasExistingCache
+        const shouldSkip =
+          !trigger.ignoreStale && isNotStale && hasExistingCache
 
         if (shouldSkip) {
           console.log("reactjrx", "query", serializedKey, "skipping fetch")
@@ -96,10 +97,10 @@ export const createClient = () => {
         queryStore,
         options$
       }),
-      mergeResults,
-      tap((result) => {
-        console.log("query$ result", result)
-      })
+      mergeResults
+      // tap((result) => {
+      //   console.log("query$ result", result)
+      // })
       // finalize(() => {
       //   console.log("query$ finalize", new Date().getTime()  - 1691522856380)
       // })
