@@ -20,7 +20,7 @@ import { shallowEqual } from "../../utils/shallowEqual"
 import { isDefined } from "../../utils/isDefined"
 import { type QueryFn } from "../client/types"
 
-const defaultValue = { data: undefined, isLoading: true, error: undefined }
+const defaultValue = { data: undefined, isLoading: true, error: undefined, status: "loading" as const, fetchStatus: "idle" as const }
 
 export function useQuery<T>({
   queryKey,
@@ -45,6 +45,8 @@ export function useQuery<T>({
   const result = useObserve<{
     data: T | undefined
     isLoading: boolean
+    fetchStatus: "fetching" | "paused" | "idle"
+    status: "loading" | "error" | "success"
     error: unknown
   }>(
     () => {
@@ -106,6 +108,10 @@ export function useQuery<T>({
             )
           )
         }),
+        map(result => ({
+          ...result,
+          isLoading: result.status === "loading"
+        })),
         /**
          * @important
          * We skip the first result as it is comparable to default passed value.

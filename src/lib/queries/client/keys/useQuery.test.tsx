@@ -35,7 +35,15 @@ describe("useQuery", () => {
 
       // we have to account for strict mode
       expect(
-        await findByText(`{"data":2,"error":undefined,"isLoading":false}`)
+        await findByText(
+          printQuery({
+            data: 2,
+            error: undefined,
+            isLoading: false,
+            status: "success",
+            fetchStatus: "idle"
+          })
+        )
       ).toBeDefined()
 
       rerender(
@@ -46,7 +54,15 @@ describe("useQuery", () => {
 
       // we have to account for strict mode
       expect(
-        await findByText(`{"data":3,"error":undefined,"isLoading":false}`)
+        await findByText(
+          printQuery({
+            data: 3,
+            error: undefined,
+            isLoading: false,
+            status: "success",
+            fetchStatus: "idle"
+          })
+        )
       ).toBeDefined()
     })
   })
@@ -54,7 +70,7 @@ describe("useQuery", () => {
   describe("Given a query subject", () => {
     describe("and a first value fired from the subject", () => {
       describe("when the key change", () => {
-        it("should reset data to undefined and have isLoading as true", async () => {
+        it("should reset data to undefined and have fetchStatus as fetching and status as loading", async () => {
           const triggerSubject = new Subject()
 
           const Comp = ({ queryKey }: { queryKey: string }) => {
@@ -75,7 +91,15 @@ describe("useQuery", () => {
           triggerSubject.next(2)
 
           expect(
-            await findByText(`{"data":2,"error":undefined,"isLoading":false}`)
+            await findByText(
+              printQuery({
+                data: 2,
+                error: undefined,
+                fetchStatus: "idle",
+                isLoading: false,
+                status: "success"
+              })
+            )
           ).toBeDefined()
 
           rerender(
@@ -86,14 +110,28 @@ describe("useQuery", () => {
 
           expect(
             await findByText(
-              `{"data":undefined,"error":undefined,"isLoading":true}`
+              printQuery({
+                data: undefined,
+                error: undefined,
+                fetchStatus: "fetching",
+                isLoading: true,
+                status: "loading"
+              })
             )
           ).toBeDefined()
 
           triggerSubject.next(3)
 
           expect(
-            await findByText(`{"data":3,"error":undefined,"isLoading":false}`)
+            await findByText(
+              printQuery({
+                data: 3,
+                error: undefined,
+                fetchStatus: "idle",
+                isLoading: false,
+                status: "success"
+              })
+            )
           ).toBeDefined()
         })
       })

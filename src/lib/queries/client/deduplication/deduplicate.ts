@@ -1,17 +1,20 @@
 import { type Observable, shareReplay, defer, tap, finalize } from "rxjs"
-import { type QueryStore } from "./types"
-import { serializeKey } from "./keys/serializeKey"
+import { type createDeduplicationStore } from "./createDeduplicationStore"
+import { serializeKey } from "../keys/serializeKey"
 
 export const deduplicate =
-  <T>(key: string, queryStore?: QueryStore) =>
+  <T>(
+    key: string,
+    queryFnStore?: ReturnType<typeof createDeduplicationStore>
+  ) =>
   (source: Observable<T>) => {
     if (key === serializeKey([])) return source
 
     return defer(() => {
-      const sourceFromStore: Observable<T> | undefined = queryStore?.get(key)
+      const sourceFromStore: Observable<T> | undefined = queryFnStore?.get(key)
 
       const deleteFromStore = () => {
-        queryStore?.delete(key)
+        queryFnStore?.delete(key)
       }
 
       const finalSource =
@@ -38,7 +41,7 @@ export const deduplicate =
         )
 
       if (!sourceFromStore) {
-        queryStore?.set(key, finalSource)
+        queryFnStore?.set(key, finalSource)
       }
 
       return finalSource

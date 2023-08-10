@@ -1,6 +1,6 @@
 import { type QueryKey } from "./types"
 
-const serializeObject = (object: any): string => {
+export const serializeObject = (object: any): string => {
   if (Array.isArray(object)) {
     return object.reduce((acc: string, value: any, index) => {
       if (index === object.length - 1) return `${acc}${serializeObject(value)}]`
@@ -8,6 +8,8 @@ const serializeObject = (object: any): string => {
       return `${acc}${serializeObject(value)},`
     }, "[")
   }
+
+  if (object === undefined) return ""
 
   return JSON.stringify(object, Object.keys(object).sort())
 }

@@ -2,7 +2,8 @@ import { type Observable } from "rxjs"
 
 export interface QueryResult<T> {
   data: { result: T } | undefined
-  isLoading: boolean
+  fetchStatus: "fetching" | "paused" | "idle"
+  status: "loading" | "error" | "success"
   error: unknown
 }
 
@@ -17,5 +18,3 @@ export interface QueryOptions<R = unknown> {
   onError?: (error: unknown) => void
   onSuccess?: (data: R) => void
 }
-
-export type QueryStore = Map<string, Observable<any>>

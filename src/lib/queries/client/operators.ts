@@ -42,12 +42,13 @@ export const mergeResults = <T>(
   stream$: Observable<Partial<QueryResult<T>>>
 ): Observable<QueryResult<T>> =>
   stream$.pipe(
-    startWith({ isLoading: false, data: undefined, error: undefined }),
+    startWith({ data: undefined, error: undefined }),
     pairwise(),
     map(([previous, current]) => ({
-      isLoading: false,
       data: undefined,
       error: undefined,
+      fetchStatus: "idle" as const,
+      status: "loading" as const,
       ...previous,
       ...current
     })),

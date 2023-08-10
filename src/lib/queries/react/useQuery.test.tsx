@@ -156,7 +156,13 @@ describe("useQuery", () => {
 
         expect(
           await findByText(
-            printQuery({ data: 1, isLoading: false, error: undefined })
+            printQuery({
+              data: 1,
+              error: undefined,
+              fetchStatus: "idle",
+              isLoading: false,
+              status: "success"
+            })
           )
         ).toBeDefined()
 
@@ -164,7 +170,13 @@ describe("useQuery", () => {
 
         expect(
           await findByText(
-            printQuery({ data: 2, isLoading: false, error: undefined })
+            printQuery({
+              data: 2,
+              error: undefined,
+              fetchStatus: "idle",
+              isLoading: false,
+              status: "success"
+            })
           )
         ).toBeDefined()
       })

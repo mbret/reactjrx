@@ -9,9 +9,9 @@ import {
 } from "rxjs"
 import { expect, it, describe } from "vitest"
 import { deduplicate } from "./deduplicate"
-import { serializeKey } from "./keys/serializeKey"
-import { createClient } from "./createClient"
-import { type QueryOptions } from "./types"
+import { serializeKey } from "../keys/serializeKey"
+import { createClient } from "../createClient"
+import { type QueryOptions } from "../types"
 
 describe("deduplicate tests", () => {
   describe("Given a repeat operator after deduplicate", () => {
