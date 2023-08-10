@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react"
+import { useCallback } from "react"
 import {
   map,
   distinctUntilChanged,
@@ -17,13 +17,13 @@ import { type UseQueryResult, type UseQueryOptions } from "./types"
 import { useObserve } from "../../binding/useObserve"
 import { useSubject } from "../../binding/useSubject"
 import { useReactJrxProvider } from "./Provider"
-import { useBehaviorSubject } from "../../binding/useBehaviorSubject"
 import { arrayEqual } from "../../utils/arrayEqual"
 import { shallowEqual } from "../../utils/shallowEqual"
 import { isDefined } from "../../utils/isDefined"
 import { type QueryResult, type QueryFn } from "../client/types"
 import { createActivityTrigger } from "./triggers/activityTrigger"
 import { createNetworkTrigger } from "./triggers/networkTrigger"
+import { useQueryParams } from "./helpers"
 
 const defaultValue = {
   data: undefined,
@@ -41,17 +41,9 @@ export function useQuery<T>({
   queryKey?: any[]
   queryFn?: QueryFn<T>
 } & UseQueryOptions<T>): UseQueryResult<T> {
-  const internalRefresh$ = useSubject<{ ignoreStale: boolean }>()
+  const internalRefresh$ = useSubject<void>()
   const { client } = useReactJrxProvider()
-  const params$ = useBehaviorSubject({ queryKey, options, queryFn })
-
-  useEffect(() => {
-    params$.current.next({
-      queryKey,
-      options,
-      queryFn
-    })
-  }, [queryKey, options, queryFn])
+  const params$ = useQueryParams({ queryFn, queryKey, ...options })
 
   interface ObserveResult {
     data: T | undefined
@@ -99,14 +91,11 @@ export function useQuery<T>({
       )
 
       const refetch$ = merge(
-        internalRefresh$.current,
+        internalRefresh$.current.pipe(map(() => ({ ignoreStale: true }))),
         merge(activityRefetch$, networkRefetch$).pipe(throttleTime(500))
       )
 
       return newQueryTrigger$.pipe(
-        tap(() => {
-          // console.log("useQuery trigger")
-        }),
         withLatestFrom(key$),
         switchMap(([, key]) => {
           const { result$ } = client.query$({
@@ -155,7 +144,7 @@ export function useQuery<T>({
   )
 
   const refetch = useCallback(() => {
-    internalRefresh$.current.next({ ignoreStale: true })
+    internalRefresh$.current.next()
   }, [client])
 
   return { ...result, refetch }
