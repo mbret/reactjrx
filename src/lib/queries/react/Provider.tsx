@@ -6,20 +6,12 @@ import {
   useMemo,
   useEffect
 } from "react"
-import { type BehaviorSubject } from "rxjs"
-import { useCreateCacheStore } from "../client/cache/useCreateCacheStore"
-import { createClient } from "../client/createClient"
-
-type CacheStore = Record<string, { value: any; date: number; ttl: number }>
+import { type createClient } from "../client/createClient"
 
 export const Context = createContext<{
-  cacheStore: {
-    current: BehaviorSubject<CacheStore>
-  }
   client: ReturnType<typeof createClient>
 }>({
-  cacheStore: {} as any,
-  client: createClient()
+  client: null as unknown as any
 })
 
 export const Provider = memo(
@@ -30,9 +22,7 @@ export const Provider = memo(
     children: ReactNode
     client: ReturnType<typeof createClient>
   }) => {
-    const cacheStore = useCreateCacheStore()
-
-    const value = useMemo(() => ({ cacheStore, client }), [client])
+    const value = useMemo(() => ({ client }), [client])
 
     useEffect(
       () => () => {
@@ -47,6 +37,10 @@ export const Provider = memo(
 
 export const useReactJrxProvider = () => {
   const context = useContext(Context)
+
+  if (context === null) {
+    throw new Error("You forgot to register the provider")
+  }
 
   return { ...context }
 }

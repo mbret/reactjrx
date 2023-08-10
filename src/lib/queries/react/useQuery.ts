@@ -7,7 +7,6 @@ import {
   filter,
   combineLatest,
   skip,
-  identity,
   tap,
   scan
 } from "rxjs"
@@ -112,15 +111,18 @@ export function useQuery<T>({
             )
           )
         }),
+        tap((result) => {
+          console.log("useQuery", "result", result)
+        })
         /**
          * @important
          * We skip the first result as it is comparable to default passed value.
          * This is assuming all query are async and does not return a result right away.
          * This is a design choice.
          */
-        params$.current.getValue().options.enabled !== false
-          ? skip(1)
-          : identity
+        // params$.current.getValue().options.enabled !== false
+        //   ? skip(1)
+        //   : identity
       )
     },
     {

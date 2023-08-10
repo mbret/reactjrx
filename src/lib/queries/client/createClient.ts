@@ -1,33 +1,27 @@
 import {
   type Observable,
   Subject,
-  defer,
-  from,
   map,
   switchMap,
-  merge,
-  of,
-  distinctUntilChanged,
   filter,
-  takeUntil,
-  catchError,
-  take,
   withLatestFrom,
   BehaviorSubject,
   takeWhile,
   tap,
-  skip
+  merge,
+  mergeMap,
+  EMPTY
 } from "rxjs"
-import { autoRefetch } from "./autoRefetch"
-import { deduplicate } from "./deduplication/deduplicate"
 import { serializeKey } from "./keys/serializeKey"
-import { mergeResults, notifyQueryResult } from "./operators"
-import { type QueryResult, type QueryOptions, type QueryFn } from "./types"
-import { retryQueryOnFailure } from "./retryQueryOnFailure"
+import { mergeResults } from "./operators"
+import { type QueryOptions, type QueryFn } from "./types"
 import { type QueryKey } from "./keys/types"
 import { createDeduplicationStore } from "./deduplication/createDeduplicationStore"
 import { createQueryStore } from "./createQueryStore"
-import { compareKeys } from "./keys/compareKeys"
+import { staleQuery } from "./invalidation/staleQuery"
+import { createQueryTrigger } from "./triggers"
+import { createQueryFetch } from "./queryFetch"
+import { createInvalidationClient } from "./invalidation/client"
 
 export const createClient = () => {
   const queryStore = createQueryStore()
@@ -49,134 +43,96 @@ export const createClient = () => {
   }) => {
     const serializedKey = serializeKey(key)
 
-    // console.log("query$()", serializedKey)
+    console.log("query$()", serializedKey)
 
-    const enabledOption$ = options$.pipe(
-      map(({ enabled = true }) => enabled),
-      distinctUntilChanged()
-    )
+    if (!queryStore.get(serializedKey)) {
+      queryStore.set(serializedKey, {
+        queryKey: key,
+        stale: true
+      })
+    }
 
-    const disabled$ = enabledOption$.pipe(
-      distinctUntilChanged(),
-      filter((enabled) => !enabled)
-    )
+    const trigger$ = createQueryTrigger({ options$, refetch$ })
 
-    // initial trigger
-    const staleTrigger$ = queryStore.store$.pipe(
-      map((store) => store.get(serializedKey)?.stale ?? true),
-      skip(1),
-      filter((stale) => stale)
-    )
-
-    const enabledTrigger$ = enabledOption$.pipe(
-      skip(1),
-      filter((enabled) => enabled)
-    )
-
-    const triggers$ = merge(
-      of("initial"),
-      refetch$,
-      staleTrigger$,
-      enabledTrigger$
-    )
-
-    const result$ = triggers$.pipe(
-      tap((params) => {
-        // console.log("query$ trigger", { key, params })
-      }),
-      withLatestFrom(fn$),
-      withLatestFrom(options$),
-      map(([[, fn], options]) => ({ fn, options })),
-      filter(({ options }) => options.enabled !== false),
+    const clearCacheOnNewQuery$ = fn$.pipe(
       tap(() => {
-        queryStore.update(serializedKey, { stale: false })
+        queryStore.update(serializedKey, { queryCacheResult: undefined })
       }),
-      switchMap(({ fn, options }) => {
-        const deferredQuery = defer(() => {
-          const queryOrResponse = typeof fn === "function" ? fn() : fn
+      mergeMap(() => EMPTY)
+    )
 
-          return from(queryOrResponse)
+    const result$ = trigger$.pipe(
+      tap((params) => {
+        console.log("query$ trigger", { key, params })
+      }),
+      withLatestFrom(fn$, options$),
+      map(([trigger, fn, options]) => ({ trigger, fn, options })),
+      filter(({ options }) => options.enabled !== false),
+      filter(({ trigger }) => {
+        const hasExistingCache =
+          !!queryStore.get(serializedKey)?.queryCacheResult
+        const isNotStale = !queryStore.get(serializedKey)?.stale
+
+        const shouldSkip = !trigger.force && isNotStale && hasExistingCache
+
+        if (shouldSkip) {
+          console.log("reactjrx", "query", serializedKey, "skipping fetch")
+        }
+
+        return !shouldSkip
+      }),
+      switchMap(({ fn, options }) =>
+        createQueryFetch({
+          options$,
+          options,
+          fn,
+          deduplicationStore,
+          queryStore,
+          serializedKey
         })
-
-        return merge(
-          disabled$.pipe(
-            take(1),
-            map(() => ({
-              fetchStatus: "idle" as const
-            }))
-          ),
-          merge(
-            of({ fetchStatus: "fetching" as const, error: undefined }),
-            deferredQuery.pipe(
-              deduplicate(serializedKey, deduplicationStore),
-              retryQueryOnFailure(options),
-              map((result) => ({
-                fetchStatus: "idle" as const,
-                status: "success" as const,
-                data: { result },
-                error: undefined
-              })),
-              catchError((error) =>
-                of({
-                  fetchStatus: "idle" as const,
-                  status: "error" as const,
-                  data: undefined,
-                  error
-                })
-              ),
-              notifyQueryResult(options$)
-            )
-          ).pipe(autoRefetch(options$), takeUntil(disabled$))
-        )
+      ),
+      staleQuery({
+        key: serializedKey,
+        queryStore,
+        options$
       }),
       mergeResults,
-      withLatestFrom(options$),
-      takeWhile(([result, options]) => {
-        const shouldStop =
-          result.data !== undefined && options.terminateOnFirstResult
-
-        return !shouldStop
-      }),
-      map(([result]) => result)
+      tap((result) => {
+        console.log("query$ result", result)
+      })
       // finalize(() => {
       //   console.log("query$ finalize", new Date().getTime()  - 1691522856380)
       // })
-    ) as Observable<
-      QueryResult<T>
-    > /* @see https://github.com/ReactiveX/rxjs/issues/4221 */
+    )
 
     return {
-      result$
+      result$: merge(result$, clearCacheOnNewQuery$).pipe(
+        withLatestFrom(options$),
+        takeWhile(([result, options]) => {
+          const shouldStop =
+            result.data !== undefined && options.terminateOnFirstResult
+
+          return !shouldStop
+        }),
+        map(([result]) => result)
+      )
     }
   }
 
-  const invalidateQueries = ({
-    queryKey,
-    exact = false,
-    predicate
-  }: {
-    queryKey?: QueryKey
-    exact?: boolean
-    predicate?: Parameters<typeof queryStore.updateMany>[1]
-  } = {}) => {
-    if (queryKey) {
-      queryStore.updateMany({ stale: true }, (storeObject) =>
-        compareKeys(queryKey, storeObject.queryKey, { exact })
-      )
-    } else if (predicate) {
-      queryStore.updateMany({ stale: true }, predicate)
-    } else {
-      queryStore.updateMany({ stale: true })
-    }
-  }
+  const invalidationClient = createInvalidationClient({ queryStore })
+
+  const storeSub = queryStore.store$.subscribe((value) => {
+    console.log("reactjrx", "client", "store", "update", value)
+  })
 
   return {
     query$,
     refetch$,
     queryStore: deduplicationStore,
-    invalidateQueries,
+    ...invalidationClient,
     destroy: () => {
       // @todo cleanup
+      storeSub.unsubscribe()
     }
   }
 }

@@ -4,6 +4,7 @@ import { type QueryKey } from "./keys/types"
 export interface StoreObject {
   queryKey: QueryKey
   stale: boolean
+  queryCacheResult?: undefined | { result: unknown }
 }
 
 export const createQueryStore = () => {
@@ -13,6 +14,10 @@ export const createQueryStore = () => {
   const setValue = (key: string, value: StoreObject) => {
     store.set(key, value)
     store$.next(store)
+  }
+
+  const getValue = (key: string) => {
+    return store.get(key)
   }
 
   const updateValue = (key: string, value: Partial<StoreObject>) => {
@@ -44,6 +49,7 @@ export const createQueryStore = () => {
 
   return {
     set: setValue,
+    get: getValue,
     delete: deleteValue,
     update: updateValue,
     updateMany,

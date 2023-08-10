@@ -4,6 +4,7 @@ import { render, cleanup } from "@testing-library/react"
 import React from "react"
 import { useQuery } from "../../react/useQuery"
 import { printQuery } from "../../../../tests/testUtils"
+import { ReactjrxQueryProvider, createClient } from "../../../.."
 
 afterEach(() => {
   cleanup()
@@ -27,9 +28,13 @@ describe("useQuery", () => {
         return <>{printQuery(result)}</>
       }
 
+      const client = createClient()
+
       const { findByText, rerender } = render(
         <React.StrictMode>
-          <Comp queryKey="1" />
+          <ReactjrxQueryProvider client={client}>
+            <Comp queryKey="1" />
+          </ReactjrxQueryProvider>
         </React.StrictMode>
       )
 
@@ -48,7 +53,9 @@ describe("useQuery", () => {
 
       rerender(
         <React.StrictMode>
-          <Comp queryKey="2" />
+          <ReactjrxQueryProvider client={client}>
+            <Comp queryKey="2" />
+          </ReactjrxQueryProvider>
         </React.StrictMode>
       )
 
@@ -82,9 +89,13 @@ describe("useQuery", () => {
             return <>{printQuery(result)}</>
           }
 
+          const client = createClient()
+
           const { findByText, rerender } = render(
             <React.StrictMode>
-              <Comp queryKey="1" />
+              <ReactjrxQueryProvider client={client}>
+                <Comp queryKey="1" />
+              </ReactjrxQueryProvider>
             </React.StrictMode>
           )
 
@@ -95,7 +106,7 @@ describe("useQuery", () => {
               printQuery({
                 data: 2,
                 error: undefined,
-                fetchStatus: "idle",
+                fetchStatus: "fetching",
                 isLoading: false,
                 status: "success"
               })
@@ -104,7 +115,9 @@ describe("useQuery", () => {
 
           rerender(
             <React.StrictMode>
-              <Comp queryKey="2" />
+              <ReactjrxQueryProvider client={client}>
+                <Comp queryKey="2" />
+              </ReactjrxQueryProvider>
             </React.StrictMode>
           )
 
@@ -121,6 +134,20 @@ describe("useQuery", () => {
           ).toBeDefined()
 
           triggerSubject.next(3)
+
+          expect(
+            await findByText(
+              printQuery({
+                data: 3,
+                error: undefined,
+                fetchStatus: "fetching",
+                isLoading: false,
+                status: "success"
+              })
+            )
+          ).toBeDefined()
+
+          triggerSubject.complete()
 
           expect(
             await findByText(

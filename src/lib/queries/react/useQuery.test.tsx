@@ -5,6 +5,8 @@ import React, { memo, useEffect, useRef, useState } from "react"
 import { useQuery } from "./useQuery"
 import { printQuery } from "../../../tests/testUtils"
 import { useSubscribe } from "../../binding/useSubscribe"
+import { ReactjrxQueryProvider, createClient } from "../../.."
+import { waitForTimeout } from "../../../tests/utils"
 
 afterEach(() => {
   cleanup()
@@ -22,27 +24,33 @@ describe("useQuery", () => {
           data && setValues((v) => [...v, data])
         }, [data])
 
-        return <>{values.join(",")}</>
+        return <>{JSON.stringify(values)}</>
       }
+
+      const client = createClient()
 
       const { findByText } = render(
         <React.StrictMode>
-          <Comp />
+          <ReactjrxQueryProvider client={client}>
+            <Comp />
+          </ReactjrxQueryProvider>
         </React.StrictMode>
       )
 
-      expect(await findByText("1,2,3")).toBeDefined()
+      expect(await findByText(JSON.stringify([1, 2, 3]))).toBeDefined()
     })
   })
 
   it("should return consecutive results", async () => {
     // interval big enough so react does not skip some render
-    const source = interval(5)
+    const source = interval(1)
 
     const Comp = () => {
       const [values, setValues] = useState<Array<number | undefined>>([])
 
-      const { data } = useQuery({ queryFn: source })
+      const queryResult = useQuery({ queryFn: source })
+
+      const { data } = queryResult
 
       useEffect(() => {
         data && setValues((v) => [...v, data])
@@ -51,13 +59,57 @@ describe("useQuery", () => {
       return <>{values.join(",")}</>
     }
 
+    const client = createClient()
+
     const { findByText } = render(
       <React.StrictMode>
-        <Comp />
+        <ReactjrxQueryProvider client={client}>
+          <Comp />
+        </ReactjrxQueryProvider>
       </React.StrictMode>
     )
 
     expect(await findByText("1,2,3")).toBeDefined()
+  })
+
+  it("should return consecutive results", async () => {
+    const source = new Subject<number>()
+
+    const Comp = () => {
+      const [values, setValues] = useState<Array<number | undefined>>([])
+
+      const queryResult = useQuery({ queryFn: source })
+
+      const { data } = queryResult
+
+      useEffect(() => {
+        data && setValues((v) => [...v, data])
+      }, [data])
+
+      return <>{JSON.stringify(values)}</>
+    }
+
+    const client = createClient()
+
+    const { findByText } = render(
+      <React.StrictMode>
+        <ReactjrxQueryProvider client={client}>
+          <Comp />
+        </ReactjrxQueryProvider>
+      </React.StrictMode>
+    )
+
+    source.next(3)
+
+    await waitForTimeout(1)
+
+    source.next(2)
+
+    await waitForTimeout(1)
+
+    source.next(1)
+
+    expect(await findByText(JSON.stringify([3, 2, 1]))).toBeDefined()
   })
 
   describe("Given a new source every render", () => {
@@ -78,10 +130,14 @@ describe("useQuery", () => {
         return null
       }
 
+      const client = createClient()
+
       expect(() =>
         render(
           <React.StrictMode>
-            <Comp />
+            <ReactjrxQueryProvider client={client}>
+              <Comp />
+            </ReactjrxQueryProvider>
           </React.StrictMode>
         )
       ).to.toThrowError("too many render")
@@ -108,9 +164,13 @@ describe("useQuery", () => {
         return <>{data}</>
       })
 
+      const client = createClient()
+
       const { findByText } = render(
         <React.StrictMode>
-          <Comp />
+          <ReactjrxQueryProvider client={client}>
+            <Comp />
+          </ReactjrxQueryProvider>
         </React.StrictMode>
       )
 
@@ -148,9 +208,13 @@ describe("useQuery", () => {
           return <>{printQuery(result)}</>
         }
 
+        const client = createClient()
+
         const { findByText } = render(
           <React.StrictMode>
-            <Comp />
+            <ReactjrxQueryProvider client={client}>
+              <Comp />
+            </ReactjrxQueryProvider>
           </React.StrictMode>
         )
 
