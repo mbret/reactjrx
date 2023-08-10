@@ -89,13 +89,18 @@ export function useQuery<T>({
 
       const options$ = params$.current.pipe(map(({ options }) => options))
 
-      const activityRefresh$ = createActivityTrigger(params$.current)
-      const networkRefresh$ = createNetworkTrigger(params$.current)
+      const activityRefetch$ = createActivityTrigger(params$.current)
+      const networkRefetch$ = createNetworkTrigger(params$.current)
 
       const newQueryTrigger$ = merge(
         initialTrigger$,
         newKeyTrigger$,
         newObservableObjectQuery$
+      )
+
+      const refetch$ = merge(
+        internalRefresh$.current,
+        merge(activityRefetch$, networkRefetch$).pipe(throttleTime(500))
       )
 
       return newQueryTrigger$.pipe(
@@ -108,10 +113,7 @@ export function useQuery<T>({
             key,
             fn$,
             options$,
-            refetch$: merge(
-              internalRefresh$.current,
-              merge(activityRefresh$, networkRefresh$).pipe(throttleTime(500))
-            )
+            refetch$
           })
 
           return result$.pipe(
