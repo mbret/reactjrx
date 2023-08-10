@@ -39,7 +39,9 @@ describe("useQuery", () => {
       describe("when the query finish before the stale timeout", () => {
         it("should refetch", async () => {
           let value = 0
-          const queryFn = vi.fn().mockImplementation(() => of(++value))
+          const queryFn = vi.fn().mockImplementation(() => {
+            return of(++value)
+          })
           const staleTimeout = 1
 
           const Comp = () => {

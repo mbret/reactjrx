@@ -45,7 +45,7 @@ export const Provider = memo(
   }
 )
 
-export const useProvider = () => {
+export const useReactJrxProvider = () => {
   const context = useContext(Context)
 
   return { ...context }

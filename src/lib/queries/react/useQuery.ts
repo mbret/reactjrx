@@ -8,19 +8,26 @@ import {
   filter,
   combineLatest,
   skip,
-  identity
+  identity,
+  tap
 } from "rxjs"
 import { type UseQueryResult, type UseQueryOptions } from "./types"
 import { useObserve } from "../../binding/useObserve"
 import { useSubject } from "../../binding/useSubject"
-import { useProvider } from "./Provider"
+import { useReactJrxProvider } from "./Provider"
 import { useBehaviorSubject } from "../../binding/useBehaviorSubject"
 import { arrayEqual } from "../../utils/arrayEqual"
 import { shallowEqual } from "../../utils/shallowEqual"
 import { isDefined } from "../../utils/isDefined"
 import { type QueryFn } from "../client/types"
 
-const defaultValue = { data: undefined, isLoading: true, error: undefined, status: "loading" as const, fetchStatus: "idle" as const }
+const defaultValue = {
+  data: undefined,
+  isLoading: true,
+  error: undefined,
+  status: "loading" as const,
+  fetchStatus: "idle" as const
+}
 
 export function useQuery<T>({
   queryKey,
@@ -31,7 +38,7 @@ export function useQuery<T>({
   queryFn?: QueryFn<T>
 } & UseQueryOptions<T>): UseQueryResult<T> {
   const internalRefresh$ = useSubject<void>()
-  const { client } = useProvider()
+  const { client } = useReactJrxProvider()
   const params$ = useBehaviorSubject({ queryKey, options, queryFn })
 
   useEffect(() => {
@@ -82,6 +89,9 @@ export function useQuery<T>({
       ])
 
       return triggers$.pipe(
+        tap(() => {
+          // console.log("useQuery trigger")
+        }),
         switchMap(([key]) => {
           const { result$ } = client.query$({
             key,
@@ -108,7 +118,7 @@ export function useQuery<T>({
             )
           )
         }),
-        map(result => ({
+        map((result) => ({
           ...result,
           isLoading: result.status === "loading"
         })),

@@ -1,7 +1,7 @@
 import { BehaviorSubject } from "rxjs"
 import { type QueryKey } from "./keys/types"
 
-interface StoreObject {
+export interface StoreObject {
   queryKey: QueryKey
   stale: boolean
 }

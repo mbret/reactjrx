@@ -9,14 +9,14 @@ import {
   of,
   distinctUntilChanged,
   filter,
-  combineLatest,
-  startWith,
   takeUntil,
   catchError,
   take,
   withLatestFrom,
   BehaviorSubject,
-  takeWhile
+  takeWhile,
+  tap,
+  skip
 } from "rxjs"
 import { autoRefetch } from "./autoRefetch"
 import { deduplicate } from "./deduplication/deduplicate"
@@ -47,32 +47,53 @@ export const createClient = () => {
     refetch$?: Observable<void>
     options$?: Observable<QueryOptions<T>>
   }) => {
-    const enabled$ = options$.pipe(map(({ enabled = true }) => enabled))
+    const serializedKey = serializeKey(key)
 
-    const disabled$ = enabled$.pipe(
+    // console.log("query$()", serializedKey)
+
+    const enabledOption$ = options$.pipe(
+      map(({ enabled = true }) => enabled),
+      distinctUntilChanged()
+    )
+
+    const disabled$ = enabledOption$.pipe(
       distinctUntilChanged(),
       filter((enabled) => !enabled)
     )
 
-    const triggers = [
-      refetch$.pipe(startWith(null)),
-      enabled$.pipe(
-        distinctUntilChanged(),
-        filter((enabled) => enabled)
-      )
-    ]
+    // initial trigger
+    const staleTrigger$ = queryStore.store$.pipe(
+      map((store) => store.get(serializedKey)?.stale ?? true),
+      skip(1),
+      filter((stale) => stale)
+    )
 
-    const serializedKey = serializeKey(key)
+    const enabledTrigger$ = enabledOption$.pipe(
+      skip(1),
+      filter((enabled) => enabled)
+    )
 
-    const result$: Observable<QueryResult<T>> = combineLatest(triggers).pipe(
-      // tap((params) => {
-      //   console.log("query$ trigger", { key, params })
-      // }),
+    const triggers$ = merge(
+      of("initial"),
+      refetch$,
+      staleTrigger$,
+      enabledTrigger$
+    )
+
+    const result$ = triggers$.pipe(
+      tap((params) => {
+        // console.log("query$ trigger", { key, params })
+      }),
       withLatestFrom(fn$),
       withLatestFrom(options$),
-      switchMap(([[, query], options]) => {
+      map(([[, fn], options]) => ({ fn, options })),
+      filter(({ options }) => options.enabled !== false),
+      tap(() => {
+        queryStore.update(serializedKey, { stale: false })
+      }),
+      switchMap(({ fn, options }) => {
         const deferredQuery = defer(() => {
-          const queryOrResponse = typeof query === "function" ? query() : query
+          const queryOrResponse = typeof fn === "function" ? fn() : fn
 
           return from(queryOrResponse)
         })
@@ -117,13 +138,12 @@ export const createClient = () => {
         return !shouldStop
       }),
       map(([result]) => result)
-      // tap((data) => {
-      //   console.log("query$ return", new Date().getTime()  - 1691522856380, data)
-      // }),
       // finalize(() => {
       //   console.log("query$ finalize", new Date().getTime()  - 1691522856380)
       // })
-    )
+    ) as Observable<
+      QueryResult<T>
+    > /* @see https://github.com/ReactiveX/rxjs/issues/4221 */
 
     return {
       result$

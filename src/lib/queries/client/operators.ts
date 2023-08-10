@@ -2,9 +2,8 @@ import {
   type Observable,
   map,
   withLatestFrom,
-  startWith,
-  pairwise,
-  distinctUntilChanged
+  distinctUntilChanged,
+  scan
 } from "rxjs"
 import { shallowEqual } from "../../utils/shallowEqual"
 import { type QueryOptions, type QueryResult } from "./types"
@@ -42,15 +41,19 @@ export const mergeResults = <T>(
   stream$: Observable<Partial<QueryResult<T>>>
 ): Observable<QueryResult<T>> =>
   stream$.pipe(
-    startWith({ data: undefined, error: undefined }),
-    pairwise(),
-    map(([previous, current]) => ({
-      data: undefined,
-      error: undefined,
-      fetchStatus: "idle" as const,
-      status: "loading" as const,
-      ...previous,
-      ...current
-    })),
+    scan(
+      (acc: QueryResult<T>, current) => {
+        return {
+          ...acc,
+          ...current
+        }
+      },
+      {
+        data: undefined,
+        error: undefined,
+        fetchStatus: "idle",
+        status: "loading"
+      }
+    ),
     distinctUntilChanged(shallowEqual)
   )

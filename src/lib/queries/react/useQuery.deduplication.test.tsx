@@ -3,9 +3,8 @@ import { Subject, interval, tap, timer } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
 import { useQuery } from "./useQuery"
-import { Provider, useProvider } from "./Provider"
+import { Provider, useReactJrxProvider } from "./Provider"
 import { createClient } from "../client/createClient"
-import { type QueryFnStore } from "../client/types"
 
 afterEach(() => {
   cleanup()
@@ -15,12 +14,14 @@ describe("useQuery", () => {
   describe("Given a query that complete", () => {
     it("should remove query from the store", async () => {
       const query = async () => 2
-      let _queryStore: QueryFnStore | undefined
+      let _queryStore:
+        | ReturnType<typeof useReactJrxProvider>["client"]["queryStore"]
+        | undefined
 
       const Comp = () => {
         const { data } = useQuery({ queryKey: ["foo"], queryFn: query })
 
-        const { client } = useProvider()
+        const { client } = useReactJrxProvider()
 
         _queryStore = client.queryStore
 
@@ -50,12 +51,14 @@ describe("useQuery", () => {
         const query = async () => {
           await new Promise((resolve) => setTimeout(resolve, 100))
         }
-        let _queryStore: QueryFnStore | undefined
+        let _queryStore:
+          | ReturnType<typeof useReactJrxProvider>["client"]["queryStore"]
+          | undefined
 
         const Comp2 = () => {
           useQuery({ queryKey: ["foo"], queryFn: query })
 
-          const { client } = useProvider()
+          const { client } = useReactJrxProvider()
 
           _queryStore = client.queryStore
 
