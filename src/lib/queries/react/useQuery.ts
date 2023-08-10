@@ -3,13 +3,13 @@ import {
   map,
   distinctUntilChanged,
   switchMap,
-  pairwise,
   startWith,
   filter,
   combineLatest,
   skip,
   identity,
-  tap
+  tap,
+  scan
 } from "rxjs"
 import { type UseQueryResult, type UseQueryOptions } from "./types"
 import { useObserve } from "../../binding/useObserve"
@@ -19,7 +19,7 @@ import { useBehaviorSubject } from "../../binding/useBehaviorSubject"
 import { arrayEqual } from "../../utils/arrayEqual"
 import { shallowEqual } from "../../utils/shallowEqual"
 import { isDefined } from "../../utils/isDefined"
-import { type QueryFn } from "../client/types"
+import { type QueryResult, type QueryFn } from "../client/types"
 
 const defaultValue = {
   data: undefined,
@@ -49,19 +49,16 @@ export function useQuery<T>({
     })
   }, [queryKey, options, queryFn])
 
-  const result = useObserve<{
+  interface ObserveResult {
     data: T | undefined
     isLoading: boolean
     fetchStatus: "fetching" | "paused" | "idle"
     status: "loading" | "error" | "success"
     error: unknown
-  }>(
-    () => {
-      const computedDefaultValue = {
-        ...defaultValue,
-        isLoading: params$.current.getValue().options.enabled !== false
-      }
+  }
 
+  const result = useObserve<ObserveResult>(
+    () => {
       const newKeyReceived$ = params$.current.pipe(
         map(({ queryKey }) => queryKey ?? []),
         distinctUntilChanged(arrayEqual)
@@ -101,27 +98,20 @@ export function useQuery<T>({
           })
 
           return result$.pipe(
-            startWith(computedDefaultValue),
-            pairwise(),
-            map(
-              ([
-                { data: previousData, ...restPrevious },
-                { data: currentData, ...restCurrent }
-              ]) => ({
-                ...restPrevious,
-                ...restCurrent,
-                data:
-                  currentData && "result" in currentData
-                    ? currentData.result
-                    : previousData?.result
-              })
+            scan<QueryResult<T>, ObserveResult, Partial<ObserveResult>>(
+              (previousValue, { data: currentData, ...currentValue }) => ({
+                data: undefined,
+                ...previousValue,
+                ...currentValue,
+                isLoading: currentValue.status === "loading",
+                ...(currentData && {
+                  data: currentData.result
+                })
+              }),
+              {}
             )
           )
         }),
-        map((result) => ({
-          ...result,
-          isLoading: result.status === "loading"
-        })),
         /**
          * @important
          * We skip the first result as it is comparable to default passed value.
