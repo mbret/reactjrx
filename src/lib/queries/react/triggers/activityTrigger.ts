@@ -4,7 +4,6 @@ import {
   fromEvent,
   map,
   merge,
-  throttleTime,
   switchMap,
   EMPTY
 } from "rxjs"
@@ -29,7 +28,7 @@ export const createActivityTrigger = <T>(
             fromEvent(window, "focus").pipe(
               map(() => ({ ignoreStale: shouldRunTrigger === "always" }))
             )
-          ).pipe(throttleTime(500))
+          )
         : EMPTY
     })
   )

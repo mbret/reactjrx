@@ -10,7 +10,8 @@ import {
   merge,
   withLatestFrom,
   of,
-  identity
+  identity,
+  throttleTime
 } from "rxjs"
 import { type UseQueryResult, type UseQueryOptions } from "./types"
 import { useObserve } from "../../binding/useObserve"
@@ -22,6 +23,7 @@ import { shallowEqual } from "../../utils/shallowEqual"
 import { isDefined } from "../../utils/isDefined"
 import { type QueryResult, type QueryFn } from "../client/types"
 import { createActivityTrigger } from "./triggers/activityTrigger"
+import { createNetworkTrigger } from "./triggers/networkTrigger"
 
 const defaultValue = {
   data: undefined,
@@ -88,6 +90,7 @@ export function useQuery<T>({
       const options$ = params$.current.pipe(map(({ options }) => options))
 
       const activityRefresh$ = createActivityTrigger(params$.current)
+      const networkRefresh$ = createNetworkTrigger(params$.current)
 
       const newQueryTrigger$ = merge(
         initialTrigger$,
@@ -105,7 +108,10 @@ export function useQuery<T>({
             key,
             fn$,
             options$,
-            refetch$: merge(internalRefresh$.current, activityRefresh$)
+            refetch$: merge(
+              internalRefresh$.current,
+              merge(activityRefresh$, networkRefresh$).pipe(throttleTime(500))
+            )
           })
 
           return result$.pipe(
