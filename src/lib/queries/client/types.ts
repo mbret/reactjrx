@@ -1,4 +1,5 @@
 import { type Observable } from "rxjs"
+import { type QueryKey } from "./keys/types"
 
 export interface QueryResult<T> {
   data: { result: T } | undefined
@@ -9,6 +10,13 @@ export interface QueryResult<T> {
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface Query {}
+
+export interface QueryCommand<T> {
+  key: QueryKey
+  fn$?: Observable<QueryFn<T>>
+  refetch$?: Observable<{ ignoreStale: boolean }>
+  options$?: Observable<QueryOptions<T>>
+}
 
 export type QueryFn<T> =
   | (() => Promise<T>)
