@@ -18,7 +18,6 @@ import { type QueryOptions, type QueryFn } from "./types"
 import { type QueryKey } from "./keys/types"
 import { createDeduplicationStore } from "./deduplication/createDeduplicationStore"
 import { createQueryStore } from "./createQueryStore"
-import { staleQuery } from "./invalidation/staleQuery"
 import { createQueryTrigger } from "./triggers"
 import { createQueryFetch } from "./queryFetch"
 import { createInvalidationClient } from "./invalidation/client"
@@ -26,6 +25,7 @@ import { createInvalidationClient } from "./invalidation/client"
 export const createClient = () => {
   const queryStore = createQueryStore()
   const deduplicationStore = createDeduplicationStore()
+  const invalidationClient = createInvalidationClient({ queryStore })
   const refetch$ = new Subject<{
     key: any[]
   }>()
@@ -48,7 +48,7 @@ export const createClient = () => {
     if (!queryStore.get(serializedKey)) {
       queryStore.set(serializedKey, {
         queryKey: key,
-        stale: true
+        isStale: true
       })
     }
 
@@ -68,20 +68,6 @@ export const createClient = () => {
       withLatestFrom(fn$, options$),
       map(([trigger, fn, options]) => ({ trigger, fn, options })),
       filter(({ options }) => options.enabled !== false),
-      filter(({ trigger }) => {
-        const hasExistingCache =
-          !!queryStore.get(serializedKey)?.queryCacheResult
-        const isNotStale = !queryStore.get(serializedKey)?.stale
-
-        const shouldSkip =
-          !trigger.ignoreStale && isNotStale && hasExistingCache
-
-        if (shouldSkip) {
-          console.log("reactjrx", "query", serializedKey, "skipping fetch")
-        }
-
-        return !shouldSkip
-      }),
       switchMap(({ fn, options }) =>
         createQueryFetch({
           options$,
@@ -92,7 +78,7 @@ export const createClient = () => {
           serializedKey
         })
       ),
-      staleQuery({
+      invalidationClient.pipeQuery({
         key: serializedKey,
         queryStore,
         options$
@@ -120,12 +106,6 @@ export const createClient = () => {
     }
   }
 
-  const invalidationClient = createInvalidationClient({ queryStore })
-
-  const storeSub = queryStore.store$.subscribe((value) => {
-    console.log("reactjrx", "client", "store", "update", value)
-  })
-
   return {
     query$,
     refetch$,
@@ -133,7 +113,8 @@ export const createClient = () => {
     ...invalidationClient,
     destroy: () => {
       // @todo cleanup
-      storeSub.unsubscribe()
+      invalidationClient.destroy()
+      queryStore.destroy()
     }
   }
 }

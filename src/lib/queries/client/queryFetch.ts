@@ -14,6 +14,7 @@ import {
   iif,
   last,
   share,
+  EMPTY
 } from "rxjs"
 import { type QueryFn, type QueryOptions } from "./types"
 import { deduplicate } from "./deduplication/deduplicate"
@@ -57,13 +58,12 @@ export const createQueryFetch = <T>({
     deduplicate(serializedKey, deduplicationStore),
     retryQueryOnFailure(options),
     tap((result) => {
-      // console.log("reactjrx", "query", serializedKey, "fetch", "result", result)
-
-      if (options.cacheTime !== 0) {
-        queryStore.update(serializedKey, {
+      queryStore.update(serializedKey, {
+        lastFetchedAt: new Date().getTime(),
+        ...(options.cacheTime !== 0 && {
           queryCacheResult: { result }
         })
-      }
+      })
     }),
     map((result) => ({
       status: "success" as const,
@@ -133,12 +133,32 @@ export const createQueryFetch = <T>({
 
       return hasCache
     },
-    of({
-      fetchStatus: "idle" as const,
-      status: "success" as const,
-      data: cacheResult,
-      error: undefined
-    }),
+    merge(
+      of({
+        fetchStatus: "idle" as const,
+        status: "success" as const,
+        data: cacheResult,
+        error: undefined
+      }),
+      iif(
+        () => {
+          if (queryStore.get(serializedKey)?.isStale) {
+            console.log(
+              "reactjrx",
+              "query",
+              serializedKey,
+              "fetch",
+              "stale! run background fetch"
+            )
+            return true
+          }
+
+          return false
+        },
+        execution$,
+        EMPTY
+      )
+    ),
     execution$
   )
 }
