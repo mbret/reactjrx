@@ -15,6 +15,11 @@ export type QueryFn<T> =
   | (() => Observable<T>)
   | Observable<T>
 
+export interface QueryTrigger {
+  type: string
+  ignoreStale: boolean
+}
+
 export interface QueryOptions<R = unknown> {
   enabled?: boolean
   retry?: false | number | ((attempt: number, error: unknown) => boolean)
@@ -24,6 +29,18 @@ export interface QueryOptions<R = unknown> {
    */
   staleTime?: number
   cacheTime?: number
+  /**
+   * @important
+   * interval is paused until the query finish fetching. This avoid infinite
+   * loop of refetch
+   */
+  refetchInterval?:
+    | number
+    | false
+    | ((
+        data: QueryResult<R>["data"] | undefined,
+        query: Query
+      ) => number | false)
   terminateOnFirstResult?: boolean
   onError?: (error: unknown) => void
   onSuccess?: (data: R) => void

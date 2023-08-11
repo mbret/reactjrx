@@ -11,12 +11,15 @@ import {
   take,
   takeUntil,
   tap,
-  iif,
   last,
   share,
-  EMPTY
 } from "rxjs"
-import { type QueryFn, type QueryOptions } from "./types"
+import {
+  type QueryResult,
+  type QueryFn,
+  type QueryOptions,
+  type QueryTrigger
+} from "./types"
 import { deduplicate } from "./deduplication/deduplicate"
 import { retryQueryOnFailure } from "./retryQueryOnFailure"
 import { notifyQueryResult } from "./operators"
@@ -29,7 +32,8 @@ export const createQueryFetch = <T>({
   fn,
   queryStore,
   serializedKey,
-  deduplicationStore
+  deduplicationStore,
+  trigger,
 }: {
   fn: QueryFn<T>
   options$: Observable<QueryOptions<T>>
@@ -37,6 +41,7 @@ export const createQueryFetch = <T>({
   queryStore: ReturnType<typeof createQueryStore>
   serializedKey: string
   deduplicationStore: ReturnType<typeof createDeduplicationStore>
+  trigger: QueryTrigger
 }) => {
   const enabledOption$ = options$.pipe(
     map(({ enabled = true }) => enabled),
@@ -102,7 +107,7 @@ export const createQueryFetch = <T>({
     })
   )
 
-  const execution$ = merge(
+  const execution$: Observable<Partial<QueryResult<T>>> = merge(
     disabled$.pipe(
       take(1),
       map(() => ({
@@ -113,52 +118,36 @@ export const createQueryFetch = <T>({
       of({ fetchStatus: "fetching" as const, error: undefined }),
       fnExecution$,
       fnExecutionEnd$
-    ).pipe(
-      // autoRefetch(options$),
-      takeUntil(disabled$)
-    )
+    ).pipe(takeUntil(disabled$))
   )
 
-  const cacheResult = queryStore.get(serializedKey)?.queryCacheResult as
-    | undefined
-    | { result: T }
+  const query = queryStore.get(serializedKey)
 
-  return iif(
-    () => {
-      const hasCache = !!cacheResult
+  const cacheResult = query?.queryCacheResult as undefined | { result: T }
 
-      if (hasCache) {
-        console.log("reactjrx", "query", serializedKey, "fetch", "cache hit!")
-      }
+  const hasCache = !!cacheResult
 
-      return hasCache
-    },
-    merge(
-      of({
+  // bypass fetch completely
+  if (hasCache) {
+    if (!query?.isStale && !trigger.ignoreStale) {
+      return of({
         fetchStatus: "idle" as const,
         status: "success" as const,
-        data: cacheResult,
+        data: { result: cacheResult.result },
         error: undefined
-      }),
-      iif(
-        () => {
-          if (queryStore.get(serializedKey)?.isStale) {
-            console.log(
-              "reactjrx",
-              "query",
-              serializedKey,
-              "fetch",
-              "stale! run background fetch"
-            )
-            return true
-          }
-
-          return false
-        },
-        execution$,
-        EMPTY
+      })
+    } else {
+      return merge(
+        of({
+          fetchStatus: "idle" as const,
+          status: "success" as const,
+          data: { result: cacheResult.result },
+          error: undefined
+        }),
+        execution$
       )
-    ),
-    execution$
-  )
+    }
+  }
+
+  return execution$
 }

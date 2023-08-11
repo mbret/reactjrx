@@ -10,22 +10,25 @@ import {
   tap,
   merge,
   mergeMap,
-  EMPTY
+  EMPTY,
+  of
 } from "rxjs"
 import { serializeKey } from "./keys/serializeKey"
 import { mergeResults } from "./operators"
-import { type QueryOptions, type QueryFn } from "./types"
+import { type QueryOptions, type QueryFn, type QueryTrigger } from "./types"
 import { type QueryKey } from "./keys/types"
 import { createDeduplicationStore } from "./deduplication/createDeduplicationStore"
 import { createQueryStore } from "./createQueryStore"
 import { createQueryTrigger } from "./triggers"
 import { createQueryFetch } from "./queryFetch"
 import { createInvalidationClient } from "./invalidation/client"
+import { createRefetchClient } from "./refetch/client"
 
 export const createClient = () => {
   const queryStore = createQueryStore()
   const deduplicationStore = createDeduplicationStore()
   const invalidationClient = createInvalidationClient({ queryStore })
+  const refetchClient = createRefetchClient({ queryStore })
   const refetch$ = new Subject<{
     key: any[]
   }>()
@@ -42,7 +45,7 @@ export const createClient = () => {
     options$?: Observable<QueryOptions<T>>
   }) => {
     const serializedKey = serializeKey(key)
-
+    const internalRefetch$ = new Subject<QueryTrigger>()
     console.log("query$()", serializedKey)
 
     if (!queryStore.get(serializedKey)) {
@@ -52,37 +55,59 @@ export const createClient = () => {
       })
     }
 
-    const trigger$ = createQueryTrigger({ options$, refetch$ })
+    const trigger$ = createQueryTrigger({
+      options$,
+      refetch$: merge(refetch$, internalRefetch$)
+    })
 
     const clearCacheOnNewQuery$ = fn$.pipe(
-      tap(() => {
-        queryStore.update(serializedKey, { queryCacheResult: undefined })
-      }),
+      // tap(() => {
+      //   queryStore.update(serializedKey, { queryCacheResult: undefined })
+      // }),
       mergeMap(() => EMPTY)
     )
 
     const result$ = trigger$.pipe(
+      // hooks
+      refetchClient.pipeQueryTrigger({ options$, key: serializedKey }),
+      invalidationClient.pipeQueryTrigger({ options$, key: serializedKey }),
       tap((params) => {
         console.log("query$ trigger", { key, params })
       }),
       withLatestFrom(fn$, options$),
       map(([trigger, fn, options]) => ({ trigger, fn, options })),
       filter(({ options }) => options.enabled !== false),
-      switchMap(({ fn, options }) =>
+      switchMap(({ fn, options, trigger }) =>
         createQueryFetch({
           options$,
           options,
           fn,
           deduplicationStore,
           queryStore,
-          serializedKey
+          serializedKey,
+          trigger
         })
       ),
-      invalidationClient.pipeQuery({
-        key: serializedKey,
-        queryStore,
-        options$
-      }),
+      // hooks
+      switchMap((result) =>
+        merge(
+          of(result).pipe(
+            invalidationClient.pipeQueryResult({
+              key: serializedKey,
+              queryStore,
+              options$
+            })
+          ),
+          of(result).pipe(
+            refetchClient.pipeQueryResult({
+              key: serializedKey,
+              queryStore,
+              options$,
+              refetch$: internalRefetch$
+            })
+          )
+        )
+      ),
       mergeResults
       // tap((result) => {
       //   console.log("query$ result", result)
@@ -111,10 +136,12 @@ export const createClient = () => {
     refetch$,
     queryStore: deduplicationStore,
     ...invalidationClient,
+    ...refetchClient,
     destroy: () => {
       // @todo cleanup
       invalidationClient.destroy()
       queryStore.destroy()
+      refetchClient.destroy()
     }
   }
 }

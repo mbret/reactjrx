@@ -19,7 +19,11 @@ import { type QueryKey } from "../keys/types"
 import { difference } from "../../../utils/difference"
 import { shallowEqual } from "../../../utils/shallowEqual"
 import { Logger } from "../../../logger"
-import { type QueryOptions, type QueryResult } from "../types"
+import {
+  type QueryTrigger,
+  type QueryOptions,
+  type QueryResult
+} from "../types"
 
 const logger = Logger.namespace("invalidation")
 
@@ -85,6 +89,7 @@ export const createInvalidationClient = ({
                   queryStore.update(key, { isStale: false })
                 }
               }),
+              filter(({ lowestStaleTime }) => lowestStaleTime !== Infinity),
               switchMap(({ lowestStaleTime }) => timer(lowestStaleTime)),
               tap(() => {
                 if (!queryStore.get(key)?.isStale) {
@@ -101,7 +106,7 @@ export const createInvalidationClient = ({
     )
     .subscribe()
 
-  const pipeQuery =
+  const pipeQueryResult =
     <R extends Result<T>, T>({
       key,
       queryStore,
@@ -137,9 +142,28 @@ export const createInvalidationClient = ({
         )
       )
 
+  const pipeQueryFetch =
+    <T>(_: {
+      key: string
+      queryStore: ReturnType<typeof createQueryStore>
+      options$: Observable<QueryOptions<T>>
+    }): MonoTypeOperatorFunction<T> =>
+    (stream) =>
+      stream
+
+  const pipeQueryTrigger =
+    <T>(_: {
+      key: string
+      options$: Observable<QueryOptions<T>>
+    }): MonoTypeOperatorFunction<QueryTrigger> =>
+    (stream) =>
+      stream
+
   return {
     invalidateQueries,
-    pipeQuery,
+    pipeQueryResult,
+    pipeQueryFetch,
+    pipeQueryTrigger,
     destroy: () => {
       staleUpdateSub.unsubscribe()
     }
