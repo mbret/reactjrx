@@ -119,9 +119,6 @@ export function useQuery<T>({
             )
           )
         }),
-        // tap((result) => {
-        //   console.log("useQuery", "result", result)
-        // })
         /**
          * @important
          * We skip the first result as it is comparable to default passed value.
