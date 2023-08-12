@@ -16,7 +16,6 @@ import {
 import { type QueryKey } from "../keys/types"
 import { isDefined } from "../../../utils/isDefined"
 import { shallowEqual } from "../../../utils/shallowEqual"
-import { Logger } from "../../../logger"
 import { difference } from "../../../utils/difference"
 import { createDebugger } from "./debugger"
 
