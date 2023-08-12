@@ -12,18 +12,18 @@ import {
   takeUntil,
   tap,
   last,
-  share,
+  share
 } from "rxjs"
 import {
   type QueryResult,
   type QueryFn,
   type QueryOptions,
   type QueryTrigger
-} from "./types"
-import { deduplicate } from "./deduplication/deduplicate"
-import { retryQueryOnFailure } from "./retryQueryOnFailure"
-import { notifyQueryResult } from "./operators"
-import { type createQueryStore } from "./store/createQueryStore"
+} from "../types"
+import { deduplicate } from "../deduplication/deduplicate"
+import { retryQueryOnFailure } from "../retryQueryOnFailure"
+import { notifyQueryResult } from "../operators"
+import { type createQueryStore } from "../store/createQueryStore"
 
 export const createQueryFetch = <T>({
   options$,
@@ -31,7 +31,7 @@ export const createQueryFetch = <T>({
   fn,
   queryStore,
   serializedKey,
-  trigger,
+  trigger
 }: {
   fn: QueryFn<T>
   options$: Observable<QueryOptions<T>>
@@ -57,9 +57,13 @@ export const createQueryFetch = <T>({
   })
 
   const fnExecution$ = deferredQuery.pipe(
-    deduplicate(serializedKey, queryStore),
     retryQueryOnFailure(options),
+    deduplicate(serializedKey, queryStore),
     tap((result) => {
+      queryStore.dispatchQueryEvent({
+        key: serializedKey,
+        type: "fetchSuccess"
+      })
       queryStore.update(serializedKey, {
         lastFetchedAt: new Date().getTime(),
         ...(options.cacheTime !== 0 && {
@@ -72,14 +76,19 @@ export const createQueryFetch = <T>({
       data: { result },
       error: undefined
     })),
-    catchError((error) =>
-      of({
+    catchError((error) => {
+      queryStore.dispatchQueryEvent({
+        key: serializedKey,
+        type: "fetchError"
+      })
+
+      return of({
         fetchStatus: "idle" as const,
         status: "error" as const,
         data: undefined,
         error
       })
-    ),
+    }),
     notifyQueryResult(options$),
     share()
   )
