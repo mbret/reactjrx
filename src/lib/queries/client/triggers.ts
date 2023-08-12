@@ -48,9 +48,5 @@ export const createQueryTrigger = <T>({
         ignoreStale: false
       }))
     )
-  ).pipe(
-    tap((trigger) => {
-      console.log("reactjrx query trigger", trigger)
-    })
   )
 }

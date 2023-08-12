@@ -37,39 +37,79 @@ describe("invalidation", () => {
     })
   })
 
-  describe("and cache already exists", () => {
-    it("should call the function only once", async () => {
-      const client = createClient()
+  describe("Given a query that is in the cache", () => {
+    describe("and the query fn is called again", () => {
+      it("should call the function only once", async () => {
+        const client = createClient()
+        const deferredResult$ = new Subject<number>()
+        const queryMock = vi.fn().mockImplementation(() => deferredResult$)
 
-      const deferredResult$ = new Subject<number>()
-      const queryMock = vi.fn().mockImplementation(() => deferredResult$)
-
-      client
-        .query$({
-          key: ["foo"],
-          fn$: of(queryMock),
-          options$: of({
-            staleTime: Infinity
+        client
+          .query$({
+            key: ["foo"],
+            fn$: of(queryMock),
+            options$: of({
+              staleTime: Infinity
+            })
           })
-        })
-        .result$.subscribe()
+          .result$.subscribe()
 
-      expect(queryMock).toHaveBeenCalledTimes(1)
+        expect(queryMock).toHaveBeenCalledTimes(1)
 
-      deferredResult$.next(2)
-      deferredResult$.complete()
+        deferredResult$.next(2)
+        deferredResult$.complete()
 
-      client
-        .query$({
-          key: ["foo"],
-          fn$: of(queryMock),
-          options$: of({
-            staleTime: Infinity
+        await waitForTimeout(200)
+
+        client
+          .query$({
+            key: ["foo"],
+            fn$: of(queryMock),
+            options$: of({
+              staleTime: Infinity
+            })
           })
-        })
-        .result$.subscribe()
+          .result$.subscribe()
 
-      expect(queryMock).toHaveBeenCalledTimes(1)
+        expect(queryMock).toHaveBeenCalledTimes(1)
+      })
+
+      describe("and new query is marked as stale", () => {
+        it("should call the fn again asdasdasdasdasdasd", async () => {
+          const client = createClient()
+          const deferredResult$ = new Subject<number>()
+          const queryMock = vi.fn().mockImplementation(() => deferredResult$)
+
+          client
+            .query$({
+              key: ["foo"],
+              fn$: of(queryMock),
+              options$: of({
+                staleTime: Infinity
+              })
+            })
+            .result$.subscribe()
+
+          expect(queryMock).toHaveBeenCalledTimes(1)
+
+          deferredResult$.next(2)
+          deferredResult$.complete()
+          queryMock.mockResolvedValue(new Subject())
+
+          client
+            .query$({
+              key: ["foo"],
+              fn$: of(queryMock),
+              options$: of({
+                staleTime: Infinity,
+                markStale: true
+              })
+            })
+            .result$.subscribe()
+
+          expect(queryMock).toHaveBeenCalledTimes(2)
+        })
+      })
     })
   })
 

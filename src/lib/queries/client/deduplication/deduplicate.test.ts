@@ -82,7 +82,7 @@ describe("deduplicate tests", () => {
           const queryStore = createQueryStore()
           queryStore.set("foo", {
             queryKey: ["foo"],
-            listeners: 0
+            runners: []
           })
 
           await Promise.all([

@@ -1,40 +1,48 @@
 import {
   BehaviorSubject,
-  NEVER,
   type Observable,
   distinctUntilChanged,
   filter,
-  map,
-  merge,
-  mergeMap,
-  of,
-  pairwise,
-  startWith,
-  takeUntil,
-  tap,
-  withLatestFrom
+  Subject,
+  map
 } from "rxjs"
 import { type QueryKey } from "../keys/types"
 import { isDefined } from "../../../utils/isDefined"
 import { shallowEqual } from "../../../utils/shallowEqual"
-import { difference } from "../../../utils/difference"
 import { createDebugger } from "./debugger"
+import { type QueryOptions } from "../types"
 
 export interface StoreObject<T = any> {
   queryKey: QueryKey
   isStale?: boolean
-  lowestStaleTime?: number
   lastFetchedAt?: number
   queryCacheResult?: undefined | { result: T }
-  listeners: number
+  /**
+   * runners push themselves so we can retrieve various
+   * options, fn, etc on global listener.
+   * Each query runs on its own individual context so they
+   * have to register/deregister themselves into the global context.
+   */
+  runners: Array<Observable<{ options: QueryOptions<T> }>>
   deduplication_fn?: Observable<T>
 }
+
+export type QueryEvent =
+  | {
+      type: "fetchSuccess"
+      key: string
+    }
+  | {
+      type: "fetchError"
+      key: string
+    }
 
 export type QueryStore = ReturnType<typeof createQueryStore>
 
 export const createQueryStore = () => {
   const store = new Map<string, BehaviorSubject<StoreObject>>()
   const store$ = new BehaviorSubject(store)
+  const queryEventSubject = new Subject<QueryEvent>()
 
   const notify = () => {
     store$.next(store)
@@ -50,9 +58,12 @@ export const createQueryStore = () => {
   }
 
   const getValue$ = (key: string) => {
-    return store
-      .get(key)
-      ?.pipe(filter(isDefined), distinctUntilChanged(shallowEqual))
+    return store$.pipe(
+      map(() => store.get(key)),
+      filter(isDefined),
+      map((entry) => entry.getValue()),
+      distinctUntilChanged(shallowEqual)
+    )
   }
 
   const updateValue = (
@@ -93,57 +104,33 @@ export const createQueryStore = () => {
     store$.next(store)
   }
 
-  const addListener = (key: string) => {
+  const addRunner = <T>(
+    key: string,
+    stream: StoreObject<T>["runners"][number]
+  ) => {
     updateValue(key, (old) => ({
       ...old,
-      listeners: old.listeners + 1
+      runners: [...old.runners, stream]
     }))
-  }
 
-  const removeListener = (key: string) => {
-    if ((store.get(key)?.getValue().listeners ?? 1) - 1 === 0) {
-      store.delete(key)
-      notify()
-    } else {
-      updateValue(key, (old) => ({
-        ...old,
-        listeners: old.listeners - 1
-      }))
+    return () => {
+      const newListeners =
+        store
+          .get(key)
+          ?.getValue()
+          .runners.filter((reference) => reference !== stream) ?? []
+
+      if (newListeners?.length === 0) {
+        store.delete(key)
+        notify()
+      } else {
+        updateValue(key, (old) => ({
+          ...old,
+          runners: newListeners
+        }))
+      }
     }
   }
-
-  const runner$ = store$.pipe(
-    map((store) => [...store.keys()]),
-    startWith([]),
-    pairwise(),
-    mergeMap(([previousKeys, currentKeys]) => {
-      const newKeys = difference(currentKeys, previousKeys)
-
-      return merge(
-        ...newKeys.map((key) => {
-          const deletedFromStore$ = store$.pipe(
-            map(() => store.get(key)),
-            filter((value) => value === undefined)
-          )
-
-          return merge(NEVER, of(null)).pipe(
-            withLatestFrom(store$),
-            tap(() => {
-              console.log("QUERY", key, "in")
-            }),
-            tap({
-              complete: () => {
-                console.log("QUERY", key, "complete")
-              }
-            }),
-            takeUntil(deletedFromStore$)
-          )
-        })
-      )
-    })
-  )
-
-  const queriesRunnerSub = runner$.subscribe()
 
   const debugger$ = createDebugger(store$)
 
@@ -154,13 +141,16 @@ export const createQueryStore = () => {
     delete: deleteValue,
     update: updateValue,
     updateMany,
-    removeListener,
-    addListener,
+    addRunner,
     store$,
+    queryEvent$: queryEventSubject.asObservable(),
+    dispatchQueryEvent: (event: QueryEvent) => {
+      queryEventSubject.next(event)
+    },
     size: () => store.size,
     destroy: () => {
       debugger$.unsubscribe()
-      queriesRunnerSub.unsubscribe()
+      queryEventSubject.complete()
     }
   }
 }

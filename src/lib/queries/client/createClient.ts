@@ -10,7 +10,8 @@ import {
   tap,
   merge,
   of,
-  finalize
+  finalize,
+  distinctUntilChanged
 } from "rxjs"
 import { serializeKey } from "./keys/serializeKey"
 import { mergeResults } from "./operators"
@@ -18,9 +19,11 @@ import { type QueryOptions, type QueryFn, type QueryTrigger } from "./types"
 import { type QueryKey } from "./keys/types"
 import { createQueryStore } from "./store/createQueryStore"
 import { createQueryTrigger } from "./triggers"
-import { createQueryFetch } from "./queryFetch"
+import { createQueryFetch } from "./fetch/queryFetch"
 import { createInvalidationClient } from "./invalidation/client"
 import { createRefetchClient } from "./refetch/client"
+import { createQueryListener } from "./store/queryListener"
+import { markAsStale } from "./invalidation/markAsStale"
 
 export const createClient = () => {
   const queryStore = createQueryStore()
@@ -43,20 +46,9 @@ export const createClient = () => {
 
     console.log("query$()", serializedKey)
 
-    if (!queryStore.get(serializedKey)) {
-      queryStore.set(serializedKey, {
-        isStale: true,
-        queryKey: key,
-        listeners: 0
-      })
-    } else {
-      queryStore.update(serializedKey, {
-        queryKey: key,
-        isStale: true
-      })
-    }
+    const runner$ = options$.pipe(map((options) => ({ options })))
 
-    queryStore.addListener(serializedKey)
+    let deleteRunner = () => {}
 
     const trigger$ = createQueryTrigger({
       options$,
@@ -64,13 +56,29 @@ export const createClient = () => {
     })
 
     const result$ = trigger$.pipe(
-      // hooks
       refetchClient.pipeQueryTrigger({ options$, key: serializedKey }),
-      tap((params) => {
-        console.log("query$ trigger", { key, params })
-      }),
       withLatestFrom(fn$, options$),
       map(([trigger, fn, options]) => ({ trigger, fn, options })),
+      tap(({ options }) => {
+        if (!queryStore.get(serializedKey)) {
+          queryStore.set(serializedKey, {
+            isStale: true,
+            queryKey: key,
+            runners: []
+          })
+        } else {
+          queryStore.update(serializedKey, {
+            queryKey: key,
+            ...(options.markStale && {
+              isStale: true
+            })
+          })
+        }
+        deleteRunner = queryStore.addRunner(serializedKey, runner$)
+      }),
+      tap(({ trigger }) => {
+        console.log("reactjrx", serializedKey, "query trigger", trigger)
+      }),
       filter(({ options }) => options.enabled !== false),
       switchMap(({ fn, options, trigger }) =>
         createQueryFetch({
@@ -85,13 +93,6 @@ export const createClient = () => {
       // hooks
       switchMap((result) =>
         merge(
-          of(result).pipe(
-            invalidationClient.pipeQueryResult({
-              key: serializedKey,
-              queryStore,
-              options$
-            })
-          ),
           of(result).pipe(
             refetchClient.pipeQueryResult({
               key: serializedKey,
@@ -122,11 +123,20 @@ export const createClient = () => {
         }),
         map(([result]) => result),
         finalize(() => {
-          queryStore.removeListener(serializedKey)
+          deleteRunner()
         })
       )
     }
   }
+
+  const queryListenerSub = createQueryListener(queryStore, (stream) =>
+    stream.pipe(
+      markAsStale({
+        queryStore
+      }),
+      distinctUntilChanged()
+    )
+  ).subscribe()
 
   return {
     query$,
@@ -137,6 +147,7 @@ export const createClient = () => {
       invalidationClient.destroy()
       queryStore.destroy()
       refetchClient.destroy()
+      queryListenerSub.unsubscribe()
     }
   }
 }

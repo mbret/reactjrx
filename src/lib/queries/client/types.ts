@@ -36,6 +36,10 @@ export interface QueryOptions<R = unknown> {
    * The hook with the lowest value will be taken into account
    */
   staleTime?: number
+  /**
+   * Force the new query to be marked as stale. Only on first trigger
+   */
+  markStale?: boolean
   cacheTime?: number
   /**
    * @important
