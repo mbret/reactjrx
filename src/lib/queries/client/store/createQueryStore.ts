@@ -18,6 +18,7 @@ import { isDefined } from "../../../utils/isDefined"
 import { shallowEqual } from "../../../utils/shallowEqual"
 import { Logger } from "../../../logger"
 import { difference } from "../../../utils/difference"
+import { createDebugger } from "./debugger"
 
 export interface StoreObject<T = unknown> {
   queryKey: QueryKey
@@ -28,9 +29,15 @@ export interface StoreObject<T = unknown> {
   listeners: number
 }
 
+export type QueryStore = ReturnType<typeof createQueryStore>
+
 export const createQueryStore = () => {
   const store = new Map<string, BehaviorSubject<StoreObject>>()
   const store$ = new BehaviorSubject(store)
+
+  const notify = () => {
+    store$.next(store)
+  }
 
   const setValue = (key: string, value: StoreObject) => {
     store.set(key, new BehaviorSubject(value))
@@ -93,10 +100,15 @@ export const createQueryStore = () => {
   }
 
   const removeListener = (key: string) => {
-    updateValue(key, (old) => ({
-      ...old,
-      listeners: old.listeners - 1
-    }))
+    if ((store.get(key)?.getValue().listeners ?? 1) - 1 === 0) {
+      store.delete(key)
+      notify()
+    } else {
+      updateValue(key, (old) => ({
+        ...old,
+        listeners: old.listeners - 1
+      }))
+    }
   }
 
   const runner$ = store$.pipe(
@@ -132,20 +144,7 @@ export const createQueryStore = () => {
 
   const queriesRunnerSub = runner$.subscribe()
 
-  const storeSub = store$
-    .pipe(
-      map((value) =>
-        [...value.keys()].reduce((acc: any, key) => {
-          acc[key] = getValue(key)
-
-          return acc
-        }, {})
-      ),
-      distinctUntilChanged(shallowEqual)
-    )
-    .subscribe((value) => {
-      Logger.namespace("store").log("store", "update", value)
-    })
+  const debugger$ = createDebugger(store$)
 
   return {
     set: setValue,
@@ -158,7 +157,7 @@ export const createQueryStore = () => {
     addListener,
     store$,
     destroy: () => {
-      storeSub.unsubscribe()
+      debugger$.unsubscribe()
       queriesRunnerSub.unsubscribe()
     }
   }
