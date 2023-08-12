@@ -13,11 +13,11 @@ import {
   tap,
   withLatestFrom
 } from "rxjs"
-import { type QueryKey } from "./keys/types"
-import { isDefined } from "../../utils/isDefined"
-import { shallowEqual } from "../../utils/shallowEqual"
-import { Logger } from "../../logger"
-import { difference } from "../../utils/difference"
+import { type QueryKey } from "../keys/types"
+import { isDefined } from "../../../utils/isDefined"
+import { shallowEqual } from "../../../utils/shallowEqual"
+import { Logger } from "../../../logger"
+import { difference } from "../../../utils/difference"
 
 export interface StoreObject<T = unknown> {
   queryKey: QueryKey

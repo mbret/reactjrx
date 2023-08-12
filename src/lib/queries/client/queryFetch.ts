@@ -23,7 +23,7 @@ import {
 import { deduplicate } from "./deduplication/deduplicate"
 import { retryQueryOnFailure } from "./retryQueryOnFailure"
 import { notifyQueryResult } from "./operators"
-import { type createQueryStore } from "./createQueryStore"
+import { type createQueryStore } from "./store/createQueryStore"
 import { type createDeduplicationStore } from "./deduplication/createDeduplicationStore"
 
 export const createQueryFetch = <T>({

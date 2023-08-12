@@ -12,7 +12,7 @@ import {
   tap,
   share
 } from "rxjs"
-import { type createQueryStore } from "../createQueryStore"
+import { type createQueryStore } from "../store/createQueryStore"
 import { Logger } from "../../../logger"
 import {
   type QueryTrigger,

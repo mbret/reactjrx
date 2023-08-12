@@ -13,7 +13,7 @@ import {
   tap,
   timer
 } from "rxjs"
-import { type createQueryStore } from "../createQueryStore"
+import { type createQueryStore } from "../store/createQueryStore"
 import { compareKeys } from "../keys/compareKeys"
 import { type QueryKey } from "../keys/types"
 import { difference } from "../../../utils/difference"
