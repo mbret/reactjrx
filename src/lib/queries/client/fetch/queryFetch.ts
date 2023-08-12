@@ -21,9 +21,9 @@ import {
   type QueryTrigger
 } from "../types"
 import { deduplicate } from "../deduplication/deduplicate"
-import { retryQueryOnFailure } from "../retryQueryOnFailure"
 import { type createQueryStore } from "../store/createQueryStore"
 import { notifyQueryResult } from "./notifyQueryResult"
+import { retryOnError } from "../operators"
 
 export const createQueryFetch = <T>({
   options$,
@@ -57,7 +57,7 @@ export const createQueryFetch = <T>({
   })
 
   const fnExecution$ = deferredQuery.pipe(
-    retryQueryOnFailure(options),
+    retryOnError(options),
     deduplicate(serializedKey, queryStore),
     tap((result) => {
       queryStore.dispatchQueryEvent({

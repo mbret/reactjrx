@@ -1,13 +1,9 @@
-import {
-  type Observable,
-  distinctUntilChanged,
-  scan
-} from "rxjs"
+import { type Observable, distinctUntilChanged, scan } from "rxjs"
 import { shallowEqual } from "../../utils/shallowEqual"
 import { type QueryOptions, type QueryResult } from "./types"
 import { retryBackoff } from "../../utils/retryBackoff"
 
-export const retryFromOptions = <T>(options: QueryOptions<T>) =>
+export const retryOnError = <T>(options: Pick<QueryOptions<T>, "retry">) =>
   retryBackoff({
     initialInterval: 100,
     ...(typeof options.retry === "function"

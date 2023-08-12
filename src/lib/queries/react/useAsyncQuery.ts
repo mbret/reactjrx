@@ -26,7 +26,7 @@ import { useObserve } from "../../binding/useObserve"
 import { useSubject } from "../../binding/useSubject"
 import { useCallback, useEffect } from "react"
 import { shallowEqual } from "../../utils/shallowEqual"
-import { retryQueryOnFailure } from "../client/retryQueryOnFailure"
+import { retryOnError } from "../client/operators"
 
 interface QueryState<R> {
   data: R | undefined
@@ -208,7 +208,7 @@ export function useAsyncQuery<A = void, R = undefined>(
             }),
             combineLatest([
               defer(() => from(queryRef.current(args))).pipe(
-                retryQueryOnFailure(optionsRef.current),
+                retryOnError(optionsRef.current),
                 first(),
                 map((data) => ({ data, isError: false })),
                 catchError((error: unknown) => {
