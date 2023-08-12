@@ -10,7 +10,7 @@ import { type QueryKey } from "../keys/types"
 import { isDefined } from "../../../utils/isDefined"
 import { shallowEqual } from "../../../utils/shallowEqual"
 import { createDebugger } from "./debugger"
-import { type QueryOptions } from "../types"
+import { type QueryTrigger, type QueryOptions } from "../types"
 
 export interface StoreObject<T = any> {
   queryKey: QueryKey
@@ -37,12 +37,18 @@ export type QueryEvent =
       key: string
     }
 
+export interface QueryTriggerEvent {
+  key: string
+  trigger: QueryTrigger
+}
+
 export type QueryStore = ReturnType<typeof createQueryStore>
 
 export const createQueryStore = () => {
   const store = new Map<string, BehaviorSubject<StoreObject>>()
   const store$ = new BehaviorSubject(store)
   const queryEventSubject = new Subject<QueryEvent>()
+  const queryTriggerSubject = new Subject<QueryTriggerEvent>()
 
   const notify = () => {
     store$.next(store)
@@ -140,6 +146,7 @@ export const createQueryStore = () => {
     get$: getValue$,
     delete: deleteValue,
     update: updateValue,
+    keys: () => store.keys(),
     updateMany,
     addRunner,
     store$,
@@ -147,10 +154,15 @@ export const createQueryStore = () => {
     dispatchQueryEvent: (event: QueryEvent) => {
       queryEventSubject.next(event)
     },
+    queryTrigger$: queryTriggerSubject.asObservable(),
+    dispatchQueryTrigger: (event: QueryTriggerEvent) => {
+      queryTriggerSubject.next(event)
+    },
     size: () => store.size,
     destroy: () => {
       debugger$.unsubscribe()
       queryEventSubject.complete()
+      queryTriggerSubject.complete()
     }
   }
 }

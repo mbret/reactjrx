@@ -52,7 +52,9 @@ export const createClient = () => {
 
     const trigger$ = createQueryTrigger({
       options$,
-      refetch$: merge(refetch$, internalRefetch$)
+      refetch$: merge(refetch$, internalRefetch$),
+      key: serializedKey,
+      queryStore
     })
 
     const result$ = trigger$.pipe(

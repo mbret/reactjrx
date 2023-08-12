@@ -5,17 +5,21 @@ import {
   map,
   merge,
   of,
-  skip,
-  tap
+  skip
 } from "rxjs"
 import { type QueryOptions } from "./types"
+import { type QueryStore } from "./store/createQueryStore"
 
 export const createQueryTrigger = <T>({
   refetch$,
-  options$
+  options$,
+  queryStore,
+  key
 }: {
   refetch$: Observable<{ ignoreStale: boolean }>
   options$: Observable<QueryOptions<T>>
+  queryStore: QueryStore
+  key: string
 }) => {
   const initialTrigger$ = of("initial")
 
@@ -30,6 +34,10 @@ export const createQueryTrigger = <T>({
   )
 
   return merge(
+    queryStore.queryTrigger$.pipe(
+      filter((event) => key === event.key),
+      map(({ trigger }) => trigger)
+    ),
     initialTrigger$.pipe(
       map(() => ({
         type: "initial",
