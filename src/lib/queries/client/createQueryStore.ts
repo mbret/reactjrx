@@ -1,8 +1,23 @@
-import { BehaviorSubject, distinctUntilChanged, filter, map } from "rxjs"
+import {
+  BehaviorSubject,
+  NEVER,
+  distinctUntilChanged,
+  filter,
+  map,
+  merge,
+  mergeMap,
+  of,
+  pairwise,
+  startWith,
+  takeUntil,
+  tap,
+  withLatestFrom
+} from "rxjs"
 import { type QueryKey } from "./keys/types"
 import { isDefined } from "../../utils/isDefined"
 import { shallowEqual } from "../../utils/shallowEqual"
 import { Logger } from "../../logger"
+import { difference } from "../../utils/difference"
 
 export interface StoreObject<T = unknown> {
   queryKey: QueryKey
@@ -10,6 +25,7 @@ export interface StoreObject<T = unknown> {
   lowestStaleTime?: number
   lastFetchedAt?: number
   queryCacheResult?: undefined | { result: T }
+  listeners: number
 }
 
 export const createQueryStore = () => {
@@ -31,12 +47,22 @@ export const createQueryStore = () => {
       ?.pipe(filter(isDefined), distinctUntilChanged(shallowEqual))
   }
 
-  const updateValue = (key: string, value: Partial<StoreObject>) => {
+  const updateValue = (
+    key: string,
+    value: Partial<StoreObject> | ((value: StoreObject) => StoreObject)
+  ) => {
     const existingObject = store.get(key)
 
     if (!existingObject) return
 
-    existingObject.next({ ...existingObject.getValue(), ...value })
+    if (typeof value === "function") {
+      existingObject.next({
+        ...existingObject.getValue(),
+        ...value(existingObject.getValue())
+      })
+    } else {
+      existingObject.next({ ...existingObject.getValue(), ...value })
+    }
     store$.next(store)
   }
 
@@ -58,6 +84,53 @@ export const createQueryStore = () => {
     store.delete(key)
     store$.next(store)
   }
+
+  const addListener = (key: string) => {
+    updateValue(key, (old) => ({
+      ...old,
+      listeners: old.listeners + 1
+    }))
+  }
+
+  const removeListener = (key: string) => {
+    updateValue(key, (old) => ({
+      ...old,
+      listeners: old.listeners - 1
+    }))
+  }
+
+  const runner$ = store$.pipe(
+    map((store) => [...store.keys()]),
+    startWith([]),
+    pairwise(),
+    mergeMap(([previousKeys, currentKeys]) => {
+      const newKeys = difference(currentKeys, previousKeys)
+
+      return merge(
+        ...newKeys.map((key) => {
+          const deletedFromStore$ = store$.pipe(
+            map(() => store.get(key)),
+            filter((value) => value === undefined)
+          )
+
+          return merge(NEVER, of(null)).pipe(
+            withLatestFrom(store$),
+            tap(() => {
+              console.log("QUERY", key, "in")
+            }),
+            tap({
+              complete: () => {
+                console.log("QUERY", key, "complete")
+              }
+            }),
+            takeUntil(deletedFromStore$)
+          )
+        })
+      )
+    })
+  )
+
+  const queriesRunnerSub = runner$.subscribe()
 
   const storeSub = store$
     .pipe(
@@ -81,9 +154,12 @@ export const createQueryStore = () => {
     delete: deleteValue,
     update: updateValue,
     updateMany,
+    removeListener,
+    addListener,
     store$,
     destroy: () => {
       storeSub.unsubscribe()
+      queriesRunnerSub.unsubscribe()
     }
   }
 }

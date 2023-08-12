@@ -118,7 +118,7 @@ export function useQuery<T>({
               {}
             )
           )
-        }),
+        })
         /**
          * @important
          * We skip the first result as it is comparable to default passed value.

@@ -11,7 +11,8 @@ import {
   merge,
   mergeMap,
   EMPTY,
-  of
+  of,
+  finalize
 } from "rxjs"
 import { serializeKey } from "./keys/serializeKey"
 import { mergeResults } from "./operators"
@@ -46,26 +47,28 @@ export const createClient = () => {
   }) => {
     const serializedKey = serializeKey(key)
     const internalRefetch$ = new Subject<QueryTrigger>()
+
     console.log("query$()", serializedKey)
 
     if (!queryStore.get(serializedKey)) {
       queryStore.set(serializedKey, {
+        isStale: true,
+        queryKey: key,
+        listeners: 0
+      })
+    } else {
+      queryStore.update(serializedKey, {
         queryKey: key,
         isStale: true
       })
     }
 
+    queryStore.addListener(serializedKey)
+
     const trigger$ = createQueryTrigger({
       options$,
       refetch$: merge(refetch$, internalRefetch$)
     })
-
-    const clearCacheOnNewQuery$ = fn$.pipe(
-      // tap(() => {
-      //   queryStore.update(serializedKey, { queryCacheResult: undefined })
-      // }),
-      mergeMap(() => EMPTY)
-    )
 
     const result$ = trigger$.pipe(
       // hooks
@@ -118,7 +121,10 @@ export const createClient = () => {
     )
 
     return {
-      result$: merge(result$, clearCacheOnNewQuery$).pipe(
+      result$: merge(result$).pipe(
+        finalize(() => {
+          queryStore.removeListener(serializedKey)
+        }),
         withLatestFrom(options$),
         takeWhile(([result, options]) => {
           const shouldStop =
