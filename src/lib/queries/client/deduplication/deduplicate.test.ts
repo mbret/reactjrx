@@ -12,6 +12,7 @@ import { deduplicate } from "./deduplicate"
 import { serializeKey } from "../keys/serializeKey"
 import { createClient } from "../createClient"
 import { type QueryOptions } from "../types"
+import { createQueryStore } from "../store/createQueryStore"
 
 describe("deduplicate tests", () => {
   describe("Given a repeat operator after deduplicate", () => {
@@ -22,7 +23,7 @@ describe("deduplicate tests", () => {
         value++
       }
 
-      const queryStore = new Map()
+      const queryStore = createQueryStore()
 
       await lastValueFrom(
         defer(() => {
@@ -50,7 +51,7 @@ describe("deduplicate tests", () => {
 
         const deferredQuery$ = defer(() => of(null).pipe(tap(query)))
 
-        const queryStore = new Map()
+        const queryStore = createQueryStore()
 
         await Promise.all([
           lastValueFrom(
@@ -78,19 +79,15 @@ describe("deduplicate tests", () => {
 
           const deferredQuery$ = defer(() => from(query()))
 
-          const queryStore = new Map()
+          const queryStore = createQueryStore()
+          queryStore.set("foo", {
+            queryKey: ["foo"],
+            listeners: 0
+          })
 
           await Promise.all([
-            lastValueFrom(
-              deferredQuery$.pipe(
-                deduplicate(serializeKey(["foo"]), queryStore)
-              )
-            ),
-            lastValueFrom(
-              deferredQuery$.pipe(
-                deduplicate(serializeKey(["foo"]), queryStore)
-              )
-            )
+            lastValueFrom(deferredQuery$.pipe(deduplicate("foo", queryStore))),
+            lastValueFrom(deferredQuery$.pipe(deduplicate("foo", queryStore)))
           ])
 
           expect(value).toBe(1)

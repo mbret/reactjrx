@@ -17,7 +17,7 @@ export const createDebugger = (
     .pipe(
       map((value) =>
         [...value.keys()].reduce((acc: any, key) => {
-          acc[key] = value.get(key)
+          acc[key] = value.get(key)?.getValue()
 
           return acc
         }, {})

@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react"
 import { useQuery } from "./useQuery"
 import { Provider, useReactJrxProvider } from "./Provider"
 import { createClient } from "../client/createClient"
+import { serializeKey } from "../client/keys/serializeKey"
 
 afterEach(() => {
   cleanup()
@@ -13,17 +14,12 @@ afterEach(() => {
 describe("useQuery", () => {
   describe("Given a query that complete", () => {
     it("should remove query from the store", async () => {
-      const query = async () => 2
-      let _queryStore:
-        | ReturnType<typeof useReactJrxProvider>["client"]["queryStore"]
-        | undefined
+      const subject = new Subject<number>()
+      const serializedKey = serializeKey(["foo"])
+      const query = () => subject
 
       const Comp = () => {
         const { data } = useQuery({ queryKey: ["foo"], queryFn: query })
-
-        const { client } = useReactJrxProvider()
-
-        _queryStore = client.queryStore
 
         return <>{data}</>
       }
@@ -37,17 +33,26 @@ describe("useQuery", () => {
           </Provider>
         </React.StrictMode>
       )
-      expect(_queryStore?.size).toBe(1)
+
+      expect(
+        client.queryStore?.get(serializedKey)?.deduplication_fn
+      ).toBeDefined()
+
+      subject.next(2)
+      subject.complete()
 
       expect(await findByText("2")).toBeDefined()
 
-      expect(_queryStore?.size).toBe(0)
+      expect(
+        client.queryStore?.get(serializedKey)?.deduplication_fn
+      ).toBeUndefined()
     })
   })
 
   describe("Given a query that takes time to finish", () => {
     describe("when useQuery unmount", () => {
       it("should remove query from the store", async () => {
+        const serializedKey = serializeKey(["foo"])
         const query = async () => {
           await new Promise((resolve) => setTimeout(resolve, 100))
         }
@@ -91,11 +96,13 @@ describe("useQuery", () => {
           </React.StrictMode>
         )
 
-        expect(_queryStore?.size).toBe(1)
+        expect(_queryStore?.get(serializedKey)?.deduplication_fn).toBeDefined()
 
         expect(await findByText("unmounted")).toBeDefined()
 
-        expect(_queryStore?.size).toBe(0)
+        expect(
+          _queryStore?.get(serializedKey)?.deduplication_fn
+        ).toBeUndefined()
       })
     })
 

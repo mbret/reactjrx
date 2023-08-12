@@ -1,6 +1,7 @@
 import {
   BehaviorSubject,
   NEVER,
+  type Observable,
   distinctUntilChanged,
   filter,
   map,
@@ -19,13 +20,14 @@ import { shallowEqual } from "../../../utils/shallowEqual"
 import { difference } from "../../../utils/difference"
 import { createDebugger } from "./debugger"
 
-export interface StoreObject<T = unknown> {
+export interface StoreObject<T = any> {
   queryKey: QueryKey
-  isStale: boolean
+  isStale?: boolean
   lowestStaleTime?: number
   lastFetchedAt?: number
   queryCacheResult?: undefined | { result: T }
   listeners: number
+  deduplication_fn?: Observable<T>
 }
 
 export type QueryStore = ReturnType<typeof createQueryStore>
@@ -43,8 +45,8 @@ export const createQueryStore = () => {
     store$.next(store)
   }
 
-  const getValue = (key: string) => {
-    return store.get(key)?.getValue()
+  const getValue = (serializedKey: string) => {
+    return store.get(serializedKey)?.getValue()
   }
 
   const getValue$ = (key: string) => {
@@ -155,6 +157,7 @@ export const createQueryStore = () => {
     removeListener,
     addListener,
     store$,
+    size: () => store.size,
     destroy: () => {
       debugger$.unsubscribe()
       queriesRunnerSub.unsubscribe()

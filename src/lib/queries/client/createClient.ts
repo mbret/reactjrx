@@ -9,8 +9,6 @@ import {
   takeWhile,
   tap,
   merge,
-  mergeMap,
-  EMPTY,
   of,
   finalize
 } from "rxjs"
@@ -18,7 +16,6 @@ import { serializeKey } from "./keys/serializeKey"
 import { mergeResults } from "./operators"
 import { type QueryOptions, type QueryFn, type QueryTrigger } from "./types"
 import { type QueryKey } from "./keys/types"
-import { createDeduplicationStore } from "./deduplication/createDeduplicationStore"
 import { createQueryStore } from "./store/createQueryStore"
 import { createQueryTrigger } from "./triggers"
 import { createQueryFetch } from "./queryFetch"
@@ -27,12 +24,8 @@ import { createRefetchClient } from "./refetch/client"
 
 export const createClient = () => {
   const queryStore = createQueryStore()
-  const deduplicationStore = createDeduplicationStore()
   const invalidationClient = createInvalidationClient({ queryStore })
   const refetchClient = createRefetchClient({ queryStore })
-  const refetch$ = new Subject<{
-    key: any[]
-  }>()
 
   const query$ = <T>({
     key,
@@ -85,7 +78,6 @@ export const createClient = () => {
           options$,
           options,
           fn,
-          deduplicationStore,
           queryStore,
           serializedKey,
           trigger
@@ -122,9 +114,6 @@ export const createClient = () => {
 
     return {
       result$: merge(result$).pipe(
-        finalize(() => {
-          queryStore.removeListener(serializedKey)
-        }),
         withLatestFrom(options$),
         takeWhile(([result, options]) => {
           const shouldStop =
@@ -132,19 +121,20 @@ export const createClient = () => {
 
           return !shouldStop
         }),
-        map(([result]) => result)
+        map(([result]) => result),
+        finalize(() => {
+          queryStore.removeListener(serializedKey)
+        })
       )
     }
   }
 
   return {
     query$,
-    refetch$,
-    queryStore: deduplicationStore,
+    queryStore,
     ...invalidationClient,
     ...refetchClient,
     destroy: () => {
-      // @todo cleanup
       invalidationClient.destroy()
       queryStore.destroy()
       refetchClient.destroy()

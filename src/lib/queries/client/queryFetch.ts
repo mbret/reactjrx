@@ -24,7 +24,6 @@ import { deduplicate } from "./deduplication/deduplicate"
 import { retryQueryOnFailure } from "./retryQueryOnFailure"
 import { notifyQueryResult } from "./operators"
 import { type createQueryStore } from "./store/createQueryStore"
-import { type createDeduplicationStore } from "./deduplication/createDeduplicationStore"
 
 export const createQueryFetch = <T>({
   options$,
@@ -32,7 +31,6 @@ export const createQueryFetch = <T>({
   fn,
   queryStore,
   serializedKey,
-  deduplicationStore,
   trigger,
 }: {
   fn: QueryFn<T>
@@ -40,7 +38,6 @@ export const createQueryFetch = <T>({
   options: QueryOptions<T>
   queryStore: ReturnType<typeof createQueryStore>
   serializedKey: string
-  deduplicationStore: ReturnType<typeof createDeduplicationStore>
   trigger: QueryTrigger
 }) => {
   const enabledOption$ = options$.pipe(
@@ -60,7 +57,7 @@ export const createQueryFetch = <T>({
   })
 
   const fnExecution$ = deferredQuery.pipe(
-    deduplicate(serializedKey, deduplicationStore),
+    deduplicate(serializedKey, queryStore),
     retryQueryOnFailure(options),
     tap((result) => {
       queryStore.update(serializedKey, {
