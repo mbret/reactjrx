@@ -66,7 +66,6 @@ export const createClient = () => {
     const result$ = trigger$.pipe(
       // hooks
       refetchClient.pipeQueryTrigger({ options$, key: serializedKey }),
-      invalidationClient.pipeQueryTrigger({ options$, key: serializedKey }),
       tap((params) => {
         console.log("query$ trigger", { key, params })
       }),

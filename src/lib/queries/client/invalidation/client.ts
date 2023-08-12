@@ -20,7 +20,6 @@ import { difference } from "../../../utils/difference"
 import { shallowEqual } from "../../../utils/shallowEqual"
 import { Logger } from "../../../logger"
 import {
-  type QueryTrigger,
   type QueryOptions,
   type QueryResult
 } from "../types"
@@ -142,28 +141,9 @@ export const createInvalidationClient = ({
         )
       )
 
-  const pipeQueryFetch =
-    <T>(_: {
-      key: string
-      queryStore: ReturnType<typeof createQueryStore>
-      options$: Observable<QueryOptions<T>>
-    }): MonoTypeOperatorFunction<T> =>
-    (stream) =>
-      stream
-
-  const pipeQueryTrigger =
-    <T>(_: {
-      key: string
-      options$: Observable<QueryOptions<T>>
-    }): MonoTypeOperatorFunction<QueryTrigger> =>
-    (stream) =>
-      stream
-
   return {
     invalidateQueries,
     pipeQueryResult,
-    pipeQueryFetch,
-    pipeQueryTrigger,
     destroy: () => {
       staleUpdateSub.unsubscribe()
     }
