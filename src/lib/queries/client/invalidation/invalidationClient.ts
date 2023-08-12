@@ -9,9 +9,6 @@ export const createInvalidationClient = ({
 }: {
   queryStore: ReturnType<typeof createQueryStore>
 }) => {
-  /**
-   * @todo query matching
-   */
   const invalidateQueries = ({
     queryKey,
     exact = false,
@@ -25,10 +22,16 @@ export const createInvalidationClient = ({
 
     if (queryKey) {
       logger.log(`invalidation requested for`, queryKey)
-      queryStore.updateMany({ isStale: true }, (storeObject) =>
-        compareKeys(queryKey, storeObject.queryKey, { exact })
-      )
-      keysToRefetch.push(serializeKey(queryKey))
+
+      queryStore.updateMany({ isStale: true }, (entry) => {
+        const isValid = compareKeys(queryKey, entry.queryKey, { exact })
+
+        if (isValid) {
+          keysToRefetch.push(serializeKey(entry.queryKey))
+        }
+
+        return isValid
+      })
     } else if (predicate) {
       queryStore.updateMany({ isStale: true }, (entry) => {
         const isValid = predicate(entry)
