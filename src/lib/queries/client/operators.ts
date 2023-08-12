@@ -1,7 +1,5 @@
 import {
   type Observable,
-  map,
-  withLatestFrom,
   distinctUntilChanged,
   scan
 } from "rxjs"
@@ -20,22 +18,6 @@ export const retryFromOptions = <T>(options: QueryOptions<T>) =>
           maxRetries: options.retry === false ? 0 : options.retry ?? 3
         })
   })
-
-export const notifyQueryResult =
-  <T>(options$: Observable<QueryOptions<T>>) =>
-  (stream$: Observable<Partial<QueryResult<T>>>) =>
-    stream$.pipe(
-      withLatestFrom(options$),
-      map(([result, options]) => {
-        if (result.error) {
-          options.onError?.(result.error)
-        } else {
-          options.onSuccess?.(result as T)
-        }
-
-        return result
-      })
-    )
 
 export const mergeResults = <T>(
   stream$: Observable<Partial<QueryResult<T>>>

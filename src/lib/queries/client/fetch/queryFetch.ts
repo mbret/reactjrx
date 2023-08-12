@@ -22,8 +22,8 @@ import {
 } from "../types"
 import { deduplicate } from "../deduplication/deduplicate"
 import { retryQueryOnFailure } from "../retryQueryOnFailure"
-import { notifyQueryResult } from "../operators"
 import { type createQueryStore } from "../store/createQueryStore"
+import { notifyQueryResult } from "./notifyQueryResult"
 
 export const createQueryFetch = <T>({
   options$,
