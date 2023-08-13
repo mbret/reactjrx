@@ -24,6 +24,7 @@ import { deduplicate } from "../deduplication/deduplicate"
 import { type createQueryStore } from "../store/createQueryStore"
 import { notifyQueryResult } from "./notifyQueryResult"
 import { retryOnError } from "../operators"
+import { registerResultInCache } from "../cache/registerResultInCache"
 
 export const createQueryFetch = <T>({
   options$,
@@ -59,18 +60,16 @@ export const createQueryFetch = <T>({
   const fnExecution$ = deferredQuery.pipe(
     retryOnError(options),
     deduplicate(serializedKey, queryStore),
-    tap((result) => {
+    tap(() => {
       queryStore.dispatchQueryEvent({
         key: serializedKey,
         type: "fetchSuccess"
       })
       queryStore.update(serializedKey, {
-        lastFetchedAt: new Date().getTime(),
-        ...(options.cacheTime !== 0 && {
-          queryCacheResult: { result }
-        })
+        lastFetchedAt: new Date().getTime()
       })
     }),
+    registerResultInCache({ serializedKey, options, queryStore }),
     map((result) => ({
       status: "success" as const,
       data: { result },
@@ -129,7 +128,7 @@ export const createQueryFetch = <T>({
 
   const query = queryStore.get(serializedKey)
 
-  const cacheResult = query?.queryCacheResult as undefined | { result: T }
+  const cacheResult = query?.cache_fnResult as undefined | { result: T }
 
   const hasCache = !!cacheResult
 

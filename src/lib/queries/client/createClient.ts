@@ -11,7 +11,8 @@ import {
   merge,
   of,
   finalize,
-  distinctUntilChanged
+  distinctUntilChanged,
+  NEVER
 } from "rxjs"
 import { serializeKey } from "./keys/serializeKey"
 import { mergeResults } from "./operators"
@@ -24,6 +25,8 @@ import { createInvalidationClient } from "./invalidation/invalidationClient"
 import { createRefetchClient } from "./refetch/client"
 import { createQueryListener } from "./store/queryListener"
 import { markAsStale } from "./invalidation/markAsStale"
+import { invalidateCache } from "./cache/invalidateCache"
+import { garbageCache } from "./store/garbageCache"
 
 export const createClient = () => {
   const queryStore = createQueryStore()
@@ -32,18 +35,20 @@ export const createClient = () => {
 
   const query$ = <T>({
     key,
-    fn$,
+    fn$: maybeFn$,
+    fn: maybeFn,
     refetch$ = new Subject(),
     options$ = new BehaviorSubject<QueryOptions<T>>({})
   }: {
     key: QueryKey
-    fn$: Observable<QueryFn<T>>
+    fn?: QueryFn<T>
+    fn$?: Observable<QueryFn<T>>
     refetch$?: Observable<{ ignoreStale: boolean }>
     options$?: Observable<QueryOptions<T>>
   }) => {
     const serializedKey = serializeKey(key)
     const internalRefetch$ = new Subject<QueryTrigger>()
-
+    const fn$ = maybeFn$ ?? (maybeFn ? of(maybeFn) : NEVER)
     console.log("query$()", serializedKey)
 
     const runner$ = options$.pipe(map((options) => ({ options })))
@@ -78,8 +83,11 @@ export const createClient = () => {
         }
         deleteRunner = queryStore.addRunner(serializedKey, runner$)
       }),
-      tap(({ trigger }) => {
-        console.log("reactjrx", serializedKey, "query trigger", trigger)
+      tap(({ trigger, options }) => {
+        console.log("reactjrx", serializedKey, "query trigger", {
+          trigger,
+          options
+        })
       }),
       filter(({ options }) => options.enabled !== false),
       switchMap(({ fn, options, trigger }) =>
@@ -132,11 +140,16 @@ export const createClient = () => {
   }
 
   const queryListenerSub = createQueryListener(queryStore, (stream) =>
-    stream.pipe(
+    merge(
+      invalidateCache({
+        queryStore
+      })(stream),
       markAsStale({
         queryStore
-      }),
-      distinctUntilChanged()
+      })(stream),
+      garbageCache({
+        queryStore
+      })(stream)
     )
   ).subscribe()
 

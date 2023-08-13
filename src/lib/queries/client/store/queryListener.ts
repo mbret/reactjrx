@@ -28,10 +28,14 @@ export const createQueryListener = (
 
       return merge(
         ...newKeys.map((key) => {
-          const deletedFromStore$ = store.store$.pipe(
+          const deleted$ = store.store$.pipe(
             map(() => store.get(key)),
-            filter((value) => value === undefined)
+            filter((item) => item === undefined)
           )
+          // const noMoreRunners$ = store.store$.pipe(
+          //   map(() => store.get(key)),
+          //   filter((value) => (value?.runners ?? 0) === 0)
+          // )
 
           return merge(NEVER, of(key)).pipe(
             tap(() => {
@@ -41,7 +45,7 @@ export const createQueryListener = (
             finalize(() => {
               console.log("QUERY", key, "complete")
             }),
-            takeUntil(deletedFromStore$)
+            takeUntil(deleted$)
           )
         })
       )

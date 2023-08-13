@@ -43,7 +43,7 @@ describe("useQuery", () => {
 
   it("should return consecutive results", async () => {
     // interval big enough so react does not skip some render
-    const source = interval(1)
+    const source = interval(10)
 
     const Comp = () => {
       const [values, setValues] = useState<Array<number | undefined>>([])
@@ -147,7 +147,7 @@ describe("useQuery", () => {
       const Comp = memo(() => {
         const renderCount = useRef(0)
 
-        const { data } = useQuery({
+        const result = useQuery({
           queryFn: of(renderCount.current),
           enabled: renderCount.current < 11
         })
@@ -161,7 +161,7 @@ describe("useQuery", () => {
           }
         })
 
-        return <>{data}</>
+        return <>{result.data}</>
       })
 
       const client = createClient()

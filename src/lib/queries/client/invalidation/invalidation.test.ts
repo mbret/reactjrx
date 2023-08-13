@@ -75,7 +75,7 @@ describe("invalidation", () => {
       })
 
       describe("and new query is marked as stale", () => {
-        it("should call the fn again asdasdasdasdasdasd", async () => {
+        it("should call the fn again", async () => {
           const client = createClient()
           const deferredResult$ = new Subject<number>()
           const queryMock = vi.fn().mockImplementation(() => deferredResult$)

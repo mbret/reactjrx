@@ -16,7 +16,6 @@ export interface StoreObject<T = any> {
   queryKey: QueryKey
   isStale?: boolean
   lastFetchedAt?: number
-  queryCacheResult?: undefined | { result: T }
   /**
    * runners push themselves so we can retrieve various
    * options, fn, etc on global listener.
@@ -24,6 +23,7 @@ export interface StoreObject<T = any> {
    * have to register/deregister themselves into the global context.
    */
   runners: Array<Observable<{ options: QueryOptions<T> }>>
+  cache_fnResult?: undefined | { result: T }
   deduplication_fn?: Observable<T>
 }
 
@@ -56,7 +56,8 @@ export const createQueryStore = () => {
 
   const setValue = (key: string, value: StoreObject) => {
     store.set(key, new BehaviorSubject(value))
-    store$.next(store)
+    
+    notify()
   }
 
   const getValue = (serializedKey: string) => {
@@ -126,15 +127,10 @@ export const createQueryStore = () => {
           ?.getValue()
           .runners.filter((reference) => reference !== stream) ?? []
 
-      if (newListeners?.length === 0) {
-        store.delete(key)
-        notify()
-      } else {
-        updateValue(key, (old) => ({
-          ...old,
-          runners: newListeners
-        }))
-      }
+      updateValue(key, (old) => ({
+        ...old,
+        runners: newListeners
+      }))
     }
   }
 
