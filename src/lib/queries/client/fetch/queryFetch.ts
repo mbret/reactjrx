@@ -12,7 +12,11 @@ import {
   takeUntil,
   tap,
   last,
-  share
+  share,
+  switchMap,
+  timer,
+  delay,
+  shareReplay
 } from "rxjs"
 import {
   type QueryResult,
@@ -89,7 +93,15 @@ export const createQueryFetch = <T>({
       })
     }),
     notifyQueryResult(options$),
-    share()
+    /**
+     * @important
+     * We do not use share because some fn are instant and late
+     * subscription would only restart it.
+     */
+    shareReplay({
+      refCount: true,
+      bufferSize: 1
+    })
   )
 
   /**

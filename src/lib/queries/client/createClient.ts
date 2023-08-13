@@ -11,7 +11,6 @@ import {
   merge,
   of,
   finalize,
-  distinctUntilChanged,
   NEVER
 } from "rxjs"
 import { serializeKey } from "./keys/serializeKey"
@@ -117,9 +116,6 @@ export const createClient = () => {
       // tap((result) => {
       //   console.log("query$ result", result)
       // })
-      // finalize(() => {
-      //   console.log("query$ finalize", new Date().getTime()  - 1691522856380)
-      // })
     )
 
     return {
@@ -140,16 +136,22 @@ export const createClient = () => {
   }
 
   const queryListenerSub = createQueryListener(queryStore, (stream) =>
-    merge(
-      invalidateCache({
-        queryStore
-      })(stream),
-      markAsStale({
-        queryStore
-      })(stream),
-      garbageCache({
-        queryStore
-      })(stream)
+    stream.pipe(
+      switchMap((key) => {
+        const key$ = of(key)
+
+        return merge(
+          invalidateCache({
+            queryStore
+          })(key$),
+          markAsStale({
+            queryStore
+          })(key$),
+          garbageCache({
+            queryStore
+          })(key$)
+        )
+      })
     )
   ).subscribe()
 
