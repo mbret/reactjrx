@@ -4,11 +4,9 @@ import {
   filter,
   map,
   tap,
-  merge,
-  of,
   type OperatorFunction,
   timer,
-  distinctUntilChanged,
+  distinctUntilChanged
 } from "rxjs"
 import { type QueryEvent, type QueryStore } from "../store/createQueryStore"
 import { logger } from "./logger"
@@ -26,10 +24,13 @@ const mapOptionsToOption: OperatorFunction<
         (acc, value) => {
           return {
             ...acc,
-            lowestStaleTime: Math.min(
-              value.staleTime ?? Infinity,
-              acc.lowestStaleTime ?? Infinity
-            )
+            lowestStaleTime:
+              value.staleTime === undefined
+                ? acc.lowestStaleTime
+                : Math.min(
+                    value.staleTime ?? Infinity,
+                    acc.lowestStaleTime ?? Infinity
+                  )
           }
         },
         { lowestStaleTime: undefined as number | undefined }
@@ -63,39 +64,39 @@ export const markAsStale =
       switchMap((key) => {
         const query$ = queryStore.get$(key)
 
-        return merge(
-          of(key),
-          queryStore.queryEvent$.pipe(
-            onlyFetchEventDone(key),
-            switchMap(() =>
-              query$.pipe(
-                mapStoreQueryToRunnerOptions,
-                mapOptionsToOption,
-                tap(({ lowestStaleTime = 0 }) => {
-                  if (lowestStaleTime < 1) {
-                    logger.log(key, "marked as stale!", {
-                      staleTime: lowestStaleTime
-                    })
-                    queryStore.update(key, { isStale: true })
-                  } else if (queryStore.get(key)?.isStale) {
-                    logger.log(key, "marked non stale", {
-                      staleTime: lowestStaleTime
-                    })
-                    queryStore.update(key, { isStale: false })
-                  }
-                }),
-                filter(({ lowestStaleTime }) => lowestStaleTime !== Infinity),
-                switchMap(({ lowestStaleTime = 0 }) => timer(lowestStaleTime)),
-                tap(() => {
-                  if (!queryStore.get(key)?.isStale) {
-                    logger.log(key, "marked as stale!")
-                    queryStore.update(key, { isStale: true })
-                  }
-                })
-              )
-            ),
-            map(() => key)
-          )
+        return queryStore.queryEvent$.pipe(
+          onlyFetchEventDone(key),
+          switchMap(() =>
+            query$.pipe(
+              mapStoreQueryToRunnerOptions,
+              mapOptionsToOption,
+              tap(({ lowestStaleTime = 0 }) => {
+                if (lowestStaleTime === 0) {
+                  logger.log(key, "marked as stale!", {
+                    staleTime: lowestStaleTime
+                  })
+                  queryStore.update(key, { isStale: true })
+                } else if (queryStore.get(key)?.isStale) {
+                  logger.log(key, "marked non stale", {
+                    staleTime: lowestStaleTime
+                  })
+                  queryStore.update(key, { isStale: false })
+                }
+              }),
+              filter(
+                ({ lowestStaleTime }) =>
+                  lowestStaleTime !== Infinity && lowestStaleTime !== 0
+              ),
+              switchMap(({ lowestStaleTime = 0 }) => timer(lowestStaleTime)),
+              tap(() => {
+                if (!queryStore.get(key)?.isStale) {
+                  logger.log(key, "marked as stale!")
+                  queryStore.update(key, { isStale: true })
+                }
+              })
+            )
+          ),
+          map(() => key)
         )
       })
     )

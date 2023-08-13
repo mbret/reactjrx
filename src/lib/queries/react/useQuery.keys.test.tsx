@@ -2,9 +2,9 @@ import { afterEach, describe, expect, it } from "vitest"
 import { Subject } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React from "react"
-import { useQuery } from "../../react/useQuery"
-import { printQuery } from "../../../../tests/testUtils"
-import { ReactjrxQueryProvider, createClient } from "../../../.."
+import { useQuery } from "./useQuery"
+import { printQuery } from "../../../tests/testUtils"
+import { ReactjrxQueryProvider, createClient } from "../../.."
 
 afterEach(() => {
   cleanup()

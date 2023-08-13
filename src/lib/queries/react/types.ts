@@ -15,6 +15,7 @@ export interface UseQueryOptions<R = unknown> extends QueryOptions<R> {
 export interface UseQueryResult<R> {
   data: R | undefined
   isLoading: boolean
+  status: "success" | "error" | "loading"
   error: unknown
   refetch: () => void
 }
