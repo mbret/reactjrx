@@ -7,7 +7,6 @@ import {
   withLatestFrom,
   BehaviorSubject,
   takeWhile,
-  tap,
   merge,
   of,
   finalize,
@@ -26,6 +25,7 @@ import { createQueryListener } from "./store/queryListener"
 import { markAsStale } from "./invalidation/markAsStale"
 import { invalidateCache } from "./cache/invalidateCache"
 import { garbageCache } from "./store/garbageCache"
+import { updateStoreWithQuery } from "./store/updateStoreWithQuery"
 
 export const createClient = () => {
   const queryStore = createQueryStore()
@@ -65,28 +65,21 @@ export const createClient = () => {
       refetchClient.pipeQueryTrigger({ options$, key: serializedKey }),
       withLatestFrom(fn$, options$),
       map(([trigger, fn, options]) => ({ trigger, fn, options })),
-      tap(({ options }) => {
-        if (!queryStore.get(serializedKey)) {
-          queryStore.set(serializedKey, {
-            isStale: true,
-            queryKey: key,
-            runners: []
-          })
-        } else {
-          queryStore.update(serializedKey, {
-            queryKey: key,
-            ...(options.markStale && {
-              isStale: true
-            })
-          })
-        }
-        deleteRunner = queryStore.addRunner(serializedKey, runner$)
+      updateStoreWithQuery({
+        key,
+        queryStore,
+        runner$,
+        serializedKey
       }),
-      tap(({ trigger, options }) => {
+      map(([value, deleteRunnerFn]) => {
+        deleteRunner = deleteRunnerFn
+
         console.log("reactjrx", serializedKey, "query trigger", {
-          trigger,
-          options
+          trigger: value.trigger,
+          options: value.options
         })
+
+        return value
       }),
       filter(({ options }) => options.enabled !== false),
       switchMap(({ fn, options, trigger }) =>
@@ -113,9 +106,6 @@ export const createClient = () => {
         )
       ),
       mergeResults
-      // tap((result) => {
-      //   console.log("query$ result", result)
-      // })
     )
 
     return {
