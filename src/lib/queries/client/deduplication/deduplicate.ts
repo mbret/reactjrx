@@ -9,7 +9,7 @@ export const deduplicate =
 
     return defer(() => {
       const sourceFromStore: Observable<T> | undefined =
-        queryStore.get(key)?.deduplication_fn
+        queryStore.get<T>(key)?.deduplication_fn
 
       const deleteFromStore = () => {
         queryStore.update(key, {

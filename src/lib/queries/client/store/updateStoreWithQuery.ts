@@ -2,6 +2,7 @@ import { type OperatorFunction, map, type Observable } from "rxjs"
 import { type QueryStore } from "./createQueryStore"
 import { type QueryOptions } from "../types"
 import { type QueryKey } from "../keys/types"
+import { getInitialQueryEntity } from "./initializeQueryInStore"
 
 export const updateStoreWithQuery =
   <T extends { options: QueryOptions<R> }, R>({
@@ -23,11 +24,7 @@ export const updateStoreWithQuery =
         if (key.length === 0) return [value, () => {}]
 
         if (!queryStore.get(serializedKey)) {
-          queryStore.set(serializedKey, {
-            isStale: true,
-            queryKey: key,
-            runners: []
-          })
+          queryStore.set(serializedKey, getInitialQueryEntity({ key }))
         } else {
           queryStore.update(serializedKey, {
             queryKey: key,

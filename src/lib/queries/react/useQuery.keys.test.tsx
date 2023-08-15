@@ -5,6 +5,7 @@ import React from "react"
 import { useQuery } from "./useQuery"
 import { printQuery } from "../../../tests/testUtils"
 import { ReactjrxQueryProvider, createClient } from "../../.."
+import { waitForTimeout } from "../../../tests/utils"
 
 afterEach(() => {
   cleanup()
@@ -91,7 +92,7 @@ describe("useQuery", () => {
 
           const client = createClient()
 
-          const { findByText, rerender } = render(
+          const { findByText, rerender, debug } = render(
             <React.StrictMode>
               <ReactjrxQueryProvider client={client}>
                 <Comp queryKey="1" />
@@ -148,6 +149,10 @@ describe("useQuery", () => {
           ).toBeDefined()
 
           triggerSubject.complete()
+
+          await waitForTimeout(100)
+          
+          debug()
 
           expect(
             await findByText(

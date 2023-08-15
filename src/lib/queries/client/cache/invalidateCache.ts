@@ -6,7 +6,6 @@ import {
   type OperatorFunction,
   timer,
   tap,
-  merge
 } from "rxjs"
 import { type StoreObject, type QueryStore } from "../store/createQueryStore"
 import { shallowEqual } from "../../../utils/shallowEqual"
@@ -75,6 +74,6 @@ export const invalidateCache =
           )
         )
 
-        return merge(invalidateCache$).pipe(map(() => key))
+        return invalidateCache$.pipe(map(() => key))
       })
     )

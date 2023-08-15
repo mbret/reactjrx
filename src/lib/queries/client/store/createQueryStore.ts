@@ -12,7 +12,7 @@ import { shallowEqual } from "../../../utils/shallowEqual"
 import { createDebugger } from "./debugger"
 import { type QueryTrigger, type QueryOptions } from "../types"
 
-export interface StoreObject<T = any> {
+export interface StoreObject<T = unknown> {
   queryKey: QueryKey
   isStale?: boolean
   lastFetchedAt?: number
@@ -36,6 +36,10 @@ export type QueryEvent =
       type: "fetchError"
       key: string
     }
+  | {
+      type: "queryDataSet"
+      key: string
+    }
 
 export interface QueryTriggerEvent {
   key: string
@@ -56,12 +60,12 @@ export const createQueryStore = () => {
 
   const setValue = (key: string, value: StoreObject) => {
     store.set(key, new BehaviorSubject(value))
-    
+
     notify()
   }
 
-  const getValue = (serializedKey: string) => {
-    return store.get(serializedKey)?.getValue()
+  const getValue = <T>(serializedKey: string) => {
+    return store.get(serializedKey)?.getValue() as StoreObject<T> | undefined
   }
 
   const getValue$ = (key: string) => {
@@ -73,11 +77,13 @@ export const createQueryStore = () => {
     )
   }
 
-  const updateValue = (
+  const updateValue = <T>(
     key: string,
-    value: Partial<StoreObject> | ((value: StoreObject) => StoreObject)
+    value: Partial<StoreObject<T>> | ((value: StoreObject<T>) => StoreObject<T>)
   ) => {
-    const existingObject = store.get(key)
+    const existingObject = store.get(key) as
+      | BehaviorSubject<StoreObject<T>>
+      | undefined
 
     if (!existingObject) return
 
@@ -115,7 +121,7 @@ export const createQueryStore = () => {
     key: string,
     stream: StoreObject<T>["runners"][number]
   ) => {
-    updateValue(key, (old) => ({
+    updateValue<T>(key, (old) => ({
       ...old,
       runners: [...old.runners, stream]
     }))

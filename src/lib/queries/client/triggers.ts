@@ -4,7 +4,6 @@ import {
   filter,
   map,
   merge,
-  of,
   skip
 } from "rxjs"
 import { type QueryOptions } from "./types"
@@ -21,8 +20,6 @@ export const createQueryTrigger = <T>({
   queryStore: QueryStore
   key: string
 }) => {
-  const initialTrigger$ = of("initial")
-
   const enabledOption$ = options$.pipe(
     map(({ enabled = true }) => enabled),
     distinctUntilChanged()
@@ -37,12 +34,6 @@ export const createQueryTrigger = <T>({
     queryStore.queryTrigger$.pipe(
       filter((event) => key === event.key),
       map(({ trigger }) => trigger)
-    ),
-    initialTrigger$.pipe(
-      map(() => ({
-        type: "initial",
-        ignoreStale: false
-      }))
     ),
     refetch$.pipe(
       map((event) => ({

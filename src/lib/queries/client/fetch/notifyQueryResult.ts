@@ -1,16 +1,23 @@
-import { type Observable, map, withLatestFrom } from "rxjs"
+import {
+  type Observable,
+  map,
+  withLatestFrom,
+  type MonoTypeOperatorFunction
+} from "rxjs"
 import { type QueryOptions, type QueryResult } from "../types"
 
 export const notifyQueryResult =
-  <T>(options$: Observable<QueryOptions<T>>) =>
-  (stream$: Observable<Partial<QueryResult<T>>>) =>
+  <R>(
+    options$: Observable<QueryOptions<R>>
+  ): MonoTypeOperatorFunction<Partial<QueryResult<R>>> =>
+  (stream$) =>
     stream$.pipe(
       withLatestFrom(options$),
       map(([result, options]) => {
         if (result.error) {
           options.onError?.(result.error)
         } else {
-          options.onSuccess?.(result as T)
+          options.onSuccess?.(result as R)
         }
 
         return result

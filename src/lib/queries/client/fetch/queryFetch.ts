@@ -11,12 +11,8 @@ import {
   take,
   takeUntil,
   tap,
-  last,
-  share,
-  switchMap,
-  timer,
   delay,
-  shareReplay
+  endWith
 } from "rxjs"
 import {
   type QueryResult,
@@ -29,6 +25,8 @@ import { type createQueryStore } from "../store/createQueryStore"
 import { notifyQueryResult } from "./notifyQueryResult"
 import { retryOnError } from "../operators"
 import { registerResultInCache } from "../cache/registerResultInCache"
+import { isDefined } from "../../../utils/isDefined"
+import { mapWithComplete } from "./mapWithComplete"
 
 export const createQueryFetch = <T>({
   options$,
@@ -36,7 +34,8 @@ export const createQueryFetch = <T>({
   fn,
   queryStore,
   serializedKey,
-  trigger
+  trigger,
+  trigger$
 }: {
   fn: QueryFn<T>
   options$: Observable<QueryOptions<T>>
@@ -44,6 +43,7 @@ export const createQueryFetch = <T>({
   queryStore: ReturnType<typeof createQueryStore>
   serializedKey: string
   trigger: QueryTrigger
+  trigger$: Observable<QueryTrigger>
 }) => {
   const enabledOption$ = options$.pipe(
     map(({ enabled = true }) => enabled),
@@ -74,11 +74,17 @@ export const createQueryFetch = <T>({
       })
     }),
     registerResultInCache({ serializedKey, options, queryStore }),
-    map((result) => ({
+    mapWithComplete(({ isComplete }) => (result) => ({
       status: "success" as const,
+      ...(isComplete && {
+        fetchStatus: "idle" as const
+      }),
       data: { result },
       error: undefined
     })),
+    endWith({
+      fetchStatus: "idle" as const
+    }),
     catchError((error) => {
       queryStore.dispatchQueryEvent({
         key: serializedKey,
@@ -92,36 +98,26 @@ export const createQueryFetch = <T>({
         error
       })
     }),
-    notifyQueryResult(options$),
-    /**
-     * @important
-     * We do not use share because some fn are instant and late
-     * subscription would only restart it.
-     */
-    shareReplay({
-      refCount: true,
-      bufferSize: 1
-    })
+    notifyQueryResult(options$)
   )
 
-  /**
-   * Make sure to dispatch idle only on the end of even long living
-   * observable. long living observable will stay in `fetching` state
-   * as long as they don't complete.
-   */
-  const fnExecutionEnd$ = fnExecution$.pipe(
-    last(),
-    map(() => ({
-      fetchStatus: "idle" as const
+  const newCache$ = queryStore.queryEvent$.pipe(
+    filter(
+      (event) => event.key === serializedKey && event.type === "queryDataSet"
+    ),
+    map(() => queryStore.get<T>(serializedKey)?.cache_fnResult?.result),
+    filter(isDefined),
+    map((result) => ({
+      status: "success" as const,
+      data: { result }
     })),
-    catchError((error) => {
-      return of({
-        fetchStatus: "idle" as const,
-        status: "error" as const,
-        data: undefined,
-        error
-      })
-    })
+    /**
+     * @important
+     * To avoid cache update being returned being the first result is returned.
+     * For example if user set query data inside onSuccess callback, we simulate
+     * a small delay to ensure it happens after.
+     */
+    delay(1)
   )
 
   const execution$: Observable<Partial<QueryResult<T>>> = merge(
@@ -133,10 +129,10 @@ export const createQueryFetch = <T>({
     ),
     merge(
       of({ fetchStatus: "fetching" as const, error: undefined }),
-      fnExecution$,
-      fnExecutionEnd$
-    ).pipe(takeUntil(disabled$))
-  )
+      fnExecution$
+    ).pipe(takeUntil(disabled$)),
+    newCache$
+  ).pipe(takeUntil(trigger$))
 
   const query = queryStore.get(serializedKey)
 
@@ -156,7 +152,7 @@ export const createQueryFetch = <T>({
     } else {
       return merge(
         of({
-          fetchStatus: "idle" as const,
+          fetchStatus: "fetching" as const,
           status: "success" as const,
           data: { result: cacheResult.result },
           error: undefined

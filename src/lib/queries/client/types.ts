@@ -28,7 +28,7 @@ export interface QueryTrigger {
   ignoreStale: boolean
 }
 
-export interface QueryOptions<R = unknown> {
+export interface QueryOptions<T = unknown> {
   enabled?: boolean
   retry?: false | number | ((attempt: number, error: unknown) => boolean)
   /**
@@ -50,10 +50,10 @@ export interface QueryOptions<R = unknown> {
     | number
     | false
     | ((
-        data: QueryResult<R>["data"] | undefined,
+        data: QueryResult<T>["data"] | undefined,
         query: Query
       ) => number | false)
   terminateOnFirstResult?: boolean
   onError?: (error: unknown) => void
-  onSuccess?: (data: R) => void
+  onSuccess?: (data: T) => void
 }
