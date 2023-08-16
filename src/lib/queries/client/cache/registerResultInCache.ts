@@ -1,6 +1,6 @@
 import { tap, type MonoTypeOperatorFunction } from "rxjs"
 import { type QueryStore } from "../store/createQueryStore"
-import { type QueryOptions } from "../types"
+import { type QueryResult, type QueryOptions } from "../types"
 
 export const registerResultInCache =
   <T>({
@@ -11,14 +11,18 @@ export const registerResultInCache =
     queryStore: QueryStore
     serializedKey: string
     options: QueryOptions<T>
-  }): MonoTypeOperatorFunction<T> =>
+  }): MonoTypeOperatorFunction<Partial<QueryResult<T>>> =>
   (stream) =>
     stream.pipe(
-      tap((result) => {
-        queryStore.update(serializedKey, {
-          ...(options.cacheTime !== 0 && {
-            cache_fnResult: { result }
+      tap(({ data }) => {
+        if (data?.result) {
+          const result = data?.result
+
+          queryStore.update(serializedKey, {
+            ...(options.cacheTime !== 0 && {
+              cache_fnResult: { result }
+            })
           })
-        })
+        }
       })
     )

@@ -120,8 +120,6 @@ describe("invalidation", () => {
       const deferredResult$ = new Subject<number>()
       const deferredResult2$ = new Subject<number>()
       const queryMock = vi.fn().mockImplementation(() => {
-        console.log("CALL")
-
         return deferredResult$
       })
       const query$ = new BehaviorSubject(queryMock)

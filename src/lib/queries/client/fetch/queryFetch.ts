@@ -26,7 +26,6 @@ import { notifyQueryResult } from "./notifyQueryResult"
 import { retryOnError } from "../operators"
 import { registerResultInCache } from "../cache/registerResultInCache"
 import { isDefined } from "../../../utils/isDefined"
-import { mapWithComplete } from "./mapWithComplete"
 
 export const createQueryFetch = <T>({
   options$,
@@ -73,12 +72,8 @@ export const createQueryFetch = <T>({
         lastFetchedAt: new Date().getTime()
       })
     }),
-    registerResultInCache({ serializedKey, options, queryStore }),
-    mapWithComplete(({ isComplete }) => (result) => ({
+    map((result) => ({
       status: "success" as const,
-      ...(isComplete && {
-        fetchStatus: "idle" as const
-      }),
       data: { result },
       error: undefined
     })),
@@ -98,7 +93,8 @@ export const createQueryFetch = <T>({
         error
       })
     }),
-    notifyQueryResult(options$)
+    notifyQueryResult(options$),
+    registerResultInCache({ serializedKey, options, queryStore }),
   )
 
   const newCache$ = queryStore.queryEvent$.pipe(

@@ -34,6 +34,7 @@ import { invalidateCache } from "./cache/invalidateCache"
 import { garbageCache } from "./store/garbageCache"
 import { updateStoreWithQuery } from "./store/updateStoreWithQuery"
 import { createCacheClient } from "./cache/cacheClient"
+import { Logger } from "../../logger"
 
 export const createClient = () => {
   const queryStore = createQueryStore()
@@ -58,7 +59,7 @@ export const createClient = () => {
     const internalRefetch$ = new Subject<QueryTrigger>()
     const fn$ = maybeFn$ ?? (maybeFn ? of(maybeFn) : NEVER)
 
-    console.log("query$()", serializedKey)
+    Logger.log("query$()", serializedKey)
 
     const runner$ = options$.pipe(map((options) => ({ options })))
 
@@ -88,7 +89,7 @@ export const createClient = () => {
       map(([value, deleteRunnerFn]) => {
         deleteRunner = deleteRunnerFn
 
-        console.log("reactjrx", serializedKey, "query trigger", {
+        Logger.log("reactjrx", serializedKey, "query trigger", {
           trigger: value.trigger,
           options: value.options
         })
@@ -129,9 +130,6 @@ export const createClient = () => {
         return !shouldStop
       }, true),
       map(([result]) => result),
-      tap((result) => {
-        console.log("result", result)
-      }),
       finalize(() => {
         deleteRunner()
       })

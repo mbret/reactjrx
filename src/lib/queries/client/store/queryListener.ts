@@ -39,11 +39,11 @@ export const createQueryListener = (
 
           return merge(NEVER, of(key)).pipe(
             tap(() => {
-              console.log("QUERY", key, "in")
+              // console.log("QUERY", key, "in")
             }),
             onQuery,
             finalize(() => {
-              console.log("QUERY", key, "complete")
+              // console.log("QUERY", key, "complete")
             }),
             takeUntil(deleted$)
           )
