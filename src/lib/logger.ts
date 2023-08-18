@@ -73,4 +73,4 @@ export function createLogger(env: string) {
   return _logger
 }
 
-export const Logger = createLogger("development")
+export const Logger = createLogger(import.meta.env.MODE)
