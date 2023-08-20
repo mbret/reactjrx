@@ -96,6 +96,5 @@ export const createRefetchClient = ({
   return {
     pipeQueryResult,
     pipeQueryTrigger,
-    destroy: () => {}
   }
 }

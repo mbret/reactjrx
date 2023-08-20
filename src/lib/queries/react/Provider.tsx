@@ -3,8 +3,8 @@ import {
   createContext,
   memo,
   useContext,
-  useMemo,
-  useEffect
+  useEffect,
+  useMemo
 } from "react"
 import { type createClient } from "../client/createClient"
 
@@ -13,6 +13,22 @@ export const Context = createContext<{
 }>({
   client: null as unknown as any
 })
+
+const ClientEffect = ({
+  client
+}: {
+  client: ReturnType<typeof createClient>
+}) => {
+  useEffect(() => {
+    const destroy = client.start()
+
+    return () => {
+      destroy()
+    }
+  }, [client])
+
+  return null
+}
 
 export const Provider = memo(
   ({
@@ -24,14 +40,12 @@ export const Provider = memo(
   }) => {
     const value = useMemo(() => ({ client }), [client])
 
-    useEffect(
-      () => () => {
-        client.destroy()
-      },
-      [client]
+    return (
+      <Context.Provider value={value}>
+        <ClientEffect client={value.client} />
+        {children}
+      </Context.Provider>
     )
-
-    return <Context.Provider value={value}>{children}</Context.Provider>
   }
 )
 

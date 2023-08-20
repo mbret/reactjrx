@@ -44,6 +44,8 @@ describe("invalidation", () => {
         const deferredResult$ = new Subject<number>()
         const queryMock = vi.fn().mockImplementation(() => deferredResult$)
 
+        client.start()
+
         client
           .query$({
             key: ["foo"],

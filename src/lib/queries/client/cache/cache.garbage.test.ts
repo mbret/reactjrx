@@ -35,6 +35,8 @@ describe("cache", () => {
         const client = createClient()
         const serializedKey = serializeKey(["foo"])
 
+        client.start()
+
         await firstValueFrom(
           client
             .query$({
@@ -125,6 +127,8 @@ describe("cache", () => {
         const client = createClient()
         const serializedKey = serializeKey(["foo"])
 
+        client.start()
+        
         await firstValueFrom(
           client
             .query$({

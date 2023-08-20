@@ -57,7 +57,6 @@ export const createInvalidationClient = ({
   }
 
   return {
-    invalidateQueries,
-    destroy: () => {}
+    invalidateQueries
   }
 }

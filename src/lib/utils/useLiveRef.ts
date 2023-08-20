@@ -4,7 +4,7 @@ export const useLiveRef = <T>(value: T) => {
   const ref = useRef(value)
 
   /**
-   * We dont update the value on render because of potential
+   * We don't update the value on render because of potential
    * bug related to react concurrency mode.
    * We don't update the value in a useEffect because effects run after
    * render and we could maybe? have situation where the ref

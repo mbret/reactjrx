@@ -140,7 +140,13 @@ export const createQueryStore = () => {
     }
   }
 
-  const debugger$ = createDebugger(store$)
+  const start = () => {
+    const debugger$ = createDebugger(store$)
+
+    return () => {
+      debugger$.unsubscribe()
+    }
+  }
 
   return {
     set: setValue,
@@ -161,10 +167,6 @@ export const createQueryStore = () => {
       queryTriggerSubject.next(event)
     },
     size: () => store.size,
-    destroy: () => {
-      debugger$.unsubscribe()
-      queryEventSubject.complete()
-      queryTriggerSubject.complete()
-    }
+    start
   }
 }
