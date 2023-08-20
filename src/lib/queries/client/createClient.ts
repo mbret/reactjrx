@@ -91,7 +91,7 @@ export const createClient = () => {
           return value
         })
       ),
-      trigger$.pipe()
+      trigger$
     ).pipe(
       withLatestFrom(fn$, options$),
       map(([trigger, fn, options]) => ({ trigger, fn, options })),
