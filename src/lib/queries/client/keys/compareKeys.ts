@@ -13,6 +13,15 @@ export const compareKeys = (
   return keyA.reduce((acc: boolean, value, index) => {
     if (!acc) return false
 
+    if (value === undefined) {
+      const hasNextItemInLineNotUndefined = keyA
+        .slice(index, keyA.length - 1)
+        .some((item) => item !== undefined)
+      if (!hasNextItemInLineNotUndefined) {
+        return true
+      }
+    }
+
     return serializeObject(value) === serializeObject(keyB[index])
   }, true)
 }
