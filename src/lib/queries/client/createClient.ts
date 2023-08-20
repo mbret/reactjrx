@@ -139,7 +139,7 @@ export const createClient = () => {
     }
   }
 
-  const queryListenerSub = createQueryListener(queryStore, (stream) =>
+  const queryListener$ = createQueryListener(queryStore, (stream) =>
     stream.pipe(
       switchMap((key) => {
         const key$ = of(key)
@@ -157,19 +157,26 @@ export const createClient = () => {
         )
       })
     )
-  ).subscribe()
+  )
+
+  const start = () => {
+    const queryListenerSub = queryListener$.subscribe()
+    const started = [queryStore.start()]
+
+    return () => {
+      started.forEach((destroy) => {
+        destroy()
+      })
+      queryListenerSub.unsubscribe()
+    }
+  }
 
   return {
+    start,
     query$,
     queryStore,
     ...invalidationClient,
     ...cacheClient,
-    ...refetchClient,
-    destroy: () => {
-      invalidationClient.destroy()
-      queryStore.destroy()
-      refetchClient.destroy()
-      queryListenerSub.unsubscribe()
-    }
+    ...refetchClient
   }
 }
