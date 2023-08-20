@@ -9,19 +9,16 @@ import {
   distinctUntilChanged,
   filter,
   withLatestFrom,
-  tap,
   share
 } from "rxjs"
 import { type createQueryStore } from "../store/createQueryStore"
-import { Logger } from "../../../logger"
 import {
   type QueryTrigger,
   type QueryOptions,
   type QueryResult
 } from "../types"
 import { isDefined } from "../../../utils/isDefined"
-
-const logger = Logger.namespace("refetch")
+import { type QueryKey } from "../keys/types"
 
 type Result<T> = Partial<QueryResult<T>>
 
@@ -69,32 +66,10 @@ export const createRefetchClient = ({
       )
     }
 
-  const pipeQueryTrigger =
-    <T>({
-      key
-    }: {
-      key: string
-      options$: Observable<QueryOptions<T>>
-    }): MonoTypeOperatorFunction<QueryTrigger> =>
-    (stream) => {
-      return merge(
-        stream.pipe(
-          tap(({ ignoreStale }) => {
-            const query = queryStore.get(key)
-
-            if (query && ignoreStale && !query.isStale) {
-              logger.log(key, "marked stale by trigger!")
-              queryStore.update(key, {
-                isStale: true
-              })
-            }
-          })
-        )
-      )
-    }
+  const refetchQueries = ({ queryKey }: { queryKey: QueryKey }) => {}
 
   return {
     pipeQueryResult,
-    pipeQueryTrigger,
+    refetchQueries
   }
 }

@@ -1,10 +1,4 @@
-import {
-  type Observable,
-  fromEvent,
-  map,
-  switchMap,
-  EMPTY
-} from "rxjs"
+import { type Observable, fromEvent, map, switchMap, EMPTY } from "rxjs"
 import { type UseQueryOptions } from "../types"
 
 export const createNetworkTrigger = <T>(
@@ -19,7 +13,10 @@ export const createNetworkTrigger = <T>(
 
       return shouldRunTrigger !== false
         ? fromEvent(window, "online").pipe(
-            map(() => ({ ignoreStale: shouldRunTrigger === "always" }))
+            map(() => ({
+              type: "refetch" as const,
+              ignoreStale: shouldRunTrigger === "always"
+            }))
           )
         : EMPTY
     })

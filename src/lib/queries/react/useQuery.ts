@@ -19,7 +19,11 @@ import { useQueryClient } from "./Provider"
 import { arrayEqual } from "../../utils/arrayEqual"
 import { shallowEqual } from "../../utils/shallowEqual"
 import { isDefined } from "../../utils/isDefined"
-import { type QueryResult, type QueryFn } from "../client/types"
+import {
+  type QueryResult,
+  type QueryFn,
+  type QueryTrigger
+} from "../client/types"
 import { createActivityTrigger } from "./triggers/activityTrigger"
 import { createNetworkTrigger } from "./triggers/networkTrigger"
 import { useQueryParams } from "./helpers"
@@ -40,7 +44,7 @@ export function useQuery<T>({
   queryKey?: any[]
   queryFn?: QueryFn<T>
 } & UseQueryOptions<T>): UseQueryResult<T> {
-  const internalRefresh$ = useSubject<void>()
+  const internalRefresh$ = useSubject<QueryTrigger>()
   const client = useQueryClient()
   const params$ = useQueryParams({ queryFn, queryKey, ...options })
 
@@ -89,8 +93,8 @@ export function useQuery<T>({
         newObservableObjectQuery$
       )
 
-      const refetch$ = merge(
-        internalRefresh$.current.pipe(map(() => ({ ignoreStale: true }))),
+      const trigger$ = merge(
+        internalRefresh$.current,
         merge(activityRefetch$, networkRefetch$).pipe(throttleTime(500))
       )
 
@@ -101,7 +105,7 @@ export function useQuery<T>({
             key,
             fn$,
             options$,
-            refetch$
+            trigger$
           })
 
           return result$.pipe(
@@ -140,7 +144,7 @@ export function useQuery<T>({
   )
 
   const refetch = useCallback(() => {
-    internalRefresh$.current.next()
+    internalRefresh$.current.next({ type: "refetch", ignoreStale: true })
   }, [client])
 
   return { ...result, refetch }

@@ -4,11 +4,15 @@ import {
   type Observable,
   withLatestFrom
 } from "rxjs"
-import { type QueryPipelineParams, type QueryOptions } from "../types"
+import {
+  type QueryPipelineParams,
+  type QueryOptions,
+  type QueryTrigger
+} from "../types"
 import { getInitialQueryEntity } from "./initializeQueryInStore"
 
 export const updateStoreWithNewQuery =
-  <T, R>({
+  <R>({
     queryStore,
     serializedKey,
     runner$,
@@ -18,12 +22,17 @@ export const updateStoreWithNewQuery =
     runner$: Observable<{
       options: QueryOptions<R>
     }>
-  }): OperatorFunction<T, [T, () => void]> =>
+  }): OperatorFunction<
+    QueryTrigger,
+    [QueryTrigger, (() => void) | undefined]
+  > =>
   (stream) =>
     stream.pipe(
       withLatestFrom(options$),
-      map(([value, options]) => {
-        if (key.length === 0) return [value, () => {}]
+      map(([trigger, options]) => {
+        if (key.length === 0) return [trigger, undefined]
+
+        if (trigger.type !== "initial") return [trigger, undefined]
 
         if (!queryStore.get(serializedKey)) {
           queryStore.set(serializedKey, getInitialQueryEntity({ key }))
@@ -36,6 +45,6 @@ export const updateStoreWithNewQuery =
           })
         }
 
-        return [value, queryStore.addRunner(serializedKey, runner$)]
+        return [trigger, queryStore.addRunner(serializedKey, runner$)]
       })
     )

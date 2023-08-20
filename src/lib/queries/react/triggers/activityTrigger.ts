@@ -23,10 +23,16 @@ export const createActivityTrigger = <T>(
         ? merge(
             fromEvent(document, "visibilitychange").pipe(
               filter(() => !document.hidden),
-              map(() => ({ ignoreStale: shouldRunTrigger === "always" }))
+              map(() => ({
+                type: "refetch" as const,
+                ignoreStale: shouldRunTrigger === "always"
+              }))
             ),
             fromEvent(window, "focus").pipe(
-              map(() => ({ ignoreStale: shouldRunTrigger === "always" }))
+              map(() => ({
+                type: "refetch" as const,
+                ignoreStale: shouldRunTrigger === "always"
+              }))
             )
           )
         : EMPTY

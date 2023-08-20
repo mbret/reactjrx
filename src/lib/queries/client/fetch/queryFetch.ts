@@ -94,7 +94,7 @@ export const createQueryFetch = <T>({
       })
     }),
     notifyQueryResult(options$),
-    registerResultInCache({ serializedKey, options, queryStore }),
+    registerResultInCache({ serializedKey, options, queryStore })
   )
 
   const newCache$ = queryStore.queryEvent$.pipe(
@@ -138,7 +138,9 @@ export const createQueryFetch = <T>({
 
   // bypass fetch completely
   if (hasCache) {
-    if (!query?.isStale && !trigger.ignoreStale) {
+    const ignoreStale = trigger.type === "refetch" && trigger.ignoreStale
+
+    if (!query?.isStale && !ignoreStale) {
       return of({
         fetchStatus: "idle" as const,
         status: "success" as const,

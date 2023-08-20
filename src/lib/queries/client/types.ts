@@ -31,10 +31,21 @@ export interface QueryPipelineParams<R> {
   options$: Observable<QueryOptions<R>>
 }
 
-export interface QueryTrigger {
-  type: string
-  ignoreStale: boolean
-}
+/**
+ * Events that trigger stream chain of query.
+ * What will happens then depends of what event is triggered
+ * and subsequent variables. This is just standardized way
+ * of what trigger a query.
+ */
+export type QueryTrigger =
+  | { type: "initial" }
+  | {
+      type: "refetch"
+      ignoreStale: boolean
+    }
+  | {
+      type: "enabled"
+    }
 
 export interface QueryOptions<T = unknown> {
   enabled?: boolean

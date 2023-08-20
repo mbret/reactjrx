@@ -11,7 +11,7 @@ import {
   of,
   finalize,
   NEVER,
-  mergeMap
+  mergeMap,
 } from "rxjs"
 import { serializeKey } from "./keys/serializeKey"
 import { mergeResults } from "./operators"
@@ -34,6 +34,7 @@ import { garbageCache } from "./store/garbageCache"
 import { updateStoreWithNewQuery } from "./store/updateStoreWithNewQuery"
 import { createCacheClient } from "./cache/cacheClient"
 import { Logger } from "../../logger"
+import { markQueryAsStaleIfRefetch } from "./refetch/markQueryAsStaleIfRefetch"
 
 export const createClient = () => {
   const queryStore = createQueryStore()
@@ -45,17 +46,16 @@ export const createClient = () => {
     key,
     fn$: maybeFn$,
     fn: maybeFn,
-    refetch$ = new Subject(),
+    trigger$: externalTrigger$ = new Subject(),
     options$ = new BehaviorSubject<QueryOptions<T>>({})
   }: {
     key: QueryKey
     fn?: QueryFn<T>
     fn$?: Observable<QueryFn<T>>
-    refetch$?: Observable<{ ignoreStale: boolean }>
+    trigger$?: Observable<QueryTrigger>
     options$?: Observable<QueryOptions<T>>
   }) => {
     const serializedKey = serializeKey(key)
-    const internalRefetch$ = new Subject<QueryTrigger>()
     const fn$ = maybeFn$ ?? (maybeFn ? of(maybeFn) : NEVER)
 
     Logger.log("query$()", serializedKey)
@@ -64,35 +64,41 @@ export const createClient = () => {
 
     let deleteRunner = () => {}
 
-    const initialTrigger$ = of({
-      type: "initial",
-      ignoreStale: false
-    })
-
-    const trigger$ = createQueryTrigger({
-      options$,
-      refetch$: merge(refetch$, internalRefetch$),
-      key: serializedKey,
-      queryStore
-    }).pipe(refetchClient.pipeQueryTrigger({ options$, key: serializedKey }))
+    const trigger$ = merge(
+      externalTrigger$,
+      createQueryTrigger({
+        options$,
+        key: serializedKey,
+        queryStore
+      })
+    )
 
     const result$ = merge(
-      initialTrigger$.pipe(
-        updateStoreWithNewQuery({
-          key,
-          queryStore,
-          runner$,
-          serializedKey,
-          options$
-        }),
-        map(([value, deleteRunnerFn]) => {
-          deleteRunner = deleteRunnerFn
-
-          return value
-        })
-      ),
+      of({
+        type: "initial" as const
+      }),
       trigger$
     ).pipe(
+      updateStoreWithNewQuery({
+        key,
+        queryStore,
+        runner$,
+        serializedKey,
+        options$
+      }),
+      map(([value, deleteRunnerFn]) => {
+        if (deleteRunnerFn) {
+          deleteRunner = deleteRunnerFn
+        }
+
+        return value
+      }),
+      markQueryAsStaleIfRefetch({
+        key,
+        options$,
+        queryStore,
+        serializedKey
+      }),
       withLatestFrom(fn$, options$),
       map(([trigger, fn, options]) => ({ trigger, fn, options })),
       map((value) => {
@@ -114,19 +120,6 @@ export const createClient = () => {
           trigger,
           trigger$
         })
-      ),
-      // hooks
-      switchMap((result) =>
-        merge(
-          of(result).pipe(
-            refetchClient.pipeQueryResult({
-              key: serializedKey,
-              queryStore,
-              options$,
-              refetch$: internalRefetch$
-            })
-          )
-        )
       ),
       mergeResults,
       withLatestFrom(options$),
