@@ -15,7 +15,7 @@ import {
 import { type UseQueryResult, type UseQueryOptions } from "./types"
 import { useObserve } from "../../binding/useObserve"
 import { useSubject } from "../../binding/useSubject"
-import { useReactJrxProvider } from "./Provider"
+import { useQueryClient } from "./Provider"
 import { arrayEqual } from "../../utils/arrayEqual"
 import { shallowEqual } from "../../utils/shallowEqual"
 import { isDefined } from "../../utils/isDefined"
@@ -41,7 +41,7 @@ export function useQuery<T>({
   queryFn?: QueryFn<T>
 } & UseQueryOptions<T>): UseQueryResult<T> {
   const internalRefresh$ = useSubject<void>()
-  const { client } = useReactJrxProvider()
+  const client = useQueryClient()
   const params$ = useQueryParams({ queryFn, queryKey, ...options })
 
   interface ObserveResult {

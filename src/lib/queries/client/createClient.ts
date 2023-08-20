@@ -31,7 +31,7 @@ import { createQueryListener } from "./store/queryListener"
 import { markAsStale } from "./invalidation/markAsStale"
 import { invalidateCache } from "./cache/invalidateCache"
 import { garbageCache } from "./store/garbageCache"
-import { updateStoreWithQuery } from "./store/updateStoreWithQuery"
+import { updateStoreWithNewQuery } from "./store/updateStoreWithNewQuery"
 import { createCacheClient } from "./cache/cacheClient"
 import { Logger } from "../../logger"
 
@@ -76,18 +76,26 @@ export const createClient = () => {
       queryStore
     }).pipe(refetchClient.pipeQueryTrigger({ options$, key: serializedKey }))
 
-    const result$ = merge(initialTrigger$, trigger$).pipe(
+    const result$ = merge(
+      initialTrigger$.pipe(
+        updateStoreWithNewQuery({
+          key,
+          queryStore,
+          runner$,
+          serializedKey,
+          options$
+        }),
+        map(([value, deleteRunnerFn]) => {
+          deleteRunner = deleteRunnerFn
+
+          return value
+        })
+      ),
+      trigger$.pipe()
+    ).pipe(
       withLatestFrom(fn$, options$),
       map(([trigger, fn, options]) => ({ trigger, fn, options })),
-      updateStoreWithQuery({
-        key,
-        queryStore,
-        runner$,
-        serializedKey
-      }),
-      map(([value, deleteRunnerFn]) => {
-        deleteRunner = deleteRunnerFn
-
+      map((value) => {
         Logger.log("reactjrx", serializedKey, "query trigger", {
           trigger: value.trigger,
           options: value.options

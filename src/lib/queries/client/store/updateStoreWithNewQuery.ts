@@ -1,26 +1,28 @@
-import { type OperatorFunction, map, type Observable } from "rxjs"
-import { type QueryStore } from "./createQueryStore"
-import { type QueryOptions } from "../types"
-import { type QueryKey } from "../keys/types"
+import {
+  type OperatorFunction,
+  map,
+  type Observable,
+  withLatestFrom
+} from "rxjs"
+import { type QueryPipelineParams, type QueryOptions } from "../types"
 import { getInitialQueryEntity } from "./initializeQueryInStore"
 
-export const updateStoreWithQuery =
-  <T extends { options: QueryOptions<R> }, R>({
+export const updateStoreWithNewQuery =
+  <T, R>({
     queryStore,
     serializedKey,
     runner$,
+    options$,
     key
-  }: {
-    queryStore: QueryStore
-    serializedKey: string
-    key: QueryKey
+  }: QueryPipelineParams<R> & {
     runner$: Observable<{
       options: QueryOptions<R>
     }>
   }): OperatorFunction<T, [T, () => void]> =>
   (stream) =>
     stream.pipe(
-      map((value) => {
+      withLatestFrom(options$),
+      map(([value, options]) => {
         if (key.length === 0) return [value, () => {}]
 
         if (!queryStore.get(serializedKey)) {
@@ -28,7 +30,7 @@ export const updateStoreWithQuery =
         } else {
           queryStore.update(serializedKey, {
             queryKey: key,
-            ...(value.options.markStale && {
+            ...(options.markStale && {
               isStale: true
             })
           })

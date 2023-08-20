@@ -1,5 +1,6 @@
 import { type Observable } from "rxjs"
 import { type QueryKey } from "./keys/types"
+import { type QueryStore } from "./store/createQueryStore"
 
 export interface QueryResult<T> {
   data: { result: T } | undefined
@@ -22,6 +23,13 @@ export type QueryFn<T> =
   | (() => Promise<T>)
   | (() => Observable<T>)
   | Observable<T>
+
+export interface QueryPipelineParams<R> {
+  queryStore: QueryStore
+  serializedKey: string
+  key: QueryKey
+  options$: Observable<QueryOptions<R>>
+}
 
 export interface QueryTrigger {
   type: string

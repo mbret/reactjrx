@@ -49,12 +49,12 @@ export const Provider = memo(
   }
 )
 
-export const useReactJrxProvider = () => {
+export const useQueryClient = () => {
   const context = useContext(Context)
 
   if (context === null) {
     throw new Error("You forgot to register the provider")
   }
 
-  return { ...context }
+  return context.client
 }

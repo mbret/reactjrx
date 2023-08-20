@@ -3,7 +3,7 @@ import { Subject, interval, tap, timer } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
 import { useQuery } from "./useQuery"
-import { Provider, useReactJrxProvider } from "./Provider"
+import { Provider, useQueryClient } from "./Provider"
 import { createClient } from "../client/createClient"
 import { serializeKey } from "../client/keys/serializeKey"
 
@@ -57,13 +57,13 @@ describe("useQuery", () => {
           await new Promise((resolve) => setTimeout(resolve, 100))
         }
         let _queryStore:
-          | ReturnType<typeof useReactJrxProvider>["client"]["queryStore"]
+          | ReturnType<typeof useQueryClient>["queryStore"]
           | undefined
 
         const Comp2 = () => {
           useQuery({ queryKey: ["foo"], queryFn: query })
 
-          const { client } = useReactJrxProvider()
+          const client = useQueryClient()
 
           _queryStore = client.queryStore
 
