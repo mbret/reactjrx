@@ -7,7 +7,7 @@ import {
   of,
   shareReplay,
   take,
-  tap,
+  tap
 } from "rxjs"
 import { createClient } from "../createClient"
 import { serializeKey } from "../keys/serializeKey"
@@ -18,6 +18,8 @@ describe("cacheClient", () => {
     describe("Given a query key: []", () => {
       it("should not register the new query", async () => {
         const client = createClient()
+
+        client.start()
 
         client.setQueryData({
           queryKey: [],
@@ -32,6 +34,8 @@ describe("cacheClient", () => {
       describe("and the query does not exist yet", () => {
         it("should register the new query and its result", async () => {
           const client = createClient()
+
+          client.start()
 
           client.setQueryData({
             queryKey: ["foo"],
@@ -51,8 +55,10 @@ describe("cacheClient", () => {
         it("should register the new query and its result", async () => {
           const client = createClient()
 
+          client.start()
+
           await lastValueFrom(
-            client.query$({
+            client.query({
               key: ["foo"],
               fn: async () => 2,
               options$: of({
@@ -79,8 +85,10 @@ describe("cacheClient", () => {
       it("should register the new query and its result", async () => {
         const client = createClient()
 
+        client.start()
+
         await lastValueFrom(
-          client.query$({
+          client.query({
             key: ["foo"],
             fn: async () => 2,
             options$: of({
@@ -109,13 +117,15 @@ describe("cacheClient", () => {
         it("should return the same result without calling the fn", async () => {
           const client = createClient()
 
+          client.start()
+
           client.setQueryData({
             queryKey: ["foo"],
             updater: 3
           })
 
           await lastValueFrom(
-            client.query$({
+            client.query({
               key: ["foo"],
               fn: async () => 2,
               options$: of({
@@ -140,9 +150,11 @@ describe("cacheClient", () => {
           const results: any[] = []
           let alreadyMade = false
 
+          client.start()
+
           await lastValueFrom(
             client
-              .query$({
+              .query({
                 key: ["foo"],
                 fn: async () => 2,
                 options$: of({
@@ -194,8 +206,10 @@ describe("cacheClient", () => {
           const results: any[] = []
           const deferredResult = new Subject<number>()
 
+          client.start()
+
           const query$ = client
-            .query$({
+            .query({
               key: ["foo"],
               fn: () => deferredResult,
               options$: of({})

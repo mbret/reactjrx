@@ -11,9 +11,11 @@ describe("cache", () => {
         const client = createClient()
         const serializedKey = serializeKey(["foo"])
 
+        client.start()
+        
         await firstValueFrom(
           client
-            .query$({
+            .query({
               key: ["foo"],
               fn: () => of(2),
               options$: of({
@@ -39,7 +41,7 @@ describe("cache", () => {
 
         await firstValueFrom(
           client
-            .query$({
+            .query({
               key: ["foo"],
               fn: () => of(2),
               options$: of({
@@ -58,9 +60,11 @@ describe("cache", () => {
         const client = createClient()
         const serializedKey = serializeKey(["foo"])
 
+        client.start()
+
         await firstValueFrom(
           client
-            .query$({
+            .query({
               key: ["foo"],
               fn: () => of(2),
               options$: of({
@@ -82,9 +86,11 @@ describe("cache", () => {
         const client = createClient()
         const serializedKey = serializeKey(["foo"])
 
+        client.start()
+
         await firstValueFrom(
           client
-            .query$({
+            .query({
               key: ["foo"],
               fn: () => of(2),
               options$: of({
@@ -103,9 +109,11 @@ describe("cache", () => {
         const client = createClient()
         const serializedKey = serializeKey(["foo"])
 
+        client.start()
+
         await firstValueFrom(
           client
-            .query$({
+            .query({
               key: ["foo"],
               fn: () => of(2),
               options$: of({
@@ -128,10 +136,10 @@ describe("cache", () => {
         const serializedKey = serializeKey(["foo"])
 
         client.start()
-        
+
         await firstValueFrom(
           client
-            .query$({
+            .query({
               key: ["foo"],
               fn: () => of(2),
               options$: of({

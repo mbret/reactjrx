@@ -80,6 +80,7 @@ describe("deduplicate tests", () => {
           const deferredQuery$ = defer(() => from(query()))
 
           const queryStore = createQueryStore()
+
           queryStore.set("foo", {
             queryKey: ["foo"],
             runners: []
@@ -107,12 +108,14 @@ describe("deduplicate tests", () => {
             })
             const client = createClient()
 
+            client.start()
+            
             await Promise.all([
               lastValueFrom(
-                client.query$({ key: ["foo"], fn$: query$, options$ }).result$
+                client.query({ key: ["foo"], fn$: query$, options$ }).result$
               ),
               lastValueFrom(
-                client.query$({ key: ["foo"], fn$: query$, options$ }).result$
+                client.query({ key: ["foo"], fn$: query$, options$ }).result$
               )
             ])
 
