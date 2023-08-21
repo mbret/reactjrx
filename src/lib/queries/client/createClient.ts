@@ -12,6 +12,7 @@ import {
   finalize,
   NEVER,
   mergeMap,
+  share,
 } from "rxjs"
 import { serializeKey } from "./keys/serializeKey"
 import { mergeResults } from "./operators"
@@ -35,6 +36,7 @@ import { updateStoreWithNewQuery } from "./store/updateStoreWithNewQuery"
 import { createCacheClient } from "./cache/cacheClient"
 import { Logger } from "../../logger"
 import { markQueryAsStaleIfRefetch } from "./refetch/markQueryAsStaleIfRefetch"
+import { dispatchExternalRefetchToAllQueries } from "./refetch/dispatchExternalRefetchToAllQueries"
 
 export const createClient = () => {
   const queryStore = createQueryStore()
@@ -70,13 +72,18 @@ export const createClient = () => {
     let deleteRunner = () => {}
 
     const trigger$ = merge(
-      externalTrigger$,
+      externalTrigger$.pipe(
+        dispatchExternalRefetchToAllQueries({
+          queryStore,
+          serializedKey
+        })
+      ),
       createQueryTrigger({
         options$,
         key: serializedKey,
         queryStore
       })
-    )
+    ).pipe(share())
 
     const result$ = merge(
       of({
