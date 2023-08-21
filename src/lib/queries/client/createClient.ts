@@ -41,8 +41,9 @@ export const createClient = () => {
   const invalidationClient = createInvalidationClient({ queryStore })
   const cacheClient = createCacheClient({ queryStore })
   const refetchClient = createRefetchClient({ queryStore })
+  let hasCalledStart = false
 
-  const query$ = <T>({
+  const query = <T>({
     key,
     fn$: maybeFn$,
     fn: maybeFn,
@@ -55,10 +56,14 @@ export const createClient = () => {
     trigger$?: Observable<QueryTrigger>
     options$?: Observable<QueryOptions<T>>
   }) => {
+    if (!hasCalledStart) {
+      throw new Error("You forgot to start client")
+    }
+
     const serializedKey = serializeKey(key)
     const fn$ = maybeFn$ ?? (maybeFn ? of(maybeFn) : NEVER)
 
-    Logger.log("query$()", serializedKey)
+    Logger.log("query$)", serializedKey)
 
     const runner$ = options$.pipe(map((options) => ({ options })))
 
@@ -161,6 +166,7 @@ export const createClient = () => {
   )
 
   const start = () => {
+    hasCalledStart = true
     const queryListenerSub = queryListener$.subscribe()
     const started = [queryStore.start()]
 
@@ -174,7 +180,7 @@ export const createClient = () => {
 
   return {
     start,
-    query$,
+    query,
     queryStore,
     ...invalidationClient,
     ...cacheClient,

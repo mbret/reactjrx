@@ -10,8 +10,10 @@ describe("keys", () => {
         const client = createClient()
         const fnMock = vi.fn().mockImplementation(() => of(10))
 
+        client.start()
+
         await lastValueFrom(
-          client.query$({
+          client.query({
             key: [],
             fn: fnMock,
             options$: of({
@@ -25,7 +27,7 @@ describe("keys", () => {
         expect(fnMock.mock.calls.length).toBe(1)
 
         await lastValueFrom(
-          client.query$({
+          client.query({
             key: [],
             fn: fnMock,
             options$: of({
@@ -44,8 +46,10 @@ describe("keys", () => {
       const client = createClient()
       const fnMock = vi.fn().mockImplementation(() => of(10))
 
+      client.start()
+      
       await lastValueFrom(
-        client.query$({
+        client.query({
           key: [],
           fn: fnMock,
           options$: of({

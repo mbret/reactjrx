@@ -12,8 +12,10 @@ describe("invalidation", () => {
         const deferredResult$ = new Subject()
         const queryMock = vi.fn().mockImplementation(() => deferredResult$)
 
+        client.start()
+        
         client
-          .query$({
+          .query({
             key: ["foo"],
             fn$: of(queryMock),
             options$: of({
@@ -26,7 +28,7 @@ describe("invalidation", () => {
         expect(queryMock).toHaveBeenCalledTimes(1)
 
         client
-          .query$({
+          .query({
             key: ["foo"],
             fn$: of(queryMock)
           })
@@ -47,7 +49,7 @@ describe("invalidation", () => {
         client.start()
 
         client
-          .query$({
+          .query({
             key: ["foo"],
             fn$: of(queryMock),
             options$: of({
@@ -64,7 +66,7 @@ describe("invalidation", () => {
         await waitForTimeout(200)
 
         client
-          .query$({
+          .query({
             key: ["foo"],
             fn$: of(queryMock),
             options$: of({
@@ -82,8 +84,10 @@ describe("invalidation", () => {
           const deferredResult$ = new Subject<number>()
           const queryMock = vi.fn().mockImplementation(() => deferredResult$)
 
+          client.start()
+
           client
-            .query$({
+            .query({
               key: ["foo"],
               fn$: of(queryMock),
               options$: of({
@@ -99,7 +103,7 @@ describe("invalidation", () => {
           queryMock.mockResolvedValue(new Subject())
 
           client
-            .query$({
+            .query({
               key: ["foo"],
               fn$: of(queryMock),
               options$: of({
@@ -126,8 +130,10 @@ describe("invalidation", () => {
       })
       const query$ = new BehaviorSubject(queryMock)
 
+      client.start()
+
       client
-        .query$({
+        .query({
           key: ["foo"],
           fn$: query$,
           options$: of({
@@ -147,7 +153,7 @@ describe("invalidation", () => {
       queryMock.mockResolvedValue(deferredResult2$)
 
       client
-        .query$({
+        .query({
           key: ["foo"],
           fn$: query$,
           options$: of({
