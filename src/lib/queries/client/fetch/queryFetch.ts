@@ -135,11 +135,10 @@ export const createQueryFetch = <T>({
   const cacheResult = query?.cache_fnResult as undefined | { result: T }
 
   const hasCache = !!cacheResult
+  const ignoreStale = trigger.type === "refetch" && trigger.ignoreStale
 
   // bypass fetch completely
   if (hasCache) {
-    const ignoreStale = trigger.type === "refetch" && trigger.ignoreStale
-
     if (!query?.isStale && !ignoreStale) {
       return of({
         fetchStatus: "idle" as const,
