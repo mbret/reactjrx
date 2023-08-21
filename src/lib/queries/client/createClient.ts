@@ -107,7 +107,7 @@ export const createClient = () => {
       withLatestFrom(fn$, options$),
       map(([trigger, fn, options]) => ({ trigger, fn, options })),
       map((value) => {
-        Logger.log("reactjrx", serializedKey, "query trigger", {
+        Logger.log(serializedKey, "query trigger", {
           trigger: value.trigger,
           options: value.options
         })

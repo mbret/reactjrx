@@ -49,6 +49,17 @@ export const createInvalidationClient = ({
     }
 
     keysToRefetch.forEach((key) => {
+      /**
+       * @important
+       * to avoid a case where we start a refetch right after one query is successful
+       * and the other one are still not complete (due to two step observable). we have
+       * to manually remove the deduplication otherwise we end up in queries re-subscribing
+       * to the previous "was gonna complete" function.
+       */
+      queryStore.update(key, {
+        deduplication_fn: undefined
+      })
+
       queryStore.dispatchQueryTrigger({
         key,
         trigger: { ignoreStale: true, type: "refetch" }

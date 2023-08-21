@@ -17,6 +17,7 @@ export const markQueryAsStaleIfRefetch =
 
         if (query && trigger.ignoreStale && !query.isStale) {
           logger.log(key, "marked stale by trigger!")
+
           queryStore.update(serializedKey, {
             isStale: true
           })
