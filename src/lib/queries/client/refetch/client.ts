@@ -64,7 +64,7 @@ export const createRefetchClient = (_: {
       )
     }
 
-  const refetchQueries = ({ queryKey }: { queryKey: QueryKey }) => {}
+  const refetchQueries = (_: { queryKey: QueryKey }) => {}
 
   return {
     pipeQueryResult,
