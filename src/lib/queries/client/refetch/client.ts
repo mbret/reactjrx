@@ -22,9 +22,7 @@ import { type QueryKey } from "../keys/types"
 
 type Result<T> = Partial<QueryResult<T>>
 
-export const createRefetchClient = ({
-  queryStore
-}: {
+export const createRefetchClient = (_: {
   queryStore: ReturnType<typeof createQueryStore>
 }) => {
   const pipeQueryResult =
