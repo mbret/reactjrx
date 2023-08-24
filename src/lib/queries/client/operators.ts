@@ -33,5 +33,8 @@ export const mergeResults = <T>(
         status: "loading"
       }
     ),
-    distinctUntilChanged(shallowEqual)
+    distinctUntilChanged(
+      ({ data: prevData, ...prev }, { data: currData, ...curr }) =>
+        shallowEqual(prev, curr) && shallowEqual(prevData, currData)
+    )
   )
