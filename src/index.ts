@@ -4,6 +4,7 @@ export * from "./lib/binding/useSubscribe"
 export * from "./lib/binding/useObserveCallback"
 export * from "./lib/binding/trigger"
 export * from "./lib/binding/useSubject"
+export * from "./lib/binding/useBehaviorSubject"
 
 // state
 export * from "./lib/state/signal"
