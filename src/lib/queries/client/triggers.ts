@@ -4,7 +4,7 @@ import {
   filter,
   map,
   merge,
-  skip,
+  skip
 } from "rxjs"
 import { type QueryTrigger, type QueryOptions } from "./types"
 import { type QueryStore } from "./store/createQueryStore"

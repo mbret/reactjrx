@@ -1,9 +1,4 @@
-import {
-  switchMap,
-  type OperatorFunction,
-  map,
-  combineLatest
-} from "rxjs"
+import { switchMap, type OperatorFunction, map, combineLatest } from "rxjs"
 import { type StoreObject } from "./createQueryStore"
 import { type QueryOptions } from "../types"
 

@@ -3,7 +3,10 @@ const resetStyle = { backgroundColor: "transparent", color: "inherit" }
 export function createLogger(env: string) {
   const _logger = {
     namespaces: [
-      { name: "@reactjrx", style: { backgroundColor: "#d02f4e", color: "white" } }
+      {
+        name: "@reactjrx",
+        style: { backgroundColor: "#d02f4e", color: "white" }
+      }
     ],
     namespace(
       name: string,

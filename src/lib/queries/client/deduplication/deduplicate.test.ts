@@ -109,7 +109,7 @@ describe("deduplicate tests", () => {
             const client = createClient()
 
             client.start()
-            
+
             await Promise.all([
               lastValueFrom(
                 client.query({ key: ["foo"], fn$: query$, options$ }).result$

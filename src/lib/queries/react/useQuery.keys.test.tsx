@@ -151,7 +151,7 @@ describe("useQuery", () => {
           triggerSubject.complete()
 
           await waitForTimeout(100)
-          
+
           debug()
 
           expect(

@@ -180,8 +180,8 @@ export function useAsyncQuery<A = void, R = undefined>(
       mapOperator === "concat"
         ? concatMap
         : mapOperator === "switch"
-        ? switchMap
-        : mergeMap
+          ? switchMap
+          : mergeMap
 
     const subscription = merge(
       resetSubject.current.pipe(
@@ -191,7 +191,7 @@ export function useAsyncQuery<A = void, R = undefined>(
               status: "idle",
               data: undefined,
               error: undefined
-            } satisfies QueryState<R>)
+            }) satisfies QueryState<R>
         )
       ),
       triggerSubject.current.pipe(

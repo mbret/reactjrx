@@ -12,7 +12,7 @@ import {
   finalize,
   NEVER,
   mergeMap,
-  share,
+  share
 } from "rxjs"
 import { serializeKey } from "./keys/serializeKey"
 import { mergeResults } from "./operators"

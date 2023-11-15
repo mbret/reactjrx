@@ -5,8 +5,8 @@ import { getNormalizedPersistanceValue } from "./getNormalizedPersistanceValue"
 export interface WithPersistanceReturn<T> {
   hydrateValue: (params: { adapter: Adapter }) => Promise<void>
   persistValue: (params: { adapter: Adapter }) => Promise<void>
-  setValue: Signal<T, T>['setState']
-  $: Signal<T, T>['subject']
+  setValue: Signal<T, T>["setState"]
+  $: Signal<T, T>["subject"]
   options: { key?: string }
 }
 

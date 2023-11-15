@@ -47,7 +47,7 @@ describe("keys", () => {
       const fnMock = vi.fn().mockImplementation(() => of(10))
 
       client.start()
-      
+
       await lastValueFrom(
         client.query({
           key: [],

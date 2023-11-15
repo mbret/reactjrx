@@ -166,7 +166,9 @@ describe("useQuery", () => {
             </ReactjrxQueryProvider>
           )
 
-          expect(await findByText(printQuery({ data: 2, status: "success" }))).toBeDefined()
+          expect(
+            await findByText(printQuery({ data: 2, status: "success" }))
+          ).toBeDefined()
 
           expect(queryFn.mock.calls.length).toBe(2)
         })

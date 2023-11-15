@@ -12,7 +12,7 @@ describe("cache", () => {
         const serializedKey = serializeKey(["foo"])
 
         client.start()
-        
+
         await firstValueFrom(
           client
             .query({

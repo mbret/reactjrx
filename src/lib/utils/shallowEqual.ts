@@ -1,11 +1,6 @@
 export function shallowEqual<A, B>(objA: A, objB: B): boolean {
   // Check if both objects are null or undefined
-  if (
-    objA === null ||
-    objA === undefined ||
-    objB === null ||
-    objB === undefined
-  ) {
+  if (objA === null || objA === undefined || objB === undefined) {
     return (objA as any) === (objB as any)
   }
 
@@ -15,7 +10,7 @@ export function shallowEqual<A, B>(objA: A, objB: B): boolean {
   }
 
   // Check if both objects have the same prototype
-  if (objA.constructor !== objB.constructor) {
+  if (objA.constructor !== objB?.constructor) {
     return false
   }
 

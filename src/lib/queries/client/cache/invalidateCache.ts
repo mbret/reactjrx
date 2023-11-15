@@ -5,7 +5,7 @@ import {
   distinctUntilChanged,
   type OperatorFunction,
   timer,
-  tap,
+  tap
 } from "rxjs"
 import { type StoreObject, type QueryStore } from "../store/createQueryStore"
 import { shallowEqual } from "../../../utils/shallowEqual"

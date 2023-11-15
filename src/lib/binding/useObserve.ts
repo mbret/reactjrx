@@ -55,8 +55,8 @@ export function useObserve<T>(
     unsafeDeps == null && Array.isArray(unsafeOptions)
       ? unsafeOptions
       : typeof source$ === "function"
-      ? unsafeDeps ?? []
-      : [source$]
+        ? unsafeDeps ?? []
+        : [source$]
   const valueRef = useRef(
     "getValue" in source$ && typeof source$.getValue === "function"
       ? source$.getValue()

@@ -11,12 +11,7 @@ export default defineConfig({
       ...externals({
         peerDeps: true,
         deps: true,
-        devDeps: true,
-        /**
-         * We are letting cryptojs being bundled here because it bugs when
-         * letting consumer package include it
-         */
-        exclude: "cryptojs"
+        devDeps: true
       })
     },
     dts()
