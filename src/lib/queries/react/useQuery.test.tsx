@@ -5,7 +5,7 @@ import React, { memo, useEffect, useRef, useState } from "react"
 import { useQuery } from "./useQuery"
 import { printQuery } from "../../../tests/testUtils"
 import { useSubscribe } from "../../binding/useSubscribe"
-import { ReactjrxQueryProvider, createClient } from "../../.."
+import { QueryClientProvider, createClient } from "../../.."
 import { waitForTimeout } from "../../../tests/utils"
 
 afterEach(() => {
@@ -31,9 +31,9 @@ describe("useQuery", () => {
 
       const { findByText } = render(
         <React.StrictMode>
-          <ReactjrxQueryProvider client={client}>
+          <QueryClientProvider client={client}>
             <Comp />
-          </ReactjrxQueryProvider>
+          </QueryClientProvider>
         </React.StrictMode>
       )
 
@@ -63,9 +63,9 @@ describe("useQuery", () => {
 
     const { findByText } = render(
       <React.StrictMode>
-        <ReactjrxQueryProvider client={client}>
+        <QueryClientProvider client={client}>
           <Comp />
-        </ReactjrxQueryProvider>
+        </QueryClientProvider>
       </React.StrictMode>
     )
 
@@ -93,9 +93,9 @@ describe("useQuery", () => {
 
     const { findByText } = render(
       <React.StrictMode>
-        <ReactjrxQueryProvider client={client}>
+        <QueryClientProvider client={client}>
           <Comp />
-        </ReactjrxQueryProvider>
+        </QueryClientProvider>
       </React.StrictMode>
     )
 
@@ -135,9 +135,9 @@ describe("useQuery", () => {
       expect(() =>
         render(
           <React.StrictMode>
-            <ReactjrxQueryProvider client={client}>
+            <QueryClientProvider client={client}>
               <Comp />
-            </ReactjrxQueryProvider>
+            </QueryClientProvider>
           </React.StrictMode>
         )
       ).to.toThrowError("too many render")
@@ -168,9 +168,9 @@ describe("useQuery", () => {
 
       const { findByText } = render(
         <React.StrictMode>
-          <ReactjrxQueryProvider client={client}>
+          <QueryClientProvider client={client}>
             <Comp />
-          </ReactjrxQueryProvider>
+          </QueryClientProvider>
         </React.StrictMode>
       )
 
@@ -212,9 +212,9 @@ describe("useQuery", () => {
 
         const { findByText } = render(
           <React.StrictMode>
-            <ReactjrxQueryProvider client={client}>
+            <QueryClientProvider client={client}>
               <Comp />
-            </ReactjrxQueryProvider>
+            </QueryClientProvider>
           </React.StrictMode>
         )
 

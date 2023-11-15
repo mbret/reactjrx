@@ -4,7 +4,7 @@ import { render, cleanup } from "@testing-library/react"
 import React from "react"
 import { useQuery } from "./useQuery"
 import { printQuery } from "../../../tests/testUtils"
-import { ReactjrxQueryProvider, createClient } from "../../.."
+import { QueryClientProvider, createClient } from "../../.."
 import { waitForTimeout } from "../../../tests/utils"
 
 afterEach(() => {
@@ -33,9 +33,9 @@ describe("useQuery", () => {
 
       const { findByText, rerender } = render(
         <React.StrictMode>
-          <ReactjrxQueryProvider client={client}>
+          <QueryClientProvider client={client}>
             <Comp queryKey="1" />
-          </ReactjrxQueryProvider>
+          </QueryClientProvider>
         </React.StrictMode>
       )
 
@@ -54,9 +54,9 @@ describe("useQuery", () => {
 
       rerender(
         <React.StrictMode>
-          <ReactjrxQueryProvider client={client}>
+          <QueryClientProvider client={client}>
             <Comp queryKey="2" />
-          </ReactjrxQueryProvider>
+          </QueryClientProvider>
         </React.StrictMode>
       )
 
@@ -94,9 +94,9 @@ describe("useQuery", () => {
 
           const { findByText, rerender, debug } = render(
             <React.StrictMode>
-              <ReactjrxQueryProvider client={client}>
+              <QueryClientProvider client={client}>
                 <Comp queryKey="1" />
-              </ReactjrxQueryProvider>
+              </QueryClientProvider>
             </React.StrictMode>
           )
 
@@ -116,9 +116,9 @@ describe("useQuery", () => {
 
           rerender(
             <React.StrictMode>
-              <ReactjrxQueryProvider client={client}>
+              <QueryClientProvider client={client}>
                 <Comp queryKey="2" />
-              </ReactjrxQueryProvider>
+              </QueryClientProvider>
             </React.StrictMode>
           )
 

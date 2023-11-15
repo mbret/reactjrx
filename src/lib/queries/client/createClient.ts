@@ -194,3 +194,11 @@ export const createClient = () => {
     ...refetchClient
   }
 }
+
+export class QueryClient {
+  public client: ReturnType<typeof createClient>
+
+  constructor() {
+    this.client = createClient()
+  }
+}

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { render, cleanup } from "@testing-library/react"
 import { useQuery } from "./useQuery"
 import { createClient } from "../client/createClient"
-import { ReactjrxQueryProvider } from "../../.."
+import { QueryClientProvider } from "../../.."
 import { waitForTimeout } from "../../../tests/utils"
 import { printQuery } from "../../../tests/testUtils"
 import { of } from "rxjs"
@@ -34,9 +34,9 @@ describe("useQuery", () => {
           const client = createClient()
 
           const { findByText, rerender } = render(
-            <ReactjrxQueryProvider client={client}>
+            <QueryClientProvider client={client}>
               <Comp />
-            </ReactjrxQueryProvider>
+            </QueryClientProvider>
           )
 
           expect(await findByText("1")).toBeDefined()
@@ -46,15 +46,15 @@ describe("useQuery", () => {
           await waitForTimeout(1)
 
           rerender(
-            <ReactjrxQueryProvider client={client}>
+            <QueryClientProvider client={client}>
               unmounted query
-            </ReactjrxQueryProvider>
+            </QueryClientProvider>
           )
 
           rerender(
-            <ReactjrxQueryProvider client={client}>
+            <QueryClientProvider client={client}>
               <Comp />
-            </ReactjrxQueryProvider>
+            </QueryClientProvider>
           )
 
           expect(await findByText("2")).toBeDefined()
@@ -83,9 +83,9 @@ describe("useQuery", () => {
           const client = createClient()
 
           const { findByText, rerender } = render(
-            <ReactjrxQueryProvider client={client}>
+            <QueryClientProvider client={client}>
               <Comp />
-            </ReactjrxQueryProvider>
+            </QueryClientProvider>
           )
 
           expect(
@@ -97,15 +97,15 @@ describe("useQuery", () => {
           await waitForTimeout(1)
 
           rerender(
-            <ReactjrxQueryProvider client={client}>
+            <QueryClientProvider client={client}>
               unmounted query
-            </ReactjrxQueryProvider>
+            </QueryClientProvider>
           )
 
           rerender(
-            <ReactjrxQueryProvider client={client}>
+            <QueryClientProvider client={client}>
               <Comp />
-            </ReactjrxQueryProvider>
+            </QueryClientProvider>
           )
 
           expect(
@@ -143,9 +143,9 @@ describe("useQuery", () => {
           const client = createClient()
 
           const { findByText, rerender } = render(
-            <ReactjrxQueryProvider client={client}>
+            <QueryClientProvider client={client}>
               <Comp />
-            </ReactjrxQueryProvider>
+            </QueryClientProvider>
           )
 
           expect(
@@ -155,15 +155,15 @@ describe("useQuery", () => {
           expect(queryFn.mock.calls.length).toBe(1)
 
           rerender(
-            <ReactjrxQueryProvider client={client}>
+            <QueryClientProvider client={client}>
               unmounted query
-            </ReactjrxQueryProvider>
+            </QueryClientProvider>
           )
 
           rerender(
-            <ReactjrxQueryProvider client={client}>
+            <QueryClientProvider client={client}>
               <Comp />
-            </ReactjrxQueryProvider>
+            </QueryClientProvider>
           )
 
           expect(
@@ -188,9 +188,9 @@ describe("useQuery", () => {
           const client = createClient()
 
           render(
-            <ReactjrxQueryProvider client={client}>
+            <QueryClientProvider client={client}>
               <Comp />
-            </ReactjrxQueryProvider>
+            </QueryClientProvider>
           )
 
           expect(queryFn).toHaveBeenCalledTimes(1)

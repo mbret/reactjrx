@@ -6,7 +6,7 @@ import {
   useEffect,
   useMemo
 } from "react"
-import { type createClient } from "../client/createClient"
+import { type QueryClient, type createClient } from "../client/createClient"
 
 export const Context = createContext<{
   client: ReturnType<typeof createClient>
@@ -31,14 +31,8 @@ const ClientEffect = ({
 }
 
 export const Provider = memo(
-  ({
-    children,
-    client
-  }: {
-    children: ReactNode
-    client: ReturnType<typeof createClient>
-  }) => {
-    const value = useMemo(() => ({ client }), [client])
+  ({ children, client }: { children: ReactNode; client: QueryClient }) => {
+    const value = useMemo(() => ({ client: client.client }), [client])
 
     return (
       <Context.Provider value={value}>
