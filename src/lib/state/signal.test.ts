@@ -15,13 +15,13 @@ describe("signal", () => {
 
       expect(result.current).toBe(5)
 
-      state.setState(6)
+      state.setValue(6)
 
       rerender()
 
       expect(result.current).toBe(6)
 
-      state.setState(SIGNAL_RESET)
+      state.setValue(SIGNAL_RESET)
 
       rerender()
 
@@ -39,13 +39,13 @@ describe("signal", () => {
 
       expect(result.current).toBe(undefined)
 
-      state.setState(6)
+      state.setValue(6)
 
       rerender()
 
       expect(result.current).toBe(6)
 
-      state.setState(SIGNAL_RESET)
+      state.setValue(SIGNAL_RESET)
 
       rerender()
 

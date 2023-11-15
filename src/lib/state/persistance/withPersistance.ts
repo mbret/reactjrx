@@ -5,7 +5,7 @@ import { getNormalizedPersistanceValue } from "./getNormalizedPersistanceValue"
 export interface WithPersistanceReturn<T> {
   hydrateValue: (params: { adapter: Adapter }) => Promise<void>
   persistValue: (params: { adapter: Adapter }) => Promise<void>
-  setValue: Signal<T, T>["setState"]
+  setValue: Signal<T, T>["setValue"]
   $: Signal<T, T>["subject"]
   options: { key?: string }
 }
@@ -44,7 +44,7 @@ export function withPersistance<T>(
       return
     }
 
-    _signal.setState((value as any).value)
+    _signal.setValue((value as any).value)
   }
 
   const persistValue = async ({
@@ -71,7 +71,7 @@ export function withPersistance<T>(
     {
       hydrateValue,
       persistValue,
-      setValue: _signal.setState,
+      setValue: _signal.setValue,
       $: _signal.subject,
       options: _signal.options
     },

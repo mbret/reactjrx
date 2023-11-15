@@ -1,8 +1,15 @@
 import React from "react"
 import ReactDOM from "react-dom/client"
-import { QueryClient, QueryClientProvider } from "."
+import { QueryClient, QueryClientProvider, signal, useSignalValue } from "."
+
+const myState = signal({
+  key: "myState",
+  default: 2
+})
 
 const App = () => {
+  console.log(useSignalValue(myState))
+
   return null
 }
 
