@@ -32,9 +32,15 @@ export interface Signal<S = undefined, R = undefined, K = undefined> {
   subject: Observable<S>
 }
 
-export function signal<T = undefined, K = undefined>(
-  config: Config<T, K>
-): Signal<T, T, K> {
+export function signal<T = undefined>(
+  config: Config<T, string>
+): Signal<T, T, string>
+export function signal<T = undefined>(
+  config: Config<T, undefined>
+): Signal<T, T>
+export function signal<T = undefined>(
+  config: Config<T, string | undefined>
+): Signal<T, T, string | undefined> {
   const { default: defaultValue } = config ?? {}
   const subject = new BehaviorSubject(defaultValue as T)
 
