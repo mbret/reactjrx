@@ -12,6 +12,7 @@ export * from "./lib/state/useSignalValue"
 export * from "./lib/state/constants"
 export * from "./lib/state/persistance/adapters/createSharedStoreAdapter"
 export * from "./lib/state/persistance/adapters/createLocalforageAdapter"
+export * from "./lib/state/persistance/usePersistSignals"
 
 // utils
 export * from "./lib/utils/useUnmountObservable"
