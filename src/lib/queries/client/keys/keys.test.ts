@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest"
 import { lastValueFrom, of } from "rxjs"
-import { createClient } from "../createClient"
+import { QueryClient } from "../createClient"
 import { serializeKey } from "./serializeKey"
 
 describe("keys", () => {
   describe("Given a query without key", () => {
     describe("and cache and stale are infinite", () => {
       it("should call again the new fn", async () => {
-        const client = createClient()
+        const client = new QueryClient().client
         const fnMock = vi.fn().mockImplementation(() => of(10))
 
         client.start()
@@ -43,7 +43,7 @@ describe("keys", () => {
     })
 
     it("should not be registered in the store", async () => {
-      const client = createClient()
+      const client = new QueryClient().client
       const fnMock = vi.fn().mockImplementation(() => of(10))
 
       client.start()

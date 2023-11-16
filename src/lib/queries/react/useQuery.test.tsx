@@ -5,7 +5,7 @@ import React, { memo, useEffect, useRef, useState } from "react"
 import { useQuery } from "./useQuery"
 import { printQuery } from "../../../tests/testUtils"
 import { useSubscribe } from "../../binding/useSubscribe"
-import { QueryClientProvider, createClient } from "../../.."
+import { QueryClient, QueryClientProvider } from "../../.."
 import { waitForTimeout } from "../../../tests/utils"
 
 afterEach(() => {
@@ -27,7 +27,7 @@ describe("useQuery", () => {
         return <>{JSON.stringify(values)}</>
       }
 
-      const client = createClient()
+      const client = new QueryClient()
 
       const { findByText } = render(
         <React.StrictMode>
@@ -59,7 +59,7 @@ describe("useQuery", () => {
       return <>{values.join(",")}</>
     }
 
-    const client = createClient()
+    const client = new QueryClient()
 
     const { findByText } = render(
       <React.StrictMode>
@@ -89,7 +89,7 @@ describe("useQuery", () => {
       return <>{JSON.stringify(values)}</>
     }
 
-    const client = createClient()
+    const client = new QueryClient()
 
     const { findByText } = render(
       <React.StrictMode>
@@ -130,7 +130,7 @@ describe("useQuery", () => {
         return null
       }
 
-      const client = createClient()
+      const client = new QueryClient()
 
       expect(() =>
         render(
@@ -164,7 +164,7 @@ describe("useQuery", () => {
         return <>{result.data}</>
       })
 
-      const client = createClient()
+      const client = new QueryClient()
 
       const { findByText } = render(
         <React.StrictMode>
@@ -208,7 +208,7 @@ describe("useQuery", () => {
           return <>{printQuery(result)}</>
         }
 
-        const client = createClient()
+        const client = new QueryClient()
 
         const { findByText } = render(
           <React.StrictMode>

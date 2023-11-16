@@ -9,7 +9,7 @@ import {
   take,
   tap
 } from "rxjs"
-import { createClient } from "../createClient"
+import { QueryClient } from "../createClient"
 import { serializeKey } from "../keys/serializeKey"
 import { getInitialQueryEntity } from "../store/initializeQueryInStore"
 
@@ -17,7 +17,7 @@ describe("cacheClient", () => {
   describe("setQueryData()", () => {
     describe("Given a query key: []", () => {
       it("should not register the new query", async () => {
-        const client = createClient()
+        const client = new QueryClient().client
 
         client.start()
 
@@ -33,7 +33,7 @@ describe("cacheClient", () => {
     describe(`Given a query key: ["foo"]`, () => {
       describe("and the query does not exist yet", () => {
         it("should register the new query and its result", async () => {
-          const client = createClient()
+          const client = new QueryClient().client
 
           client.start()
 
@@ -53,7 +53,7 @@ describe("cacheClient", () => {
 
       describe("and the query already exist", () => {
         it("should register the new query and its result", async () => {
-          const client = createClient()
+          const client = new QueryClient().client
 
           client.start()
 
@@ -83,7 +83,7 @@ describe("cacheClient", () => {
       })
 
       it("should register the new query and its result", async () => {
-        const client = createClient()
+        const client = new QueryClient().client
 
         client.start()
 
@@ -115,7 +115,7 @@ describe("cacheClient", () => {
     describe("Given the method being called with a result", () => {
       describe("and we call query with same key right after", () => {
         it("should return the same result without calling the fn", async () => {
-          const client = createClient()
+          const client = new QueryClient().client
 
           client.start()
 
@@ -146,7 +146,7 @@ describe("cacheClient", () => {
     describe("Given a query", () => {
       describe("and we setQueryData onSuccess of said query", () => {
         it("should return the result of cached data and not the query", async () => {
-          const client = createClient()
+          const client = new QueryClient().client
           const results: any[] = []
           let alreadyMade = false
 
@@ -202,7 +202,7 @@ describe("cacheClient", () => {
 
       describe("which takes time and we call setQueryData before we have a result", () => {
         it("should return the query cache first and then the query result", async () => {
-          const client = createClient()
+          const client = new QueryClient().client
           const results: any[] = []
           const deferredResult = new Subject<number>()
 

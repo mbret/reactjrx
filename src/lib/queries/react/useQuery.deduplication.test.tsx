@@ -4,7 +4,7 @@ import { render, cleanup } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
 import { useQuery } from "./useQuery"
 import { Provider, useQueryClient } from "./Provider"
-import { createClient } from "../client/createClient"
+import { QueryClient } from "../client/createClient"
 import { serializeKey } from "../client/keys/serializeKey"
 
 afterEach(() => {
@@ -24,7 +24,7 @@ describe("useQuery", () => {
         return <>{data}</>
       }
 
-      const client = createClient()
+      const client = new QueryClient()
 
       const { findByText } = render(
         <React.StrictMode>
@@ -35,7 +35,7 @@ describe("useQuery", () => {
       )
 
       expect(
-        client.queryStore?.get(serializedKey)?.deduplication_fn
+        client.client.queryStore?.get(serializedKey)?.deduplication_fn
       ).toBeDefined()
 
       subject.next(2)
@@ -44,7 +44,7 @@ describe("useQuery", () => {
       expect(await findByText("2")).toBeDefined()
 
       expect(
-        client.queryStore?.get(serializedKey)?.deduplication_fn
+        client.client.queryStore?.get(serializedKey)?.deduplication_fn
       ).toBeUndefined()
     })
   })
@@ -86,7 +86,7 @@ describe("useQuery", () => {
           return show ? <Comp2 /> : <>unmounted</>
         }
 
-        const client = createClient()
+        const client = new QueryClient()
 
         const { findByText } = render(
           <React.StrictMode>
@@ -118,7 +118,7 @@ describe("useQuery", () => {
             return null
           }
 
-          const client = createClient()
+          const client = new QueryClient()
 
           render(
             <Provider client={client}>
@@ -148,7 +148,7 @@ describe("useQuery", () => {
           return null
         }
 
-        const client = createClient()
+        const client = new QueryClient()
 
         render(
           <Provider client={client}>
@@ -189,7 +189,7 @@ describe("useQuery", () => {
           )
         }
 
-        const client = createClient()
+        const client = new QueryClient()
 
         const { findByText } = render(
           <React.StrictMode>

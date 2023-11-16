@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { render, cleanup } from "@testing-library/react"
 import { useQuery } from "./useQuery"
-import { createClient } from "../client/createClient"
+import { QueryClient } from "../client/createClient"
 import { QueryClientProvider } from "../../.."
 import { waitForTimeout } from "../../../tests/utils"
 import { printQuery } from "../../../tests/testUtils"
@@ -31,7 +31,7 @@ describe("useQuery", () => {
             return <>{result.data}</>
           }
 
-          const client = createClient()
+          const client = new QueryClient()
 
           const { findByText, rerender } = render(
             <QueryClientProvider client={client}>
@@ -80,7 +80,7 @@ describe("useQuery", () => {
             return <>{printQuery({ data, status })}</>
           }
 
-          const client = createClient()
+          const client = new QueryClient()
 
           const { findByText, rerender } = render(
             <QueryClientProvider client={client}>
@@ -140,7 +140,7 @@ describe("useQuery", () => {
             )
           }
 
-          const client = createClient()
+          const client = new QueryClient()
 
           const { findByText, rerender } = render(
             <QueryClientProvider client={client}>
@@ -185,7 +185,7 @@ describe("useQuery", () => {
             return null
           }
 
-          const client = createClient()
+          const client = new QueryClient()
 
           render(
             <QueryClientProvider client={client}>

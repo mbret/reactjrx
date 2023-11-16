@@ -4,7 +4,7 @@ import { render, cleanup } from "@testing-library/react"
 import React from "react"
 import { useQuery } from "./useQuery"
 import { printQuery } from "../../../tests/testUtils"
-import { QueryClientProvider, createClient } from "../../.."
+import { QueryClient, QueryClientProvider } from "../../.."
 import { waitForTimeout } from "../../../tests/utils"
 
 afterEach(() => {
@@ -29,7 +29,7 @@ describe("useQuery", () => {
         return <>{printQuery(result)}</>
       }
 
-      const client = createClient()
+      const client = new QueryClient()
 
       const { findByText, rerender } = render(
         <React.StrictMode>
@@ -90,7 +90,7 @@ describe("useQuery", () => {
             return <>{printQuery(result)}</>
           }
 
-          const client = createClient()
+          const client = new QueryClient()
 
           const { findByText, rerender, debug } = render(
             <React.StrictMode>
