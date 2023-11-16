@@ -1,10 +1,12 @@
+import type { IDENTIFIER_PERSISTANCE_KEY } from "./constants"
+
 export interface Adapter {
-  getItem: (key: string) => Promise<unknown> | unknown
-  setItem: (key: string, value: any) => Promise<unknown> | unknown
+  getItem: (key: string) => Promise<unknown>
+  setItem: (key: string, value: any) => Promise<unknown>
 }
 
 export interface PersistanceEntry {
   value: unknown
   migrationVersion?: number
-  __key: "reactjrx_persistance"
+  [IDENTIFIER_PERSISTANCE_KEY]: typeof IDENTIFIER_PERSISTANCE_KEY
 }

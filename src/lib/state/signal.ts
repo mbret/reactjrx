@@ -25,7 +25,7 @@ type setValue<S> = (
   stateOrUpdater: typeof SIGNAL_RESET | S | ((prev: S) => S)
 ) => void
 
-export interface Signal<S, R, K> {
+export interface Signal<S = undefined, R = undefined, K = undefined> {
   setValue: setValue<S>
   getValue: () => R
   config: Config<S, K>

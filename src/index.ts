@@ -10,10 +10,8 @@ export * from "./lib/binding/useBehaviorSubject"
 export * from "./lib/state/signal"
 export * from "./lib/state/useSignalValue"
 export * from "./lib/state/constants"
-export * from "./lib/state/persistance/PersistSignals"
-export * from "./lib/state/persistance/withPersistance"
-export * from "./lib/state/persistance/createSharedStoreAdapter"
-export * from "./lib/state/persistance/createLocalforageAdapter"
+export * from "./lib/state/persistance/adapters/createSharedStoreAdapter"
+export * from "./lib/state/persistance/adapters/createLocalforageAdapter"
 
 // utils
 export * from "./lib/utils/useUnmountObservable"
