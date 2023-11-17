@@ -18,7 +18,7 @@ type WithOptionalKey<V> = V extends undefined
       key: V
     }
 
-type Config<R = undefined, K = undefined> = WithOptionalKey<K> &
+export type Config<R = undefined, K = undefined> = WithOptionalKey<K> &
   WithOptionalDefault<R>
 
 type setValue<S> = (
