@@ -3,7 +3,7 @@ import { Subject, interval, tap, timer } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
 import { useQuery } from "./useQuery"
-import { Provider, useQueryClient } from "../Provider"
+import { QueryClientProvider, useQueryClient } from "../Provider"
 import { QueryClient } from "../../client/createClient"
 import { serializeKey } from "../../client/keys/serializeKey"
 
@@ -28,9 +28,9 @@ describe("useQuery", () => {
 
       const { findByText } = render(
         <React.StrictMode>
-          <Provider client={client}>
+          <QueryClientProvider client={client}>
             <Comp />
-          </Provider>
+          </QueryClientProvider>
         </React.StrictMode>
       )
 
@@ -90,9 +90,9 @@ describe("useQuery", () => {
 
         const { findByText } = render(
           <React.StrictMode>
-            <Provider client={client}>
+            <QueryClientProvider client={client}>
               <Comp />
-            </Provider>
+            </QueryClientProvider>
           </React.StrictMode>
         )
 
@@ -121,9 +121,9 @@ describe("useQuery", () => {
           const client = new QueryClient()
 
           render(
-            <Provider client={client}>
+            <QueryClientProvider client={client}>
               <Comp />
-            </Provider>
+            </QueryClientProvider>
           )
 
           expect(queryMock).toHaveBeenCalledTimes(2)
@@ -151,9 +151,9 @@ describe("useQuery", () => {
         const client = new QueryClient()
 
         render(
-          <Provider client={client}>
+          <QueryClientProvider client={client}>
             <Comp />
-          </Provider>
+          </QueryClientProvider>
         )
 
         expect(tapped).toBe(0)
@@ -193,9 +193,9 @@ describe("useQuery", () => {
 
         const { findByText } = render(
           <React.StrictMode>
-            <Provider client={client}>
+            <QueryClientProvider client={client}>
               <Comp />
-            </Provider>
+            </QueryClientProvider>
           </React.StrictMode>
         )
 

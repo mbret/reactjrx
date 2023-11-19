@@ -30,7 +30,7 @@ const ClientEffect = ({
   return null
 }
 
-export const Provider = memo(
+export const QueryClientProvider = memo(
   ({ children, client }: { children: ReactNode; client: QueryClient }) => {
     const value = useMemo(() => ({ client: client.client }), [client])
 

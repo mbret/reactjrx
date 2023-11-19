@@ -25,6 +25,6 @@ export * from "./lib/queries/react/queries/useQuery"
 export * from "./lib/queries/react/useSubscribeEffect"
 export * from "./lib/queries/client/createClient"
 export {
-  Provider as QueryClientProvider,
+  QueryClientProvider as QueryClientProvider,
   useQueryClient
 } from "./lib/queries/react/Provider"
