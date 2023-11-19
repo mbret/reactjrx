@@ -1,4 +1,4 @@
-import { useLiveRef } from "../../utils/useLiveRef"
+import { useLiveRef } from "../../../utils/useLiveRef"
 import {
   type MonoTypeOperatorFunction,
   type Observable,
@@ -21,12 +21,12 @@ import {
   distinctUntilChanged,
   filter
 } from "rxjs"
-import { useBehaviorSubject } from "../../binding/useBehaviorSubject"
-import { useObserve } from "../../binding/useObserve"
-import { useSubject } from "../../binding/useSubject"
+import { useBehaviorSubject } from "../../../binding/useBehaviorSubject"
+import { useObserve } from "../../../binding/useObserve"
+import { useSubject } from "../../../binding/useSubject"
 import { useCallback, useEffect } from "react"
-import { shallowEqual } from "../../utils/shallowEqual"
-import { retryOnError } from "../client/operators"
+import { shallowEqual } from "../../../utils/shallowEqual"
+import { retryOnError } from "../../client/operators"
 
 interface QueryState<R> {
   data: R | undefined

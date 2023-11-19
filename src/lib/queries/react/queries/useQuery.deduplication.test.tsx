@@ -3,9 +3,9 @@ import { Subject, interval, tap, timer } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
 import { useQuery } from "./useQuery"
-import { Provider, useQueryClient } from "./Provider"
-import { QueryClient } from "../client/createClient"
-import { serializeKey } from "../client/keys/serializeKey"
+import { Provider, useQueryClient } from "../Provider"
+import { QueryClient } from "../../client/createClient"
+import { serializeKey } from "../../client/keys/serializeKey"
 
 afterEach(() => {
   cleanup()

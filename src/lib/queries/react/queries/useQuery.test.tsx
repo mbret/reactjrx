@@ -3,10 +3,10 @@ import { Subject, interval, of, tap } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React, { memo, useEffect, useRef, useState } from "react"
 import { useQuery } from "./useQuery"
-import { printQuery } from "../../../tests/testUtils"
-import { useSubscribe } from "../../binding/useSubscribe"
-import { QueryClient, QueryClientProvider } from "../../.."
-import { waitForTimeout } from "../../../tests/utils"
+import { printQuery } from "../../../../tests/testUtils"
+import { useSubscribe } from "../../../binding/useSubscribe"
+import { QueryClient, QueryClientProvider } from "../../../.."
+import { waitForTimeout } from "../../../../tests/utils"
 
 afterEach(() => {
   cleanup()

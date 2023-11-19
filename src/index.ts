@@ -20,8 +20,8 @@ export * from "./lib/utils/retryBackoff"
 export * from "./lib/utils/useLiveRef"
 
 // higher helpers
-export * from "./lib/queries/react/useAsyncQuery"
-export * from "./lib/queries/react/useQuery"
+export * from "./lib/queries/react/mutations/useAsyncQuery"
+export * from "./lib/queries/react/queries/useQuery"
 export * from "./lib/queries/react/useSubscribeEffect"
 export * from "./lib/queries/client/createClient"
 export {

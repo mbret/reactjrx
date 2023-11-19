@@ -12,21 +12,21 @@ import {
   identity,
   throttleTime
 } from "rxjs"
-import { type UseQueryResult, type UseQueryOptions } from "./types"
-import { useObserve } from "../../binding/useObserve"
-import { useSubject } from "../../binding/useSubject"
-import { useQueryClient } from "./Provider"
-import { arrayEqual } from "../../utils/arrayEqual"
-import { shallowEqual } from "../../utils/shallowEqual"
-import { isDefined } from "../../utils/isDefined"
+import { type UseQueryResult, type UseQueryOptions } from "../types"
+import { useObserve } from "../../../binding/useObserve"
+import { useSubject } from "../../../binding/useSubject"
+import { useQueryClient } from "../Provider"
+import { arrayEqual } from "../../../utils/arrayEqual"
+import { shallowEqual } from "../../../utils/shallowEqual"
+import { isDefined } from "../../../utils/isDefined"
 import {
   type QueryResult,
   type QueryFn,
   type QueryTrigger
-} from "../client/types"
-import { createActivityTrigger } from "./triggers/activityTrigger"
-import { createNetworkTrigger } from "./triggers/networkTrigger"
-import { useQueryParams } from "./helpers"
+} from "../../client/types"
+import { createActivityTrigger } from "../triggers/activityTrigger"
+import { createNetworkTrigger } from "../triggers/networkTrigger"
+import { useQueryParams } from "../helpers"
 
 const defaultValue = {
   data: undefined,
