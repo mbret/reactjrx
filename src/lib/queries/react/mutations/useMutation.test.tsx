@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import { type Observable, Subject, finalize, takeUntil, timer } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
-import { useAsyncQuery } from "./useAsyncQuery"
+import { useAsyncQuery } from "./useMutation"
 
 afterEach(() => {
   cleanup()
