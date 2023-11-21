@@ -37,6 +37,8 @@
     "rxjs": "*"
   },
   "devDependencies": {
+    "@testing-library/react": "^14.0.0",
+    "@types/node": "^18.15.11",
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
     "@typescript-eslint/eslint-plugin": "^6.11.0",
@@ -57,12 +59,13 @@
     "typescript": "^5.0.4",
     "vite": "^4.2.1",
     "vite-plugin-dts": "^3.6.3",
-    "vitest": "^0.34.6",
-    "@testing-library/react": "^14.0.0",
-    "@types/node": "^18.15.11"
+    "vitest": "^0.34.6"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/mbret/reactjrx.git"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.8.4"
   }
 }

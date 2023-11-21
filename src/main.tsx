@@ -1,4 +1,5 @@
-import React, { memo } from "react"
+/* eslint-disable new-cap */
+import React, { memo, useState } from "react"
 import ReactDOM from "react-dom/client"
 import {
   QueryClient,
@@ -6,18 +7,75 @@ import {
   SIGNAL_RESET,
   createSharedStoreAdapter,
   signal,
+  useMutation,
   useSignalValue
 } from "."
 import { usePersistSignals } from "./lib/state/persistance/usePersistSignals"
 import { createLocalStorageAdapter } from "./lib/state/persistance/adapters/createLocalStorageAdapter"
+import {
+  QueryClient as rc_QueryClient,
+  QueryClientProvider as RcQueryClientProvider,
+  useMutation as rc_useMutation
+} from "@tanstack/react-query"
+
+const rcClient = new rc_QueryClient()
 
 const myState = signal({
   key: "myState",
   default: 2
 })
 
+const Mutation = memo(({ onClick }: { onClick: () => void }) => {
+  const result = useMutation({
+    mutationFn: async ({ res, timeout }: { res: number; timeout: number }) => {
+      return await new Promise<number>((resolve) =>
+        setTimeout(() => {
+          resolve(res)
+        }, timeout)
+      )
+    },
+    cancelOnUnMount: true,
+    onSuccess: () => {
+      console.log("success1")
+    }
+  })
+
+  const result2 = rc_useMutation({
+    mutationFn: async ({ res, timeout }: { res: number; timeout: number }) => {
+      return await new Promise<number>((resolve) =>
+        setTimeout(() => {
+          resolve(res)
+        }, timeout)
+      )
+    },
+    onSuccess: () => {
+      console.log("success2")
+    }
+  })
+
+  console.log("mutation", { result, result2 })
+
+  return (
+    <div style={{ display: "flex", border: "1px solid red" }}>
+      mutation
+      <button
+        onClick={() => {
+          result2.mutate({ res: 3, timeout: 1000 })
+          result.mutate({ res: 3, timeout: 1000 })
+          setTimeout(() => {
+            onClick()
+          }, 100)
+        }}
+      >
+        click
+      </button>
+    </div>
+  )
+})
+
 const App = memo(() => {
   const stateValue = useSignalValue(myState)
+  const [isMutationMounted, setIsMutationMounted] = useState(true)
 
   const { isHydrated } = usePersistSignals({
     entries: [{ version: 1, signal: myState }],
@@ -26,11 +84,9 @@ const App = memo(() => {
       key: "foo"
     }),
     onReady: () => {
-      console.log("onReady")
+      // console.log("onReady")
     }
   })
-
-  console.log({ isHydrated, stateValue })
 
   return (
     <>
@@ -48,6 +104,13 @@ const App = memo(() => {
       >
         reset
       </button>
+      {isMutationMounted && (
+        <Mutation
+          onClick={() => {
+            setIsMutationMounted(false)
+          }}
+        />
+      )}
     </>
   )
 })
@@ -55,9 +118,12 @@ const App = memo(() => {
 const client = new QueryClient()
 
 ReactDOM.createRoot(document.getElementById("app") as HTMLElement).render(
-  <React.StrictMode>
+  // <React.StrictMode>
+  <RcQueryClientProvider client={rcClient}>
     <QueryClientProvider client={client}>
       <App />
     </QueryClientProvider>
-  </React.StrictMode>
+  </RcQueryClientProvider>
+
+  // </React.StrictMode>
 )

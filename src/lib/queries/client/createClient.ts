@@ -37,12 +37,15 @@ import { createCacheClient } from "./cache/cacheClient"
 import { Logger } from "../../logger"
 import { markQueryAsStaleIfRefetch } from "./refetch/markQueryAsStaleIfRefetch"
 import { dispatchExternalRefetchToAllQueries } from "./refetch/dispatchExternalRefetchToAllQueries"
+import { MutationClient } from "./mutations/MutationClient"
 
 export const createClient = () => {
   const queryStore = createQueryStore()
   const invalidationClient = createInvalidationClient({ queryStore })
   const cacheClient = createCacheClient({ queryStore })
   const refetchClient = createRefetchClient({ queryStore })
+  const mutationClient = new MutationClient()
+
   let hasCalledStart = false
 
   const query = <T>({
@@ -189,6 +192,7 @@ export const createClient = () => {
     start,
     query,
     queryStore,
+    ...mutationClient,
     ...invalidationClient,
     ...cacheClient,
     ...refetchClient
