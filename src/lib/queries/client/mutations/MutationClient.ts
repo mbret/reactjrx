@@ -6,7 +6,6 @@ import {
   concatMap,
   defer,
   finalize,
-  first,
   from,
   map,
   merge,
@@ -18,14 +17,14 @@ import {
   takeUntil,
   withLatestFrom,
   tap,
-  share
+  share,
+  identity
 } from "rxjs"
 import { serializeKey } from "../keys/serializeKey"
 import { Logger } from "../../../logger"
 import { retryOnError } from "../operators"
 import { type MutationResult, type MutationOptions } from "./types"
 import { mergeResults } from "./operators"
-import { trigger } from "../../../binding/trigger"
 
 export class MutationClient {
   createMutation = <T, MutationArg>(
@@ -41,23 +40,31 @@ export class MutationClient {
      * - caller call destroy directly
      */
     const destroy = () => {
-      if (closed) throw new Error("Trying to close an already closed mutation")
+      if (closed) {
+        throw new Error("Trying to close an already closed mutation")
+      }
+
+      closed = true
 
       trigger$.complete()
       reset$.complete()
-      closed = true
     }
 
     const initOptions = options$.pipe(
       tap(({ mutationKey }) => {
         const serializedKey = serializeKey(mutationKey)
 
-        Logger.log("query$)", serializedKey)
+        Logger.log("query$", serializedKey)
       }),
       take(1)
     )
 
     const mutation$ = initOptions.pipe(
+      mergeMap((options) =>
+        of(options).pipe(
+          (options.__queryInitHook as typeof identity) ?? identity
+        )
+      ),
       mergeMap((options) => {
         const { mapOperator } = options
 
@@ -75,7 +82,7 @@ export class MutationClient {
               from(mutationFn(mutationArg))
             ).pipe(
               retryOnError(options),
-              first(),
+              take(1),
               map((data) => ({ data, isError: false })),
               catchError((error: unknown) => {
                 console.error(error)
@@ -132,23 +139,18 @@ export class MutationClient {
 
                   return {}
                 }),
-                takeUntil(reset$),
-                finalize(() => {
-                  console.log("finalize query")
-                })
+                takeUntil(reset$)
               )
-            )
+            ).pipe((options.__queryRunnerHook as typeof identity) ?? identity)
           }),
-          mergeResults,
-          //   options.triggerHook ?? identity,
-          finalize(() => {
-            console.log("finalize trigger")
-          })
+          (options.__queryTriggerHook as typeof identity) ?? identity,
+          mergeResults
         )
       }),
       finalize(() => {
-        console.log("finalize mutation")
-        destroy()
+        if (!closed) {
+          destroy()
+        }
       })
     )
 
@@ -156,7 +158,8 @@ export class MutationClient {
       mutation$,
       trigger$,
       reset$,
-      destroy
+      destroy,
+      getClosed: () => closed
     }
   }
 }

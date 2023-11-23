@@ -4,29 +4,20 @@ import {
   identity,
   map,
   finalize,
+  NEVER
 } from "rxjs"
 import { useBehaviorSubject } from "../../../binding/useBehaviorSubject"
 import { useObserve } from "../../../binding/useObserve"
-import { useCallback, useEffect } from "react"
-import {
-  type MutationOptions,
-} from "../../client/mutations/types"
+import { useCallback, useEffect, useState } from "react"
+import { type MutationOptions } from "../../client/mutations/types"
 import { useQueryClient } from "../Provider"
-import { useConstant } from "../../../utils/useConstant"
 import { type QueryKey } from "../../client/keys/types"
-
-interface QueryState<R> {
-  data: R | undefined
-  status: "idle" | "loading" | "error" | "success"
-  error: unknown
-}
 
 export type AsyncQueryOptions<Result, Params> = Omit<
   MutationOptions<Result, Params>,
   "mutationKey"
 > & {
   mutationKey?: QueryKey
-  // retry?: false | number | ((attempt: number, error: unknown) => boolean)
   /**
    * When true, any running async query will be cancelled (when possible) on unmount.
    * You need to handle it yourself for promises if needed.
@@ -38,13 +29,7 @@ export type AsyncQueryOptions<Result, Params> = Omit<
    * @default false
    */
   cancelOnUnMount?: boolean
-  /**
-   * Only use for debugging.
-   * It is not the main subscription hook, only the one following the trigger.
-   */
-  triggerHook?: MonoTypeOperatorFunction<
-    Partial<QueryState<Result>> | undefined
-  >
+  __triggerHook?: MonoTypeOperatorFunction<unknown>
 }
 
 /**
@@ -74,147 +59,47 @@ export function useMutation<Args = void, R = undefined>(
   const client = useQueryClient()
   const optionsRef = useLiveRef(options)
   const optionsSubject = useBehaviorSubject(options)
+  const [bufferTriggers, setBufferTriggers] = useState<Args[]>([])
 
-  // useEffect(() => {
-  //   const switchOperator =
-  //     mapOperator === "concat"
-  //       ? concatMap
-  //       : mapOperator === "switch"
-  //         ? switchMap
-  //         : mergeMap
+  const createMutation = useCallback(
+    () =>
+      client.createMutation(
+        optionsSubject.current.pipe(
+          map((options) => ({
+            mutationKey: ["none"],
+            ...options
+          }))
+        )
+      ),
+    []
+  )
 
-  //   const subscription = merge(
-  //     resetSubject.current.pipe(
-  //       map(
-  //         () =>
-  //           ({
-  //             status: "idle",
-  //             data: undefined,
-  //             error: undefined
-  //           }) satisfies QueryState<R>
-  //       )
-  //     ),
-  //     triggerSubject.current.pipe(
-  //       switchOperator((args) => {
-  //         const isLastMutationCalled = triggerSubject.current.pipe(
-  //           take(1),
-  //           map(() => mapOperator === "concat"),
-  //           startWith(true)
-  //         )
+  const [mutation, setMutation] = useState<
+    undefined | ReturnType<typeof createMutation>
+  >(undefined)
 
-  //         return merge(
-  //           of<Partial<QueryState<R>>>({
-  //             status: "loading"
-  //           }),
-  //           combineLatest([
-  //             defer(() => from(queryRef.current(args))).pipe(
-  //               retryOnError(optionsRef.current),
-  //               first(),
-  //               map((data) => ({ data, isError: false })),
-  //               catchError((error: unknown) => {
-  //                 console.error(error)
-
-  //                 if (optionsRef.current.onError != null) {
-  //                   optionsRef.current.onError(error, args)
-  //                 }
-
-  //                 return of({ data: error, isError: true })
-  //               })
-  //             ),
-  //             isLastMutationCalled
-  //           ]).pipe(
-  //             map(([{ data, isError }, isLastMutationCalled]) => {
-  //               // console.log("success", { data, isLastMutationCalled })
-  //               if (!isError) {
-  //                 if (optionsRef.current.onSuccess != null)
-  //                   optionsRef.current.onSuccess(data as R, args)
-  //               }
-
-  //               if (isLastMutationCalled) {
-  //                 return isError
-  //                   ? {
-  //                       status: "error" as const,
-  //                       error: data,
-  //                       data: undefined
-  //                     }
-  //                   : {
-  //                       status: "success" as const,
-  //                       error: undefined,
-  //                       data: data as R
-  //                     }
-  //               }
-
-  //               return undefined
-  //             }),
-  //             takeUntil(resetSubject.current)
-  //           )
-  //         )
-  //       }),
-  //       optionsRef.current.triggerHook ?? identity,
-  //       finalize(() => {
-  //         resetSubject.current.complete()
-  //       })
-  //     )
-  //   )
-  //     .pipe(
-  //       filter((state) => !!state && !!Object.keys(state).length),
-  //       /**
-  //        * @important
-  //        * state update optimization
-  //        */
-  //       distinctUntilChanged(shallowEqual)
-  //     )
-  //     .subscribe((state) => {
-  //       data$.current.next({
-  //         ...data$.current.getValue(),
-  //         ...state
-  //       })
-  //     })
-
-  //   return () => {
-  //     if (optionsRef.current.cancelOnUnMount) {
-  //       subscription.unsubscribe()
-  //     }
-  //   }
-  // }, [mapOperator])
+  const { mutation$, trigger$, reset$ } = mutation ?? {}
 
   useEffect(() => {
-    console.log("mount")
+    const mutation = createMutation()
+
+    setMutation(mutation)
 
     return () => {
-      console.log("unmount")
+      mutation.destroy()
     }
   }, [])
 
-  const {
-    current: { mutation$, trigger$, reset$, destroy }
-  } = useConstant(() =>
-    client.createMutation(
-      optionsSubject.current.pipe(
-        map((options) => ({
-          mutationKey: ["none"],
-          ...options
-        }))
-      )
-    )
-  )
-
-  useEffect(
-    () => () => {
-      console.log("destroy")
-      destroy()
-    },
-    [destroy]
-  )
-
   const result = useObserve(
     () =>
-      mutation$.pipe(
-        optionsSubject.current.getValue().triggerHook ?? identity,
-        finalize(() => {
-          console.log("finalize")
-        })
-      ),
+      !mutation$
+        ? NEVER
+        : mutation$.pipe(
+            (optionsRef.current.__triggerHook as typeof identity) ?? identity,
+            finalize(() => {
+              console.log("finalize")
+            })
+          ),
     {
       defaultValue: {
         data: undefined,
@@ -223,18 +108,29 @@ export function useMutation<Args = void, R = undefined>(
       },
       unsubscribeOnUnmount: optionsRef.current.cancelOnUnMount ?? false
     },
-    []
+    [mutation$]
   )
 
   const mutate = useCallback(
     (mutationArgs: Args) => {
-      trigger$.next(mutationArgs)
+      if (!trigger$) {
+        setBufferTriggers((value) => [...value, mutationArgs])
+      }
+      trigger$?.next(mutationArgs)
     },
     [trigger$]
   )
 
+  useEffect(() => {
+    if (mutation && !mutation.getClosed()) {
+      bufferTriggers.forEach((args) => {
+        mutation.trigger$.next(args)
+      })
+    }
+  }, [bufferTriggers, mutation])
+
   const reset = useCallback(() => {
-    reset$.next()
+    reset$?.next()
   }, [reset$])
 
   return { mutate, reset, ...result }

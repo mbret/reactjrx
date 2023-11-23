@@ -7,8 +7,7 @@ import {
   SIGNAL_RESET,
   createSharedStoreAdapter,
   signal,
-  useMutation,
-  useSignalValue
+  useMutation
 } from "."
 import { usePersistSignals } from "./lib/state/persistance/usePersistSignals"
 import { createLocalStorageAdapter } from "./lib/state/persistance/adapters/createLocalStorageAdapter"
@@ -34,7 +33,7 @@ const Mutation = memo(({ onClick }: { onClick: () => void }) => {
         }, timeout)
       )
     },
-    cancelOnUnMount: true,
+    cancelOnUnMount: false,
     onSuccess: () => {
       console.log("success1")
     }
@@ -53,7 +52,7 @@ const Mutation = memo(({ onClick }: { onClick: () => void }) => {
     }
   })
 
-  console.log("mutation", { result, result2 })
+  // console.log("mutation", { result, result2 })
 
   return (
     <div style={{ display: "flex", border: "1px solid red" }}>
@@ -74,10 +73,9 @@ const Mutation = memo(({ onClick }: { onClick: () => void }) => {
 })
 
 const App = memo(() => {
-  const stateValue = useSignalValue(myState)
   const [isMutationMounted, setIsMutationMounted] = useState(true)
 
-  const { isHydrated } = usePersistSignals({
+  usePersistSignals({
     entries: [{ version: 1, signal: myState }],
     adapter: createSharedStoreAdapter({
       adapter: createLocalStorageAdapter(localStorage),
@@ -118,12 +116,11 @@ const App = memo(() => {
 const client = new QueryClient()
 
 ReactDOM.createRoot(document.getElementById("app") as HTMLElement).render(
-  // <React.StrictMode>
-  <RcQueryClientProvider client={rcClient}>
-    <QueryClientProvider client={client}>
-      <App />
-    </QueryClientProvider>
-  </RcQueryClientProvider>
-
-  // </React.StrictMode>
+  <React.StrictMode>
+    <RcQueryClientProvider client={rcClient}>
+      <QueryClientProvider client={client}>
+        <App />
+      </QueryClientProvider>
+    </RcQueryClientProvider>
+  </React.StrictMode>
 )

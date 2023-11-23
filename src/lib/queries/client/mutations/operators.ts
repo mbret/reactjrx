@@ -1,5 +1,5 @@
 import { type Observable, distinctUntilChanged, scan } from "rxjs"
-import { type MutationResult,  } from "./types"
+import { type MutationResult } from "./types"
 import { shallowEqual } from "../../../utils/shallowEqual"
 
 export const mergeResults = <T>(

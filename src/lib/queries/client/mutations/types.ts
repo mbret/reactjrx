@@ -1,6 +1,6 @@
-import { type Observable } from "rxjs"
+import { type MonoTypeOperatorFunction, type Observable } from "rxjs"
 import { type Query, type QueryResult } from "../types"
-import { QueryKey } from "../keys/types"
+import { type QueryKey } from "../keys/types"
 
 /**
  * The default value `merge` is suitable for most use case.
@@ -64,4 +64,7 @@ export interface MutationOptions<Result, MutationArg> {
   mutationFn: MutationFn<Result, MutationArg>
   mutationKey: QueryKey
   mapOperator?: MapOperator
+  __queryInitHook?: MonoTypeOperatorFunction<any>
+  __queryRunnerHook?: MonoTypeOperatorFunction<any>
+  __queryTriggerHook?: MonoTypeOperatorFunction<Partial<Result>>
 }

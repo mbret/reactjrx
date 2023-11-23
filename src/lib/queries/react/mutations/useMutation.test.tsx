@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { type Observable, Subject, finalize, takeUntil, timer } from "rxjs"
+import { type Observable, Subject, finalize, takeUntil, timer, tap } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
 import { useMutation } from "./useMutation"
@@ -192,29 +192,28 @@ describe("useMutation", () => {
        * I could not find a way to test the completeness of the inner observable without "cheating"
        * by adding a hook. It's anti pattern but will do it until I find better way
        */
-      it("should complete main observable chain", async () => {
+      it("should complete main observable chain foobar", async () => {
         let finalized = 0
-        let unmountTime = 0
+        let started = 0
 
         const client = new QueryClient()
 
         const Comp = () => {
           useMutation({
             mutationFn: async () => {},
-            triggerHook: (source: Observable<any>) =>
+            __queryInitHook: (source: Observable<any>) =>
+              source.pipe(
+                tap(() => {
+                  started++
+                })
+              ),
+            __triggerHook: (source: Observable<any>) =>
               source.pipe(
                 finalize(() => {
                   finalized++
                 })
               )
           })
-
-          useEffect(
-            () => () => {
-              unmountTime++
-            },
-            []
-          )
 
           return null
         }
@@ -229,7 +228,9 @@ describe("useMutation", () => {
 
         unmount()
 
-        expect(finalized).toBe(unmountTime)
+        expect(started).toBe(1)
+
+        expect(started).toBe(finalized)
       })
     })
 
@@ -248,9 +249,9 @@ describe("useMutation", () => {
 
         const Comp = () => {
           const { mutate } = useMutation({
-            mutationFn: () => timer(1000).pipe(takeUntil(manualStop)),
-            triggerHook: (source: Observable<any>) =>
-              source.pipe(
+            mutationFn: () =>
+              timer(1000).pipe(
+                takeUntil(manualStop),
                 finalize(() => {
                   finalized++
                 })
@@ -318,9 +319,9 @@ describe("useMutation", () => {
 
           const { unmount } = render(
             // <React.StrictMode>
-              <QueryClientProvider client={client}>
-                <Comp />
-              </QueryClientProvider>
+            <QueryClientProvider client={client}>
+              <Comp />
+            </QueryClientProvider>
             // </React.StrictMode>
           )
 
@@ -349,7 +350,7 @@ describe("useMutation", () => {
                   })
                 ),
               cancelOnUnMount: true,
-              triggerHook: (source: Observable<any>) =>
+              __triggerHook: (source: Observable<any>) =>
                 source.pipe(
                   finalize(() => {
                     finalized++
@@ -370,9 +371,9 @@ describe("useMutation", () => {
 
           const { unmount } = render(
             // <React.StrictMode>
-              <QueryClientProvider client={client}>
-                <Comp />
-              </QueryClientProvider>
+            <QueryClientProvider client={client}>
+              <Comp />
+            </QueryClientProvider>
             // </React.StrictMode>
           )
 
