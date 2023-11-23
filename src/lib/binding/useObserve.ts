@@ -19,6 +19,7 @@ import { primitiveEqual } from "../utils/primitiveEqual"
 interface Option<R = undefined> {
   defaultValue: R
   key?: string
+  unsubscribeOnUnmount?: boolean
 }
 
 /**
@@ -50,7 +51,11 @@ export function useObserve<T>(
   const options =
     unsafeOptions != null && !Array.isArray(unsafeOptions)
       ? (unsafeOptions as Option<T>)
-      : ({ defaultValue: undefined, key: "" } satisfies Option<undefined>)
+      : ({
+          defaultValue: undefined,
+          key: "",
+          unsubscribeOnUnmount: true
+        } satisfies Option<undefined>)
   const deps =
     unsafeDeps == null && Array.isArray(unsafeOptions)
       ? unsafeOptions
@@ -63,6 +68,7 @@ export function useObserve<T>(
       : options.defaultValue
   )
   const sourceRef = useLiveRef(source$)
+  const optionsRef = useLiveRef(options)
 
   const subscribe = useCallback(
     (next: () => void) => {
@@ -94,6 +100,8 @@ export function useObserve<T>(
         .subscribe(next)
 
       return () => {
+        if (optionsRef.current.unsubscribeOnUnmount === false) return
+
         sub.unsubscribe()
       }
     },

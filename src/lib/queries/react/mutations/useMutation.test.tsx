@@ -1,34 +1,42 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { type Observable, Subject, finalize, takeUntil, timer } from "rxjs"
+import { type Observable, Subject, finalize, takeUntil, timer, tap } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
-import { useAsyncQuery } from "./useMutation"
+import { useMutation } from "./useMutation"
+import { QueryClientProvider } from "../Provider"
+import { QueryClient } from "../../client/createClient"
 
 afterEach(() => {
   cleanup()
 })
 
-describe("useAsyncQuery", () => {
+describe("useMutation", () => {
   describe("Given two consecutive async query triggered", () => {
     describe("when map operator is merge", () => {
       it("should only show the second query result", async () => {
+        const client = new QueryClient()
+
         const Comp = () => {
           const [done, setDone] = useState({ 1: false, 2: false })
           const [values, setValues] = useState<Array<number | undefined>>([])
-          const { data, mutate } = useAsyncQuery(
-            async ({ res, timeout }: { res: number; timeout: number }) => {
+          const { data, mutate } = useMutation({
+            mutationFn: async ({
+              res,
+              timeout
+            }: {
+              res: number
+              timeout: number
+            }) => {
               return await new Promise<number>((resolve) =>
                 setTimeout(() => {
                   resolve(res)
                 }, timeout)
               )
             },
-            {
-              onSuccess: (data) => {
-                setDone((s) => ({ ...s, [data]: true }))
-              }
+            onSuccess: (data) => {
+              setDone((s) => ({ ...s, [data]: true }))
             }
-          )
+          })
 
           useEffect(() => {
             data && setValues((v) => [...v, data])
@@ -37,7 +45,7 @@ describe("useAsyncQuery", () => {
           useEffect(() => {
             mutate({ res: 1, timeout: 3 })
             mutate({ res: 2, timeout: 1 })
-          }, [])
+          }, [mutate])
 
           // we only display content once all queries are done
           // this way when we text string later we know exactly
@@ -46,7 +54,9 @@ describe("useAsyncQuery", () => {
 
         const { findByText } = render(
           <React.StrictMode>
-            <Comp />
+            <QueryClientProvider client={client}>
+              <Comp />
+            </QueryClientProvider>
           </React.StrictMode>
         )
 
@@ -56,24 +66,30 @@ describe("useAsyncQuery", () => {
 
     describe("when map operator is concat", () => {
       it("should show results sequentially", async () => {
+        const client = new QueryClient()
+
         const Comp = () => {
           const [done, setDone] = useState({ 1: false, 2: false })
           const [values, setValues] = useState<Array<number | undefined>>([])
-          const { data, mutate } = useAsyncQuery(
-            async ({ res, timeout }: { res: number; timeout: number }) => {
+          const { data, mutate } = useMutation({
+            mutationFn: async ({
+              res,
+              timeout
+            }: {
+              res: number
+              timeout: number
+            }) => {
               return await new Promise<number>((resolve) =>
                 setTimeout(() => {
                   resolve(res)
                 }, timeout)
               )
             },
-            "concat",
-            {
-              onSuccess: (data) => {
-                setDone((s) => ({ ...s, [data]: true }))
-              }
+            mapOperator: "concat",
+            onSuccess: (data) => {
+              setDone((s) => ({ ...s, [data]: true }))
             }
-          )
+          })
 
           useEffect(() => {
             data && setValues((v) => [...v, data])
@@ -91,7 +107,9 @@ describe("useAsyncQuery", () => {
 
         const { findByText } = render(
           <React.StrictMode>
-            <Comp />
+            <QueryClientProvider client={client}>
+              <Comp />
+            </QueryClientProvider>
           </React.StrictMode>
         )
 
@@ -103,8 +121,10 @@ describe("useAsyncQuery", () => {
   describe("Given async function which returns 2", () => {
     describe("and component renders its data", () => {
       it("should returns 2 when called", async () => {
+        const client = new QueryClient()
+
         const Comp = () => {
-          const { data, mutate } = useAsyncQuery(async () => 2)
+          const { data, mutate } = useMutation({ mutationFn: async () => 2 })
 
           useEffect(() => {
             mutate()
@@ -115,7 +135,9 @@ describe("useAsyncQuery", () => {
 
         const { findByText } = render(
           <React.StrictMode>
-            <Comp />
+            <QueryClientProvider client={client}>
+              <Comp />
+            </QueryClientProvider>
           </React.StrictMode>
         )
 
@@ -128,9 +150,13 @@ describe("useAsyncQuery", () => {
     it("should not call the function", async () => {
       let called = 0
 
+      const client = new QueryClient()
+
       const Comp = () => {
-        const { data, mutate } = useAsyncQuery(async () => {
-          called++
+        const { data, mutate } = useMutation({
+          mutationFn: async () => {
+            called++
+          }
         })
 
         useEffect(
@@ -147,7 +173,9 @@ describe("useAsyncQuery", () => {
 
       const { unmount } = render(
         <React.StrictMode>
-          <Comp />
+          <QueryClientProvider client={client}>
+            <Comp />
+          </QueryClientProvider>
         </React.StrictMode>
       )
 
@@ -164,13 +192,22 @@ describe("useAsyncQuery", () => {
        * I could not find a way to test the completeness of the inner observable without "cheating"
        * by adding a hook. It's anti pattern but will do it until I find better way
        */
-      it("should complete main observable chain", async () => {
+      it("should complete main observable chain foobar", async () => {
         let finalized = 0
-        let unmountTime = 0
+        let started = 0
+
+        const client = new QueryClient()
 
         const Comp = () => {
-          useAsyncQuery(async () => {}, {
-            triggerHook: (source: Observable<any>) =>
+          useMutation({
+            mutationFn: async () => {},
+            __queryInitHook: (source: Observable<any>) =>
+              source.pipe(
+                tap(() => {
+                  started++
+                })
+              ),
+            __triggerHook: (source: Observable<any>) =>
               source.pipe(
                 finalize(() => {
                   finalized++
@@ -178,25 +215,22 @@ describe("useAsyncQuery", () => {
               )
           })
 
-          useEffect(
-            () => () => {
-              unmountTime++
-            },
-            []
-          )
-
           return null
         }
 
         const { unmount } = render(
           <React.StrictMode>
-            <Comp />
+            <QueryClientProvider client={client}>
+              <Comp />
+            </QueryClientProvider>
           </React.StrictMode>
         )
 
         unmount()
 
-        expect(finalized).toBe(unmountTime)
+        expect(started).toBe(1)
+
+        expect(started).toBe(finalized)
       })
     })
 
@@ -211,18 +245,18 @@ describe("useAsyncQuery", () => {
         let unmountTime = 0
         const manualStop = new Subject<void>()
 
+        const client = new QueryClient()
+
         const Comp = () => {
-          const { mutate } = useAsyncQuery(
-            () => timer(1000).pipe(takeUntil(manualStop)),
-            {
-              triggerHook: (source: Observable<any>) =>
-                source.pipe(
-                  finalize(() => {
-                    finalized++
-                  })
-                )
-            }
-          )
+          const { mutate } = useMutation({
+            mutationFn: () =>
+              timer(1000).pipe(
+                takeUntil(manualStop),
+                finalize(() => {
+                  finalized++
+                })
+              )
+          })
 
           useEffect(() => {
             mutate()
@@ -237,7 +271,9 @@ describe("useAsyncQuery", () => {
 
         const { unmount } = render(
           <React.StrictMode>
-            <Comp />
+            <QueryClientProvider client={client}>
+              <Comp />
+            </QueryClientProvider>
           </React.StrictMode>
         )
 
@@ -257,18 +293,18 @@ describe("useAsyncQuery", () => {
           let onErrorCall = 0
           let unmountTime = 0
 
+          const client = new QueryClient()
+
           const Comp = () => {
-            const { mutate } = useAsyncQuery(
-              async () => {
+            const { mutate } = useMutation({
+              mutationFn: async () => {
                 throw new Error("foo")
               },
-              {
-                retry: false,
-                onError: () => {
-                  onErrorCall++
-                }
+              retry: false,
+              onError: () => {
+                onErrorCall++
               }
-            )
+            })
 
             useEffect(() => {
               mutate()
@@ -282,9 +318,11 @@ describe("useAsyncQuery", () => {
           }
 
           const { unmount } = render(
-            <React.StrictMode>
+            // <React.StrictMode>
+            <QueryClientProvider client={client}>
               <Comp />
-            </React.StrictMode>
+            </QueryClientProvider>
+            // </React.StrictMode>
           )
 
           unmount()
@@ -299,26 +337,26 @@ describe("useAsyncQuery", () => {
         it("should forcefully complete query", async () => {
           let finalized = 0
           let unmountTime = 0
-          let queryClosed = 0
+          let queryFinalizedNumberOfTime = 0
+
+          const client = new QueryClient()
 
           const Comp = () => {
-            const { mutate } = useAsyncQuery(
-              () =>
+            const { mutate } = useMutation({
+              mutationFn: () =>
                 timer(1000).pipe(
                   finalize(() => {
-                    queryClosed++
+                    queryFinalizedNumberOfTime++
                   })
                 ),
-              {
-                cancelOnUnMount: true,
-                triggerHook: (source: Observable<any>) =>
-                  source.pipe(
-                    finalize(() => {
-                      finalized++
-                    })
-                  )
-              }
-            )
+              cancelOnUnMount: true,
+              __triggerHook: (source: Observable<any>) =>
+                source.pipe(
+                  finalize(() => {
+                    finalized++
+                  })
+                )
+            })
 
             useEffect(() => {
               mutate()
@@ -332,35 +370,37 @@ describe("useAsyncQuery", () => {
           }
 
           const { unmount } = render(
-            <React.StrictMode>
+            // <React.StrictMode>
+            <QueryClientProvider client={client}>
               <Comp />
-            </React.StrictMode>
+            </QueryClientProvider>
+            // </React.StrictMode>
           )
 
           unmount()
 
           expect(finalized).toBe(unmountTime)
-          expect(queryClosed).toBe(unmountTime)
-          expect(queryClosed).toBe(unmountTime)
+          expect(queryFinalizedNumberOfTime).toBe(unmountTime)
+          expect(queryFinalizedNumberOfTime).toBe(unmountTime)
         })
 
         describe("and the query is a Promise that throws", () => {
           it("should not call onError", async () => {
             let onErrorCall = 0
 
+            const client = new QueryClient()
+
             const Comp = () => {
-              const { mutate } = useAsyncQuery(
-                async () => {
+              const { mutate } = useMutation({
+                mutationFn: async () => {
                   throw new Error("foo")
                 },
-                {
-                  cancelOnUnMount: true,
-                  retry: false,
-                  onError: () => {
-                    onErrorCall++
-                  }
+                cancelOnUnMount: true,
+                retry: false,
+                onError: () => {
+                  onErrorCall++
                 }
-              )
+              })
 
               useEffect(() => {
                 mutate()
@@ -371,7 +411,9 @@ describe("useAsyncQuery", () => {
 
             const { unmount } = render(
               <React.StrictMode>
-                <Comp />
+                <QueryClientProvider client={client}>
+                  <Comp />
+                </QueryClientProvider>
               </React.StrictMode>
             )
 

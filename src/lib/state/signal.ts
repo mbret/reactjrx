@@ -74,4 +74,6 @@ export function signal<T = undefined>(
   }
 }
 
-export type SignalValue<S extends Signal<any, any, any>> = ReturnType<S["getValue"]>
+export type SignalValue<S extends Signal<any, any, any>> = ReturnType<
+  S["getValue"]
+>
