@@ -1,5 +1,5 @@
 /* eslint-disable new-cap */
-import React, { memo, useState } from "react"
+import { memo, useState } from "react"
 import ReactDOM from "react-dom/client"
 import {
   QueryClient,
@@ -24,7 +24,7 @@ const myState = signal({
   default: 2
 })
 
-const Mutation = memo(({ onClick }: { onClick: () => void }) => {
+const Mutation = memo((_: { onClick: () => void }) => {
   const result = useMutation({
     mutationFn: async ({ res, timeout }: { res: number; timeout: number }) => {
       return await new Promise<number>((resolve) =>
@@ -57,7 +57,7 @@ const Mutation = memo(({ onClick }: { onClick: () => void }) => {
 
   console.log("mutation", result)
   console.log("rc", result2)
-  // console.log("observe", observeMut)
+  console.log("observe", observeMut)
 
   return (
     <div style={{ display: "flex", border: "1px solid red" }}>
