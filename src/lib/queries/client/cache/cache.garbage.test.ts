@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { filter, firstValueFrom, of, tap } from "rxjs"
 import { QueryClient } from "../createClient"
-import { serializeKey } from "../keys/serializeKey"
+import { serializeKey } from "../../react/keys/serializeKey"
 import { waitForTimeout } from "../../../../tests/utils"
 
 describe("cache", () => {

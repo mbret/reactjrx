@@ -62,7 +62,7 @@ export interface MutationOptions<Result, MutationArg> {
   onError?: (error: unknown, arg: MutationArg) => void
   onSuccess?: (data: Result, arg: MutationArg) => void
   mutationFn: MutationFn<Result, MutationArg>
-  mutationKey: QueryKey
+  mutationKey: string
   mapOperator?: MapOperator
   __queryInitHook?: MonoTypeOperatorFunction<any>
   __queryRunnerHook?: MonoTypeOperatorFunction<any>

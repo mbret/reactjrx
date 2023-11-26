@@ -9,7 +9,7 @@ import {
 } from "rxjs"
 import { expect, it, describe } from "vitest"
 import { deduplicate } from "./deduplicate"
-import { serializeKey } from "../keys/serializeKey"
+import { serializeKey } from "../../react/keys/serializeKey"
 import { QueryClient } from "../createClient"
 import { type QueryOptions } from "../types"
 import { createQueryStore } from "../store/createQueryStore"

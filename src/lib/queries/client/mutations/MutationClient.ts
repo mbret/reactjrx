@@ -1,165 +1,155 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import {
   type Observable,
   Subject,
-  catchError,
-  combineLatest,
-  concatMap,
-  defer,
-  finalize,
-  from,
-  map,
-  merge,
-  mergeMap,
-  of,
-  startWith,
   switchMap,
-  take,
-  takeUntil,
-  withLatestFrom,
-  tap,
-  share,
-  identity
+  BehaviorSubject,
+  filter,
+  EMPTY,
+  skip,
+  tap
 } from "rxjs"
-import { serializeKey } from "../keys/serializeKey"
-import { Logger } from "../../../logger"
-import { retryOnError } from "../operators"
+import { serializeKey } from "../../react/keys/serializeKey"
 import { type MutationResult, type MutationOptions } from "./types"
-import { mergeResults } from "./operators"
+import { type QueryKey } from "../keys/types"
+import { isDefined } from "../../../utils/isDefined"
+import { createMutationRunner } from "./createMutationRunner"
 
 export class MutationClient {
-  createMutation = <T, MutationArg>(
-    options$: Observable<MutationOptions<T, MutationArg>>
-  ) => {
-    const trigger$ = new Subject<MutationArg>()
-    const reset$ = new Subject<void>()
-    let closed = false
+  /**
+   * Contain all active mutation for a given key.
+   * A mutation ca have several triggers running (it is not necessarily one function running)
+   *
+   * @important
+   * - automatically cleaned as soon as the last mutation is done for a given key
+   */
+  mutationRunners$ = new BehaviorSubject<
+    Map<string, ReturnType<typeof createMutationRunner>>
+  >(new Map())
 
-    /**
-     * Mutation can be destroyed in two ways
-     * - caller unsubscribe to the mutation
-     * - caller call destroy directly
-     */
-    const destroy = () => {
-      if (closed) {
-        throw new Error("Trying to close an already closed mutation")
-      }
+  /**
+   * Mutation result subject. It can be used whether there is a mutation
+   * running or not and can be directly observed.
+   *
+   * @important
+   * - automatically cleaned as soon as the last mutation is done for a given key
+   */
+  mutationResults$ = new BehaviorSubject<
+    Map<string, BehaviorSubject<MutationResult<any>>>
+  >(new Map())
 
-      closed = true
+  mutate$ = new Subject<{
+    options: MutationOptions<any, any>
+    args: any
+  }>()
 
-      trigger$.complete()
-      reset$.complete()
-    }
+  reset$ = new Subject<{ key: QueryKey }>()
 
-    const initOptions = options$.pipe(
-      tap(({ mutationKey }) => {
-        const serializedKey = serializeKey(mutationKey)
+  constructor() {
+    this.mutate$
+      .pipe(
+        tap(({ options, args }) => {
+          const { mutationKey } = options
 
-        Logger.log("query$", serializedKey)
-      }),
-      take(1)
-    )
+          let mutationForKey = this.mutationRunners$
+            .getValue()
+            .get(mutationKey)
 
-    const mutation$ = initOptions.pipe(
-      mergeMap((options) =>
-        of(options).pipe(
-          (options.__queryInitHook as typeof identity) ?? identity
-        )
-      ),
-      mergeMap((options) => {
-        const { mapOperator } = options
+          if (!mutationForKey) {
+            mutationForKey = createMutationRunner()
 
-        const switchOperator =
-          mapOperator === "concat"
-            ? concatMap
-            : mapOperator === "switch"
-              ? switchMap
-              : mergeMap
+            this.mutationRunners$.getValue().set(mutationKey, mutationForKey)
 
-        return trigger$.pipe(
-          withLatestFrom(options$),
-          switchOperator(([mutationArg, { mutationFn }]) => {
-            const queryRunner$ = defer(() =>
-              from(mutationFn(mutationArg))
-            ).pipe(
-              retryOnError(options),
-              take(1),
-              map((data) => ({ data, isError: false })),
-              catchError((error: unknown) => {
-                console.error(error)
+            // @todo clean
+            mutationForKey.mutation$.subscribe((result) => {
+              let resultForKeySubject = this.mutationResults$
+                .getValue()
+                .get(mutationKey)
 
-                if (options.onError != null) {
-                  options.onError(error, mutationArg)
-                }
+              if (!resultForKeySubject) {
+                resultForKeySubject = new BehaviorSubject(result)
 
-                return of({ data: error, isError: true })
-              }),
-              share()
-            )
+                // @todo can be wrapped in function
+                const resultMap = this.mutationResults$.getValue()
 
-            const queryIsOver$ = queryRunner$.pipe(
-              map(({ data, isError }) => isError || data)
-            )
+                resultMap.set(mutationKey, resultForKeySubject)
 
-            const isThisCurrentFunctionLastOneCalled = trigger$.pipe(
-              take(1),
-              map(() => mapOperator === "concat"),
-              startWith(true),
-              takeUntil(queryIsOver$)
-            )
-
-            const loading$ = of<Partial<MutationResult<T>>>({
-              status: "loading"
+                this.mutationResults$.next(resultMap)
+              } else {
+                resultForKeySubject?.next(result)
+              }
             })
 
-            return merge(
-              loading$,
-              combineLatest([
-                queryRunner$,
-                isThisCurrentFunctionLastOneCalled
-              ]).pipe(
-                map(([{ data, isError }, isLastMutationCalled]) => {
-                  if (!isError) {
-                    if (options.onSuccess != null)
-                      options.onSuccess(data as T, mutationArg)
-                  }
-
-                  if (isLastMutationCalled) {
-                    return isError
-                      ? {
-                          status: "error" as const,
-                          error: data,
-                          data: undefined
-                        }
-                      : {
-                          status: "success" as const,
-                          error: undefined,
-                          data: data as T
-                        }
-                  }
-
-                  return {}
-                }),
-                takeUntil(reset$)
+            mutationForKey.mutationsRunning$
+              .pipe(
+                skip(1),
+                filter((number) => number === 0)
               )
-            ).pipe((options.__queryRunnerHook as typeof identity) ?? identity)
-          }),
-          (options.__queryTriggerHook as typeof identity) ?? identity,
-          mergeResults
-        )
-      }),
-      finalize(() => {
-        if (!closed) {
-          destroy()
-        }
-      })
-    )
+              .subscribe(() => {
+                mutationForKey?.destroy()
 
-    return {
-      mutation$,
-      trigger$,
-      reset$,
-      destroy,
-      getClosed: () => closed
-    }
+                // @todo can be wrapped in function
+                const resultMap = this.mutationResults$.getValue()
+                resultMap.delete(mutationKey)
+                this.mutationResults$.next(resultMap)
+
+                const mutationsMap = this.mutationRunners$.getValue()
+                mutationsMap.delete(mutationKey)
+                this.mutationRunners$.next(mutationsMap)
+              })
+          }
+
+          mutationForKey.trigger({ args, options })
+        })
+      )
+      .subscribe()
+
+    this.reset$
+      .pipe(
+        tap(({ key }) => {
+          const serializedKey = serializeKey(key)
+
+          this.mutationRunners$.getValue().get(serializedKey)?.reset$.next()
+        })
+      )
+      .subscribe()
+  }
+
+  observe<Result>({
+    key
+  }: {
+    key: string
+  }): Observable<MutationResult<Result>> {
+    return this.mutationResults$
+      .pipe(
+        switchMap((resultMap) => {
+          const subject = resultMap.get(key)
+
+          return subject ?? EMPTY
+        })
+      )
+      .pipe(filter(isDefined))
+  }
+
+  mutate<Result, MutationArgs>(params: {
+    options: MutationOptions<Result, MutationArgs>
+    args: MutationArgs
+  }) {
+    this.mutate$.next(params)
+  }
+
+  /**
+   * This will reset any current mutation runnings.
+   * No discrimination process
+   */
+  reset(params: { key: QueryKey }) {
+    this.reset$.next(params)
+  }
+
+  destroy() {
+    this.reset$.complete()
+    this.mutate$.complete()
+    this.mutationResults$.complete()
+    this.mutationRunners$.complete()
   }
 }

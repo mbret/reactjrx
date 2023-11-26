@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { type Observable, Subject, finalize, takeUntil, timer, tap } from "rxjs"
+import { type Observable, Subject, finalize, takeUntil, timer } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
 import { useMutation } from "./useMutation"
 import { QueryClientProvider } from "../Provider"
 import { QueryClient } from "../../client/createClient"
+import { waitForTimeout } from "../../../../tests/utils"
+import { serializeKey } from "../keys/serializeKey"
 
 afterEach(() => {
   cleanup()
@@ -186,33 +188,14 @@ describe("useMutation", () => {
   })
 
   describe("Given component unmount", () => {
-    describe("when there is no active query occurring", () => {
-      /**
-       * @disclaimer
-       * I could not find a way to test the completeness of the inner observable without "cheating"
-       * by adding a hook. It's anti pattern but will do it until I find better way
-       */
-      it("should complete main observable chain foobar", async () => {
-        let finalized = 0
-        let started = 0
-
+    describe("and there are no active mutation", () => {
+      it("should complete and remove the result from this key in results$", async () => {
         const client = new QueryClient()
 
         const Comp = () => {
           useMutation({
-            mutationFn: async () => {},
-            __queryInitHook: (source: Observable<any>) =>
-              source.pipe(
-                tap(() => {
-                  started++
-                })
-              ),
-            __triggerHook: (source: Observable<any>) =>
-              source.pipe(
-                finalize(() => {
-                  finalized++
-                })
-              )
+            mutationKey: ["foo"],
+            mutationFn: async () => {}
           })
 
           return null
@@ -228,9 +211,77 @@ describe("useMutation", () => {
 
         unmount()
 
-        expect(started).toBe(1)
+        const resultForKey = client.client.mutationClient.mutationResults$
+          .getValue()
+          .get(serializeKey(["foo"]))
 
-        expect(started).toBe(finalized)
+        expect(resultForKey).toBeUndefined()
+      })
+
+      it("should complete and remove the mutation from this key in mutations$", async () => {
+        const client = new QueryClient()
+
+        const Comp = () => {
+          useMutation({
+            mutationKey: ["foo"],
+            mutationFn: async () => {}
+          })
+
+          return null
+        }
+
+        const { unmount } = render(
+          <React.StrictMode>
+            <QueryClientProvider client={client}>
+              <Comp />
+            </QueryClientProvider>
+          </React.StrictMode>
+        )
+
+        unmount()
+
+        const resultForKey = client.client.mutationClient.mutationRunners$
+          .getValue()
+          .get(serializeKey(["foo"]))
+
+        expect(resultForKey).toBeUndefined()
+      })
+    })
+
+    describe("and there was an active mutation", () => {
+      it("should complete and remove the result from this key in results$", async () => {
+        const client = new QueryClient()
+
+        const Comp = () => {
+          const { mutate } = useMutation({
+            mutationKey: ["foo"],
+            mutationFn: async () => {}
+          })
+
+          useEffect(() => {
+            mutate()
+          }, [mutate])
+
+          return null
+        }
+
+        const { unmount } = render(
+          <React.StrictMode>
+            <QueryClientProvider client={client}>
+              <Comp />
+            </QueryClientProvider>
+          </React.StrictMode>
+        )
+
+        unmount()
+
+        await waitForTimeout(10)
+
+        const resultForKey = client.client.mutationClient.mutationResults$
+          .getValue()
+          .get(serializeKey(["foo"]))
+
+        expect(resultForKey).toBeUndefined()
       })
     })
 
@@ -240,7 +291,7 @@ describe("useMutation", () => {
        * I could not find a way to test the completeness of the inner observable without "cheating"
        * by adding a hook. It's anti pattern but will do it until I find better way
        */
-      it("should complete main observable chain foo", async () => {
+      it("should complete main observable chain", async () => {
         let finalized = 0
         let unmountTime = 0
         const manualStop = new Subject<void>()
@@ -370,11 +421,11 @@ describe("useMutation", () => {
           }
 
           const { unmount } = render(
-            // <React.StrictMode>
-            <QueryClientProvider client={client}>
-              <Comp />
-            </QueryClientProvider>
-            // </React.StrictMode>
+            <React.StrictMode>
+              <QueryClientProvider client={client}>
+                <Comp />
+              </QueryClientProvider>
+            </React.StrictMode>
           )
 
           unmount()
@@ -393,7 +444,11 @@ describe("useMutation", () => {
             const Comp = () => {
               const { mutate } = useMutation({
                 mutationFn: async () => {
-                  throw new Error("foo")
+                  return await new Promise((_resolve, reject) => {
+                    setTimeout(() => {
+                      reject(new Error("error"))
+                    }, 1)
+                  })
                 },
                 cancelOnUnMount: true,
                 retry: false,
@@ -419,7 +474,7 @@ describe("useMutation", () => {
 
             unmount()
 
-            await new Promise((resolve) => setTimeout(resolve, 10))
+            await waitForTimeout(10)
 
             expect(onErrorCall).toBe(0)
           })

@@ -1,4 +1,4 @@
-import { type QueryKey } from "./types"
+import { type QueryKey } from "../../client/keys/types"
 
 export const serializeObject = (object: any): string => {
   if (Array.isArray(object)) {

@@ -1,6 +1,6 @@
 import { filter, map, pairwise, startWith } from "rxjs"
 import type { Observable } from "rxjs"
-import { serializeKey } from "./serializeKey"
+import { serializeKey } from "../../react/keys/serializeKey"
 import { isDefined } from "../../../utils/isDefined"
 
 export const withKeyComparison = <T extends { key: any[] }>(

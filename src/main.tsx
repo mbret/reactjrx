@@ -34,8 +34,9 @@ const Mutation = memo(({ onClick }: { onClick: () => void }) => {
       )
     },
     cancelOnUnMount: false,
-    onSuccess: () => {
-      console.log("success1")
+    mapOperator: "merge",
+    onSuccess: (data) => {
+      console.log("success1", data)
     }
   })
 
@@ -52,17 +53,18 @@ const Mutation = memo(({ onClick }: { onClick: () => void }) => {
     }
   })
 
-  // console.log("mutation", { result, result2 })
+  console.log(result)
 
   return (
     <div style={{ display: "flex", border: "1px solid red" }}>
       mutation
       <button
         onClick={() => {
-          result2.mutate({ res: 3, timeout: 1000 })
+          // result2.mutate({ res: 3, timeout: 1000 })
+          result.mutate({ res: 2, timeout: 2000 })
           result.mutate({ res: 3, timeout: 1000 })
           setTimeout(() => {
-            onClick()
+            // onClick()
           }, 100)
         }}
       >
@@ -116,11 +118,11 @@ const App = memo(() => {
 const client = new QueryClient()
 
 ReactDOM.createRoot(document.getElementById("app") as HTMLElement).render(
-  <React.StrictMode>
+  // <React.StrictMode>
     <RcQueryClientProvider client={rcClient}>
       <QueryClientProvider client={client}>
         <App />
       </QueryClientProvider>
     </RcQueryClientProvider>
-  </React.StrictMode>
+  // </React.StrictMode>
 )

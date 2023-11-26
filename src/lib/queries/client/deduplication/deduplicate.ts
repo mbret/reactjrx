@@ -1,5 +1,5 @@
 import { type Observable, shareReplay, defer, tap, finalize } from "rxjs"
-import { serializeKey } from "../keys/serializeKey"
+import { serializeKey } from "../../react/keys/serializeKey"
 import { type QueryStore } from "../store/createQueryStore"
 
 export const deduplicate =

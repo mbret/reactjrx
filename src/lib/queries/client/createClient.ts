@@ -14,7 +14,7 @@ import {
   mergeMap,
   share
 } from "rxjs"
-import { serializeKey } from "./keys/serializeKey"
+import { serializeKey } from "../react/keys/serializeKey"
 import { mergeResults } from "./operators"
 import {
   type QueryOptions,
@@ -188,14 +188,19 @@ export const createClient = () => {
     }
   }
 
+  const destroy = () => {
+    mutationClient.destroy()
+  }
+
   return {
     start,
     query,
     queryStore,
-    ...mutationClient,
+    mutationClient,
     ...invalidationClient,
     ...cacheClient,
-    ...refetchClient
+    ...refetchClient,
+    destroy
   }
 }
 
