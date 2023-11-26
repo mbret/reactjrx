@@ -60,7 +60,7 @@ describe("useMutation", () => {
           },
           {
             data: undefined,
-            status: "loading"
+            status: "pending"
           },
           {
             data: 2,

@@ -16,8 +16,7 @@ export const mergeResults = <T>(
       {
         data: undefined,
         error: undefined,
-        // fetchStatus: "idle",
-        status: "loading"
+        status: "pending"
       }
     ),
     distinctUntilChanged(

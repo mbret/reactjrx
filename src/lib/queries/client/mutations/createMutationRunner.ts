@@ -114,7 +114,7 @@ export const createMutationRunner = <T, MutationArg>({
           )
 
           const loading$ = of<Partial<MutationResult<T>>>({
-            status: "loading"
+            status: "pending"
           })
 
           return merge(

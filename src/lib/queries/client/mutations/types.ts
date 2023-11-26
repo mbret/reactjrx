@@ -24,7 +24,7 @@ export type MapOperator = "switch" | "concat" | "merge"
 
 export interface MutationResult<R> {
   data: R | undefined
-  status: "idle" | "loading" | "error" | "success"
+  status: "idle" | "pending" | "error" | "success"
   error: unknown
 }
 
