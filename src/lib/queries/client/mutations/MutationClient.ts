@@ -1,16 +1,21 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import {
-  type Observable,
   Subject,
   switchMap,
   BehaviorSubject,
   filter,
   EMPTY,
   skip,
-  tap
+  tap,
+  map,
+  type Observable
 } from "rxjs"
 import { serializeKey } from "../../react/keys/serializeKey"
-import { type MutationResult, type MutationOptions } from "./types"
+import {
+  type MutationResult,
+  type MutationOptions,
+  type MutationObservedResult
+} from "./types"
 import { type QueryKey } from "../keys/types"
 import { isDefined } from "../../../utils/isDefined"
 import { createMutationRunner } from "./createMutationRunner"
@@ -51,16 +56,13 @@ export class MutationClient {
         tap(({ options, args }) => {
           const { mutationKey } = options
 
-          let mutationForKey = this.mutationRunners$
-            .getValue()
-            .get(mutationKey)
+          let mutationForKey = this.mutationRunners$.getValue().get(mutationKey)
 
           if (!mutationForKey) {
-            mutationForKey = createMutationRunner()
+            mutationForKey = createMutationRunner(options)
 
             this.mutationRunners$.getValue().set(mutationKey, mutationForKey)
 
-            // @todo clean
             mutationForKey.mutation$.subscribe((result) => {
               let resultForKeySubject = this.mutationResults$
                 .getValue()
@@ -115,12 +117,33 @@ export class MutationClient {
       .subscribe()
   }
 
-  observe<Result>({
-    key
-  }: {
-    key: string
-  }): Observable<MutationResult<Result>> {
-    return this.mutationResults$
+  observe<Result>({ key }: { key: string }): {
+    result$: Observable<MutationObservedResult<Result>>
+    lastValue: MutationObservedResult<Result>
+  } {
+    const currentResultValue = this.mutationResults$
+      .getValue()
+      .get(key)
+      ?.getValue()
+
+    const mapResultToObservedResult = (value: MutationResult<Result>) => ({
+      ...value,
+      isIdle: value.status === "idle",
+      isPaused: false,
+      isError: value.error !== undefined,
+      isPending: false,
+      isSuccess: value.status === "success"
+    })
+
+    const lastValue = currentResultValue
+      ? mapResultToObservedResult(currentResultValue)
+      : mapResultToObservedResult({
+          data: undefined,
+          error: undefined,
+          status: "idle"
+        })
+
+    const result$ = this.mutationResults$
       .pipe(
         switchMap((resultMap) => {
           const subject = resultMap.get(key)
@@ -128,7 +151,19 @@ export class MutationClient {
           return subject ?? EMPTY
         })
       )
-      .pipe(filter(isDefined))
+      .pipe(
+        filter(isDefined),
+        map((value) => ({
+          ...value,
+          isIdle: value.status === "idle",
+          isPaused: false,
+          isError: value.error !== undefined,
+          isPending: false,
+          isSuccess: value.status === "success"
+        }))
+      )
+
+    return { result$, lastValue }
   }
 
   mutate<Result, MutationArgs>(params: {

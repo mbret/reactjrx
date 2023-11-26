@@ -1,7 +1,6 @@
 import { useLiveRef } from "../../../utils/useLiveRef"
-import { type MonoTypeOperatorFunction, identity } from "rxjs"
 import { useObserve } from "../../../binding/useObserve"
-import { useCallback, useEffect } from "react"
+import { useCallback, useEffect, useMemo } from "react"
 import { type MutationOptions } from "../../client/mutations/types"
 import { useQueryClient } from "../Provider"
 import { type QueryKey } from "../../client/keys/types"
@@ -15,7 +14,6 @@ export type AsyncQueryOptions<Result, Params> = Omit<
 > & {
   mutationKey?: QueryKey
   cancelOnUnMount?: boolean
-  __triggerHook?: MonoTypeOperatorFunction<unknown>
 }
 
 export function useMutation<Args = void, R = undefined>(
@@ -25,23 +23,13 @@ export function useMutation<Args = void, R = undefined>(
   const optionsRef = useLiveRef(options)
   const defaultKey = useConstant(() => [nanoid()])
   const key = serializeKey(options.mutationKey ?? defaultKey.current)
-
-  const result = useObserve(
-    () =>
-      client.mutationClient
-        .observe<R>({ key })
-        .pipe(
-          (optionsRef.current.__triggerHook as typeof identity) ?? identity
-        ),
-    {
-      defaultValue: {
-        data: undefined,
-        error: undefined,
-        status: "idle"
-      }
-    },
-    [client, key]
+  const observedMutation = useMemo(
+    () => client.mutationClient.observe<R>({ key }),
+    [key]
   )
+
+  const result =
+    useObserve(observedMutation.result$) ?? observedMutation.lastValue
 
   const mutate = useCallback(
     (mutationArgs: Args) => {

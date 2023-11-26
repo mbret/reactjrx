@@ -1,6 +1,5 @@
 import { type MonoTypeOperatorFunction, type Observable } from "rxjs"
 import { type Query, type QueryResult } from "../types"
-import { type QueryKey } from "../keys/types"
 
 /**
  * The default value `merge` is suitable for most use case.
@@ -27,6 +26,14 @@ export interface MutationResult<R> {
   data: R | undefined
   status: "idle" | "loading" | "error" | "success"
   error: unknown
+}
+
+export interface MutationObservedResult<R> extends MutationResult<R> {
+  isError: boolean
+  isIdle: boolean
+  isSuccess: boolean
+  isPending: boolean
+  isPaused: boolean
 }
 
 export type MutationFn<T, MutationArg> =
@@ -67,4 +74,5 @@ export interface MutationOptions<Result, MutationArg> {
   __queryInitHook?: MonoTypeOperatorFunction<any>
   __queryRunnerHook?: MonoTypeOperatorFunction<any>
   __queryTriggerHook?: MonoTypeOperatorFunction<Partial<Result>>
+  __queryFinalizeHook?: MonoTypeOperatorFunction<Partial<Result>>
 }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import {
   BehaviorSubject,
   Subject,
@@ -27,21 +28,23 @@ import { retryOnError } from "../operators"
 import { type MutationOptions, type MutationResult } from "./types"
 import { mergeResults } from "./operators"
 
-export const createMutationRunner = <T, MutationArg>() => {
+export const createMutationRunner = <T, MutationArg>({
+  __queryFinalizeHook,
+  __queryInitHook,
+  __queryTriggerHook
+}: Pick<
+  MutationOptions<any, any>,
+  "__queryInitHook" | "__queryTriggerHook" | "__queryFinalizeHook"
+>) => {
   const trigger$ = new Subject<{
     args: MutationArg
     options: MutationOptions<T, MutationArg>
   }>()
   const reset$ = new Subject<void>()
   let closed = false
-  const initOptions$ = new BehaviorSubject<
-    Pick<
-      MutationOptions<any, any>,
-      "mapOperator" | "__queryInitHook" | "__queryTriggerHook"
-    >
-  >({
-    mapOperator: "merge"
-  })
+  const mapOperator$ = new BehaviorSubject<
+    MutationOptions<any, any>["mapOperator"]
+  >("merge")
   const mutationsRunning$ = new BehaviorSubject(0)
 
   /**
@@ -56,24 +59,19 @@ export const createMutationRunner = <T, MutationArg>() => {
 
     closed = true
 
-    initOptions$.complete()
+    mapOperator$.complete()
     mutationsRunning$.complete()
     trigger$.complete()
     reset$.complete()
   }
 
-  const mapOperator$ = initOptions$.pipe(
-    map(({ mapOperator }) => mapOperator),
+  const stableMapOperator$ = mapOperator$.pipe(
     filter(isDefined),
     distinctUntilChanged()
   )
 
-  const mutation$ = mapOperator$.pipe(
-    switchMap((options) =>
-      of(options).pipe(
-        (initOptions$.getValue().__queryInitHook as typeof identity) ?? identity
-      )
-    ),
+  const mutation$ = stableMapOperator$.pipe(
+    (__queryInitHook as typeof identity) ?? identity,
     mergeMap((mapOperator) => {
       const switchOperator =
         mapOperator === "concat"
@@ -83,16 +81,10 @@ export const createMutationRunner = <T, MutationArg>() => {
             : mergeMap
 
       return trigger$.pipe(
-        takeUntil(mapOperator$.pipe(skip(1))),
+        takeUntil(stableMapOperator$.pipe(skip(1))),
         tap(() => {
           mutationsRunning$.next(mutationsRunning$.getValue() + 1)
         }),
-        mergeMap(({ args, options }) =>
-          of({ args, options }).pipe(
-            (initOptions$.getValue().__queryInitHook as typeof identity) ??
-              identity
-          )
-        ),
         switchOperator(({ args, options }) => {
           const queryRunner$ = defer(() => from(options.mutationFn(args))).pipe(
             retryOnError(options),
@@ -162,11 +154,11 @@ export const createMutationRunner = <T, MutationArg>() => {
             })
           )
         }),
-        (initOptions$.getValue().__queryTriggerHook as typeof identity) ??
-          identity,
+        (__queryTriggerHook as typeof identity) ?? identity,
         mergeResults
       )
-    })
+    }),
+    (__queryFinalizeHook as typeof identity) ?? identity
   )
 
   return {
@@ -178,12 +170,7 @@ export const createMutationRunner = <T, MutationArg>() => {
       args: MutationArg
       options: MutationOptions<T, MutationArg>
     }) => {
-      initOptions$.next({
-        __queryInitHook: options.__queryInitHook,
-        __queryTriggerHook: options.__queryTriggerHook,
-        mapOperator: options.mapOperator
-      })
-
+      mapOperator$.next(options.mapOperator)
       trigger$.next({ args, options })
     },
     reset$,

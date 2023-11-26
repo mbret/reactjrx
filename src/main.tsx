@@ -53,16 +53,21 @@ const Mutation = memo(({ onClick }: { onClick: () => void }) => {
     }
   })
 
-  console.log(result)
+  const observeMut = useMutation({ mutationFn: async () => {} })
+
+  console.log("mutation", result)
+  console.log("rc", result2)
+  // console.log("observe", observeMut)
 
   return (
     <div style={{ display: "flex", border: "1px solid red" }}>
       mutation
       <button
         onClick={() => {
-          // result2.mutate({ res: 3, timeout: 1000 })
-          result.mutate({ res: 2, timeout: 2000 })
+          result2.mutate({ res: 3, timeout: 1000 })
+          // result.mutate({ res: 2, timeout: 2000 })
           result.mutate({ res: 3, timeout: 1000 })
+
           setTimeout(() => {
             // onClick()
           }, 100)
@@ -119,10 +124,10 @@ const client = new QueryClient()
 
 ReactDOM.createRoot(document.getElementById("app") as HTMLElement).render(
   // <React.StrictMode>
-    <RcQueryClientProvider client={rcClient}>
-      <QueryClientProvider client={client}>
-        <App />
-      </QueryClientProvider>
-    </RcQueryClientProvider>
+  <RcQueryClientProvider client={rcClient}>
+    <QueryClientProvider client={client}>
+      <App />
+    </QueryClientProvider>
+  </RcQueryClientProvider>
   // </React.StrictMode>
 )

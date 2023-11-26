@@ -401,7 +401,7 @@ describe("useMutation", () => {
                   })
                 ),
               cancelOnUnMount: true,
-              __triggerHook: (source: Observable<any>) =>
+              __queryFinalizeHook: (source: Observable<any>) =>
                 source.pipe(
                   finalize(() => {
                     finalized++
@@ -430,6 +430,7 @@ describe("useMutation", () => {
 
           unmount()
 
+          expect(finalized).toBe(2)
           expect(finalized).toBe(unmountTime)
           expect(queryFinalizedNumberOfTime).toBe(unmountTime)
           expect(queryFinalizedNumberOfTime).toBe(unmountTime)
