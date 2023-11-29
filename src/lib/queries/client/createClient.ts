@@ -14,7 +14,7 @@ import {
   mergeMap,
   share
 } from "rxjs"
-import { serializeKey } from "../react/keys/serializeKey"
+import { serializeKey } from "./keys/serializeKey"
 import { mergeResults } from "./operators"
 import {
   type QueryOptions,

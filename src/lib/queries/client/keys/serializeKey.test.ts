@@ -1,5 +1,5 @@
 import { expect, it } from "vitest"
-import { serializeKey } from "../../react/keys/serializeKey"
+import { serializeKey } from "./serializeKey"
 
 it("should return correct serialized key", () => {
   expect(serializeKey([])).toBe("[]")

@@ -27,5 +27,5 @@ export default defineConfig({
     },
     // handled by consumer
     minify: false
-  }
+  },
 })

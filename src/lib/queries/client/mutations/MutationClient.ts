@@ -8,13 +8,18 @@ import {
   skip,
   tap,
   map,
-  type Observable
+  type Observable,
+  combineLatest,
+  distinctUntilChanged,
+  of
 } from "rxjs"
-import { serializeKey } from "../../react/keys/serializeKey"
+import { serializeKey } from "../keys/serializeKey"
 import {
   type MutationResult,
   type MutationOptions,
-  type MutationObservedResult
+  type MutationObservedResult,
+  type MutationFilters,
+  type MutationKey
 } from "./types"
 import { type QueryKey } from "../keys/types"
 import { isDefined } from "../../../utils/isDefined"
@@ -28,8 +33,13 @@ export class MutationClient {
    * @important
    * - automatically cleaned as soon as the last mutation is done for a given key
    */
-  mutationRunners$ = new BehaviorSubject<
-    Map<string, ReturnType<typeof createMutationRunner>>
+  mutationRunnersByKey$ = new BehaviorSubject<
+    Map<
+      string,
+      ReturnType<typeof createMutationRunner> & {
+        mutationKey: MutationKey
+      }
+    >
   >(new Map())
 
   /**
@@ -55,18 +65,24 @@ export class MutationClient {
       .pipe(
         tap(({ options, args }) => {
           const { mutationKey } = options
+          const serializedMutationKey = serializeKey(mutationKey)
 
-          let mutationForKey = this.mutationRunners$.getValue().get(mutationKey)
+          let mutationForKey = this.getMutationRunnersByKey(
+            serializedMutationKey
+          )
 
           if (!mutationForKey) {
-            mutationForKey = createMutationRunner(options)
+            mutationForKey = {
+              ...createMutationRunner(options),
+              mutationKey
+            }
 
-            this.mutationRunners$.getValue().set(mutationKey, mutationForKey)
+            this.setMutationRunnersByKey(serializedMutationKey, mutationForKey)
 
             mutationForKey.mutation$.subscribe((result) => {
               let resultForKeySubject = this.mutationResults$
                 .getValue()
-                .get(mutationKey)
+                .get(serializedMutationKey)
 
               if (!resultForKeySubject) {
                 resultForKeySubject = new BehaviorSubject(result)
@@ -74,7 +90,7 @@ export class MutationClient {
                 // @todo can be wrapped in function
                 const resultMap = this.mutationResults$.getValue()
 
-                resultMap.set(mutationKey, resultForKeySubject)
+                resultMap.set(serializedMutationKey, resultForKeySubject)
 
                 this.mutationResults$.next(resultMap)
               } else {
@@ -92,12 +108,10 @@ export class MutationClient {
 
                 // @todo can be wrapped in function
                 const resultMap = this.mutationResults$.getValue()
-                resultMap.delete(mutationKey)
+                resultMap.delete(serializedMutationKey)
                 this.mutationResults$.next(resultMap)
 
-                const mutationsMap = this.mutationRunners$.getValue()
-                mutationsMap.delete(mutationKey)
-                this.mutationRunners$.next(mutationsMap)
+                this.deleteMutationRunnersByKey(serializedMutationKey)
               })
           }
 
@@ -111,10 +125,90 @@ export class MutationClient {
         tap(({ key }) => {
           const serializedKey = serializeKey(key)
 
-          this.mutationRunners$.getValue().get(serializedKey)?.reset$.next()
+          this.mutationRunnersByKey$
+            .getValue()
+            .get(serializedKey)
+            ?.reset$.next()
         })
       )
       .subscribe()
+  }
+
+  /**
+   * @helper
+   */
+  setMutationRunnersByKey(key: string, value: any) {
+    const map = this.mutationRunnersByKey$.getValue()
+
+    map.set(key, value)
+
+    this.mutationRunnersByKey$.next(map)
+  }
+
+  /**
+   * @helper
+   */
+  deleteMutationRunnersByKey(key: string) {
+    const map = this.mutationRunnersByKey$.getValue()
+
+    map.delete(key)
+
+    this.mutationRunnersByKey$.next(map)
+  }
+
+  /**
+   * @helper
+   */
+  getMutationRunnersByKey(key: string) {
+    return this.mutationRunnersByKey$.getValue().get(key)
+  }
+
+  /**
+   * @returns number of mutation runnings
+   */
+  runningMutations({ mutationKey, predicate }: MutationFilters = {}) {
+    const defaultPredicate: MutationFilters["predicate"] = ({ options }) =>
+      mutationKey
+        ? // @todo optimize
+          serializeKey(options.mutationKey) === serializeKey(mutationKey)
+        : true
+    const finalPredicate = predicate ?? defaultPredicate
+
+    const mutationRunnersByKeyEntries = Array.from(
+      this.mutationRunnersByKey$.getValue().entries()
+    )
+
+    const lastValue = mutationRunnersByKeyEntries
+      .filter(([, value]) =>
+        finalPredicate({ options: { mutationKey: value.mutationKey } })
+      )
+      .reduce((acc, [, value]) => acc + value.mutationsRunning$.getValue(), 0)
+
+    const value$ = this.mutationRunnersByKey$.pipe(
+      switchMap((map) => {
+        const mutationRunners = Array.from(map.entries())
+          .filter(([, value]) =>
+            finalPredicate({ options: { mutationKey: value.mutationKey } })
+          )
+          .map(([, value]) => value)
+
+        // console.log("map", Array.from(map.entries()), { mutationRunners })
+
+        const mutationRunnersMutationsRunning$ = combineLatest([
+          // when map is empty we still need to push 0
+          of(0),
+          ...mutationRunners.map(
+            (mutationRunner) => mutationRunner.mutationsRunning$
+          )
+        ])
+
+        return mutationRunnersMutationsRunning$
+      }),
+      map((values) => values.reduce((acc, value) => value + acc, 0)),
+      distinctUntilChanged()
+    )
+
+    return { value$, lastValue }
   }
 
   observe<Result>({ key }: { key: string }): {
@@ -185,6 +279,6 @@ export class MutationClient {
     this.reset$.complete()
     this.mutate$.complete()
     this.mutationResults$.complete()
-    this.mutationRunners$.complete()
+    this.mutationRunnersByKey$.complete()
   }
 }

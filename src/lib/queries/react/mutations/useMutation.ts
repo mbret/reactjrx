@@ -1,30 +1,35 @@
 import { useLiveRef } from "../../../utils/useLiveRef"
 import { useObserve } from "../../../binding/useObserve"
 import { useCallback, useEffect, useMemo } from "react"
-import { type MutationOptions } from "../../client/mutations/types"
+import {
+  type MutationKey,
+  type MutationOptions
+} from "../../client/mutations/types"
 import { useQueryClient } from "../Provider"
-import { type QueryKey } from "../../client/keys/types"
-import { serializeKey } from "../keys/serializeKey"
+import { serializeKey } from "../../client/keys/serializeKey"
 import { nanoid } from "../keys/nanoid"
 import { useConstant } from "../../../utils/useConstant"
+import { type QueryClient } from "../../client/createClient"
 
 export type AsyncQueryOptions<Result, Params> = Omit<
   MutationOptions<Result, Params>,
   "mutationKey"
 > & {
-  mutationKey?: QueryKey
+  mutationKey?: MutationKey
   cancelOnUnMount?: boolean
 }
 
 export function useMutation<Args = void, R = undefined>(
-  options: AsyncQueryOptions<R, Args>
+  options: AsyncQueryOptions<R, Args>,
+  queryClient?: QueryClient
 ) {
-  const client = useQueryClient()
+  const defaultQueryClient = useQueryClient({ unsafe: !!queryClient })
+  const finalQueryClient = queryClient?.client ?? defaultQueryClient
   const optionsRef = useLiveRef(options)
   const defaultKey = useConstant(() => [nanoid()])
   const key = serializeKey(options.mutationKey ?? defaultKey.current)
   const observedMutation = useMemo(
-    () => client.mutationClient.observe<R>({ key }),
+    () => finalQueryClient.mutationClient.observe<R>({ key }),
     [key]
   )
 
@@ -33,24 +38,27 @@ export function useMutation<Args = void, R = undefined>(
 
   const mutate = useCallback(
     (mutationArgs: Args) => {
-      client.mutationClient.mutate({
-        options: { ...optionsRef.current, mutationKey: key },
+      finalQueryClient.mutationClient.mutate({
+        options: {
+          ...optionsRef.current,
+          mutationKey: optionsRef.current.mutationKey ?? defaultKey.current
+        },
         args: mutationArgs
       })
     },
-    [client, key]
+    [finalQueryClient, key]
   )
 
   const reset = useCallback(() => {
-    client.mutationClient.reset({
+    finalQueryClient.mutationClient.reset({
       key: optionsRef.current.mutationKey ?? defaultKey.current
     })
-  }, [client])
+  }, [finalQueryClient])
 
   useEffect(() => {
     return () => {
       if (optionsRef.current.cancelOnUnMount) {
-        client.mutationClient.reset({
+        finalQueryClient.mutationClient.reset({
           key: optionsRef.current.mutationKey ?? defaultKey.current
         })
       }

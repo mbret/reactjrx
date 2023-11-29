@@ -1,5 +1,5 @@
 /* eslint-disable new-cap */
-import { memo, useState } from "react"
+import { memo, useCallback, useState } from "react"
 import ReactDOM from "react-dom/client"
 import {
   QueryClient,
@@ -13,9 +13,11 @@ import { usePersistSignals } from "./lib/state/persistance/usePersistSignals"
 import { createLocalStorageAdapter } from "./lib/state/persistance/adapters/createLocalStorageAdapter"
 import {
   QueryClient as rc_QueryClient,
-  QueryClientProvider as RcQueryClientProvider,
-  useMutation as rc_useMutation
+  QueryClientProvider as RcQueryClientProvider
+  // useMutation as rc_useMutation
 } from "@tanstack/react-query"
+import { useIsMutating } from "./lib/queries/react/mutations/useMutationState"
+import { sleep } from "./tests/utils"
 
 const rcClient = new rc_QueryClient()
 
@@ -24,49 +26,69 @@ const myState = signal({
   default: 2
 })
 
+const IsMutating = memo(() => {
+  const isMutating = useIsMutating({
+    predicate: useCallback(
+      ({ options: { mutationKey } }: any) => mutationKey[0] === "mutation1",
+      []
+    )
+  })
+
+  console.log("isMutating", isMutating)
+
+  return null
+})
+
 const Mutation = memo((_: { onClick: () => void }) => {
-  const result = useMutation({
-    mutationFn: async ({ res, timeout }: { res: number; timeout: number }) => {
-      return await new Promise<number>((resolve) =>
-        setTimeout(() => {
-          resolve(res)
-        }, timeout)
-      )
-    },
-    cancelOnUnMount: false,
-    mapOperator: "merge",
-    onSuccess: (data) => {
-      console.log("success1", data)
+  const { mutate: mutate1 } = useMutation({
+    mutationKey: ["mutation1"],
+    mutationFn: async () => {
+      await sleep(100)
+      return "data"
+    }
+  })
+  const { mutate: mutate2 } = useMutation({
+    mutationKey: ["mutation2"],
+    mutationFn: async () => {
+      await sleep(100)
+      return "data"
     }
   })
 
-  const result2 = rc_useMutation({
-    mutationFn: async ({ res, timeout }: { res: number; timeout: number }) => {
-      return await new Promise<number>((resolve) =>
-        setTimeout(() => {
-          resolve(res)
-        }, timeout)
-      )
-    },
-    onSuccess: () => {
-      console.log("success2")
-    }
-  })
+  // const result2 = rc_useMutation({
+  //   mutationFn: async ({ res, timeout }: { res: number; timeout: number }) => {
+  //     return await new Promise<number>((resolve) =>
+  //       setTimeout(() => {
+  //         resolve(res)
+  //       }, timeout)
+  //     )
+  //   },
+  //   onSuccess: () => {
+  //     console.log("success2")
+  //   }
+  // })
 
-  const observeMut = useMutation({ mutationFn: async () => {} })
+  // const observeMut = useMutation({ mutationFn: async () => {} })
 
-  console.log("mutation", result)
-  console.log("rc", result2)
-  console.log("observe", observeMut)
+  // console.log(
+  //   "number of mutation",
+  //   useIsMutating({ mutationKey: ["mutation1"] })
+  // )
+
+  // console.log("rc", result2)
+  // console.log("observe", observeMut)
 
   return (
     <div style={{ display: "flex", border: "1px solid red" }}>
       mutation
+      <IsMutating />
       <button
         onClick={() => {
-          result2.mutate({ res: 3, timeout: 1000 })
+          mutate1()
+          mutate2()
+          // result2.mutate({ res: 3, timeout: 1000 })
           // result.mutate({ res: 2, timeout: 2000 })
-          result.mutate({ res: 3, timeout: 1000 })
+          // result.mutate({ res: 3, timeout: 1000 })
 
           setTimeout(() => {
             // onClick()

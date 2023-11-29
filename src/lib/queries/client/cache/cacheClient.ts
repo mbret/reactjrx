@@ -1,6 +1,6 @@
 import { type createQueryStore } from "../store/createQueryStore"
 import { type QueryKey } from "../keys/types"
-import { serializeKey } from "../../react/keys/serializeKey"
+import { serializeKey } from "../keys/serializeKey"
 import { getInitialQueryEntity } from "../store/initializeQueryInStore"
 import { logger } from "./logger"
 

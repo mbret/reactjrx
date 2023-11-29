@@ -1,7 +1,7 @@
 import { type createQueryStore } from "../store/createQueryStore"
 import { compareKeys } from "../keys/compareKeys"
 import { type QueryKey } from "../keys/types"
-import { serializeKey } from "../../react/keys/serializeKey"
+import { serializeKey } from "../keys/serializeKey"
 import { logger } from "./logger"
 
 export const createInvalidationClient = ({

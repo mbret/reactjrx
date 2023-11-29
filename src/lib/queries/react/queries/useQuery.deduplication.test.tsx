@@ -5,7 +5,7 @@ import React, { useEffect, useState } from "react"
 import { useQuery } from "./useQuery"
 import { QueryClientProvider, useQueryClient } from "../Provider"
 import { QueryClient } from "../../client/createClient"
-import { serializeKey } from "../keys/serializeKey"
+import { serializeKey } from "../../client/keys/serializeKey"
 
 afterEach(() => {
   cleanup()

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 import { lastValueFrom, of } from "rxjs"
 import { QueryClient } from "../createClient"
-import { serializeKey } from "../../react/keys/serializeKey"
+import { serializeKey } from "./serializeKey"
 
 describe("keys", () => {
   describe("Given a query without key", () => {

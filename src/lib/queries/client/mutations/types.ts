@@ -22,9 +22,32 @@ import { type Query, type QueryResult } from "../types"
  */
 export type MapOperator = "switch" | "concat" | "merge"
 
+export type MutationStatus = "idle" | "pending" | "success" | "error"
+
+export type MutationKey = unknown[]
+
+export interface MutationFilters {
+  /**
+   * Match mutation key exactly
+   */
+  exact?: boolean
+  /**
+   * Include mutations matching this predicate function
+   */
+  predicate?: (mutation: { options: { mutationKey: MutationKey } }) => boolean
+  /**
+   * Include mutations matching this mutation key
+   */
+  mutationKey?: MutationKey
+  /**
+   * Filter by mutation status
+   */
+  status?: MutationStatus
+}
+
 export interface MutationResult<R> {
   data: R | undefined
-  status: "idle" | "pending" | "error" | "success"
+  status: MutationStatus
   error: unknown
 }
 
@@ -69,7 +92,7 @@ export interface MutationOptions<Result, MutationArg> {
   onError?: (error: unknown, arg: MutationArg) => void
   onSuccess?: (data: Result, arg: MutationArg) => void
   mutationFn: MutationFn<Result, MutationArg>
-  mutationKey: string
+  mutationKey: MutationKey
   mapOperator?: MapOperator
   __queryInitHook?: MonoTypeOperatorFunction<any>
   __queryRunnerHook?: MonoTypeOperatorFunction<any>

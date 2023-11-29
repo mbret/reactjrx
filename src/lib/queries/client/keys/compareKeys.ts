@@ -1,4 +1,4 @@
-import { serializeKey, serializeObject } from "../../react/keys/serializeKey"
+import { serializeKey, serializeObject } from "./serializeKey"
 import { type QueryKey } from "./types"
 
 export const compareKeys = (

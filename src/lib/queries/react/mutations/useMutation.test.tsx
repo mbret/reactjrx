@@ -6,7 +6,7 @@ import { useMutation } from "./useMutation"
 import { QueryClientProvider } from "../Provider"
 import { QueryClient } from "../../client/createClient"
 import { waitForTimeout } from "../../../../tests/utils"
-import { serializeKey } from "../keys/serializeKey"
+import { serializeKey } from "../../client/keys/serializeKey"
 
 afterEach(() => {
   cleanup()
@@ -240,7 +240,7 @@ describe("useMutation", () => {
 
         unmount()
 
-        const resultForKey = client.client.mutationClient.mutationRunners$
+        const resultForKey = client.client.mutationClient.mutationRunnersByKey$
           .getValue()
           .get(serializeKey(["foo"]))
 

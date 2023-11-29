@@ -43,10 +43,10 @@ export const QueryClientProvider = memo(
   }
 )
 
-export const useQueryClient = () => {
+export const useQueryClient = ({ unsafe = false }: { unsafe?: boolean } = {}) => {
   const context = useContext(Context)
 
-  if (context === null) {
+  if (!unsafe && context.client === null) {
     throw new Error("You forgot to register the provider")
   }
 

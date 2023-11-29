@@ -1,4 +1,6 @@
-import { type QueryKey } from "../../client/keys/types"
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+import { type MutationKey } from "../mutations/types"
+import { type QueryKey } from "./types"
 
 export const serializeObject = (object: any): string => {
   if (Array.isArray(object)) {
@@ -14,7 +16,7 @@ export const serializeObject = (object: any): string => {
   return JSON.stringify(object, Object.keys(object).sort())
 }
 
-export const serializeKey = (key: QueryKey) => {
+export const serializeKey = (key: QueryKey | MutationKey) => {
   if (key.length === 0) return "[]"
 
   return serializeObject(key)

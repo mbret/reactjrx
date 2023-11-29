@@ -10,7 +10,7 @@ import {
   tap
 } from "rxjs"
 import { QueryClient } from "../createClient"
-import { serializeKey } from "../../react/keys/serializeKey"
+import { serializeKey } from "../keys/serializeKey"
 import { getInitialQueryEntity } from "../store/initializeQueryInStore"
 
 describe("cacheClient", () => {
