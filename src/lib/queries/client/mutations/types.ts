@@ -26,6 +26,9 @@ export type MutationStatus = "idle" | "pending" | "success" | "error"
 
 export type MutationKey = unknown[]
 
+/**
+ * @todo this should be used in a lot of place so we can probably make a helper for that
+ */
 export interface MutationFilters {
   /**
    * Match mutation key exactly
@@ -60,6 +63,7 @@ export interface MutationObservedResult<R> extends MutationResult<R> {
 }
 
 export type MutationFn<T, MutationArg> =
+  | Observable<T>
   | ((arg: MutationArg) => Promise<T>)
   | ((arg: MutationArg) => Observable<T>)
 

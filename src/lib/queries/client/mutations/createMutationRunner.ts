@@ -86,7 +86,14 @@ export const createMutationRunner = <T, MutationArg>({
           mutationsRunning$.next(mutationsRunning$.getValue() + 1)
         }),
         switchOperator(({ args, options }) => {
-          const queryRunner$ = defer(() => from(options.mutationFn(args))).pipe(
+          const mutationFn = options.mutationFn
+
+          const mutationFnObservable =
+            typeof mutationFn === "function"
+              ? defer(() => from(mutationFn(args)))
+              : mutationFn
+
+          const queryRunner$ = mutationFnObservable.pipe(
             retryOnError(options),
             take(1),
             map((data) => ({ data, isError: false })),

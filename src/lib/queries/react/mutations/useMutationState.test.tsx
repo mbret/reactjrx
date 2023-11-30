@@ -9,6 +9,7 @@ import {
   setActTimeout,
   sleep
 } from "../../../../tests/utils"
+import { delay, of } from "rxjs"
 
 describe("useIsMutating", () => {
   it("should return the number of fetching mutations", async () => {
@@ -36,6 +37,54 @@ describe("useIsMutating", () => {
           await sleep(50)
           return "data"
         }
+      })
+
+      React.useEffect(() => {
+        mutate1()
+        setActTimeout(() => {
+          mutate2()
+        }, 50)
+      }, [mutate1, mutate2])
+
+      return null
+    }
+
+    function Page() {
+      return (
+        <div>
+          <IsMutating />
+          <Mutations />
+        </div>
+      )
+    }
+
+    renderWithClient(queryClient, <Page />)
+    await waitFor(() => {
+      expect(isMutatings).toEqual([0, 1, 2, 1, 0])
+    }, {})
+  })
+
+  it("should return the number of fetching observables mutations", async () => {
+    const isMutatings: number[] = []
+    const queryClient = createQueryClient()
+
+    const mutation2 = of("data").pipe(delay(50))
+
+    function IsMutating() {
+      // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
+      const isMutating = useIsMutating()
+      isMutatings.push(isMutating)
+      return null
+    }
+
+    function Mutations() {
+      const { mutate: mutate1 } = useMutation({
+        mutationKey: ["mutation1"],
+        mutationFn: () => of("data").pipe(delay(150))
+      })
+      const { mutate: mutate2 } = useMutation({
+        mutationKey: ["mutation2"],
+        mutationFn: mutation2
       })
 
       React.useEffect(() => {
@@ -184,79 +233,3 @@ describe("useIsMutating", () => {
     await waitFor(() => rendered.getByText("mutating: 1"))
   })
 })
-
-// describe('useMutationState', () => {
-//   describe('types', () => {
-//     it('should default to QueryState', () => {
-//       doNotExecute(() => {
-//         const result = useMutationState({
-//           filters: { status: 'pending' },
-//         })
-
-//         expectTypeOf(result).toEqualTypeOf<Array<MutationState>>()
-//       })
-//     })
-//     it('should infer with select', () => {
-//       doNotExecute(() => {
-//         const result = useMutationState({
-//           filters: { status: 'pending' },
-//           select: (mutation) => mutation.state.status,
-//         })
-
-//         expectTypeOf(result).toEqualTypeOf<Array<MutationStatus>>()
-//       })
-//     })
-//   })
-//   it('should return variables after calling mutate', async () => {
-//     const queryClient = createQueryClient()
-//     const variables: Array<Array<unknown>> = []
-//     const mutationKey = ['mutation']
-
-//     function Variables() {
-//       variables.push(
-//         useMutationState({
-//           filters: { mutationKey, status: 'pending' },
-//           select: (mutation) => mutation.state.variables,
-//         }),
-//       )
-
-//       return null
-//     }
-
-//     function Mutate() {
-//       const { mutate, data } = useMutation({
-//         mutationKey,
-//         mutationFn: async (input: number) => {
-//           await sleep(150)
-//           return 'data' + input
-//         },
-//       })
-
-//       return (
-//         <div>
-//           data: {data ?? 'null'}
-//           <button onClick={() => mutate(1)}>mutate</button>
-//         </div>
-//       )
-//     }
-
-//     function Page() {
-//       return (
-//         <div>
-//           <Variables />
-//           <Mutate />
-//         </div>
-//       )
-//     }
-
-//     const rendered = renderWithClient(queryClient, <Page />)
-
-//     await waitFor(() => rendered.getByText('data: null'))
-
-//     fireEvent.click(rendered.getByRole('button', { name: /mutate/i }))
-
-//     await waitFor(() => rendered.getByText('data: data1'))
-
-//     expect(variables).toEqual([[], [1], []])
-//   })
-// })
