@@ -11,7 +11,8 @@ import {
   type Observable,
   combineLatest,
   distinctUntilChanged,
-  of
+  of,
+  type ObservedValueOf
 } from "rxjs"
 import { serializeKey } from "../keys/serializeKey"
 import {
@@ -59,6 +60,13 @@ export class MutationClient {
   }>()
 
   reset$ = new Subject<{ key: QueryKey }>()
+
+  /**
+   * Observable to track how many running mutations per runner
+   */
+  isMutatingSubject = new BehaviorSubject<
+    Array<readonly [MutationKey, number]>
+  >([])
 
   constructor() {
     this.mutate$
@@ -132,6 +140,27 @@ export class MutationClient {
         })
       )
       .subscribe()
+
+    this.mutationRunnersByKey$
+      .pipe(
+        switchMap((mapItem) => {
+          const mutationRunners = Array.from(mapItem.entries()).map(
+            ([, value]) =>
+              value.mutationsRunning$.pipe(
+                map((number) => [value.mutationKey, number] as const)
+              )
+          )
+
+          const mutationRunnersMutationsRunning$ = combineLatest([
+            // when map is empty we still need to push 0
+            of([[] as MutationKey, 0] as const),
+            ...mutationRunners
+          ])
+
+          return mutationRunnersMutationsRunning$
+        })
+      )
+      .subscribe(this.isMutatingSubject)
   }
 
   /**
@@ -163,10 +192,7 @@ export class MutationClient {
     return this.mutationRunnersByKey$.getValue().get(key)
   }
 
-  /**
-   * @returns number of mutation runnings
-   */
-  runningMutations({ mutationKey, predicate }: MutationFilters = {}) {
+  useIsMutating({ mutationKey, predicate }: MutationFilters = {}) {
     const defaultPredicate: MutationFilters["predicate"] = ({ options }) =>
       mutationKey
         ? // @todo optimize
@@ -174,37 +200,17 @@ export class MutationClient {
         : true
     const finalPredicate = predicate ?? defaultPredicate
 
-    const mutationRunnersByKeyEntries = Array.from(
-      this.mutationRunnersByKey$.getValue().entries()
-    )
+    const reduceByNumber = (
+      entries: ObservedValueOf<typeof this.isMutatingSubject>
+    ) =>
+      entries.reduce((acc: number, [mutationKey, value]) => {
+        return finalPredicate({ options: { mutationKey } }) ? value + acc : acc
+      }, 0)
 
-    const lastValue = mutationRunnersByKeyEntries
-      .filter(([, value]) =>
-        finalPredicate({ options: { mutationKey: value.mutationKey } })
-      )
-      .reduce((acc, [, value]) => acc + value.mutationsRunning$.getValue(), 0)
+    const lastValue = reduceByNumber(this.isMutatingSubject.getValue())
 
-    const value$ = this.mutationRunnersByKey$.pipe(
-      switchMap((map) => {
-        const mutationRunners = Array.from(map.entries())
-          .filter(([, value]) =>
-            finalPredicate({ options: { mutationKey: value.mutationKey } })
-          )
-          .map(([, value]) => value)
-
-        // console.log("map", Array.from(map.entries()), { mutationRunners })
-
-        const mutationRunnersMutationsRunning$ = combineLatest([
-          // when map is empty we still need to push 0
-          of(0),
-          ...mutationRunners.map(
-            (mutationRunner) => mutationRunner.mutationsRunning$
-          )
-        ])
-
-        return mutationRunnersMutationsRunning$
-      }),
-      map((values) => values.reduce((acc, value) => value + acc, 0)),
+    const value$ = this.isMutatingSubject.pipe(
+      map((mutationRunningByKeys) => reduceByNumber(mutationRunningByKeys)),
       distinctUntilChanged()
     )
 
@@ -280,5 +286,6 @@ export class MutationClient {
     this.mutate$.complete()
     this.mutationResults$.complete()
     this.mutationRunnersByKey$.complete()
+    this.isMutatingSubject.complete()
   }
 }
