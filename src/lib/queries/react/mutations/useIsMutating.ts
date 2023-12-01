@@ -7,7 +7,7 @@ import { type MutationFilters } from "../../client/mutations/types"
 import { useLiveRef } from "../../../utils/useLiveRef"
 import { type QueryClient } from "../../client/createClient"
 
-export const useMutationState = (
+export const useIsMutating = (
   { mutationKey, predicate }: MutationFilters = {},
   queryClient?: QueryClient
 ) => {

@@ -16,7 +16,7 @@ import {
   QueryClientProvider as RcQueryClientProvider
   // useMutation as rc_useMutation
 } from "@tanstack/react-query"
-import { useIsMutating } from "./lib/queries/react/mutations/useMutationState"
+import { useIsMutating } from "./lib/queries/react/mutations/useIsMutating"
 import { sleep } from "./tests/utils"
 
 const rcClient = new rc_QueryClient()
