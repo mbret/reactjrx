@@ -1,18 +1,13 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import {
-  type Subject,
   catchError,
-  combineLatest,
   defer,
   from,
   identity,
   map,
   merge,
   of,
-  share,
-  startWith,
   take,
-  takeUntil
 } from "rxjs"
 import { retryOnError } from "../operators"
 import { type MutationOptions, type MutationResult } from "./types"
@@ -20,14 +15,9 @@ import { type MutationOptions, type MutationResult } from "./types"
 export const createMutation = <Data, MutationArg>({
   mutationFn,
   args,
-  trigger$,
   ...options
 }: {
   args: MutationArg
-  trigger$: Subject<{
-    args: MutationArg
-    options: MutationOptions<Data, MutationArg>
-  }>
 } & Pick<
   MutationOptions<Data, MutationArg>,
   | "onError"
@@ -54,19 +44,7 @@ export const createMutation = <Data, MutationArg>({
       }
 
       return of({ data: error, isError: true })
-    }),
-    share()
-  )
-
-  const queryIsOver$ = queryRunner$.pipe(
-    map(({ data, isError }) => isError || data)
-  )
-
-  const isThisCurrentFunctionLastOneCalled = trigger$.pipe(
-    take(1),
-    map(() => options.mapOperator === "concat"),
-    startWith(true),
-    takeUntil(queryIsOver$)
+    })
   )
 
   const loading$ = of<Partial<MutationResult<Data>>>({
@@ -75,27 +53,23 @@ export const createMutation = <Data, MutationArg>({
 
   return merge(
     loading$,
-    combineLatest([queryRunner$, isThisCurrentFunctionLastOneCalled]).pipe(
-      map(([{ data, isError }, isLastMutationCalled]) => {
+    queryRunner$.pipe(
+      map(({ data, isError }) => {
         if (!isError) {
           if (options.onSuccess != null) options.onSuccess(data as Data, args)
         }
 
-        if (isLastMutationCalled) {
-          return isError
-            ? {
-                status: "error" as const,
-                error: data,
-                data: undefined
-              }
-            : {
-                status: "success" as const,
-                error: undefined,
-                data: data as Data
-              }
-        }
-
-        return {}
+        return isError
+          ? {
+              status: "error" as const,
+              error: data,
+              data: undefined
+            }
+          : {
+              status: "success" as const,
+              error: undefined,
+              data: data as Data
+            }
       })
     )
   ).pipe((options.__queryRunnerHook as typeof identity) ?? identity)

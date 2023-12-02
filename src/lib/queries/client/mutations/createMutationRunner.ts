@@ -2,21 +2,24 @@
 import {
   BehaviorSubject,
   Subject,
+  combineLatest,
   concatMap,
   distinctUntilChanged,
   filter,
   finalize,
   identity,
+  map,
   mergeMap,
+  share,
   skip,
+  startWith,
   switchMap,
+  take,
   takeUntil,
   tap
 } from "rxjs"
 import { isDefined } from "../../../utils/isDefined"
-import {
-  type MutationOptions,
-} from "./types"
+import { type MutationOptions } from "./types"
 import { mergeResults } from "./operators"
 import { createMutation } from "./createMutation"
 
@@ -83,11 +86,34 @@ export const createMutationRunner = <T, MutationArg>({
           const mutation$ = createMutation({
             args,
             ...options,
-            mapOperator,
-            trigger$,
-          })
+            mapOperator
+          }).pipe(share())
 
-          return mutation$.pipe(
+          const queryIsOver$ = mutation$.pipe(
+            map(({ data, error }) => error || data)
+          )
+
+          const isThisCurrentFunctionLastOneCalled = trigger$.pipe(
+            take(1),
+            map(() => options.mapOperator === "concat"),
+            startWith(true),
+            takeUntil(queryIsOver$)
+          )
+
+          return combineLatest([
+            mutation$,
+            isThisCurrentFunctionLastOneCalled
+          ]).pipe(
+            map(([result, isLastMutationCalled]) => {
+              if (
+                (result.status === "success" || result.status === "error") &&
+                !isLastMutationCalled
+              ) {
+                return {}
+              }
+
+              return result
+            }),
             takeUntil(reset$),
             finalize(() => {
               mutationsRunning$.next(mutationsRunning$.getValue() - 1)
