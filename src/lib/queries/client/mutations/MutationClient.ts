@@ -106,10 +106,10 @@ export class MutationClient {
               }
             })
 
-            mutationForKey.mutationsRunning$
+            mutationForKey.mutationsSubject
               .pipe(
                 skip(1),
-                filter((number) => number === 0)
+                filter((items) => items.length === 0)
               )
               .subscribe(() => {
                 mutationForKey?.destroy()
@@ -146,8 +146,10 @@ export class MutationClient {
         switchMap((mapItem) => {
           const mutationRunners = Array.from(mapItem.entries()).map(
             ([, value]) =>
-              value.mutationsRunning$.pipe(
-                map((number) => [value.mutationKey, number] as const)
+              value.mutationsSubject.pipe(
+                map(
+                  (mutations) => [value.mutationKey, mutations.length] as const
+                )
               )
           )
 

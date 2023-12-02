@@ -10,13 +10,11 @@ import {
   identity,
   map,
   mergeMap,
-  share,
   skip,
   startWith,
   switchMap,
   take,
   takeUntil,
-  tap
 } from "rxjs"
 import { isDefined } from "../../../utils/isDefined"
 import { type MutationOptions } from "./types"
@@ -42,7 +40,9 @@ export const createMutationRunner = <T, MutationArg>({
   const mapOperator$ = new BehaviorSubject<
     MutationOptions<any, any>["mapOperator"]
   >("merge")
-  const mutationsRunning$ = new BehaviorSubject(0)
+  const mutationsSubject = new BehaviorSubject<
+    Array<ReturnType<typeof createMutation>>
+  >([])
 
   /**
    * Mutation can be destroyed in two ways
@@ -57,7 +57,7 @@ export const createMutationRunner = <T, MutationArg>({
     closed = true
 
     mapOperator$.complete()
-    mutationsRunning$.complete()
+    mutationsSubject.complete()
     trigger$.complete()
     reset$.complete()
   }
@@ -79,17 +79,16 @@ export const createMutationRunner = <T, MutationArg>({
 
       return trigger$.pipe(
         takeUntil(stableMapOperator$.pipe(skip(1))),
-        tap(() => {
-          mutationsRunning$.next(mutationsRunning$.getValue() + 1)
-        }),
         switchOperator(({ args, options }) => {
-          const mutation$ = createMutation({
+          const mutation = createMutation({
             args,
             ...options,
             mapOperator
-          }).pipe(share())
+          })
 
-          const queryIsOver$ = mutation$.pipe(
+          mutationsSubject.next([...mutationsSubject.getValue(), mutation])
+
+          const queryIsOver$ = mutation.mutation$.pipe(
             map(({ data, error }) => error || data)
           )
 
@@ -101,7 +100,7 @@ export const createMutationRunner = <T, MutationArg>({
           )
 
           return combineLatest([
-            mutation$,
+            mutation.mutation$,
             isThisCurrentFunctionLastOneCalled
           ]).pipe(
             map(([result, isLastMutationCalled]) => {
@@ -116,7 +115,9 @@ export const createMutationRunner = <T, MutationArg>({
             }),
             takeUntil(reset$),
             finalize(() => {
-              mutationsRunning$.next(mutationsRunning$.getValue() - 1)
+              mutationsSubject.next(
+                mutationsSubject.getValue().filter((item) => item !== mutation)
+              )
             })
           )
         }),
@@ -141,7 +142,7 @@ export const createMutationRunner = <T, MutationArg>({
     },
     reset$,
     destroy,
-    mutationsRunning$,
+    mutationsSubject,
     getClosed: () => closed
   }
 }

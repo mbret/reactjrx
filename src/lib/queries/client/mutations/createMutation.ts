@@ -7,7 +7,8 @@ import {
   map,
   merge,
   of,
-  take,
+  share,
+  take
 } from "rxjs"
 import { retryOnError } from "../operators"
 import { type MutationOptions, type MutationResult } from "./types"
@@ -51,7 +52,7 @@ export const createMutation = <Data, MutationArg>({
     status: "pending"
   })
 
-  return merge(
+  const mutation$ = merge(
     loading$,
     queryRunner$.pipe(
       map(({ data, isError }) => {
@@ -72,5 +73,12 @@ export const createMutation = <Data, MutationArg>({
             }
       })
     )
-  ).pipe((options.__queryRunnerHook as typeof identity) ?? identity)
+  ).pipe(
+    (options.__queryRunnerHook as typeof identity) ?? identity,
+    share()
+  )
+
+  return {
+    mutation$
+  }
 }
