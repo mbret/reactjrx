@@ -51,3 +51,5 @@ export function renderWithClient(
 export function createQueryClient(): QueryClient {
   return new QueryClient()
 }
+
+export const doNotExecute = (_func: () => void) => true

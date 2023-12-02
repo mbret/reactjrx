@@ -62,10 +62,10 @@ export interface MutationObservedResult<R> extends MutationResult<R> {
   isPaused: boolean
 }
 
-export type MutationFn<T, MutationArg> =
-  | Observable<T>
-  | ((arg: MutationArg) => Promise<T>)
-  | ((arg: MutationArg) => Observable<T>)
+export type MutationFn<Data, MutationArg> =
+  | Observable<Data>
+  | ((arg: MutationArg) => Promise<Data>)
+  | ((arg: MutationArg) => Observable<Data>)
 
 export interface MutationOptions<Result, MutationArg> {
   enabled?: boolean

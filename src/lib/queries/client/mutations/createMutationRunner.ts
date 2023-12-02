@@ -2,31 +2,25 @@
 import {
   BehaviorSubject,
   Subject,
-  catchError,
-  combineLatest,
   concatMap,
-  defer,
   distinctUntilChanged,
   filter,
   finalize,
-  from,
   identity,
-  map,
-  merge,
   mergeMap,
-  of,
-  share,
   skip,
-  startWith,
   switchMap,
-  take,
   takeUntil,
   tap
 } from "rxjs"
 import { isDefined } from "../../../utils/isDefined"
-import { retryOnError } from "../operators"
-import { type MutationOptions, type MutationResult } from "./types"
+import {
+  type MutationOptions,
+} from "./types"
 import { mergeResults } from "./operators"
+import { createMutation } from "./createMutation"
+
+export type MutationRunner = ReturnType<typeof createMutationRunner>
 
 export const createMutationRunner = <T, MutationArg>({
   __queryFinalizeHook,
@@ -86,76 +80,15 @@ export const createMutationRunner = <T, MutationArg>({
           mutationsRunning$.next(mutationsRunning$.getValue() + 1)
         }),
         switchOperator(({ args, options }) => {
-          const mutationFn = options.mutationFn
-
-          const mutationFnObservable =
-            typeof mutationFn === "function"
-              ? defer(() => from(mutationFn(args)))
-              : mutationFn
-
-          const queryRunner$ = mutationFnObservable.pipe(
-            retryOnError(options),
-            take(1),
-            map((data) => ({ data, isError: false })),
-            catchError((error: unknown) => {
-              console.error(error)
-
-              if (options.onError != null) {
-                options.onError(error, args)
-              }
-
-              return of({ data: error, isError: true })
-            }),
-            share()
-          )
-
-          const queryIsOver$ = queryRunner$.pipe(
-            map(({ data, isError }) => isError || data)
-          )
-
-          const isThisCurrentFunctionLastOneCalled = trigger$.pipe(
-            take(1),
-            map(() => mapOperator === "concat"),
-            startWith(true),
-            takeUntil(queryIsOver$)
-          )
-
-          const loading$ = of<Partial<MutationResult<T>>>({
-            status: "pending"
+          const mutation$ = createMutation({
+            args,
+            ...options,
+            mapOperator,
+            trigger$,
           })
 
-          return merge(
-            loading$,
-            combineLatest([
-              queryRunner$,
-              isThisCurrentFunctionLastOneCalled
-            ]).pipe(
-              map(([{ data, isError }, isLastMutationCalled]) => {
-                if (!isError) {
-                  if (options.onSuccess != null)
-                    options.onSuccess(data as T, args)
-                }
-
-                if (isLastMutationCalled) {
-                  return isError
-                    ? {
-                        status: "error" as const,
-                        error: data,
-                        data: undefined
-                      }
-                    : {
-                        status: "success" as const,
-                        error: undefined,
-                        data: data as T
-                      }
-                }
-
-                return {}
-              }),
-              takeUntil(reset$)
-            )
-          ).pipe(
-            (options.__queryRunnerHook as typeof identity) ?? identity,
+          return mutation$.pipe(
+            takeUntil(reset$),
             finalize(() => {
               mutationsRunning$.next(mutationsRunning$.getValue() - 1)
             })
