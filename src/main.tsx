@@ -48,8 +48,6 @@ const IsMutating = memo(() => {
 const Mutation = memo((_: { onClick: () => void }) => {
   const {
     mutate: mutate1,
-    cancel,
-    ...rest
   } = useMutation({
     mutationKey: ["mutation1"],
     mapOperator: "merge",
@@ -61,7 +59,8 @@ const Mutation = memo((_: { onClick: () => void }) => {
       console.log("onSuccess", v)
     }
   })
-  const { mutate: mutate2 } = useMutation({
+
+  useMutation({
     mutationKey: ["mutation2"],
     mutationFn: async () => {
       await sleep(100)

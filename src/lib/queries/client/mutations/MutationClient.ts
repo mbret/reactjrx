@@ -262,8 +262,9 @@ export class MutationClient {
       .map((mutation) => finalSelect(mutation))
 
     const value$ = this.mutationsSubject.pipe(
-      map((mutations) => mutations.filter(predicate)),
-      map((mutations) => mutations.map((mutation) => finalSelect(mutation))),
+      map((mutations) =>
+        mutations.filter(predicate).map((mutation) => finalSelect(mutation))
+      ),
       distinctUntilChanged(shallowEqual)
     )
 
