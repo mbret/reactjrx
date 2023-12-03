@@ -27,6 +27,12 @@ export class Mutation<Data> {
     getDefaultMutationState()
   )
 
+  /**
+   * @important
+   * proxy for rect-query, not really useful
+   */
+  state: MutationState<Data> = this.stateSubject.getValue()
+
   options: MutationOptions<Data, any>
 
   mutation$: Observable<MutationResult<Data>>
@@ -39,6 +45,9 @@ export class Mutation<Data> {
   } & MutationOptions<Data, any>) {
     this.options = options
     const mutationFn = options.mutationFn
+
+    this.state.variables = args
+    this.stateSubject.next(this.state)
 
     const mutationFnObservable =
       typeof mutationFn === "function"
@@ -88,7 +97,8 @@ export class Mutation<Data> {
     ).pipe(
       mergeResults,
       tap((value) => {
-        this.stateSubject.next({ ...this.stateSubject.getValue(), ...value })
+        this.state = { ...this.state, ...value }
+        this.stateSubject.next(this.state)
       }),
       (options.__queryRunnerHook as typeof identity) ?? identity,
       share()

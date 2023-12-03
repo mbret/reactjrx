@@ -9,7 +9,8 @@ import {
   sleep
 } from "../../../../tests/utils"
 import { useMutation } from "./useMutation"
-import { MutationState } from "../../client/mutations/types"
+import { type MutationState } from "../../client/mutations/types"
+import { memo } from "react"
 
 describe("useMutationState", () => {
   describe("types", () => {
@@ -34,56 +35,63 @@ describe("useMutationState", () => {
       })
     })
   })
-  // it('should return variables after calling mutate', async () => {
-  //   const queryClient = createQueryClient()
-  //   const variables: unknown[][] = []
-  //   const mutationKey = ['mutation']
 
-  //   function Variables() {
-  //     variables.push(
-  //       useMutationState({
-  //         filters: { mutationKey, status: 'pending' },
-  //         select: (mutation) => mutation.state.variables,
-  //       }),
-  //     )
+  it("should return variables after calling mutate", async () => {
+    const queryClient = createQueryClient()
+    const variables: unknown[][] = []
+    const mutationKey = ["mutation"]
 
-  //     return null
-  //   }
+    const VariablesMemo = memo(function Variables() {
+      const value = useMutationState({
+        filters: { mutationKey, status: "pending" },
+        select: (mutation) => mutation.state.variables
+      })
 
-  //   function Mutate() {
-  //     const { mutate, data } = useMutation({
-  //       mutationKey,
-  //       mutationFn: async (input: number) => {
-  //         await sleep(150)
-  //         return 'data' + input
-  //       },
-  //     })
+      variables.push(value)
 
-  //     return (
-  //       <div>
-  //         data: {data ?? 'null'}
-  //         <button onClick={() => mutate(1)}>mutate</button>
-  //       </div>
-  //     )
-  //   }
+      return null
+    })
 
-  //   function Page() {
-  //     return (
-  //       <div>
-  //         <Variables />
-  //         <Mutate />
-  //       </div>
-  //     )
-  //   }
+    function Mutate() {
+      const { mutate, data } = useMutation({
+        mutationKey,
+        mutationFn: async (input: number) => {
+          await sleep(150)
+          return "data" + input
+        }
+      })
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+      return (
+        <div>
+          data: {data ?? "null"}
+          <button
+            onClick={() => {
+              mutate(1)
+            }}
+          >
+            mutate
+          </button>
+        </div>
+      )
+    }
 
-  //   await waitFor(() => rendered.getByText('data: null'))
+    function Page() {
+      return (
+        <div>
+          <VariablesMemo />
+          <Mutate />
+        </div>
+      )
+    }
 
-  //   fireEvent.click(rendered.getByRole('button', { name: /mutate/i }))
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() => rendered.getByText('data: data1'))
+    await waitFor(() => rendered.getByText("data: null"))
 
-  //   expect(variables).toEqual([[], [1], []])
-  // })
+    fireEvent.click(rendered.getByRole("button", { name: /mutate/i }))
+
+    await waitFor(() => rendered.getByText("data: data1"))
+
+    expect(variables).toEqual([[], [1], []])
+  })
 })

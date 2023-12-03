@@ -21,14 +21,14 @@ import {
   type MutationObservedResult,
   type MutationFilters,
   type MutationKey,
-  type Mutation,
-  MutationState
+  type MutationState
 } from "./types"
 import { type QueryKey } from "../keys/types"
 import { isDefined } from "../../../utils/isDefined"
 import { createMutationRunner } from "./createMutationRunner"
 import { createPredicateForFilters } from "./filters"
 import { shallowEqual } from "../../../utils/shallowEqual"
+import { type Mutation } from "./Mutation"
 
 export class MutationClient {
   /**

@@ -34,7 +34,7 @@ export interface MutationFilters<TData> {
   /**
    * Match mutation key exactly
    */
-  exact?: boolean
+  // exact?: boolean
   /**
    * Include mutations matching this predicate function
    */

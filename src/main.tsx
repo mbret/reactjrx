@@ -1,5 +1,5 @@
 /* eslint-disable new-cap */
-import { memo, useCallback, useState } from "react"
+import { memo, useState } from "react"
 import ReactDOM from "react-dom/client"
 import {
   QueryClient,
@@ -13,10 +13,9 @@ import { usePersistSignals } from "./lib/state/persistance/usePersistSignals"
 import { createLocalStorageAdapter } from "./lib/state/persistance/adapters/createLocalStorageAdapter"
 import {
   QueryClient as rc_QueryClient,
-  QueryClientProvider as RcQueryClientProvider,
+  QueryClientProvider as RcQueryClientProvider
   // useMutation as rc_useMutation
 } from "@tanstack/react-query"
-import { useIsMutating } from "./lib/queries/react/mutations/useIsMutating"
 import { sleep } from "./tests/utils"
 import { useMutationState } from "./lib/queries/react/mutations/useMutationState"
 
@@ -28,26 +27,38 @@ const myState = signal({
 })
 
 const IsMutating = memo(() => {
-  const isMutating = useIsMutating({
-    predicate: useCallback(
-      ({ options: { mutationKey } }: any) => mutationKey[0] === "mutation1",
-      []
-    )
-  })
+  // const isMutating = useIsMutating({
+  //   // select: (mutation) => mutation.
+  // })
 
-  console.log("isMutating", isMutating)
+  // console.log("isMutating", isMutating)
 
-  console.log("useMutationState", useMutationState())
+  console.log(
+    "useMutationState",
+    useMutationState({
+      select(mutation) {
+        return mutation.state.variables
+      }
+    })
+  )
 
   return null
 })
 
 const Mutation = memo((_: { onClick: () => void }) => {
-  const { mutate: mutate1, reset } = useMutation({
+  const {
+    mutate: mutate1,
+    cancel,
+    ...rest
+  } = useMutation({
     mutationKey: ["mutation1"],
-    mutationFn: async () => {
-      await sleep(100)
-      return "data"
+    mapOperator: "merge",
+    mutationFn: async (v: string) => {
+      await sleep(500)
+      return v
+    },
+    onSuccess: (v) => {
+      console.log("onSuccess", v)
     }
   })
   const { mutate: mutate2 } = useMutation({
@@ -81,13 +92,19 @@ const Mutation = memo((_: { onClick: () => void }) => {
   // console.log("rc", result2)
   // console.log("observe", observeMut)
 
+  // console.log("mutate", rest)
+
   return (
     <div style={{ display: "flex", border: "1px solid red" }}>
       mutation
       <IsMutating />
       <button
         onClick={() => {
-          mutate1()
+          mutate1("data1")
+          // mutate1("data2")
+          // mutate1("data3")
+          // mutate1("data4")
+          // cancel()
           // reset()
           // mutate2()
           // result2.mutate({ res: 3, timeout: 1000 })
