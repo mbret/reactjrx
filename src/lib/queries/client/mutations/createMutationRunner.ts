@@ -10,16 +10,17 @@ import {
   identity,
   map,
   mergeMap,
+  of,
   skip,
   startWith,
   switchMap,
   take,
-  takeUntil,
+  takeUntil
 } from "rxjs"
 import { isDefined } from "../../../utils/isDefined"
 import { type MutationOptions } from "./types"
 import { mergeResults } from "./operators"
-import { createMutation } from "./createMutation"
+import { Mutation } from "./Mutation"
 
 export type MutationRunner = ReturnType<typeof createMutationRunner>
 
@@ -35,14 +36,12 @@ export const createMutationRunner = <T, MutationArg>({
     args: MutationArg
     options: MutationOptions<T, MutationArg>
   }>()
-  const reset$ = new Subject<void>()
+  const cancel$ = new Subject<void>()
   let closed = false
   const mapOperator$ = new BehaviorSubject<
     MutationOptions<any, any>["mapOperator"]
   >("merge")
-  const mutationsSubject = new BehaviorSubject<
-    Array<ReturnType<typeof createMutation>>
-  >([])
+  const mutationsSubject = new BehaviorSubject<Array<Mutation<any>>>([])
 
   /**
    * Mutation can be destroyed in two ways
@@ -59,7 +58,11 @@ export const createMutationRunner = <T, MutationArg>({
     mapOperator$.complete()
     mutationsSubject.complete()
     trigger$.complete()
-    reset$.complete()
+    /**
+     * make sure we cancel ongoing requests if we destroy this runner before they finish
+     */
+    cancel$.next()
+    cancel$.complete()
   }
 
   const stableMapOperator$ = mapOperator$.pipe(
@@ -77,16 +80,38 @@ export const createMutationRunner = <T, MutationArg>({
             ? switchMap
             : mergeMap
 
+      let mutationsForCurrentMapOperatorSubject: Array<Mutation<any>> = []
+
+      const removeMutation = (mutation: Mutation<any>) => {
+        mutationsForCurrentMapOperatorSubject =
+          mutationsForCurrentMapOperatorSubject.filter(
+            (item) => item !== mutation
+          )
+        mutationsSubject.next(
+          mutationsSubject.getValue().filter((item) => item !== mutation)
+        )
+      }
+
       return trigger$.pipe(
         takeUntil(stableMapOperator$.pipe(skip(1))),
-        switchOperator(({ args, options }) => {
-          const mutation = createMutation({
+        map(({ args, options }) => {
+          const mutation = new Mutation({
             args,
             ...options,
             mapOperator
           })
 
+          mutationsForCurrentMapOperatorSubject = [
+            ...mutationsForCurrentMapOperatorSubject,
+            mutation
+          ]
+
           mutationsSubject.next([...mutationsSubject.getValue(), mutation])
+
+          return mutation
+        }),
+        switchOperator((mutation) => {
+          if (!mutationsSubject.getValue().includes(mutation)) return of({})
 
           const queryIsOver$ = mutation.mutation$.pipe(
             map(({ data, error }) => error || data)
@@ -94,12 +119,12 @@ export const createMutationRunner = <T, MutationArg>({
 
           const isThisCurrentFunctionLastOneCalled = trigger$.pipe(
             take(1),
-            map(() => options.mapOperator === "concat"),
+            map(() => mapOperator === "concat"),
             startWith(true),
             takeUntil(queryIsOver$)
           )
 
-          return combineLatest([
+          const result$ = combineLatest([
             mutation.mutation$,
             isThisCurrentFunctionLastOneCalled
           ]).pipe(
@@ -113,20 +138,31 @@ export const createMutationRunner = <T, MutationArg>({
 
               return result
             }),
-            takeUntil(reset$),
+            takeUntil(cancel$.pipe()),
+            mergeResults,
             finalize(() => {
-              mutationsSubject.next(
-                mutationsSubject.getValue().filter((item) => item !== mutation)
-              )
+              removeMutation(mutation)
             })
           )
+
+          return result$
         }),
-        (__queryTriggerHook as typeof identity) ?? identity,
-        mergeResults
+        mergeResults,
+        (__queryTriggerHook as typeof identity) ?? identity
       )
     }),
     (__queryFinalizeHook as typeof identity) ?? identity
   )
+
+  cancel$.subscribe(() => {
+    /**
+     * on cancel we remove all queries because they should either be cancelled
+     * or not run on next switch
+     */
+    if (mutationsSubject.getValue().length === 0) return
+
+    mutationsSubject.next([])
+  })
 
   return {
     mutation$,
@@ -140,7 +176,7 @@ export const createMutationRunner = <T, MutationArg>({
       mapOperator$.next(options.mapOperator)
       trigger$.next({ args, options })
     },
-    reset$,
+    cancel$,
     destroy,
     mutationsSubject,
     getClosed: () => closed

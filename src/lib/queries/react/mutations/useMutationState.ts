@@ -1,44 +1,36 @@
 import { useMemo } from "react"
 import { useObserve } from "../../../binding/useObserve"
 import { useQueryClient } from "../Provider"
-import { serializeKey } from "../../client/keys/serializeKey"
-import { skip } from "rxjs"
-import { type MutationFilters } from "../../client/mutations/types"
+import {
+  type MutationState,
+  type MutationFilters,
+  type Mutation
+} from "../../client/mutations/types"
 import { useLiveRef } from "../../../utils/useLiveRef"
-import { type QueryClient } from "../../client/createClient"
 
-export const useMutationState = (
-  { mutationKey, predicate }: MutationFilters = {},
-  queryClient?: QueryClient
-) => {
-  const defaultQueryClient = useQueryClient({ unsafe: !!queryClient })
-  const finalQueryClient = queryClient?.client ?? defaultQueryClient
-  const mutationKeyRef = useLiveRef(mutationKey)
-  const serializedKey = mutationKey ? serializeKey(mutationKey) : undefined
-  const predicateRef = useLiveRef(predicate)
+export interface MutationStateOptions<TResult> {
+  filters?: MutationFilters<TResult>
+  select?: (mutation: Mutation<any>) => TResult
+}
 
-  const runningMutations$ = useMemo(() => {
-    const { lastValue, value$ } =
-      finalQueryClient.mutationClient.useIsMutating({
-        mutationKey: mutationKeyRef.current,
-        /**
-         * We have to delay function call so that we don't need a stable predicate function
-         */
-        predicate: (mutation) =>
-          !predicateRef.current
-            ? mutationKeyRef.current
-              ? // @todo optimize
-                serializeKey(mutationKeyRef.current) ===
-                serializeKey(mutation.options.mutationKey)
-              : true
-            : predicateRef.current(mutation)
-      })
+export const useMutationState = <TResult = MutationState>({
+  filters,
+  select
+}: MutationStateOptions<TResult> = {}): TResult[] => {
+  const queryClient = useQueryClient()
+  const filtersRef = useLiveRef(filters)
+  const selectRef = useLiveRef(select)
 
-    return {
-      lastValue,
-      value$: value$.pipe(skip(1))
-    }
-  }, [queryClient, serializedKey])
+  const { value$, lastValue } = useMemo(
+    () =>
+      queryClient.mutationClient.mutationState({
+        select: (mutation) =>
+          selectRef.current
+            ? selectRef.current(mutation)
+            : (mutation.stateSubject.getValue() as TResult)
+      }),
+    [queryClient]
+  )
 
-  return useObserve(runningMutations$.value$) ?? runningMutations$.lastValue
+  return useObserve(value$) ?? lastValue
 }

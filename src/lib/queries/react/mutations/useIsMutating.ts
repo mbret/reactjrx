@@ -7,8 +7,8 @@ import { type MutationFilters } from "../../client/mutations/types"
 import { useLiveRef } from "../../../utils/useLiveRef"
 import { type QueryClient } from "../../client/createClient"
 
-export const useIsMutating = (
-  { mutationKey, predicate }: MutationFilters = {},
+export const useIsMutating = <TData>(
+  { mutationKey, predicate }: MutationFilters<TData> = {},
   queryClient?: QueryClient
 ) => {
   const defaultQueryClient = useQueryClient({ unsafe: !!queryClient })
@@ -19,7 +19,7 @@ export const useIsMutating = (
 
   const runningMutations$ = useMemo(() => {
     const { lastValue, value$ } =
-      finalQueryClient.mutationClient.useIsMutating({
+      finalQueryClient.mutationClient.useIsMutating<TData>({
         mutationKey: mutationKeyRef.current,
         /**
          * We have to delay function call so that we don't need a stable predicate function

@@ -433,7 +433,6 @@ describe("useMutation", () => {
           expect(finalized).toBe(2)
           expect(finalized).toBe(unmountTime)
           expect(queryFinalizedNumberOfTime).toBe(unmountTime)
-          expect(queryFinalizedNumberOfTime).toBe(unmountTime)
         })
 
         describe("and the query is a Promise that throws", () => {

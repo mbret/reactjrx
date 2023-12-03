@@ -11,8 +11,8 @@ import {
   type Observable,
   combineLatest,
   distinctUntilChanged,
-  of,
-  type ObservedValueOf
+  startWith,
+  of
 } from "rxjs"
 import { serializeKey } from "../keys/serializeKey"
 import {
@@ -20,11 +20,15 @@ import {
   type MutationOptions,
   type MutationObservedResult,
   type MutationFilters,
-  type MutationKey
+  type MutationKey,
+  type Mutation,
+  MutationState
 } from "./types"
 import { type QueryKey } from "../keys/types"
 import { isDefined } from "../../../utils/isDefined"
 import { createMutationRunner } from "./createMutationRunner"
+import { createPredicateForFilters } from "./filters"
+import { shallowEqual } from "../../../utils/shallowEqual"
 
 export class MutationClient {
   /**
@@ -59,7 +63,7 @@ export class MutationClient {
     args: any
   }>()
 
-  reset$ = new Subject<{ key: QueryKey }>()
+  cancel$ = new Subject<{ key: QueryKey }>()
 
   /**
    * Observable to track how many running mutations per runner
@@ -67,6 +71,11 @@ export class MutationClient {
   isMutatingSubject = new BehaviorSubject<
     Array<readonly [MutationKey, number]>
   >([])
+
+  /**
+   * List of all mutations running
+   */
+  mutationsSubject = new BehaviorSubject<Array<Mutation<any>>>([])
 
   constructor() {
     this.mutate$
@@ -108,6 +117,7 @@ export class MutationClient {
 
             mutationForKey.mutationsSubject
               .pipe(
+                distinctUntilChanged(shallowEqual),
                 skip(1),
                 filter((items) => items.length === 0)
               )
@@ -128,7 +138,7 @@ export class MutationClient {
       )
       .subscribe()
 
-    this.reset$
+    this.cancel$
       .pipe(
         tap(({ key }) => {
           const serializedKey = serializeKey(key)
@@ -136,33 +146,37 @@ export class MutationClient {
           this.mutationRunnersByKey$
             .getValue()
             .get(serializedKey)
-            ?.reset$.next()
+            ?.cancel$.next()
         })
       )
       .subscribe()
 
+    /**
+     * @optimize
+     */
     this.mutationRunnersByKey$
       .pipe(
         switchMap((mapItem) => {
-          const mutationRunners = Array.from(mapItem.entries()).map(
-            ([, value]) =>
-              value.mutationsSubject.pipe(
-                map(
-                  (mutations) => [value.mutationKey, mutations.length] as const
-                )
+          const mutationRunners = Array.from(mapItem.values())
+
+          const mutations$ = combineLatest(
+            mutationRunners.map((runner) =>
+              runner.mutationsSubject.pipe(
+                map((mutations) => mutations.map((mutation) => mutation))
               )
+            )
           )
 
-          const mutationRunnersMutationsRunning$ = combineLatest([
-            // when map is empty we still need to push 0
-            of([[] as MutationKey, 0] as const),
-            ...mutationRunners
-          ])
-
-          return mutationRunnersMutationsRunning$
-        })
+          return mutations$.pipe(
+            map((mutationsByKeys) =>
+              mutationsByKeys.reduce((acc, value) => [...acc, ...value], [])
+            )
+          )
+        }),
+        startWith([]),
+        distinctUntilChanged(shallowEqual)
       )
-      .subscribe(this.isMutatingSubject)
+      .subscribe(this.mutationsSubject)
   }
 
   /**
@@ -194,26 +208,63 @@ export class MutationClient {
     return this.mutationRunnersByKey$.getValue().get(key)
   }
 
-  useIsMutating({ mutationKey, predicate }: MutationFilters = {}) {
-    const defaultPredicate: MutationFilters["predicate"] = ({ options }) =>
-      mutationKey
-        ? // @todo optimize
-          serializeKey(options.mutationKey) === serializeKey(mutationKey)
-        : true
-    const finalPredicate = predicate ?? defaultPredicate
+  useIsMutating<TData>(filters: MutationFilters<TData> = {}) {
+    const predicate = createPredicateForFilters(filters)
 
-    const reduceByNumber = (
-      entries: ObservedValueOf<typeof this.isMutatingSubject>
-    ) =>
-      entries.reduce((acc: number, [mutationKey, value]) => {
-        return finalPredicate({ options: { mutationKey } }) ? value + acc : acc
+    const reduceByNumber = (entries: Array<Mutation<any>>) =>
+      entries.reduce((acc: number, mutation) => {
+        return predicate(mutation) &&
+          mutation.stateSubject.getValue().status === "pending"
+          ? 1 + acc
+          : acc
       }, 0)
 
-    const lastValue = reduceByNumber(this.isMutatingSubject.getValue())
+    const lastValue = reduceByNumber(this.mutationsSubject.getValue())
 
-    const value$ = this.isMutatingSubject.pipe(
-      map((mutationRunningByKeys) => reduceByNumber(mutationRunningByKeys)),
+    const value$ = this.mutationsSubject.pipe(
+      switchMap((mutations) => {
+        const mutationsOnStateUpdate = mutations.map((mutation) =>
+          mutation.stateSubject.pipe(map(() => mutation))
+        )
+
+        const mutationsOnStateUpdate$ = combineLatest(mutationsOnStateUpdate)
+
+        return mutationsOnStateUpdate.length === 0
+          ? of([])
+          : mutationsOnStateUpdate$
+      }),
+      map(reduceByNumber),
       distinctUntilChanged()
+    )
+
+    return { value$, lastValue }
+  }
+
+  mutationState<TData, Selected = MutationState<TData>>({
+    filters,
+    select
+  }: {
+    filters?: MutationFilters<TData>
+    select?: (mutation: Mutation<TData>) => Selected
+  } = {}) {
+    const predicate = createPredicateForFilters(filters)
+    const finalSelect =
+      select ?? ((mutation) => mutation.stateSubject.getValue() as Selected)
+
+    const lastValue = this.mutationsSubject
+      .getValue()
+      .reduce((acc: Array<Mutation<any>>, mutation) => {
+        const result = [...acc, mutation]
+
+        return result
+      }, [])
+      .filter(predicate)
+      .map((mutation) => finalSelect(mutation))
+
+    const value$ = this.mutationsSubject.pipe(
+      map((mutations) => mutations.filter(predicate)),
+      map((mutations) => mutations.map((mutation) => finalSelect(mutation))),
+      distinctUntilChanged(shallowEqual)
     )
 
     return { value$, lastValue }
@@ -276,18 +327,19 @@ export class MutationClient {
   }
 
   /**
-   * This will reset any current mutation runnings.
+   * This will cancel any current mutation runnings.
    * No discrimination process
    */
-  reset(params: { key: QueryKey }) {
-    this.reset$.next(params)
+  cancel(params: { key: QueryKey }) {
+    this.cancel$.next(params)
   }
 
   destroy() {
-    this.reset$.complete()
+    this.cancel$.complete()
     this.mutate$.complete()
     this.mutationResults$.complete()
     this.mutationRunnersByKey$.complete()
     this.isMutatingSubject.complete()
+    this.mutationsSubject.complete()
   }
 }

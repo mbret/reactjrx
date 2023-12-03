@@ -64,6 +64,56 @@ describe("useIsMutating", () => {
     }, {})
   })
 
+  describe("Given concat mutation", () => {
+    it("should return the number of fetching mutations", async () => {
+      const isMutatings: number[] = []
+      const queryClient = createQueryClient()
+
+      function IsMutating() {
+        // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
+        const isMutating = useIsMutating()
+
+        isMutatings.push(isMutating)
+
+        return null
+      }
+
+      function Mutations() {
+        const { mutate } = useMutation({
+          mutationFn: async (data: string) => {
+            await sleep(150)
+            return data
+          },
+          mapOperator: "concat"
+        })
+
+        React.useEffect(() => {
+          mutate("a")
+          mutate("b")
+          mutate("c")
+        }, [mutate])
+
+        return null
+      }
+
+      function Page() {
+        return (
+          <div>
+            <IsMutating />
+            <Mutations />
+          </div>
+        )
+      }
+
+      renderWithClient(queryClient, <Page />)
+      await waitFor(() => {
+        // because value quickly switch to 0,1 each time we have a new render
+        // but the value being batched we end up with same 1
+        expect(isMutatings).toEqual([0, 1, 1, 1, 0])
+      }, {})
+    })
+  })
+
   it("should return the number of fetching observables mutations", async () => {
     const isMutatings: number[] = []
     const queryClient = createQueryClient()

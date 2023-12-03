@@ -49,8 +49,8 @@ export function useMutation<Args = void, R = undefined>(
     [finalQueryClient, key]
   )
 
-  const reset = useCallback(() => {
-    finalQueryClient.mutationClient.reset({
+  const cancel = useCallback(() => {
+    finalQueryClient.mutationClient.cancel({
       key: optionsRef.current.mutationKey ?? defaultKey.current
     })
   }, [finalQueryClient])
@@ -58,12 +58,12 @@ export function useMutation<Args = void, R = undefined>(
   useEffect(() => {
     return () => {
       if (optionsRef.current.cancelOnUnMount) {
-        finalQueryClient.mutationClient.reset({
+        finalQueryClient.mutationClient.cancel({
           key: optionsRef.current.mutationKey ?? defaultKey.current
         })
       }
     }
   }, [])
 
-  return { mutate, reset, ...result }
+  return { mutate, cancel, ...result }
 }

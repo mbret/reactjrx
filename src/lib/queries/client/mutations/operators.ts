@@ -10,7 +10,9 @@ export const mergeResults = <T>(
       (acc: MutationResult<T>, current) => {
         return {
           ...acc,
-          ...current
+          ...current,
+          data: current.data ?? acc.data,
+          error: current.error ?? acc.error
         }
       },
       {

@@ -1,5 +1,6 @@
 import { type MonoTypeOperatorFunction, type Observable } from "rxjs"
 import { type Query, type QueryResult } from "../types"
+import { type Mutation } from "./Mutation"
 
 /**
  * The default value `merge` is suitable for most use case.
@@ -29,7 +30,7 @@ export type MutationKey = unknown[]
 /**
  * @todo this should be used in a lot of place so we can probably make a helper for that
  */
-export interface MutationFilters {
+export interface MutationFilters<TData> {
   /**
    * Match mutation key exactly
    */
@@ -37,7 +38,7 @@ export interface MutationFilters {
   /**
    * Include mutations matching this predicate function
    */
-  predicate?: (mutation: { options: { mutationKey: MutationKey } }) => boolean
+  predicate?: (mutation: Mutation<TData>) => boolean
   /**
    * Include mutations matching this mutation key
    */
@@ -102,4 +103,22 @@ export interface MutationOptions<Result, MutationArg> {
   __queryRunnerHook?: MonoTypeOperatorFunction<any>
   __queryTriggerHook?: MonoTypeOperatorFunction<Partial<Result>>
   __queryFinalizeHook?: MonoTypeOperatorFunction<Partial<Result>>
+}
+
+export interface MutationState<
+  TData = unknown,
+  TError = unknown,
+  TVariables = void,
+  TContext = unknown
+> {
+  context: TContext | undefined
+  data: TData | undefined
+  // error: TError | null
+  error: TError
+  // failureCount: number
+  // failureReason: TError | null
+  // isPaused: boolean
+  status: MutationStatus
+  variables: TVariables | undefined
+  submittedAt: number
 }

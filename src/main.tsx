@@ -13,11 +13,12 @@ import { usePersistSignals } from "./lib/state/persistance/usePersistSignals"
 import { createLocalStorageAdapter } from "./lib/state/persistance/adapters/createLocalStorageAdapter"
 import {
   QueryClient as rc_QueryClient,
-  QueryClientProvider as RcQueryClientProvider
+  QueryClientProvider as RcQueryClientProvider,
   // useMutation as rc_useMutation
 } from "@tanstack/react-query"
 import { useIsMutating } from "./lib/queries/react/mutations/useIsMutating"
 import { sleep } from "./tests/utils"
+import { useMutationState } from "./lib/queries/react/mutations/useMutationState"
 
 const rcClient = new rc_QueryClient()
 
@@ -36,11 +37,13 @@ const IsMutating = memo(() => {
 
   console.log("isMutating", isMutating)
 
+  console.log("useMutationState", useMutationState())
+
   return null
 })
 
 const Mutation = memo((_: { onClick: () => void }) => {
-  const { mutate: mutate1 } = useMutation({
+  const { mutate: mutate1, reset } = useMutation({
     mutationKey: ["mutation1"],
     mutationFn: async () => {
       await sleep(100)
@@ -85,7 +88,8 @@ const Mutation = memo((_: { onClick: () => void }) => {
       <button
         onClick={() => {
           mutate1()
-          mutate2()
+          // reset()
+          // mutate2()
           // result2.mutate({ res: 3, timeout: 1000 })
           // result.mutate({ res: 2, timeout: 2000 })
           // result.mutate({ res: 3, timeout: 1000 })

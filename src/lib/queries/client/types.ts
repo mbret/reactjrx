@@ -10,6 +10,15 @@ export interface QueryResult<T> {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface Register {}
+
+export type DefaultError = Register extends {
+  defaultError: infer TError
+}
+  ? TError
+  : Error
+
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface Query {}
 
 export interface QueryCommand<T> {
