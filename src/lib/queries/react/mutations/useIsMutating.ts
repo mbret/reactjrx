@@ -6,16 +6,18 @@ import { skip } from "rxjs"
 import { type MutationFilters } from "../../client/mutations/types"
 import { useLiveRef } from "../../../utils/useLiveRef"
 import { type QueryClient } from "../../client/createClient"
+import { createPredicateForFilters } from "../../client/mutations/filters"
 
 export const useIsMutating = <TData>(
-  { mutationKey, predicate }: MutationFilters<TData> = {},
+  filters: MutationFilters<TData> = {},
   queryClient?: QueryClient
 ) => {
   const defaultQueryClient = useQueryClient({ unsafe: !!queryClient })
   const finalQueryClient = queryClient?.client ?? defaultQueryClient
+  const { mutationKey } = filters
   const mutationKeyRef = useLiveRef(mutationKey)
   const serializedKey = mutationKey ? serializeKey(mutationKey) : undefined
-  const predicateRef = useLiveRef(predicate)
+  const filtersRef = useLiveRef(filters)
 
   const runningMutations$ = useMemo(() => {
     const { lastValue, value$ } =
@@ -24,14 +26,11 @@ export const useIsMutating = <TData>(
         /**
          * We have to delay function call so that we don't need a stable predicate function
          */
-        predicate: (mutation) =>
-          !predicateRef.current
-            ? mutationKeyRef.current
-              ? // @todo optimize
-                serializeKey(mutationKeyRef.current) ===
-                serializeKey(mutation.options.mutationKey)
-              : true
-            : predicateRef.current(mutation)
+        predicate: (mutation) => {
+          return filtersRef.current?.predicate
+            ? filtersRef.current.predicate(mutation)
+            : createPredicateForFilters(filtersRef.current)(mutation)
+        }
       })
 
     return {

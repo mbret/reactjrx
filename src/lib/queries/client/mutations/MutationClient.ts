@@ -227,11 +227,9 @@ export class MutationClient {
           mutation.stateSubject.pipe(map(() => mutation))
         )
 
-        const mutationsOnStateUpdate$ = combineLatest(mutationsOnStateUpdate)
-
         return mutationsOnStateUpdate.length === 0
           ? of([])
-          : mutationsOnStateUpdate$
+          : combineLatest(mutationsOnStateUpdate)
       }),
       map(reduceByNumber),
       distinctUntilChanged()
@@ -262,9 +260,18 @@ export class MutationClient {
       .map((mutation) => finalSelect(mutation))
 
     const value$ = this.mutationsSubject.pipe(
-      map((mutations) =>
-        mutations.filter(predicate).map((mutation) => finalSelect(mutation))
-      ),
+      switchMap((mutations) => {
+        const mutationsOnStateUpdate = mutations.map((mutation) =>
+          mutation.stateSubject.pipe(
+            filter(() => predicate(mutation)),
+            map(() => finalSelect(mutation))
+          )
+        )
+
+        return mutationsOnStateUpdate.length === 0
+          ? of([])
+          : combineLatest(mutationsOnStateUpdate)
+      }),
       distinctUntilChanged(shallowEqual)
     )
 
