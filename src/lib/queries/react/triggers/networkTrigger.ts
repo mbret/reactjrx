@@ -1,5 +1,5 @@
 import { type Observable, fromEvent, map, switchMap, EMPTY } from "rxjs"
-import { type UseQueryOptions } from "../types"
+import { type UseQueryOptions } from "../queries/types"
 
 export const createNetworkTrigger = <T>(
   params$: Observable<{ options: UseQueryOptions<T> }>

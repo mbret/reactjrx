@@ -7,7 +7,7 @@ import {
   switchMap,
   EMPTY
 } from "rxjs"
-import { type UseQueryOptions } from "../types"
+import { type UseQueryOptions } from "../queries/types"
 
 export const createActivityTrigger = <T>(
   params$: Observable<{ options: UseQueryOptions<T> }>

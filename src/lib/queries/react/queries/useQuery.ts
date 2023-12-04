@@ -12,7 +12,7 @@ import {
   identity,
   throttleTime
 } from "rxjs"
-import { type UseQueryResult, type UseQueryOptions } from "../types"
+import { type UseQueryResult, type UseQueryOptions } from "./types"
 import { useObserve } from "../../../binding/useObserve"
 import { useSubject } from "../../../binding/useSubject"
 import { useQueryClient } from "../Provider"

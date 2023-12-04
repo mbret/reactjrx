@@ -1,7 +1,7 @@
 import { useEffect } from "react"
 import { useBehaviorSubject } from "../../binding/useBehaviorSubject"
 import { type QueryFn } from "../client/types"
-import { type UseQueryOptions } from "./types"
+import { type UseQueryOptions } from "./queries/types"
 
 export const useQueryParams = <T>({
   queryKey,

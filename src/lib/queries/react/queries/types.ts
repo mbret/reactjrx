@@ -1,4 +1,4 @@
-import { type Query, type QueryOptions } from "../client/types"
+import { type Query, type QueryOptions } from "../../client/types"
 
 export interface UseQueryOptions<R = unknown> extends QueryOptions<R> {
   refetchOnWindowFocus?:
