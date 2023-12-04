@@ -26,7 +26,7 @@ import {
 } from "../../client/types"
 import { createActivityTrigger } from "../triggers/activityTrigger"
 import { createNetworkTrigger } from "../triggers/networkTrigger"
-import { useQueryParams } from "../helpers"
+import { useQueryParams } from "./helpers"
 
 const defaultValue = {
   data: undefined,
