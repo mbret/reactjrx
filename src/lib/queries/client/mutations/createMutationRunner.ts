@@ -11,6 +11,7 @@ import {
   map,
   mergeMap,
   of,
+  shareReplay,
   skip,
   startWith,
   switchMap,
@@ -151,7 +152,8 @@ export const createMutationRunner = <T, MutationArg>({
         (__queryTriggerHook as typeof identity) ?? identity
       )
     }),
-    (__queryFinalizeHook as typeof identity) ?? identity
+    (__queryFinalizeHook as typeof identity) ?? identity,
+    shareReplay(1)
   )
 
   cancel$.subscribe(() => {

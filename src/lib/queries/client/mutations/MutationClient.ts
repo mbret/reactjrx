@@ -4,11 +4,9 @@ import {
   switchMap,
   BehaviorSubject,
   filter,
-  EMPTY,
   skip,
   tap,
   map,
-  type Observable,
   combineLatest,
   distinctUntilChanged,
   startWith,
@@ -16,19 +14,17 @@ import {
 } from "rxjs"
 import { serializeKey } from "../keys/serializeKey"
 import {
-  type MutationResult,
   type MutationOptions,
-  type MutationObservedResult,
   type MutationFilters,
   type MutationKey,
   type MutationState
 } from "./types"
 import { type QueryKey } from "../keys/types"
-import { isDefined } from "../../../utils/isDefined"
 import { createMutationRunner } from "./createMutationRunner"
 import { createPredicateForFilters } from "./filters"
 import { shallowEqual } from "../../../utils/shallowEqual"
 import { type Mutation } from "./Mutation"
+import { MutationResultObserver } from "./MutationResultObserver"
 
 export class MutationClient {
   /**
@@ -45,17 +41,6 @@ export class MutationClient {
         mutationKey: MutationKey
       }
     >
-  >(new Map())
-
-  /**
-   * Mutation result subject. It can be used whether there is a mutation
-   * running or not and can be directly observed.
-   *
-   * @important
-   * - automatically cleaned as soon as the last mutation is done for a given key
-   */
-  mutationResults$ = new BehaviorSubject<
-    Map<string, BehaviorSubject<MutationResult<any>>>
   >(new Map())
 
   mutate$ = new Subject<{
@@ -77,6 +62,10 @@ export class MutationClient {
    */
   mutationsSubject = new BehaviorSubject<Array<Mutation<any>>>([])
 
+  mutationResultObserver = new MutationResultObserver(
+    this.mutationRunnersByKey$
+  )
+
   constructor() {
     this.mutate$
       .pipe(
@@ -96,24 +85,8 @@ export class MutationClient {
 
             this.setMutationRunnersByKey(serializedMutationKey, mutationForKey)
 
-            mutationForKey.mutation$.subscribe((result) => {
-              let resultForKeySubject = this.mutationResults$
-                .getValue()
-                .get(serializedMutationKey)
-
-              if (!resultForKeySubject) {
-                resultForKeySubject = new BehaviorSubject(result)
-
-                // @todo can be wrapped in function
-                const resultMap = this.mutationResults$.getValue()
-
-                resultMap.set(serializedMutationKey, resultForKeySubject)
-
-                this.mutationResults$.next(resultMap)
-              } else {
-                resultForKeySubject?.next(result)
-              }
-            })
+            // @todo change and verify if we unsubscribe
+            mutationForKey.mutation$.subscribe()
 
             mutationForKey.mutationsSubject
               .pipe(
@@ -123,11 +96,6 @@ export class MutationClient {
               )
               .subscribe(() => {
                 mutationForKey?.destroy()
-
-                // @todo can be wrapped in function
-                const resultMap = this.mutationResults$.getValue()
-                resultMap.delete(serializedMutationKey)
-                this.mutationResults$.next(resultMap)
 
                 this.deleteMutationRunnersByKey(serializedMutationKey)
               })
@@ -214,7 +182,7 @@ export class MutationClient {
     const reduceByNumber = (entries: Array<Mutation<any>>) =>
       entries.reduce((acc: number, mutation) => {
         return predicate(mutation) &&
-          mutation.stateSubject.getValue().status === "pending"
+          mutation.state.status === "pending"
           ? 1 + acc
           : acc
       }, 0)
@@ -247,7 +215,7 @@ export class MutationClient {
   } = {}) {
     const predicate = createPredicateForFilters(filters)
     const finalSelect =
-      select ?? ((mutation) => mutation.stateSubject.getValue() as Selected)
+      select ?? ((mutation) => mutation.state as Selected)
 
     const lastValue = this.mutationsSubject
       .getValue()
@@ -278,55 +246,6 @@ export class MutationClient {
     return { value$, lastValue }
   }
 
-  observe<Result>({ key }: { key: string }): {
-    result$: Observable<MutationObservedResult<Result>>
-    lastValue: MutationObservedResult<Result>
-  } {
-    const currentResultValue = this.mutationResults$
-      .getValue()
-      .get(key)
-      ?.getValue()
-
-    const mapResultToObservedResult = (value: MutationResult<Result>) => ({
-      ...value,
-      isIdle: value.status === "idle",
-      isPaused: false,
-      isError: value.error !== undefined,
-      isPending: false,
-      isSuccess: value.status === "success"
-    })
-
-    const lastValue = currentResultValue
-      ? mapResultToObservedResult(currentResultValue)
-      : mapResultToObservedResult({
-          data: undefined,
-          error: undefined,
-          status: "idle"
-        })
-
-    const result$ = this.mutationResults$
-      .pipe(
-        switchMap((resultMap) => {
-          const subject = resultMap.get(key)
-
-          return subject ?? EMPTY
-        })
-      )
-      .pipe(
-        filter(isDefined),
-        map((value) => ({
-          ...value,
-          isIdle: value.status === "idle",
-          isPaused: false,
-          isError: value.error !== undefined,
-          isPending: false,
-          isSuccess: value.status === "success"
-        }))
-      )
-
-    return { result$, lastValue }
-  }
-
   mutate<Result, MutationArgs>(params: {
     options: MutationOptions<Result, MutationArgs>
     args: MutationArgs
@@ -345,7 +264,7 @@ export class MutationClient {
   destroy() {
     this.cancel$.complete()
     this.mutate$.complete()
-    this.mutationResults$.complete()
+    this.mutationResultObserver.destroy()
     this.mutationRunnersByKey$.complete()
     this.isMutatingSubject.complete()
     this.mutationsSubject.complete()

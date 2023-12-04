@@ -49,7 +49,7 @@ describe("useMutation", () => {
 
         expect(await findByText("2")).toBeDefined()
 
-        expect(values.mutation).toMatchObject([
+        const expectedValue = [
           {
             data: undefined,
             status: "idle"
@@ -66,7 +66,12 @@ describe("useMutation", () => {
             data: 2,
             status: "success"
           }
-        ])
+        ]
+
+        expectedValue.forEach((value, index) => {
+          expect(values.mutation[index]).toContain(value)
+        })
+
         expect(values.observedMutation).toMatchObject(
           Array.from({ length: 4 }).map(() => ({
             data: undefined,

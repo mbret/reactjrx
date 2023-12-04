@@ -15,7 +15,7 @@ export const createPredicateForFilters = <TData>({
       return false
     }
 
-    if (status && mutation.stateSubject.getValue().status !== status)
+    if (status && mutation.state.status !== status)
       return false
 
     return true

@@ -29,7 +29,10 @@ export function useMutation<Args = void, R = undefined>(
   const defaultKey = useConstant(() => [nanoid()])
   const key = serializeKey(options.mutationKey ?? defaultKey.current)
   const observedMutation = useMemo(
-    () => finalQueryClient.mutationClient.observe<R>({ key }),
+    () =>
+      finalQueryClient.mutationClient.mutationResultObserver.observe<R>({
+        key
+      }),
     [key]
   )
 

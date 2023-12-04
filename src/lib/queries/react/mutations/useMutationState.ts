@@ -41,7 +41,7 @@ export const useMutationState = <TData, TResult = MutationState>({
       select: (mutation) =>
         selectRef.current
           ? selectRef.current(mutation)
-          : (mutation.stateSubject.getValue() as TResult)
+          : (mutation.state as TResult)
     })
 
     return { lastValue, value$: value$.pipe(skip(1)) }

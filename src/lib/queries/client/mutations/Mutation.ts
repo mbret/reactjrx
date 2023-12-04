@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import {
-  BehaviorSubject,
   type Observable,
   catchError,
   defer,
@@ -11,31 +10,26 @@ import {
   of,
   share,
   take,
-  tap
+  tap,
+  ReplaySubject
 } from "rxjs"
 import { retryOnError } from "../operators"
-import {
-  type MutationState,
-  type MutationOptions,
-  type MutationResult
-} from "./types"
+import { type MutationState, type MutationOptions } from "./types"
 import { getDefaultMutationState } from "./defaultMutationState"
 import { mergeResults } from "./operators"
 
 export class Mutation<Data> {
-  stateSubject = new BehaviorSubject<MutationState<Data>>(
-    getDefaultMutationState()
-  )
+  stateSubject = new ReplaySubject<MutationState<Data>>(1)
 
   /**
    * @important
-   * proxy for rect-query, not really useful
+   * convenience over usage of stateSubject for sync access
    */
-  state: MutationState<Data> = this.stateSubject.getValue()
+  state: MutationState<Data> = getDefaultMutationState()
 
   options: MutationOptions<Data, any>
 
-  mutation$: Observable<MutationResult<Data>>
+  mutation$: Observable<MutationState<Data>>
 
   constructor({
     args,
@@ -69,12 +63,14 @@ export class Mutation<Data> {
       })
     )
 
-    const loading$ = of<Partial<MutationResult<Data>>>({
-      status: "pending"
-    })
+    const initState$ = of({
+      ...this.state,
+      status: "pending",
+      submittedAt: new Date().getTime()
+    } satisfies MutationState<Data>)
 
     this.mutation$ = merge(
-      loading$,
+      initState$,
       queryRunner$.pipe(
         map(({ data, isError }) => {
           if (!isError) {

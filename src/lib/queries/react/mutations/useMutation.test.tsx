@@ -211,9 +211,10 @@ describe("useMutation", () => {
 
         unmount()
 
-        const resultForKey = client.client.mutationClient.mutationResults$
-          .getValue()
-          .get(serializeKey(["foo"]))
+        const resultForKey =
+          client.client.mutationClient.mutationResultObserver.mutationResults$
+            .getValue()
+            .get(serializeKey(["foo"]))
 
         expect(resultForKey).toBeUndefined()
       })
@@ -277,9 +278,10 @@ describe("useMutation", () => {
 
         await waitForTimeout(10)
 
-        const resultForKey = client.client.mutationClient.mutationResults$
-          .getValue()
-          .get(serializeKey(["foo"]))
+        const resultForKey =
+          client.client.mutationClient.mutationResultObserver.mutationResults$
+            .getValue()
+            .get(serializeKey(["foo"]))
 
         expect(resultForKey).toBeUndefined()
       })
