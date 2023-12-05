@@ -9,6 +9,7 @@ import {
   finalize,
   identity,
   map,
+  merge,
   mergeMap,
   of,
   shareReplay,
@@ -16,7 +17,7 @@ import {
   startWith,
   switchMap,
   take,
-  takeUntil
+  takeUntil,
 } from "rxjs"
 import { isDefined } from "../../../utils/isDefined"
 import { type MutationOptions } from "./types"
@@ -28,10 +29,14 @@ export type MutationRunner = ReturnType<typeof createMutationRunner>
 export const createMutationRunner = <T, MutationArg>({
   __queryFinalizeHook,
   __queryInitHook,
-  __queryTriggerHook
+  __queryTriggerHook,
+  mutationKey
 }: Pick<
   MutationOptions<any, any>,
-  "__queryInitHook" | "__queryTriggerHook" | "__queryFinalizeHook"
+  | "__queryInitHook"
+  | "__queryTriggerHook"
+  | "__queryFinalizeHook"
+  | "mutationKey"
 >) => {
   const trigger$ = new Subject<{
     args: MutationArg
@@ -42,7 +47,7 @@ export const createMutationRunner = <T, MutationArg>({
   const mapOperator$ = new BehaviorSubject<
     MutationOptions<any, any>["mapOperator"]
   >("merge")
-  const mutationsSubject = new BehaviorSubject<Array<Mutation<any>>>([])
+  const mutationsListSubject = new BehaviorSubject<Array<Mutation<any>>>([])
 
   /**
    * Mutation can be destroyed in two ways
@@ -57,7 +62,7 @@ export const createMutationRunner = <T, MutationArg>({
     closed = true
 
     mapOperator$.complete()
-    mutationsSubject.complete()
+    mutationsListSubject.complete()
     trigger$.complete()
     /**
      * make sure we cancel ongoing requests if we destroy this runner before they finish
@@ -71,7 +76,7 @@ export const createMutationRunner = <T, MutationArg>({
     distinctUntilChanged()
   )
 
-  const mutation$ = stableMapOperator$.pipe(
+  const runner$ = stableMapOperator$.pipe(
     (__queryInitHook as typeof identity) ?? identity,
     mergeMap((mapOperator) => {
       const switchOperator =
@@ -88,8 +93,9 @@ export const createMutationRunner = <T, MutationArg>({
           mutationsForCurrentMapOperatorSubject.filter(
             (item) => item !== mutation
           )
-        mutationsSubject.next(
-          mutationsSubject.getValue().filter((item) => item !== mutation)
+
+        mutationsListSubject.next(
+          mutationsListSubject.getValue().filter((item) => item !== mutation)
         )
       }
 
@@ -107,15 +113,27 @@ export const createMutationRunner = <T, MutationArg>({
             mutation
           ]
 
-          mutationsSubject.next([...mutationsSubject.getValue(), mutation])
+          mutationsListSubject.next([
+            ...mutationsListSubject.getValue(),
+            mutation
+          ])
 
           return mutation
         }),
         switchOperator((mutation) => {
-          if (!mutationsSubject.getValue().includes(mutation)) return of({})
+          if (!mutationsListSubject.getValue().includes(mutation)) return of({})
 
-          const queryIsOver$ = mutation.mutation$.pipe(
-            map(({ data, error }) => error || data)
+          /**
+           * @important
+           * we need to make sure to unsubscribe to the mutation.
+           * either when it is finished or by cancelling this one in the
+           * runner.
+           */
+          const queryIsOver$ = merge(
+            cancel$,
+            mutation.mutation$.pipe(
+              filter(({ status }) => status === "success" || status === "error")
+            )
           )
 
           const isThisCurrentFunctionLastOneCalled = trigger$.pipe(
@@ -161,13 +179,14 @@ export const createMutationRunner = <T, MutationArg>({
      * on cancel we remove all queries because they should either be cancelled
      * or not run on next switch
      */
-    if (mutationsSubject.getValue().length === 0) return
+    if (mutationsListSubject.getValue().length === 0) return
 
-    mutationsSubject.next([])
+    mutationsListSubject.next([])
   })
 
   return {
-    mutation$,
+    mutationKey,
+    runner$,
     trigger: ({
       args,
       options
@@ -180,7 +199,7 @@ export const createMutationRunner = <T, MutationArg>({
     },
     cancel$,
     destroy,
-    mutationsSubject,
+    mutationsListSubject,
     getClosed: () => closed
   }
 }

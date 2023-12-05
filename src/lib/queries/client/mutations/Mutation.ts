@@ -8,10 +8,10 @@ import {
   map,
   merge,
   of,
-  share,
   take,
   tap,
-  ReplaySubject
+  share,
+  BehaviorSubject
 } from "rxjs"
 import { retryOnError } from "../operators"
 import { type MutationState, type MutationOptions } from "./types"
@@ -19,16 +19,18 @@ import { getDefaultMutationState } from "./defaultMutationState"
 import { mergeResults } from "./operators"
 
 export class Mutation<Data> {
-  stateSubject = new ReplaySubject<MutationState<Data>>(1)
-
   /**
-   * @important
-   * convenience over usage of stateSubject for sync access
+   * state static access
    */
   state: MutationState<Data> = getDefaultMutationState()
+  state$ = new BehaviorSubject(this.state)
 
   options: MutationOptions<Data, any>
 
+  /**
+   * @important
+   * complete on itself once the query is done.
+   */
   mutation$: Observable<MutationState<Data>>
 
   constructor({
@@ -41,7 +43,6 @@ export class Mutation<Data> {
     const mutationFn = options.mutationFn
 
     this.state.variables = args
-    this.stateSubject.next(this.state)
 
     const mutationFnObservable =
       typeof mutationFn === "function"
@@ -94,7 +95,7 @@ export class Mutation<Data> {
       mergeResults,
       tap((value) => {
         this.state = { ...this.state, ...value }
-        this.stateSubject.next(this.state)
+        this.state$.next(this.state)
       }),
       (options.__queryRunnerHook as typeof identity) ?? identity,
       share()

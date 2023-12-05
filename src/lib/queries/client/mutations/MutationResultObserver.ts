@@ -3,10 +3,12 @@ import {
   EMPTY,
   type Observable,
   filter,
-  finalize,
-  merge,
   switchMap,
-  tap
+  tap,
+  type Subject,
+  mergeMap,
+  takeUntil,
+  finalize
 } from "rxjs"
 import {
   type MutationKey,
@@ -28,43 +30,40 @@ export class MutationResultObserver {
    * - automatically cleaned as soon as the last mutation is done for a given key
    */
   mutationResults$ = new BehaviorSubject<
-    Map<string, BehaviorSubject<MutationObserverResult>>
-  >(new Map())
+    Record<string, BehaviorSubject<MutationObserverResult>>
+  >({})
 
   constructor(
-    mutationRunnersByKey$: BehaviorSubject<
-      Map<
-        string,
-        ReturnType<typeof createMutationRunner> & {
-          mutationKey: MutationKey
-        }
-      >
+    mutationRunner$: Subject<
+      ReturnType<typeof createMutationRunner> & {
+        mutationKey: MutationKey
+      }
     >
   ) {
-    /**
-     * @important
-     * - should complete on subject complete
-     */
-    mutationRunnersByKey$
+    mutationRunner$
       .pipe(
-        switchMap((mapItem) => {
-          const runners = Array.from(mapItem.values()).map((runner) => {
-            const serializedMutationKey = serializeKey(runner.mutationKey)
+        mergeMap((runner) => {
+          const serializedMutationKey = serializeKey(runner.mutationKey)
 
-            return runner.mutation$.pipe(
-              tap((result) => {
-                this.updateResultForKey({
-                  serializedMutationKey,
-                  result
-                })
-              }),
-              finalize(() => {
-                this.deleteResultForKey({ serializedMutationKey })
+          return runner.runner$.pipe(
+            tap((result) => {
+              this.updateResultForKey({
+                serializedMutationKey,
+                result
               })
-            )
-          })
-
-          return merge(...runners)
+            }),
+            takeUntil(
+              mutationRunner$.pipe(
+                filter(
+                  (runner) =>
+                    serializeKey(runner.mutationKey) === serializedMutationKey
+                )
+              )
+            ),
+            finalize(() => {
+              this.deleteResultForKey({ serializedMutationKey })
+            })
+          )
         })
       )
       .subscribe()
@@ -85,9 +84,10 @@ export class MutationResultObserver {
   }: {
     serializedMutationKey: string
   }) {
-    const resultMap = this.mutationResults$.getValue()
-    resultMap.delete(serializedMutationKey)
-    this.mutationResults$.next(resultMap)
+    const { [serializedMutationKey]: deleted, ...rest } =
+      this.mutationResults$.getValue()
+
+    this.mutationResults$.next(rest)
   }
 
   updateResultForKey<TData, TError = DefaultError>({
@@ -97,9 +97,8 @@ export class MutationResultObserver {
     serializedMutationKey: string
     result: MutationState<TData, TError>
   }) {
-    const resultForKeySubject = this.mutationResults$
-      .getValue()
-      .get(serializedMutationKey)
+    const resultForKeySubject =
+      this.mutationResults$.getValue()[serializedMutationKey]
 
     const valueForResult: MutationObserverResult<TData, TError> = {
       ...this.getDefaultResultValue(),
@@ -113,12 +112,12 @@ export class MutationResultObserver {
     if (!resultForKeySubject) {
       const resultMap = this.mutationResults$.getValue()
 
-      resultMap.set(
-        serializedMutationKey,
-        new BehaviorSubject<MutationObserverResult>(valueForResult)
-      )
-
-      this.mutationResults$.next(resultMap)
+      this.mutationResults$.next({
+        ...resultMap,
+        [serializedMutationKey]: new BehaviorSubject<MutationObserverResult>(
+          valueForResult
+        )
+      })
     } else {
       resultForKeySubject?.next(valueForResult)
     }
@@ -130,15 +129,14 @@ export class MutationResultObserver {
   } {
     const currentResultValue = this.mutationResults$
       .getValue()
-      .get(key)
-      ?.getValue() as MutationObserverResult<Result>
+      [key]?.getValue() as MutationObserverResult<Result>
 
     const lastValue = currentResultValue ?? this.getDefaultResultValue<Result>()
 
     const result$ = this.mutationResults$
       .pipe(
         switchMap((resultMap) => {
-          const subject = resultMap.get(key)
+          const subject = resultMap[key]
 
           return subject ?? EMPTY
         })

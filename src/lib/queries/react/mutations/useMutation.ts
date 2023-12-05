@@ -27,13 +27,13 @@ export function useMutation<Args = void, R = undefined>(
   const finalQueryClient = queryClient?.client ?? defaultQueryClient
   const optionsRef = useLiveRef(options)
   const defaultKey = useConstant(() => [nanoid()])
-  const key = serializeKey(options.mutationKey ?? defaultKey.current)
+  const serializedKey = serializeKey(options.mutationKey ?? defaultKey.current)
   const observedMutation = useMemo(
     () =>
       finalQueryClient.mutationClient.mutationResultObserver.observe<R>({
-        key
+        key: serializedKey
       }),
-    [key]
+    [serializedKey]
   )
 
   const result =
@@ -49,7 +49,7 @@ export function useMutation<Args = void, R = undefined>(
         args: mutationArgs
       })
     },
-    [finalQueryClient, key]
+    [finalQueryClient, serializedKey]
   )
 
   const cancel = useCallback(() => {

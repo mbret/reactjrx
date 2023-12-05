@@ -157,6 +157,7 @@ describe("useIsMutating", () => {
     }
 
     renderWithClient(queryClient, <Page />)
+
     await waitFor(() => {
       expect(isMutatings).toEqual([0, 1, 2, 1, 0])
     }, {})
