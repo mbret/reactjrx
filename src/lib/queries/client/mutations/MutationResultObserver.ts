@@ -1,6 +1,5 @@
 import {
   BehaviorSubject,
-  EMPTY,
   type Observable,
   filter,
   switchMap,
@@ -8,7 +7,9 @@ import {
   type Subject,
   mergeMap,
   takeUntil,
-  finalize
+  finalize,
+  map,
+  distinctUntilChanged
 } from "rxjs"
 import {
   type MutationKey,
@@ -21,6 +22,10 @@ import { serializeKey } from "../keys/serializeKey"
 import { isDefined } from "../../../utils/isDefined"
 import { getDefaultMutationState } from "./defaultMutationState"
 
+/**
+ * Provide API to observe mutations results globally.
+ * Observe runners and map their results in a hash map.
+ */
 export class MutationResultObserver {
   /**
    * Mutation result subject. It can be used whether there is a mutation
@@ -133,15 +138,12 @@ export class MutationResultObserver {
 
     const lastValue = currentResultValue ?? this.getDefaultResultValue<Result>()
 
-    const result$ = this.mutationResults$
-      .pipe(
-        switchMap((resultMap) => {
-          const subject = resultMap[key]
-
-          return subject ?? EMPTY
-        })
-      )
-      .pipe(filter(isDefined)) as Observable<MutationObserverResult<Result>>
+    const result$ = this.mutationResults$.pipe(
+      map((resultMap) => resultMap[key]),
+      filter(isDefined),
+      distinctUntilChanged(),
+      switchMap((resultObserver) => resultObserver)
+    ) as Observable<MutationObserverResult<Result>>
 
     return { result$, lastValue }
   }
