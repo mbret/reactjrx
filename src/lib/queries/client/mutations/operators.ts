@@ -3,18 +3,25 @@ import { type MutationState } from "./types"
 import { shallowEqual } from "../../../utils/shallowEqual"
 import { getDefaultMutationState } from "./defaultMutationState"
 
-export const mergeResults = <T>(
-  stream$: Observable<Partial<MutationState<T>>>
-): Observable<MutationState<T>> =>
+export const mergeResults = <
+  TData = unknown,
+  TError = unknown,
+  TVariables = void,
+  TContext = unknown
+>(
+  stream$: Observable<
+    Partial<MutationState<TData, TError, TVariables, TContext>>
+  >
+): Observable<MutationState<TData, TError, TVariables, TContext>> =>
   stream$.pipe(
-    scan((acc: MutationState<T>, current) => {
+    scan((acc: MutationState<TData, TError, TVariables, TContext>, current) => {
       return {
         ...acc,
         ...current,
         data: current.data ?? acc.data,
         error: current.error ?? acc.error
       }
-    }, getDefaultMutationState<T>()),
+    }, getDefaultMutationState<TData, TError, TVariables, TContext>()),
     distinctUntilChanged(
       ({ data: prevData, ...prev }, { data: currData, ...curr }) =>
         shallowEqual(prev, curr) && shallowEqual(prevData, currData)

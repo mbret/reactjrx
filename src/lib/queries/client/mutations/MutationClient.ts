@@ -10,7 +10,8 @@ import {
   combineLatest,
   distinctUntilChanged,
   startWith,
-  of
+  of,
+  take
 } from "rxjs"
 import { serializeKey } from "../keys/serializeKey"
 import {
@@ -25,6 +26,7 @@ import { createPredicateForFilters } from "./filters"
 import { shallowEqual } from "../../../utils/shallowEqual"
 import { type Mutation } from "./Mutation"
 import { MutationResultObserver } from "./MutationResultObserver"
+import { type QueryClient } from "../createClient"
 
 export class MutationClient {
   /**
@@ -35,13 +37,13 @@ export class MutationClient {
    * - automatically cleaned as soon as the last mutation is done for a given key
    */
   mutationRunnersByKey$ = new BehaviorSubject<
-    Map<string, ReturnType<typeof createMutationRunner>>
+    Map<string, ReturnType<typeof createMutationRunner<any, any, any, any>>>
   >(new Map())
 
   mutationRunner$ = new Subject<ReturnType<typeof createMutationRunner>>()
 
   mutate$ = new Subject<{
-    options: MutationOptions<any, any>
+    options: MutationOptions<any, any, any, any>
     args: any
   }>()
 
@@ -61,7 +63,7 @@ export class MutationClient {
 
   mutationResultObserver = new MutationResultObserver(this.mutationRunner$)
 
-  constructor() {
+  constructor(public client: QueryClient) {
     this.mutate$
       .pipe(
         tap(({ options, args }) => {
@@ -74,7 +76,11 @@ export class MutationClient {
 
           if (!mutationForKey) {
             mutationForKey = {
-              ...createMutationRunner(options),
+              ...createMutationRunner({
+                ...options,
+                client,
+                mutationCache: client.getMutationCache()
+              }),
               mutationKey
             }
 
@@ -83,11 +89,21 @@ export class MutationClient {
             // @todo change and verify if we unsubscribe
             mutationForKey.runner$.subscribe()
 
-            mutationForKey.mutationsListSubject
+            /**
+             * @important
+             * should have at least one first mutation so
+             * should unsubscribe by itself once filter back to 0 run
+             */
+            client.mutationCache
+              .mutationsBy({
+                exact: true,
+                mutationKey
+              })
               .pipe(
                 distinctUntilChanged(shallowEqual),
                 skip(1),
-                filter((items) => items.length === 0)
+                filter((items) => items.length === 0),
+                take(1)
               )
               .subscribe(() => {
                 mutationForKey?.destroy()
@@ -124,9 +140,10 @@ export class MutationClient {
 
           const mutations$ = combineLatest(
             mutationRunners.map((runner) =>
-              runner.mutationsListSubject.pipe(
-                map((mutations) => mutations.map((mutation) => mutation))
-              )
+              client.mutationCache.mutationsBy({
+                exact: true,
+                mutationKey: runner.mutationKey
+              })
             )
           )
 

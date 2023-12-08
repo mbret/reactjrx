@@ -30,15 +30,22 @@ export type MutationKey = unknown[]
 /**
  * @todo this should be used in a lot of place so we can probably make a helper for that
  */
-export interface MutationFilters<TData> {
+export interface MutationFilters<
+  TData = unknown,
+  TError = DefaultError,
+  TVariables = any,
+  TContext = unknown
+> {
   /**
    * Match mutation key exactly
    */
-  // exact?: boolean
+  exact?: boolean
   /**
    * Include mutations matching this predicate function
    */
-  predicate?: (mutation: Mutation<TData>) => boolean
+  predicate?: (
+    mutation: Mutation<TData, TError, TVariables, TContext>
+  ) => boolean
   /**
    * Include mutations matching this mutation key
    */
@@ -54,7 +61,12 @@ export type MutationFn<Data, MutationArg> =
   | ((arg: MutationArg) => Promise<Data>)
   | ((arg: MutationArg) => Observable<Data>)
 
-export interface MutationOptions<Result, MutationArg> {
+export interface MutationOptions<
+  TData,
+  TError = DefaultError,
+  TVariables = void,
+  TContext = unknown
+> {
   enabled?: boolean
   retry?: false | number | ((attempt: number, error: unknown) => boolean)
   /**
@@ -76,19 +88,28 @@ export interface MutationOptions<Result, MutationArg> {
     | number
     | false
     | ((
-        data: QueryResult<Result>["data"] | undefined,
+        data: QueryResult<TData>["data"] | undefined,
         query: Query
       ) => number | false)
   terminateOnFirstResult?: boolean
-  onError?: (error: unknown, arg: MutationArg) => void
-  onSuccess?: (data: Result, arg: MutationArg) => void
-  mutationFn: MutationFn<Result, MutationArg>
+  onMutate?: (
+    variables: TVariables
+  ) => Promise<TContext | undefined> | TContext | undefined
+  onError?: (error: unknown, arg: TVariables) => void
+  onSuccess?: (data: TData, arg: TVariables) => void
+  onSettled?: (
+    data: TData | undefined,
+    error: TError | null,
+    variables: TVariables,
+    context: TContext | undefined
+  ) => Promise<unknown> | unknown
+  mutationFn: MutationFn<TData, TVariables>
   mutationKey: MutationKey
   mapOperator?: MapOperator
   __queryInitHook?: MonoTypeOperatorFunction<any>
   __queryRunnerHook?: MonoTypeOperatorFunction<any>
-  __queryTriggerHook?: MonoTypeOperatorFunction<Partial<Result>>
-  __queryFinalizeHook?: MonoTypeOperatorFunction<Partial<Result>>
+  __queryTriggerHook?: MonoTypeOperatorFunction<Partial<TData>>
+  __queryFinalizeHook?: MonoTypeOperatorFunction<Partial<TData>>
 }
 
 export interface MutationState<

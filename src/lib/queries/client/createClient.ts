@@ -38,13 +38,15 @@ import { Logger } from "../../logger"
 import { markQueryAsStaleIfRefetch } from "./refetch/markQueryAsStaleIfRefetch"
 import { dispatchExternalRefetchToAllQueries } from "./refetch/dispatchExternalRefetchToAllQueries"
 import { MutationClient } from "./mutations/MutationClient"
+import { type MutationOptions } from "./mutations/types"
+import { MutationCache } from "./mutations/MutationCache"
 
-export const createClient = () => {
+export const createClient = ({ client }: { client: QueryClient }) => {
   const queryStore = createQueryStore()
   const invalidationClient = createInvalidationClient({ queryStore })
   const cacheClient = createCacheClient({ queryStore })
   const refetchClient = createRefetchClient({ queryStore })
-  const mutationClient = new MutationClient()
+  const mutationClient = new MutationClient(client)
 
   let hasCalledStart = false
 
@@ -206,8 +208,38 @@ export const createClient = () => {
 
 export class QueryClient {
   public client: ReturnType<typeof createClient>
+  mutationCache: MutationCache
 
-  constructor() {
-    this.client = createClient()
+  constructor(
+    { mutationCache }: { mutationCache: MutationCache } = {
+      mutationCache: new MutationCache()
+    }
+  ) {
+    this.mutationCache = mutationCache
+    this.client = createClient({
+      client: this
+    })
+  }
+
+  getMutationCache() {
+    return this.mutationCache
+  }
+
+  defaultMutationOptions<T extends MutationOptions<any, any, any, any>>(
+    options?: T
+  ): T {
+    // // if (options?._defaulted) {
+    // //   return options
+    // // }
+
+    // return {
+    //   // ...this.#defaultOptions.mutations,
+    //   // ...(options?.mutationKey &&
+    //   //   this.getMutationDefaults(options.mutationKey)),
+    //   // ...options,
+    //   // _defaulted: true
+    // } as T
+
+    return options as T
   }
 }

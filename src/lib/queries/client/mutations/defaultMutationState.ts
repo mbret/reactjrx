@@ -1,6 +1,11 @@
 import { type MutationState } from "./types"
 
-export const getDefaultMutationState = <TData>(): MutationState<TData> => ({
+export const getDefaultMutationState = <
+  TData = unknown,
+  TError = unknown,
+  TVariables = void,
+  TContext = unknown
+>(): MutationState<TData, TError, TVariables, TContext> => ({
   context: undefined,
   data: undefined,
   error: null,

@@ -40,7 +40,7 @@ export class MutationResultObserver {
 
   constructor(
     mutationRunner$: Subject<
-      ReturnType<typeof createMutationRunner> & {
+      ReturnType<typeof createMutationRunner<any, any, any, any>> & {
         mutationKey: MutationKey
       }
     >

@@ -17,37 +17,53 @@ import {
   startWith,
   switchMap,
   take,
-  takeUntil,
+  takeUntil
 } from "rxjs"
 import { isDefined } from "../../../utils/isDefined"
 import { type MutationOptions } from "./types"
 import { mergeResults } from "./operators"
-import { Mutation } from "./Mutation"
+import { type Mutation } from "./Mutation"
+import { type DefaultError } from "../types"
+import { type MutationCache } from "./MutationCache"
+import { type QueryClient } from "../createClient"
 
 export type MutationRunner = ReturnType<typeof createMutationRunner>
 
-export const createMutationRunner = <T, MutationArg>({
+export const createMutationRunner = <
+  TData,
+  TError = DefaultError,
+  MutationArg = void,
+  TContext = unknown
+>({
   __queryFinalizeHook,
   __queryInitHook,
   __queryTriggerHook,
-  mutationKey
-}: Pick<
-  MutationOptions<any, any>,
+  mutationKey,
+  mutationCache,
+  client
+}: { mutationCache: MutationCache; client: QueryClient } & Pick<
+  MutationOptions<TData, TError, MutationArg, TContext>,
   | "__queryInitHook"
   | "__queryTriggerHook"
   | "__queryFinalizeHook"
   | "mutationKey"
 >) => {
+  type LocalMutation = Mutation<TData, TError, MutationArg, TContext>
+  type LocalMutationOptions = MutationOptions<
+    TData,
+    TError,
+    MutationArg,
+    TContext
+  >
   const trigger$ = new Subject<{
     args: MutationArg
-    options: MutationOptions<T, MutationArg>
+    options: LocalMutationOptions
   }>()
   const cancel$ = new Subject<void>()
   let closed = false
-  const mapOperator$ = new BehaviorSubject<
-    MutationOptions<any, any>["mapOperator"]
-  >("merge")
-  const mutationsListSubject = new BehaviorSubject<Array<Mutation<any>>>([])
+  const mapOperator$ = new BehaviorSubject<LocalMutationOptions["mapOperator"]>(
+    "merge"
+  )
 
   /**
    * Mutation can be destroyed in two ways
@@ -62,7 +78,6 @@ export const createMutationRunner = <T, MutationArg>({
     closed = true
 
     mapOperator$.complete()
-    mutationsListSubject.complete()
     trigger$.complete()
     /**
      * make sure we cancel ongoing requests if we destroy this runner before they finish
@@ -86,24 +101,26 @@ export const createMutationRunner = <T, MutationArg>({
             ? switchMap
             : mergeMap
 
-      let mutationsForCurrentMapOperatorSubject: Array<Mutation<any>> = []
+      let mutationsForCurrentMapOperatorSubject: LocalMutation[] = []
 
-      const removeMutation = (mutation: Mutation<any>) => {
+      const removeMutation = (mutation: LocalMutation) => {
         mutationsForCurrentMapOperatorSubject =
           mutationsForCurrentMapOperatorSubject.filter(
             (item) => item !== mutation
           )
 
-        mutationsListSubject.next(
-          mutationsListSubject.getValue().filter((item) => item !== mutation)
-        )
+        mutationCache.remove(mutation)
       }
 
       return trigger$.pipe(
         takeUntil(stableMapOperator$.pipe(skip(1))),
         map(({ args, options }) => {
-          const mutation = new Mutation({
-            args,
+          const mutation = mutationCache.build<
+            TData,
+            TError,
+            MutationArg,
+            TContext
+          >(client, {
             ...options,
             mapOperator
           })
@@ -113,15 +130,17 @@ export const createMutationRunner = <T, MutationArg>({
             mutation
           ]
 
-          mutationsListSubject.next([
-            ...mutationsListSubject.getValue(),
-            mutation
-          ])
-
-          return mutation
+          return { mutation, args }
         }),
-        switchOperator((mutation) => {
-          if (!mutationsListSubject.getValue().includes(mutation)) return of({})
+        switchOperator(({ mutation, args }) => {
+          if (
+            !mutationCache.find<TData, TError, MutationArg, TContext>({
+              predicate: (item) => item === mutation
+            })
+          )
+            return of({})
+
+          const mutation$ = mutation.execute(args)
 
           /**
            * @important
@@ -131,7 +150,7 @@ export const createMutationRunner = <T, MutationArg>({
            */
           const queryIsOver$ = merge(
             cancel$,
-            mutation.mutation$.pipe(
+            mutation$.pipe(
               filter(({ status }) => status === "success" || status === "error")
             )
           )
@@ -144,7 +163,7 @@ export const createMutationRunner = <T, MutationArg>({
           )
 
           const result$ = combineLatest([
-            mutation.mutation$,
+            mutation$,
             isThisCurrentFunctionLastOneCalled
           ]).pipe(
             map(([result, isLastMutationCalled]) => {
@@ -179,9 +198,10 @@ export const createMutationRunner = <T, MutationArg>({
      * on cancel we remove all queries because they should either be cancelled
      * or not run on next switch
      */
-    if (mutationsListSubject.getValue().length === 0) return
-
-    mutationsListSubject.next([])
+    mutationCache.removeBy({
+      mutationKey,
+      exact: true
+    })
   })
 
   return {
@@ -192,14 +212,13 @@ export const createMutationRunner = <T, MutationArg>({
       options
     }: {
       args: MutationArg
-      options: MutationOptions<T, MutationArg>
+      options: MutationOptions<TData, Error, MutationArg, TContext>
     }) => {
       mapOperator$.next(options.mapOperator)
       trigger$.next({ args, options })
     },
     cancel$,
     destroy,
-    mutationsListSubject,
     getClosed: () => closed
   }
 }

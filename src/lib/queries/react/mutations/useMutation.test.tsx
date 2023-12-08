@@ -1,5 +1,14 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { type Observable, Subject, finalize, takeUntil, timer } from "rxjs"
+import {
+  type Observable,
+  Subject,
+  finalize,
+  takeUntil,
+  timer,
+  of,
+  merge,
+  ReplaySubject
+} from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
 import { useMutation } from "./useMutation"
@@ -7,6 +16,7 @@ import { QueryClientProvider } from "../Provider"
 import { QueryClient } from "../../client/createClient"
 import { waitForTimeout } from "../../../../tests/utils"
 import { serializeKey } from "../../client/keys/serializeKey"
+import { MutationCache } from "../../client/mutations/MutationCache"
 
 afterEach(() => {
   cleanup()
@@ -212,8 +222,9 @@ describe("useMutation", () => {
         unmount()
 
         const resultForKey =
-          client.client.mutationClient.mutationResultObserver.mutationResults$
-            .getValue()[serializeKey(["foo"])]
+          client.client.mutationClient.mutationResultObserver.mutationResults$.getValue()[
+            serializeKey(["foo"])
+          ]
 
         expect(resultForKey).toBeUndefined()
       })
@@ -279,8 +290,9 @@ describe("useMutation", () => {
         await waitForTimeout(1)
 
         const resultForKey =
-          client.client.mutationClient.mutationResultObserver.mutationResults$
-            .getValue()[serializeKey(["foo"])]
+          client.client.mutationClient.mutationResultObserver.mutationResults$.getValue()[
+            serializeKey(["foo"])
+          ]
 
         expect(resultForKey).toBeUndefined()
       })
@@ -295,7 +307,7 @@ describe("useMutation", () => {
       it("should complete main observable chain", async () => {
         let finalized = 0
         let unmountTime = 0
-        const manualStop = new Subject<void>()
+        const manualStop = new ReplaySubject<void>()
 
         const client = new QueryClient()
 
@@ -305,6 +317,7 @@ describe("useMutation", () => {
               timer(1000).pipe(
                 takeUntil(manualStop),
                 finalize(() => {
+                  console.log("finalized")
                   finalized++
                 })
               )
@@ -336,6 +349,8 @@ describe("useMutation", () => {
 
         // we simulate a long observable to stop after a while
         manualStop.next()
+
+        await waitForTimeout(1)
 
         expect(finalized).toBe(unmountTime)
       })
@@ -370,11 +385,11 @@ describe("useMutation", () => {
           }
 
           const { unmount } = render(
-            // <React.StrictMode>
-            <QueryClientProvider client={client}>
-              <Comp />
-            </QueryClientProvider>
-            // </React.StrictMode>
+            <React.StrictMode>
+              <QueryClientProvider client={client}>
+                <Comp />
+              </QueryClientProvider>
+            </React.StrictMode>
           )
 
           unmount()
@@ -466,16 +481,18 @@ describe("useMutation", () => {
             }
 
             const { unmount } = render(
-              <React.StrictMode>
-                <QueryClientProvider client={client}>
-                  <Comp />
-                </QueryClientProvider>
-              </React.StrictMode>
+              // <React.StrictMode>
+              <QueryClientProvider client={client}>
+                <Comp />
+              </QueryClientProvider>
+              // </React.StrictMode>
             )
 
             unmount()
 
             await waitForTimeout(10)
+
+            console.log("assert")
 
             expect(onErrorCall).toBe(0)
           })

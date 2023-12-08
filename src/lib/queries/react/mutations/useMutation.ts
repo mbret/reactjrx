@@ -12,7 +12,7 @@ import { useConstant } from "../../../utils/useConstant"
 import { type QueryClient } from "../../client/createClient"
 
 export type AsyncQueryOptions<Result, Params> = Omit<
-  MutationOptions<Result, Params>,
+  MutationOptions<Result, Error, Params>,
   "mutationKey"
 > & {
   mutationKey?: MutationKey
