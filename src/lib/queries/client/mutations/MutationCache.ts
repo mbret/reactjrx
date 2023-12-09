@@ -28,15 +28,10 @@ interface MutationCacheConfig {
     context: unknown,
     mutation: Mutation<unknown, unknown, unknown>
   ) => Promise<unknown> | unknown
-  onMutate?: <
-    Data = unknown,
-    TError = DefaultError,
-    TVariables = void,
-    TContext = unknown
-  >(
+  onMutate?: (
     variables: unknown,
-    mutation: Mutation<Data, TError, TVariables, TContext>
-  ) => Promise<TContext> | TContext
+    mutation: Mutation<unknown, unknown, unknown>
+  ) => Promise<unknown> | unknown
   onSettled?: (
     data: unknown | undefined,
     error: DefaultError | null,
@@ -114,6 +109,14 @@ export class MutationCache {
     return this.mutations.getValue().find((mutation) => predicate(mutation))
   }
 
+  findAll(filters: MutationFilters = {}): Mutation[] | undefined {
+    const defaultedFilters = { exact: true, ...filters }
+
+    const predicate = createPredicateForFilters(defaultedFilters)
+
+    return this.mutations.getValue().filter((mutation) => predicate(mutation))
+  }
+
   /**
    * @todo optimize, should not ping if array contain same mutation in same order
    */
@@ -134,7 +137,7 @@ export class MutationCache {
           previous.every((item, index) => item === current[index])
         )
       }),
-      distinctUntilChanged(shallowEqual),
+      distinctUntilChanged(shallowEqual)
     )
   }
 }

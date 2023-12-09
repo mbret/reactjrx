@@ -95,8 +95,16 @@ export interface MutationOptions<
   onMutate?: (
     variables: TVariables
   ) => Promise<TContext | undefined> | TContext | undefined
-  onError?: (error: unknown, arg: TVariables) => void
-  onSuccess?: (data: TData, arg: TVariables) => void
+  onError?: (
+    error: TError,
+    variables: TVariables,
+    context: TContext | undefined
+  ) => Promise<unknown> | unknown
+  onSuccess?: (
+    data: TData,
+    variables: TVariables,
+    context: TContext | undefined
+  ) => Promise<unknown> | unknown
   onSettled?: (
     data: TData | undefined,
     error: TError | null,

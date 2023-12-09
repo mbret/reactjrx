@@ -1,3 +1,4 @@
+import { compareKeys } from "../keys/compareKeys"
 import { serializeKey } from "../keys/serializeKey"
 import { type DefaultError } from "../types"
 import { type MutationFilters } from "./types"
@@ -10,7 +11,8 @@ export const createPredicateForFilters = <
 >({
   mutationKey,
   status,
-  predicate
+  predicate,
+  exact = true
 }: MutationFilters<TData, TError, TVariables, TContext> = {}) => {
   const defaultPredicate: MutationFilters<
     TData,
@@ -19,9 +21,17 @@ export const createPredicateForFilters = <
     TContext
   >["predicate"] = (mutation) => {
     if (
+      exact &&
       mutationKey !== undefined &&
-      // @todo optimize
-      serializeKey(mutation.options.mutationKey) !== serializeKey(mutationKey)
+      !compareKeys(mutation.options.mutationKey, mutationKey, { exact })
+    ) {
+      return false
+    }
+
+    if (
+      !exact &&
+      mutationKey !== undefined &&
+      !compareKeys(mutationKey, mutation.options.mutationKey, { exact })
     ) {
       return false
     }
