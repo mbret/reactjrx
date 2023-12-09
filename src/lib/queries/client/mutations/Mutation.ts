@@ -7,14 +7,15 @@ import {
   of,
   take,
   tap,
-  share,
-  BehaviorSubject,
   switchMap,
   Subject,
   takeUntil,
   concat,
   toArray,
-  mergeMap
+  mergeMap,
+  type Observable,
+  shareReplay,
+  takeWhile
 } from "rxjs"
 import { retryOnError } from "../operators"
 import { type MutationState, type MutationOptions } from "./types"
@@ -33,10 +34,12 @@ export class Mutation<
   state: MutationState<TData, TError, TVariables, TContext> =
     getDefaultMutationState<TData, TError, TVariables, TContext>()
 
-  state$ = new BehaviorSubject(this.state)
+  state$: Observable<typeof this.state>
   options: MutationOptions<TData, TError, TVariables, TContext>
   mutationCache: MutationCache
-  cancelSubject = new Subject<void>()
+
+  protected cancelSubject = new Subject<void>()
+  protected executeSubject = new Subject<TVariables>()
 
   constructor({
     options,
@@ -47,9 +50,20 @@ export class Mutation<
   }) {
     this.options = options
     this.mutationCache = mutationCache
+
+    this.state$ = merge(
+      of(this.state),
+      this.executeSubject.pipe(
+        switchMap((variables) => this.createMutation(variables)),
+        tap((value) => {
+          this.state = { ...this.state, ...value }
+        }),
+        takeUntil(this.cancelSubject)
+      )
+    ).pipe(shareReplay({ refCount: true, bufferSize: 1 }))
   }
 
-  execute(variables: TVariables) {
+  createMutation(variables: TVariables) {
     type LocalState = MutationState<TData, TError, TVariables, TContext>
 
     const mutationFn = this.options.mutationFn
@@ -191,13 +205,8 @@ export class Mutation<
       )
     ).pipe(
       mergeResults,
-      tap((value) => {
-        this.state = { ...this.state, ...value }
-        this.state$.next(this.state)
-      }),
       (this.options.__queryRunnerHook as typeof identity) ?? identity,
-      takeUntil(this.cancelSubject),
-      share()
+      takeUntil(this.cancelSubject)
     )
 
     return mutation$
@@ -211,7 +220,26 @@ export class Mutation<
     // })
   }
 
+  /**
+   * @important
+   * The resulting observable will complete as soon as the mutation
+   * is over, unlike the state which can be re-subscribed later.
+   */
+  execute(variables: TVariables) {
+    this.executeSubject.next(variables)
+    this.executeSubject.complete()
+
+    return this.state$.pipe(
+      takeWhile(
+        (result) => result.status !== "error" && result.status !== "success",
+        true
+      )
+    )
+  }
+
   cancel() {
     this.cancelSubject.next()
+    this.cancelSubject.complete()
+    this.executeSubject.complete()
   }
 }

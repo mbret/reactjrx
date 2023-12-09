@@ -69,14 +69,14 @@ describe("useIsMutating", () => {
       const isMutatings: number[] = []
       const queryClient = createQueryClient()
 
-      function IsMutating() {
+      const MemoIsMutating = React.memo(function IsMutating() {
         // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
         const isMutating = useIsMutating()
 
         isMutatings.push(isMutating)
 
         return null
-      }
+      })
 
       function Mutations() {
         const { mutate } = useMutation({
@@ -99,17 +99,18 @@ describe("useIsMutating", () => {
       function Page() {
         return (
           <div>
-            <IsMutating />
+            <MemoIsMutating />
             <Mutations />
           </div>
         )
       }
 
       renderWithClient(queryClient, <Page />)
+
       await waitFor(() => {
         // because value quickly switch to 0,1 each time we have a new render
         // but the value being batched we end up with same 1
-        expect(isMutatings).toEqual([0, 1, 1, 1, 0])
+        expect(isMutatings).toEqual([0, 1, 0])
       }, {})
     })
   })

@@ -1,5 +1,4 @@
 import { compareKeys } from "../keys/compareKeys"
-import { serializeKey } from "../keys/serializeKey"
 import { type DefaultError } from "../types"
 import { type MutationFilters } from "./types"
 

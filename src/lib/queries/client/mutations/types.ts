@@ -69,6 +69,7 @@ export interface MutationOptions<
 > {
   enabled?: boolean
   retry?: false | number | ((attempt: number, error: unknown) => boolean)
+  gcTime?: number
   /**
    * @important
    * The hook with the lowest value will be taken into account

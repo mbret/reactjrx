@@ -21,7 +21,7 @@ export const useIsMutating = <TData>(
 
   const runningMutations$ = useMemo(() => {
     const { lastValue, value$ } =
-      finalQueryClient.mutationClient.useIsMutating<TData>({
+      finalQueryClient.mutationClient.isMutating<TData>({
         mutationKey: mutationKeyRef.current,
         /**
          * We have to delay function call so that we don't need a stable predicate function

@@ -6,7 +6,6 @@ import {
   concatMap,
   distinctUntilChanged,
   filter,
-  finalize,
   identity,
   map,
   merge,
@@ -17,12 +16,11 @@ import {
   startWith,
   switchMap,
   take,
-  takeUntil
+  takeUntil,
 } from "rxjs"
 import { isDefined } from "../../../utils/isDefined"
 import { type MutationOptions } from "./types"
 import { mergeResults } from "./operators"
-import { type Mutation } from "./Mutation"
 import { type DefaultError } from "../types"
 import { type MutationCache } from "./MutationCache"
 import { type QueryClient } from "../createClient"
@@ -48,7 +46,6 @@ export const createMutationRunner = <
   | "__queryFinalizeHook"
   | "mutationKey"
 >) => {
-  type LocalMutation = Mutation<TData, TError, MutationArg, TContext>
   type LocalMutationOptions = MutationOptions<
     TData,
     TError,
@@ -101,17 +98,6 @@ export const createMutationRunner = <
             ? switchMap
             : mergeMap
 
-      let mutationsForCurrentMapOperatorSubject: LocalMutation[] = []
-
-      const removeMutation = (mutation: LocalMutation) => {
-        mutationsForCurrentMapOperatorSubject =
-          mutationsForCurrentMapOperatorSubject.filter(
-            (item) => item !== mutation
-          )
-
-        mutationCache.remove(mutation)
-      }
-
       return trigger$.pipe(
         takeUntil(stableMapOperator$.pipe(skip(1))),
         map(({ args, options }) => {
@@ -125,11 +111,6 @@ export const createMutationRunner = <
             mapOperator
           })
 
-          mutationsForCurrentMapOperatorSubject = [
-            ...mutationsForCurrentMapOperatorSubject,
-            mutation
-          ]
-
           return { mutation, args }
         }),
         switchOperator(({ mutation, args }) => {
@@ -137,8 +118,9 @@ export const createMutationRunner = <
             !mutationCache.find<TData, TError, MutationArg, TContext>({
               predicate: (item) => item === mutation
             })
-          )
+          ) {
             return of({})
+          }
 
           const mutation$ = mutation.execute(args)
 
@@ -176,11 +158,7 @@ export const createMutationRunner = <
 
               return result
             }),
-            takeUntil(cancel$.pipe()),
-            mergeResults,
-            finalize(() => {
-              removeMutation(mutation)
-            })
+            mergeResults
           )
 
           return result$
@@ -194,14 +172,14 @@ export const createMutationRunner = <
   )
 
   cancel$.subscribe(() => {
-    /**
-     * on cancel we remove all queries because they should either be cancelled
-     * or not run on next switch
-     */
-    mutationCache.removeBy({
-      mutationKey,
-      exact: true
-    })
+    mutationCache
+      .findAll({
+        mutationKey,
+        exact: true
+      })
+      ?.forEach((mutation) => {
+        mutation.cancel()
+      })
   })
 
   return {

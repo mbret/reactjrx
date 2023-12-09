@@ -16,7 +16,6 @@ import {
   type MutationObserverResult,
   type MutationState
 } from "./types"
-import { type DefaultError } from "../types"
 import { type createMutationRunner } from "./createMutationRunner"
 import { serializeKey } from "../keys/serializeKey"
 import { isDefined } from "../../../utils/isDefined"
@@ -26,7 +25,7 @@ import { getDefaultMutationState } from "./defaultMutationState"
  * Provide API to observe mutations results globally.
  * Observe runners and map their results in a hash map.
  */
-export class MutationResultObserver {
+export class MutationObserver {
   /**
    * Mutation result subject. It can be used whether there is a mutation
    * running or not and can be directly observed.
@@ -95,17 +94,17 @@ export class MutationResultObserver {
     this.mutationResults$.next(rest)
   }
 
-  updateResultForKey<TData, TError = DefaultError>({
+  updateResultForKey({
     serializedMutationKey,
     result
   }: {
     serializedMutationKey: string
-    result: MutationState<TData, TError>
+    result: MutationState<any, any, any, any>
   }) {
     const resultForKeySubject =
       this.mutationResults$.getValue()[serializedMutationKey]
 
-    const valueForResult: MutationObserverResult<TData, TError> = {
+    const valueForResult: MutationObserverResult = {
       ...this.getDefaultResultValue(),
       ...result,
       isSuccess: result.status === "success",

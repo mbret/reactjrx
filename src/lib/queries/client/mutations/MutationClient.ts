@@ -25,7 +25,7 @@ import { createMutationRunner } from "./createMutationRunner"
 import { createPredicateForFilters } from "./filters"
 import { shallowEqual } from "../../../utils/shallowEqual"
 import { type Mutation } from "./Mutation"
-import { MutationResultObserver } from "./MutationResultObserver"
+import { MutationObserver } from "./MutationObserver"
 import { type QueryClient } from "../createClient"
 
 export class MutationClient {
@@ -58,10 +58,11 @@ export class MutationClient {
 
   /**
    * List of all mutations running
+   * @todo remove
    */
   mutationsSubject = new BehaviorSubject<Array<Mutation<any>>>([])
 
-  mutationResultObserver = new MutationResultObserver(this.mutationRunner$)
+  mutationResultObserver = new MutationObserver(this.mutationRunner$)
 
   constructor(public client: QueryClient) {
     this.mutate$
@@ -193,7 +194,7 @@ export class MutationClient {
     return this.mutationRunnersByKey$.getValue().get(key)
   }
 
-  useIsMutating<TData>(filters: MutationFilters<TData> = {}) {
+  isMutating<TData>(filters: MutationFilters<TData> = {}) {
     const predicate = createPredicateForFilters(filters)
 
     const reduceByNumber = (entries: Array<Mutation<any>>) =>
@@ -205,7 +206,7 @@ export class MutationClient {
 
     const lastValue = reduceByNumber(this.mutationsSubject.getValue())
 
-    const value$ = this.mutationsSubject.pipe(
+    const value$ = this.client.mutationCache.mutationsBy(filters).pipe(
       switchMap((mutations) => {
         const mutationsOnStateUpdate = mutations.map((mutation) =>
           mutation.state$.pipe(map(() => mutation))

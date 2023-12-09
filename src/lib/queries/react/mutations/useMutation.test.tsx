@@ -1,12 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest"
 import {
   type Observable,
-  Subject,
   finalize,
   takeUntil,
   timer,
-  of,
-  merge,
   ReplaySubject
 } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
@@ -16,7 +13,6 @@ import { QueryClientProvider } from "../Provider"
 import { QueryClient } from "../../client/createClient"
 import { waitForTimeout } from "../../../../tests/utils"
 import { serializeKey } from "../../client/keys/serializeKey"
-import { MutationCache } from "../../client/mutations/MutationCache"
 
 afterEach(() => {
   cleanup()
@@ -286,8 +282,11 @@ describe("useMutation", () => {
 
         unmount()
 
-        // since the function is async we need to at least wait for it to finish
-        await waitForTimeout(1)
+        /**
+         * - promise is async
+         * - gc may happens on next tick
+         */
+        await waitForTimeout(2)
 
         const resultForKey =
           client.client.mutationClient.mutationResultObserver.mutationResults$.getValue()[
@@ -481,18 +480,16 @@ describe("useMutation", () => {
             }
 
             const { unmount } = render(
-              // <React.StrictMode>
-              <QueryClientProvider client={client}>
-                <Comp />
-              </QueryClientProvider>
-              // </React.StrictMode>
+              <React.StrictMode>
+                <QueryClientProvider client={client}>
+                  <Comp />
+                </QueryClientProvider>
+              </React.StrictMode>
             )
 
             unmount()
 
             await waitForTimeout(10)
-
-            console.log("assert")
 
             expect(onErrorCall).toBe(0)
           })

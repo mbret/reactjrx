@@ -6,7 +6,16 @@ import {
   type MutationOptions,
   type MutationState
 } from "./types"
-import { BehaviorSubject, distinctUntilChanged, map } from "rxjs"
+import {
+  BehaviorSubject,
+  type Subscription,
+  distinctUntilChanged,
+  map,
+  switchMap,
+  timer,
+  filter,
+  take
+} from "rxjs"
 import { createPredicateForFilters } from "./filters"
 import { shallowEqual } from "../../../utils/shallowEqual"
 
@@ -42,9 +51,9 @@ interface MutationCacheConfig {
 }
 
 export class MutationCache {
-  readonly mutations = new BehaviorSubject<Array<Mutation<any, any, any, any>>>(
-    []
-  )
+  readonly mutations = new BehaviorSubject<
+    Array<{ mutation: Mutation<any, any, any, any>; sub: Subscription }>
+  >([])
 
   constructor(public config: MutationCacheConfig = {}) {}
 
@@ -66,11 +75,33 @@ export class MutationCache {
   }
 
   add(mutation: Mutation<any, any, any, any>): void {
-    this.mutations.next([...this.mutations.getValue(), mutation])
+    const sub = mutation.state$
+      .pipe(
+        filter(({ status }) => status === "success" || status === "error"),
+        /**
+         * We proceed on minimum next tick to give a chance to all following observers
+         * to receive the last value before removing the mutation
+         */
+        switchMap(() => timer(1 + (mutation.options.gcTime ?? 0))),
+        take(1)
+      )
+      .subscribe({
+        complete: () => {
+          /**
+           * Will remove the mutation in all cases
+           * - mutation cancelled (complete)
+           * - mutation is finished (success /error)
+           * - this subscription complete (external remove)
+           */
+          this.remove(mutation)
+        }
+      })
+
+    this.mutations.next([...this.mutations.getValue(), { mutation, sub }])
   }
 
   getAll(): Mutation[] {
-    return this.mutations.getValue()
+    return this.mutations.getValue().map(({ mutation }) => mutation)
   }
 
   remove(mutation: Mutation<any, any, any, any>): void {
@@ -87,11 +118,23 @@ export class MutationCache {
 
     const predicate = createPredicateForFilters(defaultedFilters)
 
-    const toKeep = this.mutations
+    const toRemove = this.mutations
       .getValue()
-      .filter((mutation) => !predicate(mutation))
+      .filter(({ mutation }) => {
+        return predicate(mutation)
+      })
+      .map(({ mutation, sub }) => {
+        mutation.cancel()
+        sub.unsubscribe()
 
-    this.mutations.next(toKeep)
+        return mutation
+      })
+
+    this.mutations.next(
+      this.mutations
+        .getValue()
+        .filter(({ mutation }) => !toRemove.includes(mutation))
+    )
   }
 
   find<
@@ -106,7 +149,8 @@ export class MutationCache {
 
     const predicate = createPredicateForFilters(defaultedFilters)
 
-    return this.mutations.getValue().find((mutation) => predicate(mutation))
+    return this.mutations.getValue().find(({ mutation }) => predicate(mutation))
+      ?.mutation
   }
 
   findAll(filters: MutationFilters = {}): Mutation[] | undefined {
@@ -114,7 +158,10 @@ export class MutationCache {
 
     const predicate = createPredicateForFilters(defaultedFilters)
 
-    return this.mutations.getValue().filter((mutation) => predicate(mutation))
+    return this.mutations
+      .getValue()
+      .filter(({ mutation }) => predicate(mutation))
+      .map(({ mutation }) => mutation)
   }
 
   /**
@@ -130,7 +177,11 @@ export class MutationCache {
     const predicate = createPredicateForFilters(defaultedFilters)
 
     return this.mutations.pipe(
-      map((mutations) => mutations.filter(predicate)),
+      map((mutations) =>
+        mutations
+          .filter(({ mutation }) => predicate(mutation))
+          .map(({ mutation }) => mutation)
+      ),
       distinctUntilChanged((previous, current) => {
         return (
           previous.length === current.length &&
