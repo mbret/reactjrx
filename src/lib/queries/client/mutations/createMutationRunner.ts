@@ -212,7 +212,7 @@ export const createMutationRunner = <
       options
     }: {
       args: MutationArg
-      options: MutationOptions<TData, Error, MutationArg, TContext>
+      options: LocalMutationOptions
     }) => {
       mapOperator$.next(options.mapOperator)
       trigger$.next({ args, options })
