@@ -6,24 +6,20 @@ import {
   useEffect,
   useMemo
 } from "react"
-import { type QueryClient, type createClient } from "../client/createClient"
+import { type QueryClient } from "../client/createClient"
 
 export const Context = createContext<{
-  client: ReturnType<typeof createClient>
+  client: QueryClient
 }>({
   client: null as unknown as any
 })
 
-const ClientEffect = ({
-  client
-}: {
-  client: ReturnType<typeof createClient>
-}) => {
+const ClientEffect = ({ client }: { client: QueryClient }) => {
   useEffect(() => {
-    const destroy = client.start()
+    const stop = client.start()
 
     return () => {
-      destroy()
+      stop()
     }
   }, [client])
 
@@ -32,7 +28,7 @@ const ClientEffect = ({
 
 export const QueryClientProvider = memo(
   ({ children, client }: { children: ReactNode; client: QueryClient }) => {
-    const value = useMemo(() => ({ client: client.client }), [client])
+    const value = useMemo(() => ({ client }), [client])
 
     return (
       <Context.Provider value={value}>
@@ -43,7 +39,9 @@ export const QueryClientProvider = memo(
   }
 )
 
-export const useQueryClient = ({ unsafe = false }: { unsafe?: boolean } = {}) => {
+export const useQueryClient = ({
+  unsafe = false
+}: { unsafe?: boolean } = {}) => {
   const context = useContext(Context)
 
   if (!unsafe && context.client === null) {

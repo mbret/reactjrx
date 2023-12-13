@@ -56,16 +56,14 @@ describe("useQuery", () => {
         const query = async () => {
           await new Promise((resolve) => setTimeout(resolve, 100))
         }
-        let _queryStore:
-          | ReturnType<typeof useQueryClient>["queryStore"]
-          | undefined
+        let _queryStore: QueryClient["client"]["queryStore"] | undefined
 
         const Comp2 = () => {
           useQuery({ queryKey: ["foo"], queryFn: query })
 
           const client = useQueryClient()
 
-          _queryStore = client.queryStore
+          _queryStore = client.client.queryStore
 
           return null
         }

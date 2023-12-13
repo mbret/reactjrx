@@ -6,7 +6,8 @@ import {
   createQueryClient,
   doNotExecute,
   renderWithClient,
-  sleep
+  sleep,
+  waitForTimeout
 } from "../../../../tests/utils"
 import { useMutation } from "./useMutation"
 import { type MutationState } from "../../client/mutations/types"
@@ -91,6 +92,8 @@ describe("useMutationState", () => {
     fireEvent.click(rendered.getByRole("button", { name: /mutate/i }))
 
     await waitFor(() => rendered.getByText("data: data1"))
+
+    await waitForTimeout(200)
 
     expect(variables).toEqual([[], [1], []])
   })

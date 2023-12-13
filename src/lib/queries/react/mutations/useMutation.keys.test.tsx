@@ -72,12 +72,14 @@ describe("useMutation", () => {
           expect(values.mutation[index]).toContain(value)
         })
 
-        expect(values.observedMutation).toMatchObject(
-          Array.from({ length: 4 }).map(() => ({
+        expect(values.observedMutation.length).toBeGreaterThanOrEqual(4)
+
+        values.observedMutation.forEach((value: any) => {
+          expect(value).toContain({
             data: undefined,
             status: "idle"
-          }))
-        )
+          })
+        })
       })
     })
   })

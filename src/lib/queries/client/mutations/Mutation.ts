@@ -13,9 +13,12 @@ import {
   concat,
   toArray,
   mergeMap,
-  type Observable,
+  Observable,
   shareReplay,
-  takeWhile
+  takeWhile,
+  BehaviorSubject,
+  type ObservedValueOf,
+  NEVER
 } from "rxjs"
 import { retryOnError } from "../operators"
 import { type MutationState, type MutationOptions } from "./types"
@@ -37,6 +40,8 @@ export class Mutation<
   state$: Observable<typeof this.state>
   options: MutationOptions<TData, TError, TVariables, TContext>
   mutationCache: MutationCache
+  protected observerCount = new BehaviorSubject(0)
+  public observerCount$ = this.observerCount.asObservable()
 
   protected cancelSubject = new Subject<void>()
   protected executeSubject = new Subject<TVariables>()
@@ -57,10 +62,31 @@ export class Mutation<
         switchMap((variables) => this.createMutation(variables)),
         tap((value) => {
           this.state = { ...this.state, ...value }
-        }),
-        takeUntil(this.cancelSubject)
-      )
-    ).pipe(shareReplay({ refCount: true, bufferSize: 1 }))
+        })
+      ),
+      NEVER
+    ).pipe(
+      /**
+       * refCount as true somewhat make NEVER complete when there are
+       * no more observers. I thought I should have to complete manually (which is
+       * why we still cancel the observable when we remove it from cache)
+       */
+      shareReplay({ bufferSize: 1, refCount: true }),
+      takeUntil(this.cancelSubject),
+      (source) => {
+        return new Observable<ObservedValueOf<typeof this.state$>>(
+          (observer) => {
+            this.observerCount.next(this.observerCount.getValue() + 1)
+            const sub = source.subscribe(observer)
+
+            return () => {
+              this.observerCount.next(this.observerCount.getValue() - 1)
+              sub.unsubscribe()
+            }
+          }
+        )
+      }
+    )
   }
 
   createMutation(variables: TVariables) {
@@ -210,14 +236,6 @@ export class Mutation<
     )
 
     return mutation$
-
-    // return new Observable<ObservedValueOf<typeof mutation$>>((observer) => {
-    //   const sub = mutation$.subscribe(observer)
-
-    //   return () => {
-    //     sub.unsubscribe()
-    //   }
-    // })
   }
 
   /**

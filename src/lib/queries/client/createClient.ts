@@ -40,13 +40,19 @@ import { dispatchExternalRefetchToAllQueries } from "./refetch/dispatchExternalR
 import { MutationClient } from "./mutations/MutationClient"
 import { type MutationOptions } from "./mutations/types"
 import { MutationCache } from "./mutations/MutationCache"
+import { MutationObserver } from "./mutations/MutationObserver"
 
-export const createClient = ({ client }: { client: QueryClient }) => {
+export const createClient = ({
+  client,
+  mutationClient
+}: {
+  client: QueryClient
+  mutationClient: MutationClient
+}) => {
   const queryStore = createQueryStore()
   const invalidationClient = createInvalidationClient({ queryStore })
   const cacheClient = createCacheClient({ queryStore })
   const refetchClient = createRefetchClient({ queryStore })
-  const mutationClient = new MutationClient(client)
 
   let hasCalledStart = false
 
@@ -177,6 +183,10 @@ export const createClient = ({ client }: { client: QueryClient }) => {
     )
   )
 
+  const destroy = () => {
+    mutationClient.destroy()
+  }
+
   const start = () => {
     hasCalledStart = true
     const queryListenerSub = queryListener$.subscribe()
@@ -188,10 +198,6 @@ export const createClient = ({ client }: { client: QueryClient }) => {
       })
       queryListenerSub.unsubscribe()
     }
-  }
-
-  const destroy = () => {
-    mutationClient.destroy()
   }
 
   return {
@@ -209,6 +215,8 @@ export const createClient = ({ client }: { client: QueryClient }) => {
 export class QueryClient {
   public client: ReturnType<typeof createClient>
   mutationCache: MutationCache
+  mutationClient: MutationClient
+  public mutationObserver: MutationObserver
 
   constructor(
     { mutationCache }: { mutationCache: MutationCache } = {
@@ -216,9 +224,21 @@ export class QueryClient {
     }
   ) {
     this.mutationCache = mutationCache
+    this.mutationClient = new MutationClient(this)
+    this.mutationObserver = new MutationObserver(this)
+
     this.client = createClient({
-      client: this
+      client: this,
+      mutationClient: this.mutationClient
     })
+  }
+
+  start() {
+    const stop = this.client.start()
+
+    return () => {
+      stop()
+    }
   }
 
   getMutationCache() {
@@ -241,5 +261,10 @@ export class QueryClient {
     // } as T
 
     return options as T
+  }
+
+  destroy() {
+    this.client.destroy()
+    this.mutationObserver.destroy()
   }
 }

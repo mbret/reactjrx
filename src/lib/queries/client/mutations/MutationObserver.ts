@@ -1,153 +1,143 @@
 import {
-  BehaviorSubject,
   type Observable,
   filter,
   switchMap,
-  tap,
-  type Subject,
-  mergeMap,
-  takeUntil,
-  finalize,
   map,
-  distinctUntilChanged
+  distinctUntilChanged,
+  merge,
+  combineLatest,
+  mergeMap
 } from "rxjs"
 import {
-  type MutationKey,
+  type MutationOptions,
+  type MutateOptions,
   type MutationObserverResult,
-  type MutationState
+  type MutationState,
+  type MutationFilters
 } from "./types"
-import { type createMutationRunner } from "./createMutationRunner"
-import { serializeKey } from "../keys/serializeKey"
 import { isDefined } from "../../../utils/isDefined"
 import { getDefaultMutationState } from "./defaultMutationState"
+import { type QueryClient } from "../createClient"
+import { type DefaultError } from "../types"
+import { type Mutation } from "./Mutation"
+import { shallowEqual } from "../../../utils/shallowEqual"
+import { nanoid } from "../keys/nanoid"
 
 /**
  * Provide API to observe mutations results globally.
  * Observe runners and map their results in a hash map.
  */
-export class MutationObserver {
-  /**
-   * Mutation result subject. It can be used whether there is a mutation
-   * running or not and can be directly observed.
-   *
-   * @important
-   * - automatically cleaned as soon as the last mutation is done for a given key
-   */
-  mutationResults$ = new BehaviorSubject<
-    Record<string, BehaviorSubject<MutationObserverResult>>
-  >({})
-
+export class MutationObserver<
+  TData = unknown,
+  TError = DefaultError,
+  TVariables = void,
+  TContext = unknown
+> {
   constructor(
-    mutationRunner$: Subject<
-      ReturnType<typeof createMutationRunner<any, any, any, any>> & {
-        mutationKey: MutationKey
-      }
+    protected client: QueryClient,
+    protected options?: Partial<
+      MutationOptions<TData, TError, TVariables, TContext>
     >
-  ) {
-    mutationRunner$
-      .pipe(
-        mergeMap((runner) => {
-          const serializedMutationKey = serializeKey(runner.mutationKey)
+  ) {}
 
-          return runner.runner$.pipe(
-            tap((result) => {
-              this.updateResultForKey({
-                serializedMutationKey,
-                result
-              })
-            }),
-            takeUntil(
-              mutationRunner$.pipe(
-                filter(
-                  (runner) =>
-                    serializeKey(runner.mutationKey) === serializedMutationKey
-                )
-              )
-            ),
-            finalize(() => {
-              this.deleteResultForKey({ serializedMutationKey })
-            })
-          )
-        })
-      )
-      .subscribe()
-  }
-
-  getDefaultResultValue<TData>(): MutationObserverResult<TData> {
+  protected getDerivedState = (
+    state: MutationState<any, any, any, any>
+  ): MutationObserverResult => {
     return {
       ...getDefaultMutationState(),
-      isSuccess: false,
-      isPending: false,
-      isIdle: true,
-      isError: false
+      ...state,
+      isSuccess: state.status === "success",
+      isPending: state.status === "pending",
+      isIdle: state.status === "idle",
+      isError: state.status === "error"
     }
   }
 
-  deleteResultForKey({
-    serializedMutationKey
-  }: {
-    serializedMutationKey: string
-  }) {
-    const { [serializedMutationKey]: deleted, ...rest } =
-      this.mutationResults$.getValue()
-
-    this.mutationResults$.next(rest)
-  }
-
-  updateResultForKey({
-    serializedMutationKey,
-    result
-  }: {
-    serializedMutationKey: string
-    result: MutationState<any, any, any, any>
-  }) {
-    const resultForKeySubject =
-      this.mutationResults$.getValue()[serializedMutationKey]
-
-    const valueForResult: MutationObserverResult = {
-      ...this.getDefaultResultValue(),
-      ...result,
-      isSuccess: result.status === "success",
-      isPending: result.status === "pending",
-      isIdle: result.status === "idle",
-      isError: result.status === "error"
-    }
-
-    if (!resultForKeySubject) {
-      const resultMap = this.mutationResults$.getValue()
-
-      this.mutationResults$.next({
-        ...resultMap,
-        [serializedMutationKey]: new BehaviorSubject<MutationObserverResult>(
-          valueForResult
-        )
-      })
-    } else {
-      resultForKeySubject?.next(valueForResult)
-    }
-  }
-
-  observe<Result>({ key }: { key: string }): {
-    result$: Observable<MutationObserverResult<Result>>
-    lastValue: MutationObserverResult<Result>
+  observeBy(filters: MutationFilters): {
+    result$: Observable<MutationObserverResult<any>>
+    lastValue: MutationObserverResult<any>
   } {
-    const currentResultValue = this.mutationResults$
-      .getValue()
-      [key]?.getValue() as MutationObserverResult<Result>
+    const reduceStateFromMutation = (
+      values: Array<Pick<Mutation, "state" | "options">>
+    ) =>
+      values.reduce(
+        (acc, { state, options }) => {
+          if (options.mapOperator === "switch") return state
 
-    const lastValue = currentResultValue ?? this.getDefaultResultValue<Result>()
+          if (acc && state.submittedAt >= acc.submittedAt) {
+            return {
+              ...state,
+              data: state.data ?? acc.data,
+              error: state.error ?? acc.error
+            }
+          }
 
-    const result$ = this.mutationResults$.pipe(
-      map((resultMap) => resultMap[key]),
+          return acc
+        },
+        values[0]?.state ?? getDefaultMutationState()
+      )
+
+    const mutations = this.client.mutationCache.findAll(filters)
+
+    const lastValue = this.getDerivedState(reduceStateFromMutation(mutations))
+
+    const result$ = this.client.mutationCache.mutationsBy(filters).pipe(
+      switchMap((mutations) =>
+        combineLatest(
+          mutations.map((mutation) =>
+            this.observe(mutation).pipe(
+              map((state) => ({ state, options: mutation.options }))
+            )
+          )
+        )
+      ),
+      map(reduceStateFromMutation),
       filter(isDefined),
-      distinctUntilChanged(),
-      switchMap((resultObserver) => resultObserver)
-    ) as Observable<MutationObserverResult<Result>>
+      map(this.getDerivedState),
+      distinctUntilChanged(shallowEqual)
+    )
 
     return { result$, lastValue }
   }
 
-  destroy() {
-    this.mutationResults$.complete()
+  observe(mutation: Mutation) {
+    return mutation.state$
   }
+
+  subscribe(subscription: () => void) {
+    const sub = this.client.mutationCache.mutations$
+      .pipe(
+        mergeMap((mutations) => {
+          const observed$ = mutations.map((mutation) => this.observe(mutation))
+
+          return merge(...observed$)
+        })
+      )
+      .subscribe(subscription)
+
+    return () => {
+      sub.unsubscribe()
+    }
+  }
+
+  mutate(
+    variables: TVariables,
+    options?: MutateOptions<TData, TError, TVariables, TContext>
+  ) {
+    const mergedOptions = {
+      ...this.options,
+      ...options
+    }
+
+    this.client.client.mutationClient.mutate<TData, TVariables>({
+      args: variables,
+      options: {
+        mutationFn: async () => undefined,
+        ...mergedOptions,
+        mutationKey: mergedOptions.mutationKey ?? [nanoid()]
+      }
+    })
+  }
+
+  destroy() {}
 }

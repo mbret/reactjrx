@@ -17,7 +17,7 @@ import {
   take
 } from "rxjs"
 import { createPredicateForFilters } from "./filters"
-import { shallowEqual } from "../../../utils/shallowEqual"
+import { arrayEqual } from "../../../utils/arrayEqual"
 
 interface MutationCacheConfig {
   onError?: <
@@ -51,9 +51,14 @@ interface MutationCacheConfig {
 }
 
 export class MutationCache {
-  readonly mutations = new BehaviorSubject<
+  protected readonly mutationsSubject = new BehaviorSubject<
     Array<{ mutation: Mutation<any, any, any, any>; sub: Subscription }>
   >([])
+
+  public mutations$ = this.mutationsSubject.pipe(
+    map((mutations) => mutations.map(({ mutation }) => mutation)),
+    distinctUntilChanged(arrayEqual)
+  )
 
   constructor(public config: MutationCacheConfig = {}) {}
 
@@ -77,12 +82,18 @@ export class MutationCache {
   add(mutation: Mutation<any, any, any, any>): void {
     const sub = mutation.state$
       .pipe(
-        filter(({ status }) => status === "success" || status === "error"),
         /**
-         * We proceed on minimum next tick to give a chance to all following observers
-         * to receive the last value before removing the mutation
+         * Once a mutation is finished and there are no more observers than us
+         * we start the process of cleaning it up based on gc settings
          */
-        switchMap(() => timer(1 + (mutation.options.gcTime ?? 0))),
+        filter(({ status }) => status === "success" || status === "error"),
+        switchMap(() =>
+          mutation.observerCount$.pipe(
+            filter((count) => count <= 1),
+            take(1)
+          )
+        ),
+        switchMap(() => timer(mutation.options.gcTime ?? 0)),
         take(1)
       )
       .subscribe({
@@ -97,11 +108,14 @@ export class MutationCache {
         }
       })
 
-    this.mutations.next([...this.mutations.getValue(), { mutation, sub }])
+    this.mutationsSubject.next([
+      ...this.mutationsSubject.getValue(),
+      { mutation, sub }
+    ])
   }
 
-  getAll(): Mutation[] {
-    return this.mutations.getValue().map(({ mutation }) => mutation)
+  getAll() {
+    return this.findAll()
   }
 
   remove(mutation: Mutation<any, any, any, any>): void {
@@ -118,7 +132,7 @@ export class MutationCache {
 
     const predicate = createPredicateForFilters(defaultedFilters)
 
-    const toRemove = this.mutations
+    const toRemove = this.mutationsSubject
       .getValue()
       .filter(({ mutation }) => {
         return predicate(mutation)
@@ -130,8 +144,8 @@ export class MutationCache {
         return mutation
       })
 
-    this.mutations.next(
-      this.mutations
+    this.mutationsSubject.next(
+      this.mutationsSubject
         .getValue()
         .filter(({ mutation }) => !toRemove.includes(mutation))
     )
@@ -149,16 +163,17 @@ export class MutationCache {
 
     const predicate = createPredicateForFilters(defaultedFilters)
 
-    return this.mutations.getValue().find(({ mutation }) => predicate(mutation))
-      ?.mutation
+    return this.mutationsSubject
+      .getValue()
+      .find(({ mutation }) => predicate(mutation))?.mutation
   }
 
-  findAll(filters: MutationFilters = {}): Mutation[] | undefined {
+  findAll(filters: MutationFilters = {}): Array<Mutation<any, any, any, any>> {
     const defaultedFilters = { exact: true, ...filters }
 
     const predicate = createPredicateForFilters(defaultedFilters)
 
-    return this.mutations
+    return this.mutationsSubject
       .getValue()
       .filter(({ mutation }) => predicate(mutation))
       .map(({ mutation }) => mutation)
@@ -176,19 +191,9 @@ export class MutationCache {
     const defaultedFilters = { exact: true, ...filters }
     const predicate = createPredicateForFilters(defaultedFilters)
 
-    return this.mutations.pipe(
-      map((mutations) =>
-        mutations
-          .filter(({ mutation }) => predicate(mutation))
-          .map(({ mutation }) => mutation)
-      ),
-      distinctUntilChanged((previous, current) => {
-        return (
-          previous.length === current.length &&
-          previous.every((item, index) => item === current[index])
-        )
-      }),
-      distinctUntilChanged(shallowEqual)
+    return this.mutations$.pipe(
+      map((mutations) => mutations.filter(predicate)),
+      distinctUntilChanged(arrayEqual)
     )
   }
 }

@@ -51,7 +51,7 @@ describe("useMutation", () => {
           }, [data])
 
           useEffect(() => {
-            mutate({ res: 1, timeout: 3 })
+            mutate({ res: 1, timeout: 5 })
             mutate({ res: 2, timeout: 1 })
           }, [mutate])
 
@@ -122,6 +122,59 @@ describe("useMutation", () => {
         )
 
         expect(await findByText("1,2")).toBeDefined()
+      })
+    })
+
+    describe("when map operator is switch", () => {
+      it("should not show results sequentially", async () => {
+        const client = new QueryClient()
+
+        const Comp = () => {
+          const [done, setDone] = useState({ 1: false, 2: false })
+          const [values, setValues] = useState<Array<number | undefined>>([])
+          const { data, mutate } = useMutation({
+            mutationFn: async ({
+              res,
+              timeout
+            }: {
+              res: number
+              timeout: number
+            }) => {
+              return await new Promise<number>((resolve) =>
+                setTimeout(() => {
+                  resolve(res)
+                }, timeout)
+              )
+            },
+            mapOperator: "switch",
+            onSuccess: (data) => {
+              setDone((s) => ({ ...s, [data]: true }))
+            }
+          })
+
+          useEffect(() => {
+            data && setValues((v) => [...v, data])
+          }, [data])
+
+          useEffect(() => {
+            mutate({ res: 1, timeout: 1 })
+            mutate({ res: 2, timeout: 3 })
+          }, [])
+
+          // we only display content once all queries are done
+          // this way when we text string later we know exactly
+          return <>{done[1] && done[2] ? values.join(",") : ""}</>
+        }
+
+        const { findByText } = render(
+          <React.StrictMode>
+            <QueryClientProvider client={client}>
+              <Comp />
+            </QueryClientProvider>
+          </React.StrictMode>
+        )
+
+        expect(await findByText("2")).toBeDefined()
       })
     })
   })

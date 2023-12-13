@@ -7,7 +7,7 @@ import {
 } from "../../client/mutations/types"
 import { useQueryClient } from "../Provider"
 import { serializeKey } from "../../client/keys/serializeKey"
-import { nanoid } from "../keys/nanoid"
+import { nanoid } from "../../client/keys/nanoid"
 import { useConstant } from "../../../utils/useConstant"
 import { type QueryClient } from "../../client/createClient"
 
@@ -24,14 +24,14 @@ export function useMutation<Args = void, R = undefined>(
   queryClient?: QueryClient
 ) {
   const defaultQueryClient = useQueryClient({ unsafe: !!queryClient })
-  const finalQueryClient = queryClient?.client ?? defaultQueryClient
+  const finalQueryClient = queryClient ?? defaultQueryClient
   const optionsRef = useLiveRef(options)
   const defaultKey = useConstant(() => [nanoid()])
   const serializedKey = serializeKey(options.mutationKey ?? defaultKey.current)
   const observedMutation = useMemo(
     () =>
-      finalQueryClient.mutationClient.mutationResultObserver.observe<R>({
-        key: serializedKey
+      finalQueryClient.mutationObserver.observeBy<R>({
+        mutationKey: options.mutationKey ?? defaultKey.current
       }),
     [serializedKey]
   )
