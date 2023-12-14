@@ -18,7 +18,8 @@ import {
   takeWhile,
   BehaviorSubject,
   type ObservedValueOf,
-  NEVER
+  NEVER,
+  finalize
 } from "rxjs"
 import { retryOnError } from "../operators"
 import { type MutationState, type MutationOptions } from "./types"
@@ -62,7 +63,8 @@ export class Mutation<
         switchMap((variables) => this.createMutation(variables)),
         tap((value) => {
           this.state = { ...this.state, ...value }
-        })
+        }),
+        takeUntil(this.cancelSubject)
       ),
       NEVER
     ).pipe(

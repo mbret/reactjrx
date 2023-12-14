@@ -25,6 +25,7 @@ import { createPredicateForFilters } from "./filters"
 import { shallowEqual } from "../../../utils/shallowEqual"
 import { type Mutation } from "./Mutation"
 import { type QueryClient } from "../createClient"
+import { type DefaultError } from "../types"
 
 export class MutationClient {
   /**
@@ -55,59 +56,25 @@ export class MutationClient {
   >([])
 
   constructor(public client: QueryClient) {
+    // @todo remove
     this.mutate$
       .pipe(
         tap(({ options, args }) => {
           const { mutationKey } = options
           const serializedMutationKey = serializeKey(mutationKey)
 
-          let mutationForKey = this.getMutationRunnersByKey(
+          const mutationForKey = this.getMutationRunnersByKey(
             serializedMutationKey
           )
 
-          if (!mutationForKey) {
-            mutationForKey = {
-              ...createMutationRunner({
-                ...options,
-                client,
-                mutationCache: client.getMutationCache()
-              }),
-              mutationKey
-            }
-
-            this.setMutationRunnersByKey(serializedMutationKey, mutationForKey)
-
-            // @todo change and verify if we unsubscribe
-            mutationForKey.runner$.subscribe()
-
-            /**
-             * @important
-             * should have at least one first mutation so
-             * should unsubscribe by itself once filter back to 0 run
-             */
-            client.mutationCache
-              .mutationsBy({
-                exact: true,
-                mutationKey
-              })
-              .pipe(
-                distinctUntilChanged(shallowEqual),
-                skip(1),
-                filter((items) => items.length === 0),
-                take(1)
-              )
-              .subscribe(() => {
-                mutationForKey?.destroy()
-
-                this.deleteMutationRunnersByKey(serializedMutationKey)
-              })
-          }
+          if (!mutationForKey) return
 
           mutationForKey.trigger({ args, options })
         })
       )
       .subscribe()
 
+    // @todo remove and directly cancel mutations
     this.cancel$
       .pipe(
         tap(({ key }) => {
@@ -195,7 +162,8 @@ export class MutationClient {
     const predicate = createPredicateForFilters(filters)
     const finalSelect = select ?? ((mutation) => mutation.state as Selected)
 
-    const lastValue = this.client.mutationCache.getAll()
+    const lastValue = this.client.mutationCache
+      .getAll()
       .reduce((acc: Array<Mutation<any>>, mutation) => {
         const result = [...acc, mutation]
 
@@ -221,11 +189,70 @@ export class MutationClient {
     return { value$, lastValue }
   }
 
-  mutate<Result, MutationArgs>(params: {
-    options: MutationOptions<Result, MutationArgs>
-    args: MutationArgs
+  mutate<
+    TData,
+    TError = DefaultError,
+    TVariables = void,
+    TContext = unknown
+  >(params: {
+    options: MutationOptions<TData, TError, TVariables, TContext>
+    args: TVariables
   }) {
+    const { mutationKey } = params.options
+    const serializedMutationKey = serializeKey(mutationKey)
+
+    let mutationForKey = this.getMutationRunnersByKey(serializedMutationKey)
+
+    if (!mutationForKey) {
+      mutationForKey = {
+        ...createMutationRunner({
+          ...params.options,
+          client: this.client,
+          mutationCache: this.client.getMutationCache()
+        }),
+        mutationKey
+      }
+
+      this.setMutationRunnersByKey(serializedMutationKey, mutationForKey)
+
+      // @todo change and verify if we unsubscribe
+      mutationForKey.runner$.subscribe()
+
+      // @todo runner should close by itself when there are no more mutations
+      
+      /**
+       * @important
+       * should have at least one first mutation so
+       * should unsubscribe by itself once filter back to 0 run
+       */
+      this.client.mutationCache
+        .mutationsBy({
+          exact: true,
+          mutationKey
+        })
+        .pipe(
+          distinctUntilChanged(shallowEqual),
+          skip(1),
+          filter((items) => items.length === 0),
+          take(1)
+        )
+        .subscribe(() => {
+          mutationForKey?.destroy()
+
+          this.deleteMutationRunnersByKey(serializedMutationKey)
+        })
+    }
+
+    const mutation = this.client.mutationCache.build<
+      TData,
+      TError,
+      TVariables,
+      TContext
+    >(this.client, params.options)
+
     this.mutate$.next(params)
+
+    return mutation
   }
 
   /**

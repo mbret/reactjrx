@@ -168,6 +168,25 @@ export class MutationCache {
       .find(({ mutation }) => predicate(mutation))?.mutation
   }
 
+  findLatest<
+    TData = unknown,
+    TError = DefaultError,
+    TVariables = any,
+    TContext = unknown
+  >(
+    filters: MutationFilters<TData, TError, TVariables, TContext>
+  ): Mutation<TData, TError, TVariables, TContext> | undefined {
+    const defaultedFilters = { exact: true, ...filters }
+
+    const predicate = createPredicateForFilters(defaultedFilters)
+
+    return this.mutationsSubject
+      .getValue()
+      .slice()
+      .reverse()
+      .find(({ mutation }) => predicate(mutation))?.mutation
+  }
+
   findAll(filters: MutationFilters = {}): Array<Mutation<any, any, any, any>> {
     const defaultedFilters = { exact: true, ...filters }
 

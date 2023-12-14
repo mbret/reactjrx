@@ -1,6 +1,6 @@
 import { useLiveRef } from "../../../utils/useLiveRef"
 import { useObserve } from "../../../binding/useObserve"
-import { useCallback, useEffect, useMemo } from "react"
+import { useCallback, useEffect, useMemo, useRef } from "react"
 import {
   type MutationKey,
   type MutationOptions
@@ -35,19 +35,26 @@ export function useMutation<Args = void, R = undefined>(
       }),
     [serializedKey]
   )
+  const mutationsToCancel = useRef<
+    Array<
+      ReturnType<typeof finalQueryClient.mutationClient.mutate<any, any, any>>
+    >
+  >([])
 
   const result =
     useObserve(observedMutation.result$) ?? observedMutation.lastValue
 
   const mutate = useCallback(
     (mutationArgs: Args) => {
-      finalQueryClient.mutationClient.mutate({
+      const mutation = finalQueryClient.mutationClient.mutate({
         options: {
           ...optionsRef.current,
           mutationKey: optionsRef.current.mutationKey ?? defaultKey.current
         },
         args: mutationArgs
       })
+
+      mutationsToCancel.current.push(mutation)
     },
     [finalQueryClient, serializedKey]
   )
@@ -61,9 +68,12 @@ export function useMutation<Args = void, R = undefined>(
   useEffect(() => {
     return () => {
       if (optionsRef.current.cancelOnUnMount) {
-        finalQueryClient.mutationClient.cancel({
-          key: optionsRef.current.mutationKey ?? defaultKey.current
+        mutationsToCancel.current.forEach((mutation) => {
+          mutation.cancel()
         })
+        // finalQueryClient.mutationClient.cancel({
+        //   key: optionsRef.current.mutationKey ?? defaultKey.current
+        // })
       }
     }
   }, [])

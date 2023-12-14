@@ -16,7 +16,7 @@ export const Context = createContext<{
 
 const ClientEffect = ({ client }: { client: QueryClient }) => {
   useEffect(() => {
-    const stop = client.start()
+    const stop = client.mount()
 
     return () => {
       stop()

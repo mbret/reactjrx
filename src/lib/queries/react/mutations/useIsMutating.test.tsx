@@ -110,7 +110,7 @@ describe("useIsMutating", () => {
       await waitFor(() => {
         // because value quickly switch to 0,1 each time we have a new render
         // but the value being batched we end up with same 1
-        expect(isMutatings).toEqual([0, 1, 1, 0])
+        expect(isMutatings).toEqual([0, 1, 0])
       }, {})
     })
   })

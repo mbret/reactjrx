@@ -16,7 +16,7 @@ import {
   startWith,
   switchMap,
   take,
-  takeUntil,
+  takeUntil
 } from "rxjs"
 import { isDefined } from "../../../utils/isDefined"
 import { type MutationOptions } from "./types"
@@ -100,25 +100,26 @@ export const createMutationRunner = <
 
       return trigger$.pipe(
         takeUntil(stableMapOperator$.pipe(skip(1))),
-        map(({ args, options }) => {
-          const mutation = mutationCache.build<
+        // map(({ args, options }) => {
+        //   const mutation = mutationCache.find({
+        //     exact: true,
+        //     mutationKey
+        //   })
+
+        //   return { mutation, args }
+        // }),
+        switchOperator(({ args }) => {
+          const mutation = mutationCache.findLatest<
             TData,
             TError,
             MutationArg,
             TContext
-          >(client, {
-            ...options,
-            mapOperator
+          >({
+            exact: true,
+            mutationKey
           })
 
-          return { mutation, args }
-        }),
-        switchOperator(({ mutation, args }) => {
-          if (
-            !mutationCache.find<TData, TError, MutationArg, TContext>({
-              predicate: (item) => item === mutation
-            })
-          ) {
+          if (!mutation) {
             return of({})
           }
 

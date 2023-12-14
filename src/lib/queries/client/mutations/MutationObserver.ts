@@ -139,5 +139,9 @@ export class MutationObserver<
     })
   }
 
+  reset() {
+    this.client.mutationCache.getAll().forEach((mutation) => { mutation.cancel(); })
+  }
+
   destroy() {}
 }

@@ -233,7 +233,7 @@ export class QueryClient {
     })
   }
 
-  start() {
+  mount() {
     const stop = this.client.start()
 
     return () => {
@@ -263,8 +263,7 @@ export class QueryClient {
     return options as T
   }
 
-  destroy() {
-    this.client.destroy()
-    this.mutationObserver.destroy()
+  clear() {
+    // this.client.
   }
 }
