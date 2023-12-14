@@ -71,9 +71,6 @@ export function useMutation<Args = void, R = undefined>(
         mutationsToCancel.current.forEach((mutation) => {
           mutation.cancel()
         })
-        // finalQueryClient.mutationClient.cancel({
-        //   key: optionsRef.current.mutationKey ?? defaultKey.current
-        // })
       }
     }
   }, [])
