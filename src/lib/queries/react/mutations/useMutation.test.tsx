@@ -300,7 +300,7 @@ describe("useMutation", () => {
 
         unmount()
 
-        const resultForKey = client.client.mutationClient.mutationRunnersByKey$
+        const resultForKey = client.mutationClient.mutationRunnersByKey$
           .getValue()
           .get(serializeKey(["foo"]))
 

@@ -1,10 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import {
-  Subject,
   BehaviorSubject,
   filter,
   skip,
-  tap,
   distinctUntilChanged,
   take
 } from "rxjs"
@@ -27,32 +25,7 @@ export class MutationClient {
     Map<string, ReturnType<typeof createMutationRunner<any, any, any, any>>>
   >(new Map())
 
-  mutationRunner$ = new Subject<ReturnType<typeof createMutationRunner>>()
-
-  mutate$ = new Subject<{
-    options: MutationOptions<any, any, any, any>
-    args: any
-  }>()
-
-  constructor(public client: QueryClient) {
-    // @todo remove
-    this.mutate$
-      .pipe(
-        tap(({ options, args }) => {
-          const { mutationKey } = options
-          const serializedMutationKey = serializeKey(mutationKey)
-
-          const mutationForKey = this.getMutationRunnersByKey(
-            serializedMutationKey
-          )
-
-          if (!mutationForKey) return
-
-          mutationForKey.trigger({ args, options })
-        })
-      )
-      .subscribe()
-  }
+  constructor(public client: QueryClient) {}
 
   /**
    * @helper
@@ -66,8 +39,6 @@ export class MutationClient {
     map.set(key, value)
 
     this.mutationRunnersByKey$.next(map)
-
-    this.mutationRunner$.next(value)
   }
 
   /**
@@ -124,7 +95,8 @@ export class MutationClient {
        * should have at least one first mutation so
        * should unsubscribe by itself once filter back to 0 run
        */
-      this.client.getMutationCache()
+      this.client
+        .getMutationCache()
         .mutationsBy({
           exact: true,
           mutationKey
@@ -142,21 +114,16 @@ export class MutationClient {
         })
     }
 
-    const mutation = this.client.getMutationCache().build<
-      TData,
-      TError,
-      TVariables,
-      TContext
-    >(this.client, params.options)
+    const mutation = this.client
+      .getMutationCache()
+      .build<TData, TError, TVariables, TContext>(this.client, params.options)
 
-    this.mutate$.next(params)
+    mutationForKey.trigger(params)
 
     return mutation
   }
 
   destroy() {
-    this.mutationRunner$.complete()
-    this.mutate$.complete()
     this.mutationRunnersByKey$.complete()
   }
 }

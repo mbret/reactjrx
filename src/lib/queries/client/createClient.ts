@@ -42,13 +42,7 @@ import { type MutationOptions } from "./mutations/types"
 import { MutationCache } from "./mutations/cache/MutationCache"
 import { MutationObserver } from "./mutations/observers/MutationObserver"
 
-export const createClient = ({
-  client,
-  mutationClient
-}: {
-  client: QueryClient
-  mutationClient: MutationClient
-}) => {
+export const createClient = ({ client }: { client: QueryClient }) => {
   const queryStore = createQueryStore()
   const invalidationClient = createInvalidationClient({ queryStore })
   const cacheClient = createCacheClient({ queryStore })
@@ -183,9 +177,7 @@ export const createClient = ({
     )
   )
 
-  const destroy = () => {
-    mutationClient.destroy()
-  }
+  const destroy = () => {}
 
   const start = () => {
     hasCalledStart = true
@@ -204,7 +196,6 @@ export const createClient = ({
     start,
     query,
     queryStore,
-    mutationClient,
     ...invalidationClient,
     ...cacheClient,
     ...refetchClient,
@@ -228,8 +219,7 @@ export class QueryClient {
     this.mutationObserver = new MutationObserver(this)
 
     this.client = createClient({
-      client: this,
-      mutationClient: this.mutationClient
+      client: this
     })
   }
 
@@ -237,6 +227,7 @@ export class QueryClient {
     const stop = this.client.start()
 
     return () => {
+      this.mutationClient.destroy()
       stop()
     }
   }

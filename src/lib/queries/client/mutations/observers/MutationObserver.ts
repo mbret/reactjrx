@@ -137,7 +137,7 @@ export class MutationObserver<
       ...options
     }
 
-    const mutation = this.client.client.mutationClient.mutate<
+    const mutation = this.client.mutationClient.mutate<
       TData,
       TVariables
     >({
