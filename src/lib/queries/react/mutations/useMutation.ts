@@ -37,7 +37,7 @@ export function useMutation<Args = void, R = undefined>(
   )
   const mutationsToCancel = useRef<
     Array<
-      ReturnType<typeof finalQueryClient.mutationClient.mutate<any, any, any>>
+      ReturnType<typeof finalQueryClient.mutationRunners.mutate<any, any, any>>
     >
   >([])
 
@@ -46,7 +46,7 @@ export function useMutation<Args = void, R = undefined>(
 
   const mutate = useCallback(
     (mutationArgs: Args) => {
-      const mutation = finalQueryClient.mutationClient.mutate({
+      const mutation = finalQueryClient.mutationRunners.mutate({
         options: {
           ...optionsRef.current,
           mutationKey: optionsRef.current.mutationKey ?? defaultKey.current

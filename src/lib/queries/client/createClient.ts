@@ -37,7 +37,7 @@ import { createCacheClient } from "./cache/cacheClient"
 import { Logger } from "../../logger"
 import { markQueryAsStaleIfRefetch } from "./refetch/markQueryAsStaleIfRefetch"
 import { dispatchExternalRefetchToAllQueries } from "./refetch/dispatchExternalRefetchToAllQueries"
-import { MutationClient } from "./mutations/MutationClient"
+import { MutationRunners } from "./mutations/runners/MutationRunners"
 import { type MutationOptions } from "./mutations/types"
 import { MutationCache } from "./mutations/cache/MutationCache"
 import { MutationObserver } from "./mutations/observers/MutationObserver"
@@ -206,7 +206,7 @@ export const createClient = ({ client }: { client: QueryClient }) => {
 export class QueryClient {
   public client: ReturnType<typeof createClient>
   protected mutationCache: MutationCache
-  mutationClient: MutationClient
+  protected mutationRunners: MutationRunners
   public mutationObserver: MutationObserver
 
   constructor(
@@ -215,7 +215,7 @@ export class QueryClient {
     }
   ) {
     this.mutationCache = mutationCache
-    this.mutationClient = new MutationClient(this)
+    this.mutationRunners = new MutationRunners(this)
     this.mutationObserver = new MutationObserver(this)
 
     this.client = createClient({
@@ -227,7 +227,7 @@ export class QueryClient {
     const stop = this.client.start()
 
     return () => {
-      this.mutationClient.destroy()
+      this.mutationRunners.destroy()
       stop()
     }
   }

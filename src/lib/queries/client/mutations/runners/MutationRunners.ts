@@ -6,14 +6,14 @@ import {
   distinctUntilChanged,
   take
 } from "rxjs"
-import { serializeKey } from "../keys/serializeKey"
-import { type MutationOptions } from "./types"
-import { createMutationRunner } from "./runner/createMutationRunner"
-import { shallowEqual } from "../../../utils/shallowEqual"
-import { type QueryClient } from "../createClient"
-import { type DefaultError } from "../types"
+import { serializeKey } from "../../keys/serializeKey"
+import { type MutationOptions } from "../types"
+import { createMutationRunner } from "./MutationRunner"
+import { shallowEqual } from "../../../../utils/shallowEqual"
+import { type QueryClient } from "../../createClient"
+import { type DefaultError } from "../../types"
 
-export class MutationClient {
+export class MutationRunners {
   /**
    * Contain all active mutation for a given key.
    * A mutation ca have several triggers running (it is not necessarily one function running)
