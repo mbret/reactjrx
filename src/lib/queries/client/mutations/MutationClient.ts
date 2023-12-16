@@ -8,7 +8,7 @@ import {
 } from "rxjs"
 import { serializeKey } from "../keys/serializeKey"
 import { type MutationOptions } from "./types"
-import { createMutationRunner } from "./createMutationRunner"
+import { createMutationRunner } from "./runner/createMutationRunner"
 import { shallowEqual } from "../../../utils/shallowEqual"
 import { type QueryClient } from "../createClient"
 import { type DefaultError } from "../types"
