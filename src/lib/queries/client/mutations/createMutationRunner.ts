@@ -100,14 +100,6 @@ export const createMutationRunner = <
 
       return trigger$.pipe(
         takeUntil(stableMapOperator$.pipe(skip(1))),
-        // map(({ args, options }) => {
-        //   const mutation = mutationCache.find({
-        //     exact: true,
-        //     mutationKey
-        //   })
-
-        //   return { mutation, args }
-        // }),
         switchOperator(({ args }) => {
           const mutation = mutationCache.findLatest<
             TData,
