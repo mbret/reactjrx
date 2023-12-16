@@ -13,7 +13,7 @@ export const createPredicateForFilters = <
   predicate,
   exact = true
 }: MutationFilters<TData, TError, TVariables, TContext> = {}) => {
-  const defaultPredicate: MutationFilters<
+  const finalPredicate: MutationFilters<
     TData,
     TError,
     TVariables,
@@ -37,9 +37,12 @@ export const createPredicateForFilters = <
 
     if (status && mutation.state.status !== status) return false
 
+    if (predicate) {
+      return predicate(mutation)
+    }
+
     return true
   }
-  const finalPredicate = predicate ?? defaultPredicate
 
   return finalPredicate
 }

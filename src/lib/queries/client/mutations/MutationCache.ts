@@ -14,10 +14,21 @@ import {
   switchMap,
   timer,
   filter,
-  take
+  take,
+  share,
+  pairwise,
+  merge,
+  tap,
+  mergeMap,
+  from,
+  of,
+  combineLatest
 } from "rxjs"
 import { createPredicateForFilters } from "./filters"
 import { arrayEqual } from "../../../utils/arrayEqual"
+import { type MutationCacheNotifyEvent } from "./cache/types"
+import { isDefined } from "../../../utils/isDefined"
+import { shallowEqual } from "../../../utils/shallowEqual"
 
 interface MutationCacheConfig {
   onError?: <
@@ -57,7 +68,9 @@ export class MutationCache {
 
   public mutations$ = this.mutationsSubject.pipe(
     map((mutations) => mutations.map(({ mutation }) => mutation)),
-    distinctUntilChanged(arrayEqual)
+    distinctUntilChanged(arrayEqual),
+    share()
+  )
   )
 
   constructor(public config: MutationCacheConfig = {}) {}
@@ -198,9 +211,6 @@ export class MutationCache {
       .map(({ mutation }) => mutation)
   }
 
-  /**
-   * @todo optimize, should not ping if array contain same mutation in same order
-   */
   mutationsBy<
     TData = unknown,
     TError = DefaultError,
@@ -214,5 +224,51 @@ export class MutationCache {
       map((mutations) => mutations.filter(predicate)),
       distinctUntilChanged(arrayEqual)
     )
+  }
+
+  mutationStateBy<TData, Selected = MutationState<TData>>({
+    filters,
+    select
+  }: {
+    filters?: MutationFilters<TData>
+    select?: (mutation: Mutation<TData>) => Selected
+  } = {}) {
+    const predicate = createPredicateForFilters(filters)
+    const finalSelect = select ?? ((mutation) => mutation.state as Selected)
+
+    const lastValue = this.getAll()
+      .reduce((acc: Array<Mutation<any>>, mutation) => {
+        const result = [...acc, mutation]
+
+        return result
+      }, [])
+      .filter(predicate)
+      .map((mutation) => finalSelect(mutation))
+
+    const value$ = this.mutations$.pipe(
+      switchMap((mutations) => {
+        const mutationsOnStateUpdate = mutations.map((mutation) =>
+          mutation.state$.pipe(map(() => mutation))
+        )
+
+        return mutationsOnStateUpdate.length === 0
+          ? of([])
+          : combineLatest(mutationsOnStateUpdate)
+      }),
+      map((mutations) => {
+        const filteredMutations = mutations.filter(predicate)
+
+        return filteredMutations.map(finalSelect)
+      }),
+      distinctUntilChanged(shallowEqual)
+    )
+
+    return { value$, lastValue }
+  }
+
+  clear() {
+    this.getAll().forEach((mutation) => {
+      this.remove(mutation)
+    })
   }
 }
