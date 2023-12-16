@@ -10,7 +10,6 @@ import {
 } from "rxjs"
 import { serializeKey } from "../keys/serializeKey"
 import { type MutationOptions } from "./types"
-import { type QueryKey } from "../keys/types"
 import { createMutationRunner } from "./createMutationRunner"
 import { shallowEqual } from "../../../utils/shallowEqual"
 import { type QueryClient } from "../createClient"
@@ -35,8 +34,6 @@ export class MutationClient {
     args: any
   }>()
 
-  cancel$ = new Subject<{ key: QueryKey }>()
-
   constructor(public client: QueryClient) {
     // @todo remove
     this.mutate$
@@ -52,20 +49,6 @@ export class MutationClient {
           if (!mutationForKey) return
 
           mutationForKey.trigger({ args, options })
-        })
-      )
-      .subscribe()
-
-    // @todo remove and directly cancel mutations
-    this.cancel$
-      .pipe(
-        tap(({ key }) => {
-          const serializedKey = serializeKey(key)
-
-          this.mutationRunnersByKey$
-            .getValue()
-            .get(serializedKey)
-            ?.cancel$.next()
         })
       )
       .subscribe()
@@ -141,7 +124,7 @@ export class MutationClient {
        * should have at least one first mutation so
        * should unsubscribe by itself once filter back to 0 run
        */
-      this.client.mutationCache
+      this.client.getMutationCache()
         .mutationsBy({
           exact: true,
           mutationKey
@@ -159,7 +142,7 @@ export class MutationClient {
         })
     }
 
-    const mutation = this.client.mutationCache.build<
+    const mutation = this.client.getMutationCache().build<
       TData,
       TError,
       TVariables,
@@ -171,17 +154,8 @@ export class MutationClient {
     return mutation
   }
 
-  /**
-   * This will cancel any current mutation runnings.
-   * No discrimination process
-   */
-  cancel(params: { key: QueryKey }) {
-    this.cancel$.next(params)
-  }
-
   destroy() {
     this.mutationRunner$.complete()
-    this.cancel$.complete()
     this.mutate$.complete()
     this.mutationRunnersByKey$.complete()
   }

@@ -60,20 +60,18 @@ export function useMutation<Args = void, R = undefined>(
   )
 
   const cancel = useCallback(() => {
-    finalQueryClient.mutationClient.cancel({
-      key: optionsRef.current.mutationKey ?? defaultKey.current
+    mutationsToCancel.current.forEach((mutation) => {
+      mutation.cancel()
     })
-  }, [finalQueryClient])
+  }, [])
 
   useEffect(() => {
     return () => {
       if (optionsRef.current.cancelOnUnMount) {
-        mutationsToCancel.current.forEach((mutation) => {
-          mutation.cancel()
-        })
+        cancel()
       }
     }
-  }, [])
+  }, [cancel])
 
   return { mutate, cancel, ...result }
 }

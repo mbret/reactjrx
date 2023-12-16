@@ -4,8 +4,7 @@ import { StrictMode, useEffect, useState } from "react"
 import { useMutation } from "./useMutation"
 import { QueryClientProvider } from "../Provider"
 import { render } from "@testing-library/react"
-import { NEVER, finalize, timer } from "rxjs"
-import { waitForTimeout } from "../../../../tests/utils"
+import { finalize, timer } from "rxjs"
 
 describe("Given two mutation watching the same key", () => {
   describe("and when one mutation is just observer and unmount", () => {
@@ -27,6 +26,7 @@ describe("Given two mutation watching the same key", () => {
         const [hidden, setHidden] = useState(false)
         const { mutate } = useMutation({
           mutationKey: ["foo"],
+          cancelOnUnMount: true, // cancel strictMode
           mutationFn: () =>
             timer(100).pipe(
               finalize(() => {
@@ -49,20 +49,20 @@ describe("Given two mutation watching the same key", () => {
       }
 
       const { findByText } = render(
-        //   <StrictMode>
-        <QueryClientProvider client={client}>
-          <Comp />
-        </QueryClientProvider>
-        //   </StrictMode>
+        <StrictMode>
+          <QueryClientProvider client={client}>
+            <Comp />
+          </QueryClientProvider>
+        </StrictMode>
       )
 
       expect(await findByText("hidden")).toBeDefined()
 
-      expect(finalized).toBe(0)
+      expect(finalized).toBe(1) // strictMode
 
-      client.mutationClient.cancel({ key: ["foo"] })
+      client.getMutationCache().cancelBy({ mutationKey: ["foo"] })
 
-      expect(finalized).toBe(1)
+      expect(finalized).toBe(2)
     })
   })
 })

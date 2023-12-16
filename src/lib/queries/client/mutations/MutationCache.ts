@@ -71,9 +71,52 @@ export class MutationCache {
     distinctUntilChanged(arrayEqual),
     share()
   )
+
+  public added$ = this.mutations$.pipe(
+    pairwise(),
+    map(
+      ([previous, current]) =>
+        current.filter((mutation) => !previous.includes(mutation))[0]
+    ),
+    filter(isDefined),
+    share()
+  )
+
+  public removed$ = this.mutations$.pipe(
+    pairwise(),
+    map(([previous, current]) =>
+      previous.filter((mutation) => !current.includes(mutation))
+    ),
+    mergeMap((removedItems) => from(removedItems)),
+    share()
   )
 
   constructor(public config: MutationCacheConfig = {}) {}
+
+  subscribe(listener: (event: MutationCacheNotifyEvent) => void) {
+    const sub = merge(
+      this.added$.pipe(
+        tap((mutation) => {
+          listener({
+            type: "added",
+            mutation
+          })
+        })
+      ),
+      this.removed$.pipe(
+        tap((mutation) => {
+          listener({
+            type: "removed",
+            mutation
+          })
+        })
+      )
+    ).subscribe()
+
+    return () => {
+      sub.unsubscribe()
+    }
+  }
 
   build<TData, TError, TVariables, TContext>(
     client: QueryClient,
@@ -87,12 +130,6 @@ export class MutationCache {
       // state
     })
 
-    this.add(mutation)
-
-    return mutation
-  }
-
-  add(mutation: Mutation<any, any, any, any>): void {
     const sub = mutation.state$
       .pipe(
         /**
@@ -125,6 +162,8 @@ export class MutationCache {
       ...this.mutationsSubject.getValue(),
       { mutation, sub }
     ])
+
+    return mutation
   }
 
   getAll() {
@@ -226,15 +265,16 @@ export class MutationCache {
     )
   }
 
-  mutationStateBy<TData, Selected = MutationState<TData>>({
+  mutationStateBy<TData, MutationStateSelected = MutationState<TData>>({
     filters,
     select
   }: {
     filters?: MutationFilters<TData>
-    select?: (mutation: Mutation<TData>) => Selected
+    select?: (mutation: Mutation<TData>) => MutationStateSelected
   } = {}) {
     const predicate = createPredicateForFilters(filters)
-    const finalSelect = select ?? ((mutation) => mutation.state as Selected)
+    const finalSelect =
+      select ?? ((mutation) => mutation.state as MutationStateSelected)
 
     const lastValue = this.getAll()
       .reduce((acc: Array<Mutation<any>>, mutation) => {
@@ -264,6 +304,12 @@ export class MutationCache {
     )
 
     return { value$, lastValue }
+  }
+
+  cancelBy(filters: MutationFilters) {
+    this.findAll(filters).forEach((mutation) => {
+      mutation.cancel()
+    })
   }
 
   clear() {
