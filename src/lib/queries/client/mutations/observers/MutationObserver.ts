@@ -7,25 +7,24 @@ import {
   merge,
   combineLatest,
   mergeMap,
-  tap,
   skip,
-  ObservedValueOf,
+  type ObservedValueOf,
   last
 } from "rxjs"
 import {
   type MutationOptions,
   type MutateOptions,
-  type MutationObserverResult,
   type MutationState,
   type MutationFilters
-} from "./types"
-import { isDefined } from "../../../utils/isDefined"
-import { getDefaultMutationState } from "./defaultMutationState"
-import { type QueryClient } from "../createClient"
-import { type DefaultError } from "../types"
-import { type Mutation } from "./Mutation"
-import { shallowEqual } from "../../../utils/shallowEqual"
-import { nanoid } from "../keys/nanoid"
+} from "../types"
+import { isDefined } from "../../../../utils/isDefined"
+import { getDefaultMutationState } from "../defaultMutationState"
+import { type QueryClient } from "../../createClient"
+import { type DefaultError } from "../../types"
+import { type Mutation } from "../Mutation"
+import { shallowEqual } from "../../../../utils/shallowEqual"
+import { nanoid } from "../../keys/nanoid"
+import { type MutationObserverResult } from "./types"
 
 /**
  * Provide API to observe mutations results globally.
@@ -81,11 +80,11 @@ export class MutationObserver<
         values[0]?.state ?? getDefaultMutationState()
       )
 
-    const mutations = this.client.mutationCache.findAll(filters)
+    const mutations = this.client.getMutationCache().findAll(filters)
 
     const lastValue = this.getDerivedState(reduceStateFromMutation(mutations))
 
-    const result$ = this.client.mutationCache.mutationsBy(filters).pipe(
+    const result$ = this.client.getMutationCache().mutationsBy(filters).pipe(
       switchMap((mutations) =>
         combineLatest(
           mutations.map((mutation) =>
@@ -109,7 +108,7 @@ export class MutationObserver<
   }
 
   subscribe(subscription: () => void) {
-    const sub = this.client.mutationCache.mutations$
+    const sub = this.client.getMutationCache().mutations$
       .pipe(
         mergeMap((mutations) => {
           const observed$ = mutations.map((mutation) =>
@@ -161,7 +160,7 @@ export class MutationObserver<
   }
 
   reset() {
-    this.client.mutationCache.getAll().forEach((mutation) => {
+    this.client.getMutationCache().getAll().forEach((mutation) => {
       mutation.cancel()
     })
   }

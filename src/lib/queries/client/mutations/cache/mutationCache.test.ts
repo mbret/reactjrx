@@ -3,11 +3,11 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable @typescript-eslint/promise-function-async */
 import { describe, expect, test, vi } from "vitest"
-import { MutationCache } from "./cache/MutationCache"
-import { executeMutation, queryKey } from "../tests/utils"
-import { createQueryClient, sleep } from "../../../../tests/utils"
+import { MutationCache } from "./MutationCache"
+import { executeMutation, queryKey } from "../../tests/utils"
+import { createQueryClient, sleep } from "../../../../../tests/utils"
 import { waitFor } from "@testing-library/react"
-import { MutationObserver } from "./MutationObserver"
+import { MutationObserver } from "../observers/MutationObserver"
 
 describe("mutationCache", () => {
   describe("MutationCacheConfig error callbacks", () => {

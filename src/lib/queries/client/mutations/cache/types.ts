@@ -1,5 +1,5 @@
 import { type Mutation } from "../Mutation"
-import { type MutationObserver } from "../MutationObserver"
+import { type MutationObserver } from "../observers/MutationObserver"
 
 export type NotifyEventType =
   | "added"

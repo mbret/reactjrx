@@ -40,7 +40,7 @@ import { dispatchExternalRefetchToAllQueries } from "./refetch/dispatchExternalR
 import { MutationClient } from "./mutations/MutationClient"
 import { type MutationOptions } from "./mutations/types"
 import { MutationCache } from "./mutations/cache/MutationCache"
-import { MutationObserver } from "./mutations/MutationObserver"
+import { MutationObserver } from "./mutations/observers/MutationObserver"
 
 export const createClient = ({
   client,
