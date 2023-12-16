@@ -106,7 +106,7 @@ describe("useMutation", () => {
           useEffect(() => {
             mutate({ res: 1, timeout: 3 })
             mutate({ res: 2, timeout: 1 })
-          }, [])
+          }, [mutate])
 
           // we only display content once all queries are done
           // this way when we text string later we know exactly
@@ -159,7 +159,7 @@ describe("useMutation", () => {
           useEffect(() => {
             mutate({ res: 1, timeout: 1 })
             mutate({ res: 2, timeout: 3 })
-          }, [])
+          }, [mutate])
 
           // we only display content once all queries are done
           // this way when we text string later we know exactly
@@ -189,7 +189,7 @@ describe("useMutation", () => {
 
           useEffect(() => {
             mutate()
-          }, [])
+          }, [mutate])
 
           return <>{data}</>
         }
@@ -226,7 +226,7 @@ describe("useMutation", () => {
               mutate()
             }, 1)
           },
-          []
+          [mutate]
         )
 
         return <>{data}</>
@@ -380,7 +380,7 @@ describe("useMutation", () => {
             return () => {
               unmountTime++
             }
-          }, [])
+          }, [mutate])
 
           return null
         }
@@ -430,7 +430,7 @@ describe("useMutation", () => {
               return () => {
                 unmountTime++
               }
-            }, [])
+            }, [mutate])
 
             return null
           }
@@ -482,7 +482,7 @@ describe("useMutation", () => {
               return () => {
                 unmountTime++
               }
-            }, [])
+            }, [mutate])
 
             return null
           }
@@ -526,7 +526,7 @@ describe("useMutation", () => {
 
               useEffect(() => {
                 mutate()
-              }, [])
+              }, [mutate])
 
               return null
             }

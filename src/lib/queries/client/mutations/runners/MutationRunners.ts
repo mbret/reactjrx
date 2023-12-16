@@ -4,7 +4,9 @@ import {
   filter,
   skip,
   distinctUntilChanged,
-  take
+  take,
+  type ObservedValueOf,
+  last
 } from "rxjs"
 import { serializeKey } from "../../keys/serializeKey"
 import { type MutationOptions } from "../types"
@@ -59,7 +61,7 @@ export class MutationRunners {
     return this.mutationRunnersByKey$.getValue().get(key)
   }
 
-  mutate<
+  async mutate<
     TData,
     TError = DefaultError,
     TVariables = void,
@@ -120,7 +122,14 @@ export class MutationRunners {
 
     mutationForKey.trigger(params)
 
-    return mutation
+    return await new Promise<
+      ObservedValueOf<ReturnType<typeof mutation.observeTillFinished>>
+    >((resolve, reject) => {
+      mutation.observeTillFinished().pipe(last()).subscribe({
+        error: reject,
+        next: resolve
+      })
+    })
   }
 
   destroy() {

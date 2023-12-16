@@ -145,7 +145,7 @@ export function useQuery<T>({
 
   const refetch = useCallback(() => {
     internalRefresh$.current.next({ type: "refetch", ignoreStale: true })
-  }, [client])
+  }, [internalRefresh$])
 
   return { ...result, refetch }
 }

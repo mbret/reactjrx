@@ -29,6 +29,9 @@ export const useMutationState = <TData, TResult = MutationState>(
   const selectRef = useLiveRef(select)
 
   const { value$, lastValue } = useMemo(() => {
+    void serializedKey
+    void status
+
     const { lastValue, value$ } = finalQueryClient
       .getMutationCache()
       .mutationStateBy<TData, TResult>({
@@ -47,7 +50,7 @@ export const useMutationState = <TData, TResult = MutationState>(
       })
 
     return { lastValue, value$: value$.pipe(skip(1)) }
-  }, [finalQueryClient, serializedKey, status])
+  }, [finalQueryClient, serializedKey, status, filtersRef, selectRef])
 
   return useObserve(value$) ?? lastValue
 }

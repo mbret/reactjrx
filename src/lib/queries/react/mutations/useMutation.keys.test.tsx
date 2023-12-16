@@ -17,7 +17,7 @@ describe("useMutation", () => {
         const values = { mutation: [] as any, observedMutation: [] as any }
 
         const Comp = () => {
-          const mutation = useMutation({
+          const { mutate, ...rest } = useMutation({
             mutationFn: async () => 2
           })
 
@@ -26,17 +26,17 @@ describe("useMutation", () => {
           })
 
           useEffect(() => {
-            values.mutation.push(mutation)
+            values.mutation.push(rest)
             values.observedMutation.push(observedMutation)
-          }, [observedMutation, mutation])
+          }, [observedMutation, rest])
 
           useEffect(() => {
-            mutation.mutate()
-          }, [])
+            mutate()
+          }, [mutate])
 
           // we only display content once all queries are done
           // this way when we text string later we know exactly
-          return <>{mutation.data}</>
+          return <>{rest.data}</>
         }
 
         const { findByText } = render(

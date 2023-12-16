@@ -36,5 +36,10 @@ export function useSubscribe<T>(
     return () => {
       sub.unsubscribe()
     }
-  }, [...deps, sourceAsObservable])
+  }, [
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    ...deps,
+    sourceAsObservable,
+    sourceRef
+  ])
 }

@@ -196,7 +196,7 @@ describe("useIsMutating", () => {
       React.useEffect(() => {
         mutate1()
         mutate2()
-      }, [mutate1])
+      }, [mutate1, mutate2])
 
       return <IsMutating />
     }

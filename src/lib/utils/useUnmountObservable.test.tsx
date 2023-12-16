@@ -14,7 +14,7 @@ describe("useUnmountObservable", () => {
 
       useEffect(() => {
         source.pipe(takeUntil(unmount$.current)).subscribe(source2)
-      }, [])
+      }, [unmount$])
 
       return null
     }

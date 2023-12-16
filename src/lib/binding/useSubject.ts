@@ -28,6 +28,7 @@ export const useSubject = <S>({
        * In case we don't want to complete we still want to
        * flag it in order to be replaced with new subject on remount.
        */
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       if (!completeOnUnmountRef.current) {
         completed.current = true
 
@@ -35,12 +36,13 @@ export const useSubject = <S>({
       }
 
       if (!completed.current) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         if (onBeforeCompleteRef.current != null) onBeforeCompleteRef.current()
         subject.current.complete()
         completed.current = true
       }
     }
-  }, [])
+  }, [completeOnUnmountRef, onBeforeCompleteRef, subject])
 
   return subject
 }

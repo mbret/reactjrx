@@ -1,25 +1,36 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable new-cap */
-import { memo, useState } from "react"
+import { StrictMode, memo, useState } from "react"
 import ReactDOM from "react-dom/client"
 import {
+  MutationCache,
   QueryClient,
   QueryClientProvider,
   SIGNAL_RESET,
   createSharedStoreAdapter,
   signal,
-  useMutation
+  useObserve
 } from "."
+import { useMutation } from "./lib/queries/react/mutations/useMutation"
 import { usePersistSignals } from "./lib/state/persistance/usePersistSignals"
 import { createLocalStorageAdapter } from "./lib/state/persistance/adapters/createLocalStorageAdapter"
 import {
   QueryClient as rc_QueryClient,
-  QueryClientProvider as RcQueryClientProvider
-  // useMutation as rc_useMutation
+  QueryClientProvider as RcQueryClientProvider,
+  useMutation as rc_useMutation,
+  MutationCache as rc_MutationCache
 } from "@tanstack/react-query"
 import { sleep } from "./tests/utils"
 import { useMutationState } from "./lib/queries/react/mutations/useMutationState"
+import { concat, mergeAll, of, tap, timer } from "rxjs"
+import { useIsMutating } from "./lib/queries/react/mutations/useIsMutating"
 
 const rcClient = new rc_QueryClient()
+const mutationCache = new MutationCache()
+const rcMutationCache = new rc_MutationCache()
+const client = new QueryClient({
+  mutationCache
+})
 
 const myState = signal({
   key: "myState",
@@ -27,71 +38,36 @@ const myState = signal({
 })
 
 const IsMutating = memo(() => {
-  // const isMutating = useIsMutating({
-  //   // select: (mutation) => mutation.
-  // })
-
-  // console.log("isMutating", isMutating)
-
   console.log(
-    "useMutationState",
-    useMutationState({
-      select(mutation) {
-        return mutation.state.variables
-      }
+    "useIsMutating",
+    useIsMutating({
+      predicate: (mutation) => mutation.options.mutationKey?.[0] === "mutation1"
     })
   )
 
   return null
 })
 
-const Mutation = memo((_: { onClick: () => void }) => {
-  const {
-    mutate: mutate1,
-  } = useMutation({
+const Mutation = memo(({ onClick }: { onClick: () => void }) => {
+  const { mutate, ...rest } = useMutation({
     mutationKey: ["mutation1"],
-    mapOperator: "merge",
-    mutationFn: async (v: string) => {
-      await sleep(500)
+    mutationFn: async ({ time, v }: { v: string; time: number }) => {
+      await sleep(time)
+
       return v
-    },
-    onSuccess: (v) => {
-      console.log("onSuccess", v)
     }
   })
-
-  useMutation({
+  const { mutate: mutate2 } = useMutation({
     mutationKey: ["mutation2"],
-    mutationFn: async () => {
-      await sleep(100)
-      return "data"
+    mutationFn: async ({ time, v }: { v: string; time: number }) => {
+      await sleep(time)
+
+      return v
     }
   })
 
-  // const result2 = rc_useMutation({
-  //   mutationFn: async ({ res, timeout }: { res: number; timeout: number }) => {
-  //     return await new Promise<number>((resolve) =>
-  //       setTimeout(() => {
-  //         resolve(res)
-  //       }, timeout)
-  //     )
-  //   },
-  //   onSuccess: () => {
-  //     console.log("success2")
-  //   }
-  // })
-
-  // const observeMut = useMutation({ mutationFn: async () => {} })
-
-  // console.log(
-  //   "number of mutation",
-  //   useIsMutating({ mutationKey: ["mutation1"] })
-  // )
-
-  // console.log("rc", result2)
-  // console.log("observe", observeMut)
-
-  // console.log("mutate", rest)
+  console.log("mutate", rest)
+  // console.log("mutate2", mutation2Result)
 
   return (
     <div style={{ display: "flex", border: "1px solid red" }}>
@@ -99,20 +75,12 @@ const Mutation = memo((_: { onClick: () => void }) => {
       <IsMutating />
       <button
         onClick={() => {
-          mutate1("data1")
-          // mutate1("data2")
-          // mutate1("data3")
-          // mutate1("data4")
-          // cancel()
-          // reset()
-          // mutate2()
-          // result2.mutate({ res: 3, timeout: 1000 })
-          // result.mutate({ res: 2, timeout: 2000 })
-          // result.mutate({ res: 3, timeout: 1000 })
+          mutate({ v: "data1", time: 1000 })
+          mutate2({ v: "data1", time: 1000 })
 
           setTimeout(() => {
             // onClick()
-          }, 100)
+          }, 5000)
         }}
       >
         click
@@ -124,16 +92,16 @@ const Mutation = memo((_: { onClick: () => void }) => {
 const App = memo(() => {
   const [isMutationMounted, setIsMutationMounted] = useState(true)
 
-  usePersistSignals({
-    entries: [{ version: 1, signal: myState }],
-    adapter: createSharedStoreAdapter({
-      adapter: createLocalStorageAdapter(localStorage),
-      key: "foo"
-    }),
-    onReady: () => {
-      // console.log("onReady")
-    }
-  })
+  // usePersistSignals({
+  //   entries: [{ version: 1, signal: myState }],
+  //   adapter: createSharedStoreAdapter({
+  //     adapter: createLocalStorageAdapter(localStorage),
+  //     key: "foo"
+  //   }),
+  //   onReady: () => {
+  //     // console.log("onReady")
+  //   }
+  // })
 
   return (
     <>
@@ -146,6 +114,7 @@ const App = memo(() => {
       </button>
       <button
         onClick={() => {
+          console.log("reset")
           myState.setValue(SIGNAL_RESET)
         }}
       >
@@ -162,14 +131,12 @@ const App = memo(() => {
   )
 })
 
-const client = new QueryClient()
-
 ReactDOM.createRoot(document.getElementById("app") as HTMLElement).render(
-  // <React.StrictMode>
-  <RcQueryClientProvider client={rcClient}>
-    <QueryClientProvider client={client}>
-      <App />
-    </QueryClientProvider>
-  </RcQueryClientProvider>
-  // </React.StrictMode>
+  <StrictMode>
+    <RcQueryClientProvider client={rcClient}>
+      <QueryClientProvider client={client}>
+        <App />
+      </QueryClientProvider>
+    </RcQueryClientProvider>
+  </StrictMode>
 )

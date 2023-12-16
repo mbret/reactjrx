@@ -13,7 +13,7 @@ export const useObserveCallback = <T = void, R = void>(
 
   const trigger = useCallback((arg: T) => {
     trigger$.current.next(arg)
-  }, [])
+  }, [trigger$])
 
   return [trigger, trigger$] as const
 }

@@ -34,10 +34,13 @@ export function useSubscribeEffect<T>(
       : ({} satisfies Option)
   const retryOption = options.retry ?? true
   const isSourceFn = typeof source === "function"
+  
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const makeObservable = useCallback(
     isSourceFn ? source : () => source,
     isSourceFn ? deps : [source]
   )
+  
   const enhancerMakeObservable = useCallback(
     () =>
       makeObservable().pipe(
@@ -48,7 +51,7 @@ export function useSubscribeEffect<T>(
         }),
         retryOption ? retry() : identity
       ),
-    [makeObservable]
+    [makeObservable, retryOption]
   )
 
   useSubscribe(enhancerMakeObservable, deps)

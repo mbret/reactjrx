@@ -413,7 +413,7 @@ describe("mutationCache", () => {
         onSuccess
       })
       const unsubscribe = observer.subscribe(() => undefined)
-      observer.mutate(1)
+      void observer.mutate(1)
       unsubscribe()
       await waitFor(() => {
         expect(queryClient.getMutationCache().getAll()).toHaveLength(0)

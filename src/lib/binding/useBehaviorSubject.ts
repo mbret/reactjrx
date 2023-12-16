@@ -24,10 +24,11 @@ import { useConstant } from "../utils/useConstant"
 export const useBehaviorSubject = <S>(state: S) => {
   const subject = useConstant(() => new BehaviorSubject(state))
   const completed = useRef(false)
+  const stateRef = useRef(state)
 
   useEffect(() => {
     if (completed.current) {
-      subject.current = new BehaviorSubject(state)
+      subject.current = new BehaviorSubject(stateRef.current)
       completed.current = false
     }
 
@@ -37,7 +38,7 @@ export const useBehaviorSubject = <S>(state: S) => {
         completed.current = true
       }
     }
-  }, [])
+  }, [subject])
 
   return subject
 }

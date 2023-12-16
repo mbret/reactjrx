@@ -124,7 +124,7 @@ describe("useObserve", () => {
         return () => {
           clearTimeout(timer)
         }
-      }, [])
+      }, [source])
 
       return <>{result}</>
     })

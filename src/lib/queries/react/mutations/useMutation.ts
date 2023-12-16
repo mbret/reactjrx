@@ -10,6 +10,7 @@ import { serializeKey } from "../../client/keys/serializeKey"
 import { nanoid } from "../../client/keys/nanoid"
 import { useConstant } from "../../../utils/useConstant"
 import { type QueryClient } from "../../client/createClient"
+import { type Mutation } from "../../client/mutations/Mutation"
 
 export type AsyncQueryOptions<Result, Params> = Omit<
   MutationOptions<Result, Error, Params>,
@@ -18,6 +19,8 @@ export type AsyncQueryOptions<Result, Params> = Omit<
   mutationKey?: MutationKey
   cancelOnUnMount?: boolean
 }
+
+function noop() {}
 
 export function useMutation<Args = void, R = undefined>(
   options: AsyncQueryOptions<R, Args>,
@@ -28,35 +31,41 @@ export function useMutation<Args = void, R = undefined>(
   const optionsRef = useLiveRef(options)
   const defaultKey = useConstant(() => [nanoid()])
   const serializedKey = serializeKey(options.mutationKey ?? defaultKey.current)
-  const observedMutation = useMemo(
-    () =>
-      finalQueryClient.mutationObserver.observeBy<R>({
-        mutationKey: options.mutationKey ?? defaultKey.current
-      }),
-    [serializedKey]
-  )
-  const mutationsToCancel = useRef<
-    Array<
-      ReturnType<typeof finalQueryClient.mutationRunners.mutate<any, any, any>>
-    >
-  >([])
+  const mutationsToCancel = useRef<Array<Mutation<any>>>([])
+  const observedMutation = useMemo(() => {
+    void serializedKey
+
+    return finalQueryClient.mutationObserver.observeBy<R>({
+      mutationKey: optionsRef.current.mutationKey ?? defaultKey.current
+    })
+  }, [serializedKey, defaultKey, finalQueryClient, optionsRef])
 
   const result =
     useObserve(observedMutation.result$) ?? observedMutation.lastValue
 
   const mutate = useCallback(
     (mutationArgs: Args) => {
-      const mutation = finalQueryClient.mutationRunners.mutate({
-        options: {
-          ...optionsRef.current,
-          mutationKey: optionsRef.current.mutationKey ?? defaultKey.current
-        },
-        args: mutationArgs
+      void serializedKey
+
+      finalQueryClient.mutationRunners
+        .mutate({
+          options: {
+            ...optionsRef.current,
+            mutationKey: optionsRef.current.mutationKey ?? defaultKey.current
+          },
+          args: mutationArgs
+        })
+        .catch(noop)
+
+      const mutation = finalQueryClient.getMutationCache().findLatest({
+        mutationKey: optionsRef.current.mutationKey ?? defaultKey.current
       })
 
-      mutationsToCancel.current.push(mutation)
+      if (mutation) {
+        mutationsToCancel.current.push(mutation)
+      }
     },
-    [finalQueryClient, serializedKey]
+    [finalQueryClient, serializedKey, defaultKey, optionsRef]
   )
 
   const cancel = useCallback(() => {
@@ -67,11 +76,12 @@ export function useMutation<Args = void, R = undefined>(
 
   useEffect(() => {
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       if (optionsRef.current.cancelOnUnMount) {
         cancel()
       }
     }
-  }, [cancel])
+  }, [cancel, optionsRef])
 
   return { mutate, cancel, ...result }
 }

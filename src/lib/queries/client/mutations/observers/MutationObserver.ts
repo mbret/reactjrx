@@ -8,8 +8,6 @@ import {
   combineLatest,
   mergeMap,
   skip,
-  type ObservedValueOf,
-  last
 } from "rxjs"
 import {
   type MutationOptions,
@@ -84,21 +82,24 @@ export class MutationObserver<
 
     const lastValue = this.getDerivedState(reduceStateFromMutation(mutations))
 
-    const result$ = this.client.getMutationCache().mutationsBy(filters).pipe(
-      switchMap((mutations) =>
-        combineLatest(
-          mutations.map((mutation) =>
-            this.observe(mutation).pipe(
-              map((state) => ({ state, options: mutation.options }))
+    const result$ = this.client
+      .getMutationCache()
+      .mutationsBy(filters)
+      .pipe(
+        switchMap((mutations) =>
+          combineLatest(
+            mutations.map((mutation) =>
+              this.observe(mutation).pipe(
+                map((state) => ({ state, options: mutation.options }))
+              )
             )
           )
-        )
-      ),
-      map(reduceStateFromMutation),
-      filter(isDefined),
-      map(this.getDerivedState),
-      distinctUntilChanged(shallowEqual)
-    )
+        ),
+        map(reduceStateFromMutation),
+        filter(isDefined),
+        map(this.getDerivedState),
+        distinctUntilChanged(shallowEqual)
+      )
 
     return { result$, lastValue }
   }
@@ -108,8 +109,9 @@ export class MutationObserver<
   }
 
   subscribe(subscription: () => void) {
-    const sub = this.client.getMutationCache().mutations$
-      .pipe(
+    const sub = this.client
+      .getMutationCache()
+      .mutations$.pipe(
         mergeMap((mutations) => {
           const observed$ = mutations.map((mutation) =>
             this.observe(mutation).pipe(
@@ -137,10 +139,7 @@ export class MutationObserver<
       ...options
     }
 
-    const mutation = this.client.mutationRunners.mutate<
-      TData,
-      TVariables
-    >({
+    return await this.client.mutationRunners.mutate<TData, TVariables>({
       args: variables,
       options: {
         mutationFn: async () => undefined,
@@ -148,21 +147,15 @@ export class MutationObserver<
         mutationKey: mergedOptions.mutationKey ?? [nanoid()]
       }
     })
-
-    return await new Promise<
-      ObservedValueOf<ReturnType<typeof mutation.observeTillFinished>>
-    >((resolve, reject) => {
-      mutation.observeTillFinished().pipe(last()).subscribe({
-        error: reject,
-        next: resolve
-      })
-    })
   }
 
   reset() {
-    this.client.getMutationCache().getAll().forEach((mutation) => {
-      mutation.cancel()
-    })
+    this.client
+      .getMutationCache()
+      .getAll()
+      .forEach((mutation) => {
+        mutation.cancel()
+      })
   }
 
   destroy() {}

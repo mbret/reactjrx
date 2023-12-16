@@ -19,7 +19,7 @@ export const useQueryParams = <T>({
       options,
       queryFn
     })
-  }, [queryKey, options, queryFn])
+  }, [queryKey, options, queryFn, params$])
 
   return params$
 }

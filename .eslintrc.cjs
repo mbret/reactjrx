@@ -1,9 +1,17 @@
-module.exports = {
+// @ts-check
+
+/** @type {import('eslint').Linter.Config} */
+const config = {
   env: {
     browser: true,
     es2021: true
   },
-  extends: ["plugin:react/recommended", "standard-with-typescript", "prettier"],
+  extends: [
+    "plugin:react/recommended",
+    "plugin:react-hooks/recommended",
+    "standard-with-typescript",
+    "prettier"
+  ],
   overrides: [],
   parserOptions: {
     ecmaVersion: "latest",
@@ -13,6 +21,8 @@ module.exports = {
   plugins: ["react"],
   ignorePatterns: ["vitest.config.ts", "vite.config.ts"],
   rules: {
+    'react/jsx-key': ['error', { checkFragmentShorthand: true }],
+    'react-hooks/exhaustive-deps': 'error',
     "@typescript-eslint/explicit-function-return-type": 0,
     "react/display-name": 0,
     "@typescript-eslint/no-invalid-void-type": 0,
@@ -21,3 +31,5 @@ module.exports = {
     "@typescript-eslint/strict-boolean-expressions": 0
   }
 }
+
+module.exports = config
