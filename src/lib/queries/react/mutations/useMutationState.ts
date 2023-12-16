@@ -10,7 +10,7 @@ import { type Mutation } from "../../client/mutations/Mutation"
 import { skip } from "rxjs"
 import { serializeKey } from "../../client/keys/serializeKey"
 import { createPredicateForFilters } from "../../client/mutations/filters"
-import { QueryClient } from "../../client/createClient"
+import { type QueryClient } from "../../client/createClient"
 
 export interface MutationStateOptions<TResult, TData> {
   filters?: MutationFilters<TData>
@@ -22,30 +22,29 @@ export const useMutationState = <TData, TResult = MutationState>(
   queryClient?: QueryClient
 ): TResult[] => {
   const defaultQueryClient = useQueryClient({ unsafe: !!queryClient })
-  const finalQueryClient = queryClient?.client ?? defaultQueryClient
+  const finalQueryClient = queryClient ?? defaultQueryClient
   const { mutationKey, status } = filters ?? {}
   const filtersRef = useLiveRef(filters)
   const serializedKey = mutationKey ? serializeKey(mutationKey) : undefined
   const selectRef = useLiveRef(select)
 
   const { value$, lastValue } = useMemo(() => {
-    const { lastValue, value$ } = finalQueryClient.mutationClient.mutationState<
-      TData,
-      TResult
-    >({
-      filters: {
-        ...filtersRef.current,
-        predicate: (mutation) => {
-          return filtersRef.current?.predicate
-            ? filtersRef.current.predicate(mutation)
-            : createPredicateForFilters(filtersRef.current)(mutation)
-        }
-      },
-      select: (mutation) =>
-        selectRef.current
-          ? selectRef.current(mutation)
-          : (mutation.state as TResult)
-    })
+    const { lastValue, value$ } = finalQueryClient
+      .getMutationCache()
+      .mutationStateBy<TData, TResult>({
+        filters: {
+          ...filtersRef.current,
+          predicate: (mutation) => {
+            return filtersRef.current?.predicate
+              ? filtersRef.current.predicate(mutation)
+              : createPredicateForFilters(filtersRef.current)(mutation)
+          }
+        },
+        select: (mutation) =>
+          selectRef.current
+            ? selectRef.current(mutation)
+            : (mutation.state as TResult)
+      })
 
     return { lastValue, value$: value$.pipe(skip(1)) }
   }, [finalQueryClient, serializedKey, status])

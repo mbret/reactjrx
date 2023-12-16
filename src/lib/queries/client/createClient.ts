@@ -214,7 +214,7 @@ export const createClient = ({
 
 export class QueryClient {
   public client: ReturnType<typeof createClient>
-  mutationCache: MutationCache
+  protected mutationCache: MutationCache
   mutationClient: MutationClient
   public mutationObserver: MutationObserver
 
