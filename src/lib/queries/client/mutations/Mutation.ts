@@ -25,7 +25,7 @@ import { type MutationState, type MutationOptions } from "./types"
 import { getDefaultMutationState } from "./defaultMutationState"
 import { mergeResults } from "./operators"
 import { type DefaultError } from "../types"
-import { type MutationCache } from "./MutationCache"
+import { type MutationCache } from "./cache/MutationCache"
 import { functionAsObservable } from "../utils/functionAsObservable"
 
 export class Mutation<

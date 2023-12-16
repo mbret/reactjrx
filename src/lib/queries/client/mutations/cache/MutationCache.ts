@@ -1,11 +1,11 @@
 import { type DefaultError } from "@tanstack/react-query"
-import { Mutation } from "./Mutation"
-import { type QueryClient } from "../createClient"
+import { Mutation } from "../Mutation"
+import { type QueryClient } from "../../createClient"
 import {
   type MutationFilters,
   type MutationOptions,
   type MutationState
-} from "./types"
+} from "../types"
 import {
   BehaviorSubject,
   type Subscription,
@@ -24,11 +24,11 @@ import {
   of,
   combineLatest
 } from "rxjs"
-import { createPredicateForFilters } from "./filters"
-import { arrayEqual } from "../../../utils/arrayEqual"
-import { type MutationCacheNotifyEvent } from "./cache/types"
-import { isDefined } from "../../../utils/isDefined"
-import { shallowEqual } from "../../../utils/shallowEqual"
+import { createPredicateForFilters } from "../filters"
+import { arrayEqual } from "../../../../utils/arrayEqual"
+import { type MutationCacheNotifyEvent } from "./types"
+import { isDefined } from "../../../../utils/isDefined"
+import { shallowEqual } from "../../../../utils/shallowEqual"
 
 interface MutationCacheConfig {
   onError?: <

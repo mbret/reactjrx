@@ -39,7 +39,7 @@ import { markQueryAsStaleIfRefetch } from "./refetch/markQueryAsStaleIfRefetch"
 import { dispatchExternalRefetchToAllQueries } from "./refetch/dispatchExternalRefetchToAllQueries"
 import { MutationClient } from "./mutations/MutationClient"
 import { type MutationOptions } from "./mutations/types"
-import { MutationCache } from "./mutations/MutationCache"
+import { MutationCache } from "./mutations/cache/MutationCache"
 import { MutationObserver } from "./mutations/MutationObserver"
 
 export const createClient = ({

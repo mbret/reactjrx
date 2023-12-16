@@ -1,7 +1,7 @@
 import { act, render } from "@testing-library/react"
 import { QueryClient } from "../lib/queries/client/createClient"
 import { QueryClientProvider } from "../lib/queries/react/Provider"
-import { MutationCache } from "../lib/queries/client/mutations/MutationCache"
+import { MutationCache } from "../lib/queries/client/mutations/cache/MutationCache"
 
 export const waitForTimeout = async (timeout: number) =>
   await new Promise((resolve) => setTimeout(resolve, timeout))

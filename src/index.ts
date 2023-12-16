@@ -28,4 +28,4 @@ export {
   QueryClientProvider,
   useQueryClient
 } from "./lib/queries/react/Provider"
-export { MutationCache } from "./lib/queries/client/mutations/MutationCache"
+export { MutationCache } from "./lib/queries/client/mutations/cache/MutationCache"

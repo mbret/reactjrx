@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable @typescript-eslint/promise-function-async */
 import { describe, expect, test, vi } from "vitest"
-import { MutationCache } from "./MutationCache"
+import { MutationCache } from "./cache/MutationCache"
 import { executeMutation, queryKey } from "../tests/utils"
 import { createQueryClient, sleep } from "../../../../tests/utils"
 import { waitFor } from "@testing-library/react"

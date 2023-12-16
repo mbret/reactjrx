@@ -22,7 +22,7 @@ import { isDefined } from "../../../utils/isDefined"
 import { type MutationOptions } from "./types"
 import { mergeResults } from "./operators"
 import { type DefaultError } from "../types"
-import { type MutationCache } from "./MutationCache"
+import { type MutationCache } from "./cache/MutationCache"
 import { type QueryClient } from "../createClient"
 
 export type MutationRunner = ReturnType<typeof createMutationRunner>
