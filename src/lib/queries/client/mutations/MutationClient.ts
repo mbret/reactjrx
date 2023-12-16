@@ -10,7 +10,7 @@ import {
   combineLatest,
   distinctUntilChanged,
   of,
-  take
+  take,
 } from "rxjs"
 import { serializeKey } from "../keys/serializeKey"
 import {
@@ -219,7 +219,7 @@ export class MutationClient {
       mutationForKey.runner$.subscribe()
 
       // @todo runner should close by itself when there are no more mutations
-      
+
       /**
        * @important
        * should have at least one first mutation so

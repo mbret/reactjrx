@@ -18,8 +18,7 @@ import {
   takeWhile,
   BehaviorSubject,
   type ObservedValueOf,
-  NEVER,
-  finalize
+  NEVER
 } from "rxjs"
 import { retryOnError } from "../operators"
 import { type MutationState, type MutationOptions } from "./types"
@@ -240,6 +239,15 @@ export class Mutation<
     return mutation$
   }
 
+  observeTillFinished() {
+    return this.state$.pipe(
+      takeWhile(
+        (result) => result.status !== "error" && result.status !== "success",
+        true
+      )
+    )
+  }
+
   /**
    * @important
    * The resulting observable will complete as soon as the mutation
@@ -249,12 +257,7 @@ export class Mutation<
     this.executeSubject.next(variables)
     this.executeSubject.complete()
 
-    return this.state$.pipe(
-      takeWhile(
-        (result) => result.status !== "error" && result.status !== "success",
-        true
-      )
-    )
+    return this.observeTillFinished()
   }
 
   cancel() {

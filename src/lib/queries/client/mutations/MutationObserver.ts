@@ -6,7 +6,11 @@ import {
   distinctUntilChanged,
   merge,
   combineLatest,
-  mergeMap
+  mergeMap,
+  tap,
+  skip,
+  ObservedValueOf,
+  last
 } from "rxjs"
 import {
   type MutationOptions,
@@ -108,7 +112,12 @@ export class MutationObserver<
     const sub = this.client.mutationCache.mutations$
       .pipe(
         mergeMap((mutations) => {
-          const observed$ = mutations.map((mutation) => this.observe(mutation))
+          const observed$ = mutations.map((mutation) =>
+            this.observe(mutation).pipe(
+              // we only want next changes
+              skip(1)
+            )
+          )
 
           return merge(...observed$)
         })
@@ -120,7 +129,7 @@ export class MutationObserver<
     }
   }
 
-  mutate(
+  async mutate(
     variables: TVariables,
     options?: MutateOptions<TData, TError, TVariables, TContext>
   ) {
@@ -129,7 +138,10 @@ export class MutationObserver<
       ...options
     }
 
-    this.client.client.mutationClient.mutate<TData, TVariables>({
+    const mutation = this.client.client.mutationClient.mutate<
+      TData,
+      TVariables
+    >({
       args: variables,
       options: {
         mutationFn: async () => undefined,
@@ -137,10 +149,21 @@ export class MutationObserver<
         mutationKey: mergedOptions.mutationKey ?? [nanoid()]
       }
     })
+
+    return await new Promise<
+      ObservedValueOf<ReturnType<typeof mutation.observeTillFinished>>
+    >((resolve, reject) => {
+      mutation.observeTillFinished().pipe(last()).subscribe({
+        error: reject,
+        next: resolve
+      })
+    })
   }
 
   reset() {
-    this.client.mutationCache.getAll().forEach((mutation) => { mutation.cancel(); })
+    this.client.mutationCache.getAll().forEach((mutation) => {
+      mutation.cancel()
+    })
   }
 
   destroy() {}
