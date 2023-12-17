@@ -7,7 +7,7 @@ import {
   merge,
   combineLatest,
   mergeMap,
-  skip,
+  skip
 } from "rxjs"
 import {
   type MutationOptions,
@@ -54,10 +54,12 @@ export class MutationObserver<
     }
   }
 
-  observeBy(filters: MutationFilters): {
-    result$: Observable<MutationObserverResult<any>>
-    lastValue: MutationObserverResult<any>
-  } {
+  observeBy<
+    TData = unknown,
+    TError = DefaultError,
+    TVariables = void,
+    TContext = unknown
+  >(filters: MutationFilters) {
     const reduceStateFromMutation = (
       values: Array<Pick<Mutation, "state" | "options">>
     ) =>
@@ -80,7 +82,9 @@ export class MutationObserver<
 
     const mutations = this.client.getMutationCache().findAll(filters)
 
-    const lastValue = this.getDerivedState(reduceStateFromMutation(mutations))
+    const lastValue = this.getDerivedState(
+      reduceStateFromMutation(mutations)
+    ) as MutationObserverResult<TData, TError, TVariables, TContext>
 
     const result$ = this.client
       .getMutationCache()
@@ -99,7 +103,9 @@ export class MutationObserver<
         filter(isDefined),
         map(this.getDerivedState),
         distinctUntilChanged(shallowEqual)
-      )
+      ) as Observable<
+      MutationObserverResult<TData, TError, TVariables, TContext>
+    >
 
     return { result$, lastValue }
   }
@@ -140,12 +146,12 @@ export class MutationObserver<
     }
 
     return await this.client.mutationRunners.mutate<TData, TVariables>({
-      args: variables,
+      args: variables as any,
       options: {
-        mutationFn: async () => undefined,
+        mutationFn: (async () => undefined) as any,
         ...mergedOptions,
         mutationKey: mergedOptions.mutationKey ?? [nanoid()]
-      }
+      } as any
     })
   }
 

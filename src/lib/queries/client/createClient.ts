@@ -42,7 +42,7 @@ import { type MutationOptions } from "./mutations/types"
 import { MutationCache } from "./mutations/cache/MutationCache"
 import { MutationObserver } from "./mutations/observers/MutationObserver"
 
-export const createClient = ({ client }: { client: QueryClient }) => {
+export const createClient = () => {
   const queryStore = createQueryStore()
   const invalidationClient = createInvalidationClient({ queryStore })
   const cacheClient = createCacheClient({ queryStore })
@@ -218,9 +218,7 @@ export class QueryClient {
     this.mutationRunners = new MutationRunners(this)
     this.mutationObserver = new MutationObserver(this)
 
-    this.client = createClient({
-      client: this
-    })
+    this.client = createClient()
   }
 
   mount() {
@@ -254,7 +252,5 @@ export class QueryClient {
     return options as T
   }
 
-  clear() {
-    // this.client.
-  }
+  clear() {}
 }

@@ -7,27 +7,18 @@ import {
   QueryClient,
   QueryClientProvider,
   SIGNAL_RESET,
-  createSharedStoreAdapter,
   signal,
-  useObserve
 } from "."
 import { useMutation } from "./lib/queries/react/mutations/useMutation"
-import { usePersistSignals } from "./lib/state/persistance/usePersistSignals"
-import { createLocalStorageAdapter } from "./lib/state/persistance/adapters/createLocalStorageAdapter"
 import {
   QueryClient as rc_QueryClient,
   QueryClientProvider as RcQueryClientProvider,
-  useMutation as rc_useMutation,
-  MutationCache as rc_MutationCache
 } from "@tanstack/react-query"
 import { sleep } from "./tests/utils"
-import { useMutationState } from "./lib/queries/react/mutations/useMutationState"
-import { concat, mergeAll, of, tap, timer } from "rxjs"
 import { useIsMutating } from "./lib/queries/react/mutations/useIsMutating"
 
 const rcClient = new rc_QueryClient()
 const mutationCache = new MutationCache()
-const rcMutationCache = new rc_MutationCache()
 const client = new QueryClient({
   mutationCache
 })
@@ -48,7 +39,7 @@ const IsMutating = memo(() => {
   return null
 })
 
-const Mutation = memo(({ onClick }: { onClick: () => void }) => {
+const Mutation = memo((_: { onClick: () => void }) => {
   const { mutate, ...rest } = useMutation({
     mutationKey: ["mutation1"],
     mutationFn: async ({ time, v }: { v: string; time: number }) => {

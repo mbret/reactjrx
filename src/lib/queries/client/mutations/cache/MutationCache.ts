@@ -21,8 +21,8 @@ import {
   tap,
   mergeMap,
   from,
-  of,
-  combineLatest
+  takeUntil,
+  startWith
 } from "rxjs"
 import { createPredicateForFilters } from "../filters"
 import { arrayEqual } from "../../../../utils/arrayEqual"
@@ -91,6 +91,20 @@ export class MutationCache {
     share()
   )
 
+  public stateChange$ = this.added$.pipe(
+    mergeMap((mutation) =>
+      mutation.state$.pipe(
+        map(() => mutation),
+        takeUntil(
+          this.removed$.pipe(
+            filter((removedMutation) => removedMutation === mutation)
+          )
+        )
+      )
+    ),
+    share()
+  )
+
   constructor(public config: MutationCacheConfig = {}) {}
 
   subscribe(listener: (event: MutationCacheNotifyEvent) => void) {
@@ -110,6 +124,19 @@ export class MutationCache {
             mutation
           })
         })
+      ),
+      this.stateChange$.pipe(
+        tap((mutation) => {
+          listener({
+            type: "updated",
+            action: {
+              ...mutation.state,
+              // @todo
+              type: "success"
+            },
+            mutation
+          })
+        })
       )
     ).subscribe()
 
@@ -120,8 +147,7 @@ export class MutationCache {
 
   build<TData, TError, TVariables, TContext>(
     client: QueryClient,
-    options: MutationOptions<TData, TError, TVariables, TContext>,
-    state?: MutationState<TData, TError, TVariables, TContext>
+    options: MutationOptions<TData, TError, TVariables, TContext>
   ): Mutation<TData, TError, TVariables, TContext> {
     const mutation = new Mutation({
       mutationCache: this,
@@ -285,18 +311,10 @@ export class MutationCache {
       .filter(predicate)
       .map((mutation) => finalSelect(mutation))
 
-    const value$ = this.mutations$.pipe(
-      switchMap((mutations) => {
-        const mutationsOnStateUpdate = mutations.map((mutation) =>
-          mutation.state$.pipe(map(() => mutation))
-        )
-
-        return mutationsOnStateUpdate.length === 0
-          ? of([])
-          : combineLatest(mutationsOnStateUpdate)
-      }),
-      map((mutations) => {
-        const filteredMutations = mutations.filter(predicate)
+    const value$ = this.stateChange$.pipe(
+      startWith(),
+      map(() => {
+        const filteredMutations = this.getAll().filter(predicate)
 
         return filteredMutations.map(finalSelect)
       }),

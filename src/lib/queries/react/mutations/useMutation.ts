@@ -11,6 +11,7 @@ import { nanoid } from "../../client/keys/nanoid"
 import { useConstant } from "../../../utils/useConstant"
 import { type QueryClient } from "../../client/createClient"
 import { type Mutation } from "../../client/mutations/Mutation"
+import { type DefaultError } from "../../client/types"
 
 export type AsyncQueryOptions<Result, Params> = Omit<
   MutationOptions<Result, Error, Params>,
@@ -22,10 +23,12 @@ export type AsyncQueryOptions<Result, Params> = Omit<
 
 function noop() {}
 
-export function useMutation<Args = void, R = undefined>(
-  options: AsyncQueryOptions<R, Args>,
-  queryClient?: QueryClient
-) {
+export function useMutation<
+  TData = unknown,
+  TError = DefaultError,
+  TVariables = void,
+  TContext = unknown
+>(options: AsyncQueryOptions<TData, TVariables>, queryClient?: QueryClient) {
   const defaultQueryClient = useQueryClient({ unsafe: !!queryClient })
   const finalQueryClient = queryClient ?? defaultQueryClient
   const optionsRef = useLiveRef(options)
@@ -35,7 +38,7 @@ export function useMutation<Args = void, R = undefined>(
   const observedMutation = useMemo(() => {
     void serializedKey
 
-    return finalQueryClient.mutationObserver.observeBy<R>({
+    return finalQueryClient.mutationObserver.observeBy<TData, TError, TVariables, TContext>({
       mutationKey: optionsRef.current.mutationKey ?? defaultKey.current
     })
   }, [serializedKey, defaultKey, finalQueryClient, optionsRef])
@@ -44,7 +47,7 @@ export function useMutation<Args = void, R = undefined>(
     useObserve(observedMutation.result$) ?? observedMutation.lastValue
 
   const mutate = useCallback(
-    (mutationArgs: Args) => {
+    (mutationArgs: TVariables) => {
       void serializedKey
 
       finalQueryClient.mutationRunners

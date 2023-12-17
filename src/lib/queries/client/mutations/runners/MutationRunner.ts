@@ -38,7 +38,6 @@ export const createMutationRunner = <
   __queryTriggerHook,
   mutationKey,
   mutationCache,
-  client
 }: { mutationCache: MutationCache; client: QueryClient } & Pick<
   MutationOptions<TData, TError, MutationArg, TContext>,
   | "__queryInitHook"
