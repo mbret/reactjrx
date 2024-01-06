@@ -1,11 +1,9 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import {
-  catchError,
   identity,
   map,
   merge,
   of,
-  take,
   tap,
   switchMap,
   Subject,
@@ -18,15 +16,24 @@ import {
   takeWhile,
   BehaviorSubject,
   type ObservedValueOf,
-  NEVER
+  NEVER,
+  share,
+  iif
 } from "rxjs"
 import { retryOnError } from "../operators"
-import { type MutationState, type MutationOptions } from "./types"
+import { type MutationState, type MutationOptions, MutationMeta } from "./types"
 import { getDefaultMutationState } from "./defaultMutationState"
 import { mergeResults } from "./operators"
 import { type DefaultError } from "../types"
 import { type MutationCache } from "./cache/MutationCache"
 import { functionAsObservable } from "../utils/functionAsObservable"
+
+interface MutationConfig<TData, TError, TVariables, TContext> {
+  mutationCache: MutationCache
+  options: MutationOptions<TData, TError, TVariables, TContext>
+  defaultOptions?: MutationOptions<TData, TError, TVariables, TContext>
+  state?: MutationState<TData, TError, TVariables, TContext>
+}
 
 export class Mutation<
   TData = unknown,
@@ -43,18 +50,18 @@ export class Mutation<
   protected observerCount = new BehaviorSubject(0)
   public observerCount$ = this.observerCount.asObservable()
 
-  protected cancelSubject = new Subject<void>()
+  protected destroySubject = new Subject<void>()
+  protected resetSubject = new Subject<void>()
   protected executeSubject = new Subject<TVariables>()
 
   constructor({
     options,
-    mutationCache
-  }: {
-    mutationCache: MutationCache
-    options: MutationOptions<TData, TError, TVariables, TContext>
-  }) {
+    mutationCache,
+    state
+  }: MutationConfig<TData, TError, TVariables, TContext>) {
     this.options = options
     this.mutationCache = mutationCache
+    this.state = state ?? this.state
 
     this.state$ = merge(
       of(this.state),
@@ -63,7 +70,12 @@ export class Mutation<
         tap((value) => {
           this.state = { ...this.state, ...value }
         }),
-        takeUntil(this.cancelSubject)
+        takeUntil(this.destroySubject)
+      ),
+      this.resetSubject.pipe(
+        map(() =>
+          getDefaultMutationState<TData, TError, TVariables, TContext>()
+        )
       ),
       NEVER
     ).pipe(
@@ -73,7 +85,7 @@ export class Mutation<
        * why we still cancel the observable when we remove it from cache)
        */
       shareReplay({ bufferSize: 1, refCount: true }),
-      takeUntil(this.cancelSubject),
+      takeUntil(this.destroySubject),
       (source) => {
         return new Observable<ObservedValueOf<typeof this.state$>>(
           (observer) => {
@@ -90,34 +102,59 @@ export class Mutation<
     )
   }
 
+  get meta(): MutationMeta | undefined {
+    return this.options.meta
+  }
+
+  setOptions(
+    options?: MutationOptions<TData, TError, TVariables, TContext>
+  ): void {
+    this.options = { ...this.options, ...options }
+  }
+
   createMutation(variables: TVariables) {
     type LocalState = MutationState<TData, TError, TVariables, TContext>
 
-    const mutationFn = this.options.mutationFn
+    const isPaused = this.state.isPaused
 
-    const onCacheMutate$ = functionAsObservable(
-      () =>
-        this.mutationCache.config.onMutate?.(
-          variables,
-          this as Mutation<any, any, any>
-        )
-    )
+    const defaultFn = async () =>
+      await Promise.reject(new Error("No mutationFn found"))
 
-    const onMutate = concat(
-      onCacheMutate$.pipe(
-        mergeMap(() => {
-          const onMutate$ = functionAsObservable(
-            // eslint-disable-next-line @typescript-eslint/promise-function-async
-            () => this.options.onMutate?.(variables) ?? undefined
+    const mutationFn = this.options.mutationFn ?? defaultFn
+
+    const onCacheMutate$ = iif(
+      () => isPaused,
+      of(null),
+      functionAsObservable(
+        () =>
+          this.mutationCache.config.onMutate?.(
+            variables,
+            this as Mutation<any, any, any>
           )
-
-          return onMutate$
-        })
       )
     )
 
-    const queryRunner$ = onMutate.pipe(
+    const onOptionMutate$ = iif(
+      () => isPaused,
+      of(this.state.context),
+      functionAsObservable(
+        // eslint-disable-next-line @typescript-eslint/promise-function-async
+        () => this.options.onMutate?.(variables) ?? undefined
+      )
+    )
+
+    const onMutate$ = onCacheMutate$.pipe(
+      mergeMap(() => onOptionMutate$),
+      share()
+    )
+
+    const queryRunner$ = onMutate$.pipe(
       switchMap((context) => {
+        type QueryState = Omit<Partial<LocalState>, "data"> & {
+          // add layer to allow undefined as mutation result
+          result?: { data: TData }
+        }
+
         const fn$ =
           typeof mutationFn === "function"
             ? // eslint-disable-next-line @typescript-eslint/promise-function-async
@@ -125,31 +162,59 @@ export class Mutation<
             : mutationFn
 
         return fn$.pipe(
-          retryOnError(this.options),
-          take(1),
-          map((data) => ({ data, context, isError: false })),
-          catchError((error: unknown) => {
-            console.error(error)
+          map(
+            (data): QueryState => ({
+              result: {
+                data
+              },
+              error: null,
+              context
+            })
+          ),
+          retryOnError<QueryState>({
+            ...this.options,
+            caughtError: (attempt, error) =>
+              of({
+                failureCount: attempt,
+                failureReason: error
+              }),
+            catchError: (attempt, error) => {
+              console.error(error)
 
-            const onCacheError$ = functionAsObservable(
-              () =>
-                this.mutationCache.config.onError?.<
-                  TData,
-                  TError,
-                  TVariables,
-                  TContext
-                >(error as Error, variables, context, this)
-            )
+              const onCacheError$ = functionAsObservable(
+                () =>
+                  this.mutationCache.config.onError?.<
+                    TData,
+                    TError,
+                    TVariables,
+                    TContext
+                  >(error as Error, variables, context, this)
+              )
 
-            const onError$ = functionAsObservable(
-              () => this.options.onError?.(error as TError, variables, context)
-            )
+              const onError$ = functionAsObservable(
+                () =>
+                  this.options.onError?.(error as TError, variables, context)
+              )
 
-            return concat(onCacheError$, onError$).pipe(
-              toArray(),
-              map(() => ({ data: error, context, isError: true }))
-            )
-          })
+              return concat(onCacheError$, onError$).pipe(
+                toArray(),
+                map(
+                  (): QueryState => ({
+                    failureCount: attempt,
+                    result: undefined,
+                    error: error as TError,
+                    failureReason: error,
+                    context
+                  })
+                )
+              )
+            }
+          }),
+          takeWhile(
+            ({ result, error }) =>
+              result?.data === undefined && error === undefined,
+            true
+          )
         )
       })
     )
@@ -158,47 +223,65 @@ export class Mutation<
       ...this.state,
       variables,
       status: "pending",
-      submittedAt: new Date().getTime()
+      isPaused: false,
+      failureCount: 0,
+      failureReason: null,
+      submittedAt: this.state.submittedAt ?? new Date().getTime()
     } satisfies LocalState & Required<Pick<LocalState, "variables">>)
 
     const mutation$ = merge(
       initState$,
+      onMutate$.pipe(map((context) => ({ context }))),
       queryRunner$.pipe(
-        switchMap(({ data: dataOrError, isError, context }) => {
-          const error = (isError ? dataOrError : null) as TError
-          const data = (isError ? undefined : dataOrError) as TData
+        switchMap(({ result, error, ...restState }) => {
+          if (!result && !error)
+            return of({
+              ...restState
+            })
 
-          const onCacheSuccess$ = isError
+          const onCacheSuccess$ = error
             ? of(null)
             : functionAsObservable(
                 () =>
                   this.mutationCache.config.onSuccess?.(
-                    data,
+                    result?.data,
                     variables,
-                    context,
+                    restState.context,
                     this as Mutation<any, any, any>
                   )
               )
 
-          const onSuccess$ = isError
+          const onSuccess$ = error
             ? of(null)
             : functionAsObservable(
-                () => this.options.onSuccess?.(data, variables, context)
+                () =>
+                  this.options.onSuccess?.(
+                    result?.data as TData,
+                    variables,
+                    restState.context
+                  )
               )
 
+          // to pass as option from cache not here
           const onCacheSettled$ = functionAsObservable(
             () =>
               this.mutationCache.config.onSettled?.(
-                data,
+                result?.data,
                 error as any,
                 variables,
-                context,
+                restState.context,
                 this as Mutation<any, any, any>
               )
           )
 
           const onSettled$ = functionAsObservable(
-            () => this.options.onSettled?.(data, error, variables, context)
+            () =>
+              this.options.onSettled?.(
+                result?.data,
+                error as TError,
+                variables,
+                restState.context
+              )
           )
 
           const result$ = concat(
@@ -209,20 +292,20 @@ export class Mutation<
           ).pipe(
             toArray(),
             map(() =>
-              isError
+              error
                 ? ({
                     status: "error" as const,
                     error,
-                    data,
-                    context,
-                    variables
+                    data: undefined,
+                    variables,
+                    ...restState
                   } satisfies Partial<LocalState>)
                 : ({
                     status: "success" as const,
                     error,
-                    data,
-                    context,
-                    variables
+                    data: result?.data,
+                    variables,
+                    ...restState
                   } satisfies Partial<LocalState>)
             )
           )
@@ -233,7 +316,7 @@ export class Mutation<
     ).pipe(
       mergeResults,
       (this.options.__queryRunnerHook as typeof identity) ?? identity,
-      takeUntil(this.cancelSubject)
+      takeUntil(this.destroySubject)
     )
 
     return mutation$
@@ -260,9 +343,19 @@ export class Mutation<
     return this.observeTillFinished()
   }
 
-  cancel() {
-    this.cancelSubject.next()
-    this.cancelSubject.complete()
+  continue() {
+    return this.execute(this.state.variables as TVariables)
+  }
+
+  destroy() {
+    this.destroySubject.next()
+    this.destroySubject.complete()
     this.executeSubject.complete()
+  }
+
+  reset() {
+    this.resetSubject.next()
+    this.resetSubject.complete()
+    this.destroy()
   }
 }

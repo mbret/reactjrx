@@ -1,5 +1,10 @@
 import { type MonoTypeOperatorFunction, type Observable } from "rxjs"
-import { type DefaultError, type Query, type QueryResult } from "../types"
+import {
+  type Register,
+  type DefaultError,
+  type Query,
+  type QueryResult
+} from "../types"
 import { type Mutation } from "./Mutation"
 
 /**
@@ -61,6 +66,12 @@ export type MutationFn<Data, MutationArg> =
   | ((arg: MutationArg) => Promise<Data>)
   | ((arg: MutationArg) => Observable<Data>)
 
+export type MutationMeta = Register extends {
+  mutationMeta: infer TMutationMeta
+}
+  ? TMutationMeta
+  : Record<string, unknown>
+
 export interface MutationOptions<
   TData,
   TError = DefaultError,
@@ -69,6 +80,7 @@ export interface MutationOptions<
 > {
   enabled?: boolean
   retry?: false | number | ((attempt: number, error: unknown) => boolean)
+  retryDelay?: number | ((failureCount: number, error: TError) => number)
   gcTime?: number
   /**
    * @important
@@ -112,9 +124,10 @@ export interface MutationOptions<
     variables: TVariables,
     context: TContext | undefined
   ) => Promise<unknown> | unknown
-  mutationFn: MutationFn<TData, TVariables>
-  mutationKey: MutationKey
+  mutationFn?: MutationFn<TData, TVariables>
+  mutationKey?: MutationKey
   mapOperator?: MapOperator
+  meta?: MutationMeta
   __queryInitHook?: MonoTypeOperatorFunction<any>
   __queryRunnerHook?: MonoTypeOperatorFunction<any>
   __queryTriggerHook?: MonoTypeOperatorFunction<Partial<TData>>
@@ -133,6 +146,9 @@ export interface MutationState<
   status: MutationStatus
   variables: TVariables | undefined
   submittedAt: number
+  failureCount: number
+  failureReason: TError | null
+  isPaused: boolean
 }
 
 export interface MutateOptions<

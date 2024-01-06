@@ -11,5 +11,8 @@ export const getDefaultMutationState = <
   error: null,
   status: "idle",
   submittedAt: 0,
-  variables: undefined
+  variables: undefined,
+  failureCount: 0,
+  failureReason: null,
+  isPaused: false
 })

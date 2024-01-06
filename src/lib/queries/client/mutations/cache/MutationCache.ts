@@ -22,7 +22,9 @@ import {
   mergeMap,
   from,
   takeUntil,
-  startWith
+  startWith,
+  combineLatest,
+  EMPTY
 } from "rxjs"
 import { createPredicateForFilters } from "../filters"
 import { arrayEqual } from "../../../../utils/arrayEqual"
@@ -147,13 +149,13 @@ export class MutationCache {
 
   build<TData, TError, TVariables, TContext>(
     client: QueryClient,
-    options: MutationOptions<TData, TError, TVariables, TContext>
+    options: MutationOptions<TData, TError, TVariables, TContext>,
+    state?: MutationState<TData, TError, TVariables, TContext>
   ): Mutation<TData, TError, TVariables, TContext> {
     const mutation = new Mutation({
       mutationCache: this,
-      // mutationId: ++this.#mutationId,
-      options: client.defaultMutationOptions(options)
-      // state
+      options: client.defaultMutationOptions(options),
+      state
     })
 
     const sub = mutation.state$
@@ -216,7 +218,7 @@ export class MutationCache {
         return predicate(mutation)
       })
       .map(({ mutation, sub }) => {
-        mutation.cancel()
+        mutation.destroy()
         sub.unsubscribe()
 
         return mutation
@@ -276,7 +278,7 @@ export class MutationCache {
       .map(({ mutation }) => mutation)
   }
 
-  mutationsBy<
+  observeMutationsBy<
     TData = unknown,
     TError = DefaultError,
     TVariables = any,
@@ -324,10 +326,16 @@ export class MutationCache {
     return { value$, lastValue }
   }
 
-  cancelBy(filters: MutationFilters) {
-    this.findAll(filters).forEach((mutation) => {
-      mutation.cancel()
+  resumePausedMutations() {
+    const pausedMutations = this.findAll({
+      predicate: (mutation) => mutation.state.isPaused
     })
+
+    if (!pausedMutations.length) return EMPTY
+
+    const mutations$ = pausedMutations.map((mutation) => mutation.continue())
+
+    return combineLatest(mutations$)
   }
 
   clear() {

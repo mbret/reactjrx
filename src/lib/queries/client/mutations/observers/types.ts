@@ -1,5 +1,19 @@
 import { type DefaultError } from "../../types"
-import { type MutationState, type MutationStatus } from "../types"
+import {
+  type MutateFunction,
+  type MutationOptions,
+  type MutationState,
+  type MutationStatus
+} from "../types"
+
+export interface MutationObserverOptions<
+  TData = unknown,
+  TError = DefaultError,
+  TVariables = void,
+  TContext = unknown
+> extends MutationOptions<TData, TError, TVariables, TContext> {
+  throwOnError?: boolean | ((error: TError) => boolean)
+}
 
 export interface MutationObserverBaseResult<
   TData = unknown,
@@ -11,6 +25,8 @@ export interface MutationObserverBaseResult<
   isIdle: boolean
   isPending: boolean
   isSuccess: boolean
+  mutate: MutateFunction<TData, TError, TVariables, TContext>
+  reset: () => void
 }
 
 export interface MutationObserverIdleResult<

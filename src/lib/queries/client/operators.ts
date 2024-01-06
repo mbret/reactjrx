@@ -1,18 +1,26 @@
 import { type Observable, distinctUntilChanged, scan } from "rxjs"
 import { shallowEqual } from "../../utils/shallowEqual"
-import { type QueryOptions, type QueryResult } from "./types"
-import { retryBackoff } from "../../utils/retryBackoff"
+import { type QueryResult } from "./types"
+import { type RetryBackoffConfig, retryBackoff } from "../../utils/retryBackoff"
 
-export const retryOnError = <T>(options: Pick<QueryOptions<T>, "retry">) =>
+export const retryOnError = <T>({
+  retryDelay,
+  retry,
+  ...rest
+}: {
+  retry?: false | number | ((attempt: number, error: any) => boolean)
+  retryDelay?: number | ((failureCount: number, error: any) => number)
+} & Omit<RetryBackoffConfig<T>, "initialInterval">) =>
   retryBackoff({
-    initialInterval: 100,
-    ...(typeof options.retry === "function"
+    initialInterval: typeof retryDelay === "number" ? retryDelay : 100,
+    ...(typeof retry === "function"
       ? {
-          shouldRetry: options.retry
+          shouldRetry: retry
         }
       : {
-          maxRetries: options.retry === false ? 0 : options.retry ?? 3
-        })
+          maxRetries: retry === false ? 0 : retry ?? 0
+        }),
+    ...rest
   })
 
 export const mergeResults = <T>(

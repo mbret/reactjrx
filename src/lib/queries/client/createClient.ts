@@ -12,7 +12,8 @@ import {
   finalize,
   NEVER,
   mergeMap,
-  share
+  share,
+  lastValueFrom
 } from "rxjs"
 import { serializeKey } from "./keys/serializeKey"
 import { mergeResults } from "./operators"
@@ -38,9 +39,10 @@ import { Logger } from "../../logger"
 import { markQueryAsStaleIfRefetch } from "./refetch/markQueryAsStaleIfRefetch"
 import { dispatchExternalRefetchToAllQueries } from "./refetch/dispatchExternalRefetchToAllQueries"
 import { MutationRunners } from "./mutations/runners/MutationRunners"
-import { type MutationOptions } from "./mutations/types"
+import { type MutationKey, type MutationOptions } from "./mutations/types"
 import { MutationCache } from "./mutations/cache/MutationCache"
-import { MutationObserver } from "./mutations/observers/MutationObserver"
+import { type MutationObserverOptions } from "./mutations/observers/types"
+import { compareKeys } from "./keys/compareKeys"
 
 export const createClient = () => {
   const queryStore = createQueryStore()
@@ -207,7 +209,7 @@ export class QueryClient {
   public client: ReturnType<typeof createClient>
   protected mutationCache: MutationCache
   public mutationRunners: MutationRunners
-  public mutationObserver: MutationObserver
+  readonly #mutationDefaults = new Map()
 
   constructor(
     { mutationCache }: { mutationCache: MutationCache } = {
@@ -216,7 +218,6 @@ export class QueryClient {
   ) {
     this.mutationCache = mutationCache
     this.mutationRunners = new MutationRunners(this)
-    this.mutationObserver = new MutationObserver(this)
 
     this.client = createClient()
   }
@@ -237,19 +238,42 @@ export class QueryClient {
   defaultMutationOptions<T extends MutationOptions<any, any, any, any>>(
     options?: T
   ): T {
-    // // if (options?._defaulted) {
-    // //   return options
-    // // }
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return {
+      ...(options?.mutationKey &&
+        this.getMutationDefaults(options.mutationKey)),
+      ...options
+    } as T
+  }
 
-    // return {
-    //   // ...this.#defaultOptions.mutations,
-    //   // ...(options?.mutationKey &&
-    //   //   this.getMutationDefaults(options.mutationKey)),
-    //   // ...options,
-    //   // _defaulted: true
-    // } as T
+  getMutationDefaults(
+    mutationKey: MutationKey
+  ): MutationObserverOptions<any, any, any, any> {
+    const defaults = [...this.#mutationDefaults.values()]
 
-    return options as T
+    let result: MutationObserverOptions<any, any, any, any> = {}
+
+    defaults.forEach((queryDefault) => {
+      if (compareKeys(mutationKey, queryDefault.mutationKey)) {
+        result = { ...result, ...queryDefault.defaultOptions }
+      }
+    })
+
+    return result
+  }
+
+  setMutationDefaults(
+    mutationKey: MutationKey,
+    options: Omit<MutationObserverOptions<any, any, any, any>, "mutationKey">
+  ) {
+    this.#mutationDefaults.set(serializeKey(mutationKey), {
+      mutationKey,
+      defaultOptions: options
+    })
+  }
+
+  async resumePausedMutations() {
+    return await lastValueFrom(this.mutationCache.resumePausedMutations())
   }
 
   clear() {}

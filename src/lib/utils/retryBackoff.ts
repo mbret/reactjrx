@@ -1,7 +1,7 @@
-import { defer, iif, type Observable, throwError, timer } from "rxjs"
-import { concatMap, retryWhen, tap } from "rxjs/operators"
+import { defer, iif, type Observable, throwError, timer, merge } from "rxjs"
+import { catchError, concatMap, retryWhen, tap } from "rxjs/operators"
 
-export interface RetryBackoffConfig {
+export interface RetryBackoffConfig<T> {
   // Initial interval. It will eventually go as high as maxInterval.
   initialInterval: number
   // Maximum number of retry attempts.
@@ -16,6 +16,8 @@ export interface RetryBackoffConfig {
   shouldRetry?: (attempt: number, error: any) => boolean
   // eslint-disable-next-line no-unused-vars
   backoffDelay?: (iteration: number, initialInterval: number) => number
+  caughtError?: (attempt: number, error: any) => void | Observable<T>
+  catchError?: (attempt: number, error: any) => Observable<T>
 }
 
 /** Calculates the actual delay which can be limited by maxInterval */
@@ -39,10 +41,7 @@ export function exponentialBackoffDelay(
  * resubscriptions (if provided). Retrying can be cancelled at any point if
  * shouldRetry returns false.
  */
-export function retryBackoff(
-  config: number | RetryBackoffConfig
-  // eslint-disable-next-line no-unused-vars
-): <T>(source: Observable<T>) => Observable<T> {
+export function retryBackoff<T>(config: RetryBackoffConfig<T>) {
   const {
     initialInterval,
     maxRetries = Infinity,
@@ -50,28 +49,56 @@ export function retryBackoff(
     shouldRetry = () => true,
     resetOnSuccess = false,
     backoffDelay = exponentialBackoffDelay
-  } = typeof config === "number" ? { initialInterval: config } : config
+  } = config
+
   return <T>(source: Observable<T>) =>
     defer(() => {
-      let index = 0
+      let caughtErrors = 0
+
+      const shouldRetryFn = (attempt: number, error: unknown) =>
+        attempt < maxRetries && shouldRetry(attempt, error)
+
       return source.pipe(
+        catchError((error) => {
+          caughtErrors++
+
+          if (!shouldRetryFn(caughtErrors - 1, error)) throw error
+
+          const caughtErrorResult = config.caughtError(caughtErrors, error)
+
+          if (!caughtErrorResult) throw error
+
+          return merge(
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+            caughtErrorResult,
+            throwError(() => error)
+          )
+        }),
         retryWhen<T>((errors) => {
           return errors.pipe(
             concatMap((error) => {
-              const attempt = index++
+              const attempt = caughtErrors - 1
+
               return iif(
-                () => attempt < maxRetries && shouldRetry(attempt, error),
+                () => shouldRetryFn(attempt, error),
                 timer(
                   getDelay(backoffDelay(attempt, initialInterval), maxInterval)
                 ),
-                throwError(error)
+                throwError(() => error)
               )
             })
           )
         }),
+        catchError((e) => {
+          if (config.catchError) {
+            return config.catchError(caughtErrors, e)
+          }
+
+          throw e
+        }),
         tap(() => {
           if (resetOnSuccess) {
-            index = 0
+            caughtErrors = 0
           }
         })
       )

@@ -7,12 +7,13 @@ import {
   QueryClient,
   QueryClientProvider,
   SIGNAL_RESET,
-  signal,
+  signal
 } from "."
 import { useMutation } from "./lib/queries/react/mutations/useMutation"
 import {
   QueryClient as rc_QueryClient,
   QueryClientProvider as RcQueryClientProvider,
+  useMutation as rcUseMutation
 } from "@tanstack/react-query"
 import { sleep } from "./tests/utils"
 import { useIsMutating } from "./lib/queries/react/mutations/useIsMutating"
@@ -42,13 +43,19 @@ const IsMutating = memo(() => {
 const Mutation = memo((_: { onClick: () => void }) => {
   const { mutate, ...rest } = useMutation({
     mutationKey: ["mutation1"],
+    retry: 1,
     mutationFn: async ({ time, v }: { v: string; time: number }) => {
+      console.log("MUTATE")
       await sleep(time)
-
-      return v
+      throw new Error("sad")
+      // return v
+    },
+    onMutate: () => "foo",
+    onSettled: (...args) => {
+      console.log("onSettled", ...args)
     }
   })
-  const { mutate: mutate2 } = useMutation({
+  const { mutate: mutate2 } = rcUseMutation({
     mutationKey: ["mutation2"],
     mutationFn: async ({ time, v }: { v: string; time: number }) => {
       await sleep(time)
@@ -57,6 +64,9 @@ const Mutation = memo((_: { onClick: () => void }) => {
     }
   })
 
+  mutate2(undefined, {
+    onSuccess: () => {}
+  })
   console.log("mutate", rest)
   // console.log("mutate2", mutation2Result)
 
@@ -66,8 +76,8 @@ const Mutation = memo((_: { onClick: () => void }) => {
       <IsMutating />
       <button
         onClick={() => {
-          mutate({ v: "data1", time: 1000 })
-          mutate2({ v: "data1", time: 1000 })
+          mutate({ v: "data1", time: 2000 })
+          // mutate2({ v: "data1", time: 1000 })
 
           setTimeout(() => {
             // onClick()

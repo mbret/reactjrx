@@ -122,6 +122,7 @@ describe("mutationCache", () => {
       )
       expect(onError).not.toHaveBeenCalled()
       expect(onSettled).toHaveBeenCalledTimes(1)
+
       expect(onSettled).toHaveBeenCalledWith(
         { data: 5 },
         null,

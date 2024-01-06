@@ -56,9 +56,10 @@ export type QueryTrigger =
       type: "enabled"
     }
 
-export interface QueryOptions<T = unknown> {
+export interface QueryOptions<T = unknown, TError = DefaultError> {
   enabled?: boolean
   retry?: false | number | ((attempt: number, error: unknown) => boolean)
+  retryDelay?: number | ((failureCount: number, error: TError) => number)
   /**
    * @important
    * The hook with the lowest value will be taken into account

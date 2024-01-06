@@ -519,7 +519,7 @@ describe("useMutation", () => {
                 },
                 cancelOnUnMount: true,
                 retry: false,
-                onError: () => {
+                onError: (e) => {
                   onErrorCall++
                 }
               })

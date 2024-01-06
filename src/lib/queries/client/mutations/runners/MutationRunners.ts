@@ -5,11 +5,9 @@ import {
   skip,
   distinctUntilChanged,
   take,
-  type ObservedValueOf,
-  last
 } from "rxjs"
 import { serializeKey } from "../../keys/serializeKey"
-import { type MutationOptions } from "../types"
+import { type MutationKey, type MutationOptions } from "../types"
 import { createMutationRunner } from "./MutationRunner"
 import { shallowEqual } from "../../../../utils/shallowEqual"
 import { type QueryClient } from "../../createClient"
@@ -61,16 +59,18 @@ export class MutationRunners {
     return this.mutationRunnersByKey$.getValue().get(key)
   }
 
-  async mutate<
+  mutate<
     TData,
     TError = DefaultError,
     TVariables = void,
     TContext = unknown
-  >(params: {
-    options: MutationOptions<TData, TError, TVariables, TContext>
-    args: TVariables
-  }) {
-    const { mutationKey } = params.options
+  >(
+    variables: TVariables,
+    options: MutationOptions<TData, TError, TVariables, TContext> & {
+      mutationKey: MutationKey
+    }
+  ) {
+    const { mutationKey } = options
     const serializedMutationKey = serializeKey(mutationKey)
 
     let mutationForKey = this.getMutationRunnersByKey(serializedMutationKey)
@@ -78,7 +78,7 @@ export class MutationRunners {
     if (!mutationForKey) {
       mutationForKey = {
         ...createMutationRunner({
-          ...params.options,
+          ...options,
           client: this.client,
           mutationCache: this.client.getMutationCache()
         }),
@@ -99,7 +99,7 @@ export class MutationRunners {
        */
       this.client
         .getMutationCache()
-        .mutationsBy({
+        .observeMutationsBy({
           exact: true,
           mutationKey
         })
@@ -118,18 +118,14 @@ export class MutationRunners {
 
     const mutation = this.client
       .getMutationCache()
-      .build<TData, TError, TVariables, TContext>(this.client, params.options)
+      .build<TData, TError, TVariables, TContext>(this.client, options)
 
-    mutationForKey.trigger(params)
-
-    return await new Promise<
-      ObservedValueOf<ReturnType<typeof mutation.observeTillFinished>>
-    >((resolve, reject) => {
-      mutation.observeTillFinished().pipe(last()).subscribe({
-        error: reject,
-        next: resolve
-      })
+    mutationForKey.trigger({
+      args: variables,
+      options
     })
+
+    return mutation
   }
 
   destroy() {

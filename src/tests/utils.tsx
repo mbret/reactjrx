@@ -10,9 +10,7 @@ export const waitForTimeout = async (timeout: number) =>
  * @see https://github.com/TanStack/query/blob/main/packages/react-query/src/__tests__/utils.tsx
  */
 export async function sleep(timeout: number): Promise<void> {
-  await new Promise((resolve, _reject) => {
-    setTimeout(resolve, timeout)
-  })
+  await waitForTimeout(timeout)
 }
 
 /**

@@ -26,6 +26,6 @@ export default defineConfig({
       formats: ["es", "cjs"]
     },
     // handled by consumer
-    minify: false
+    minify: true
   },
 })

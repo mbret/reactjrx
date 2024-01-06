@@ -8,7 +8,6 @@ import {
   filter,
   identity,
   map,
-  merge,
   mergeMap,
   of,
   shareReplay,
@@ -30,16 +29,16 @@ export type MutationRunner = ReturnType<typeof createMutationRunner>
 export const createMutationRunner = <
   TData,
   TError = DefaultError,
-  MutationArg = void,
+  TVariables = void,
   TContext = unknown
 >({
   __queryFinalizeHook,
   __queryInitHook,
   __queryTriggerHook,
   mutationKey,
-  mutationCache,
+  mutationCache
 }: { mutationCache: MutationCache; client: QueryClient } & Pick<
-  MutationOptions<TData, TError, MutationArg, TContext>,
+  MutationOptions<TData, TError, TVariables, TContext>,
   | "__queryInitHook"
   | "__queryTriggerHook"
   | "__queryFinalizeHook"
@@ -48,14 +47,13 @@ export const createMutationRunner = <
   type LocalMutationOptions = MutationOptions<
     TData,
     TError,
-    MutationArg,
+    TVariables,
     TContext
   >
   const trigger$ = new Subject<{
-    args: MutationArg
+    args: TVariables
     options: LocalMutationOptions
   }>()
-  const cancel$ = new Subject<void>()
   let closed = false
   const mapOperator$ = new BehaviorSubject<LocalMutationOptions["mapOperator"]>(
     "merge"
@@ -75,11 +73,6 @@ export const createMutationRunner = <
 
     mapOperator$.complete()
     trigger$.complete()
-    /**
-     * make sure we cancel ongoing requests if we destroy this runner before they finish
-     */
-    cancel$.next()
-    cancel$.complete()
   }
 
   const stableMapOperator$ = mapOperator$.pipe(
@@ -103,7 +96,7 @@ export const createMutationRunner = <
           const mutation = mutationCache.findLatest<
             TData,
             TError,
-            MutationArg,
+            TVariables,
             TContext
           >({
             exact: true,
@@ -122,11 +115,8 @@ export const createMutationRunner = <
            * either when it is finished or by cancelling this one in the
            * runner.
            */
-          const queryIsOver$ = merge(
-            cancel$,
-            mutation$.pipe(
-              filter(({ status }) => status === "success" || status === "error")
-            )
+          const queryIsOver$ = mutation$.pipe(
+            filter(({ status }) => status === "success" || status === "error")
           )
 
           const isThisCurrentFunctionLastOneCalled = trigger$.pipe(
@@ -163,17 +153,6 @@ export const createMutationRunner = <
     shareReplay(1)
   )
 
-  cancel$.subscribe(() => {
-    mutationCache
-      .findAll({
-        mutationKey,
-        exact: true
-      })
-      ?.forEach((mutation) => {
-        mutation.cancel()
-      })
-  })
-
   return {
     mutationKey,
     runner$,
@@ -181,13 +160,12 @@ export const createMutationRunner = <
       args,
       options
     }: {
-      args: MutationArg
+      args: TVariables
       options: LocalMutationOptions
     }) => {
       mapOperator$.next(options.mapOperator)
       trigger$.next({ args, options })
     },
-    cancel$,
     destroy,
     getClosed: () => closed
   }
