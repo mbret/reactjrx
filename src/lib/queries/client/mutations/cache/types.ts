@@ -1,4 +1,4 @@
-import { type Mutation } from "../Mutation"
+import { type Mutation } from "../mutation/Mutation"
 import { type MutationObserver } from "../observers/MutationObserver"
 
 export type NotifyEventType =

@@ -1,7 +1,7 @@
 import { type Observable, distinctUntilChanged, scan } from "rxjs"
 import { shallowEqual } from "../../utils/shallowEqual"
 import { type QueryResult } from "./types"
-import { type RetryBackoffConfig, retryBackoff } from "../../utils/retryBackoff"
+import { type RetryBackoffConfig, retryBackoff } from "../../utils/operators/retryBackoff"
 
 export const retryOnError = <T>({
   retryDelay,

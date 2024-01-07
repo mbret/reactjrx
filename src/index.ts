@@ -16,7 +16,7 @@ export * from "./lib/state/persistance/usePersistSignals"
 
 // utils
 export * from "./lib/utils/useUnmountObservable"
-export * from "./lib/utils/retryBackoff"
+export * from "./lib/utils/operators/retryBackoff"
 export * from "./lib/utils/useLiveRef"
 
 // higher helpers

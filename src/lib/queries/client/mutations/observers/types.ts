@@ -1,10 +1,10 @@
 import { type DefaultError } from "../../types"
 import {
-  type MutateFunction,
   type MutationOptions,
   type MutationState,
   type MutationStatus
-} from "../types"
+} from "../mutation/types"
+import { type MutateFunction } from "../types"
 
 export interface MutationObserverOptions<
   TData = unknown,

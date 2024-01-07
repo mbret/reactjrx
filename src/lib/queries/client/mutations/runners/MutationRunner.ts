@@ -1,11 +1,9 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import {
   BehaviorSubject,
-  Observable,
-  ObservedValueOf,
+  type ObservedValueOf,
   Subject,
   combineLatest,
-  concat,
   concatMap,
   defer,
   distinctUntilChanged,
@@ -16,7 +14,6 @@ import {
   map,
   merge,
   mergeMap,
-  of,
   scan,
   shareReplay,
   skip,
@@ -27,14 +24,14 @@ import {
   tap
 } from "rxjs"
 import { isDefined } from "../../../../utils/isDefined"
-import { MutationState, type MutationOptions } from "../types"
-import { mergeResults } from "../operators"
 import { type DefaultError } from "../../types"
 import { type MutationCache } from "../cache/MutationCache"
 import { type MutationObserverOptions } from "../observers/types"
-import { Mutation } from "../Mutation"
+import { type Mutation } from "../mutation/Mutation"
 import { shallowEqual } from "../../../../utils/shallowEqual"
 import { getDefaultMutationState } from "../defaultMutationState"
+import { trackSubscriptions } from "../../../../utils/operators/trackSubscriptions"
+import { type MutationOptions, type MutationState } from "../mutation/types"
 
 export type MutationRunner<
   TData,
@@ -216,19 +213,9 @@ export const createMutationRunner = <
       )
     }),
     shareReplay(1),
-    (source) => {
-      return new Observable<MutationState<TData, TError, TVariables, TContext>>(
-        (observer) => {
-          refCountSubject.next(refCountSubject.getValue() + 1)
-          const sub = source.subscribe(observer)
-
-          return () => {
-            refCountSubject.next(refCountSubject.getValue() - 1)
-            sub.unsubscribe()
-          }
-        }
-      )
-    }
+    trackSubscriptions((count) => {
+      refCountSubject.next(count)
+    })
   )
 
   /**

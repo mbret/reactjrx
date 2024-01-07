@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
 /* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable @typescript-eslint/array-type */
 /* eslint-disable @typescript-eslint/no-misused-promises */
@@ -18,7 +19,7 @@ import {
 import { useMutation } from "./useMutation"
 import { queryKey } from "../../client/tests/utils"
 import { type UseMutationResult } from "./types"
-import { ErrorBoundary } from "react-error-boundary"
+// import { ErrorBoundary } from "react-error-boundary"
 
 describe("useMutation", () => {
   //   const queryCache = new QueryCache()
@@ -1118,35 +1119,35 @@ describe("useMutation", () => {
     expect(onError).toHaveBeenCalledWith(mutateFnError, "todo", undefined)
   })
 
-    it("should use provided custom queryClient", async () => {
-      function Page() {
-        const mutation = useMutation(
-          {
-            mutationFn: async (text: string) => {
-              return Promise.resolve(text)
-            }
-          },
-          queryClient
-        )
+  it("should use provided custom queryClient", async () => {
+    function Page() {
+      const mutation = useMutation(
+        {
+          mutationFn: async (text: string) => {
+            return Promise.resolve(text)
+          }
+        },
+        queryClient
+      )
 
-        return (
+      return (
+        <div>
+          <button onClick={() => mutation.mutate("custom client")}>
+            mutate
+          </button>
           <div>
-            <button onClick={() => mutation.mutate("custom client")}>
-              mutate
-            </button>
-            <div>
-              data: {mutation.data ?? "null"}, status: {mutation.status}
-            </div>
+            data: {mutation.data ?? "null"}, status: {mutation.status}
           </div>
-        )
-      }
+        </div>
+      )
+    }
 
-      const rendered = render(<Page></Page>)
+    const rendered = render(<Page></Page>)
 
-      await rendered.findByText("data: null, status: idle")
+    await rendered.findByText("data: null, status: idle")
 
-      fireEvent.click(rendered.getByRole("button", { name: /mutate/i }))
+    fireEvent.click(rendered.getByRole("button", { name: /mutate/i }))
 
-      await rendered.findByText("data: custom client, status: success")
-    })
+    await rendered.findByText("data: custom client, status: success")
+  })
 })

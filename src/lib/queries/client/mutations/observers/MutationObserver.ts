@@ -10,15 +10,11 @@ import {
   last,
   tap
 } from "rxjs"
-import {
-  type MutateOptions,
-  type MutationState,
-  type MutationFilters
-} from "../types"
+import { type MutateOptions, type MutationFilters } from "../types"
 import { getDefaultMutationState } from "../defaultMutationState"
 import { type QueryClient } from "../../createClient"
 import { type DefaultError } from "../../types"
-import { type Mutation } from "../Mutation"
+import { type Mutation } from "../mutation/Mutation"
 import { nanoid } from "../../keys/nanoid"
 import {
   type MutationObserverOptions,
@@ -28,6 +24,7 @@ import {
   type MutationRunner,
   createMutationRunner
 } from "../runners/MutationRunner"
+import { type MutationState } from "../mutation/types"
 
 /**
  * Provide API to observe mutations results globally.

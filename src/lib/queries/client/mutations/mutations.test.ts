@@ -3,8 +3,8 @@ import { type QueryClient } from "../createClient"
 import { createQueryClient, sleep } from "../../../../tests/utils"
 import { MutationObserver } from "./observers/MutationObserver"
 import { executeMutation, queryKey } from "../tests/utils"
-import { type MutationState } from "./types"
 import { waitFor } from "@testing-library/react"
+import { type MutationState } from "./mutation/types"
 
 describe("mutations", () => {
   let queryClient: QueryClient

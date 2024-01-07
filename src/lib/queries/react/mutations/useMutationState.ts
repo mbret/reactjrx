@@ -6,7 +6,7 @@ import {
   type MutationFilters
 } from "../../client/mutations/types"
 import { useLiveRef } from "../../../utils/useLiveRef"
-import { type Mutation } from "../../client/mutations/Mutation"
+import { type Mutation } from "../../client/mutations/mutation/Mutation"
 import { skip } from "rxjs"
 import { serializeKey } from "../../client/keys/serializeKey"
 import { createPredicateForFilters } from "../../client/mutations/filters"

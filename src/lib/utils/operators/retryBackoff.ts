@@ -38,7 +38,7 @@ export function exponentialBackoffDelay(
  * of an error. If the source Observable calls error, rather than propagating
  * the error call this method will resubscribe to the source Observable with
  * exponentially increasing interval and up to a maximum of count
- * resubscriptions (if provided). Retrying can be cancelled at any point if
+ * re-subscriptions (if provided). Retrying can be cancelled at any point if
  * shouldRetry returns false.
  */
 export function retryBackoff<T>(config: RetryBackoffConfig<T>) {
