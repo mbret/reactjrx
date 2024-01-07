@@ -1,5 +1,10 @@
-import { type MonoTypeOperatorFunction } from "rxjs"
-import { type DefaultError, type Query, type QueryResult, type Register } from "../../types"
+import { type Observable, type MonoTypeOperatorFunction } from "rxjs"
+import {
+  type DefaultError,
+  type Query,
+  type QueryResult,
+  type Register
+} from "../../types"
 import { type MapOperator, type MutationFn, type MutationKey } from "../types"
 
 export type MutationStatus = "idle" | "pending" | "success" | "error"
@@ -62,7 +67,11 @@ export interface MutationOptions<
   terminateOnFirstResult?: boolean
   onMutate?: (
     variables: TVariables
-  ) => Promise<TContext | undefined> | TContext | undefined
+  ) =>
+    | Promise<TContext | undefined>
+    | Observable<TContext | undefined>
+    | TContext
+    | undefined
   onError?: (
     error: TError,
     variables: TVariables,

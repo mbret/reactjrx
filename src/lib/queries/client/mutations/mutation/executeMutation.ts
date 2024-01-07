@@ -5,19 +5,19 @@ import {
   switchMap,
   concat,
   toArray,
-  mergeMap,
   takeWhile,
   share,
   iif,
-  catchError
+  catchError,
+  scan,
+  distinctUntilChanged,
 } from "rxjs"
 import { type MutationOptions, type MutationState } from "./types"
 import { functionAsObservable } from "../../utils/functionAsObservable"
 import { retryOnError } from "../../operators"
 import { type DefaultError } from "../../types"
-import { mergeResults } from "../operators"
-import { type Mutation } from "./Mutation"
-import { type MutationCache } from "../cache/MutationCache"
+import { getDefaultMutationState } from "../defaultMutationState"
+import { shallowEqual } from "../../../../utils/shallowEqual"
 
 export const executeMutation = <
   TData = unknown,
@@ -27,15 +27,11 @@ export const executeMutation = <
 >({
   variables,
   state,
-  options,
-  mutation,
-  mutationCache
+  options
 }: {
   variables: TVariables
   state: MutationState<TData, TError, TVariables, TContext>
   options: MutationOptions<TData, TError, TVariables, TContext>
-  mutation: Mutation<TData, TError, TVariables, TContext>
-  mutationCache: MutationCache
 }) => {
   type LocalState = MutationState<TData, TError, TVariables, TContext>
 
@@ -46,18 +42,6 @@ export const executeMutation = <
 
   const mutationFn = options.mutationFn ?? defaultFn
 
-  const onCacheMutate$ = iif(
-    () => isPaused,
-    of(null),
-    functionAsObservable(
-      () =>
-        mutationCache.config.onMutate?.(
-          variables,
-          mutation as Mutation<any, any, any>
-        )
-    )
-  )
-
   const onOptionMutate$ = iif(
     () => isPaused,
     of(state.context),
@@ -67,10 +51,7 @@ export const executeMutation = <
     )
   )
 
-  const onMutate$ = onCacheMutate$.pipe(
-    mergeMap(() => onOptionMutate$),
-    share()
-  )
+  const onMutate$ = onOptionMutate$.pipe(share())
 
   type QueryState = Omit<Partial<LocalState>, "data"> & {
     // add layer to allow undefined as mutation result
@@ -80,27 +61,15 @@ export const executeMutation = <
   const onError = (error: TError, context: TContext, attempt: number) => {
     console.error(error)
 
-    const onCacheError$ = functionAsObservable(
-      () =>
-        mutationCache.config.onError?.<TData, TError, TVariables, TContext>(
-          error as Error,
-          variables,
-          context,
-          mutation
-        )
-    )
-
     const onError$ = functionAsObservable(
       () => options.onError?.(error, variables, context)
     )
 
-    return concat(onCacheError$, onError$).pipe(
+    return onError$.pipe(
       catchError(() => of(error)),
-      toArray(),
       map(
-        (): QueryState => ({
+        (): Omit<QueryState, "result"> => ({
           failureCount: attempt,
-          result: undefined,
           error,
           failureReason: error,
           context,
@@ -136,7 +105,12 @@ export const executeMutation = <
               failureReason: error
             }),
           catchError: (attempt, error) =>
-            onError(error, context as TContext, attempt)
+            onError(error, context as TContext, attempt).pipe(
+              map((data) => ({
+                ...data,
+                result: undefined
+              }))
+            )
         }),
         takeWhile(
           ({ result, error }) =>
@@ -159,13 +133,15 @@ export const executeMutation = <
 
   const mutation$ = merge(
     initState$,
-    onMutate$.pipe(map((context) => ({ context }))),
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    onMutate$.pipe(map((context) => ({ context }) as Partial<LocalState>)),
     queryRunner$.pipe(
       switchMap(({ result: mutationData, error, ...restState }) => {
         if (!mutationData && !error)
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
           return of({
             ...restState
-          })
+          } as Partial<LocalState>)
 
         const onSuccess$ = error
           ? of(null)
@@ -178,18 +154,6 @@ export const executeMutation = <
                 )
             )
 
-        // to pass as option from cache not here
-        const onCacheSettled$ = functionAsObservable(
-          () =>
-            mutationCache.config.onSettled?.(
-              mutationData?.data,
-              error as any,
-              variables,
-              restState.context,
-              mutation as Mutation<any, any, any>
-            )
-        )
-
         const onOptionSettled$ = functionAsObservable(
           () =>
             options.onSettled?.(
@@ -200,7 +164,7 @@ export const executeMutation = <
             )
         )
 
-        const onSettled$ = concat(onCacheSettled$, onOptionSettled$).pipe(
+        const onSettled$ = onOptionSettled$.pipe(
           catchError((error) => (mutationData ? of(mutationData) : of(error)))
         )
 
@@ -223,14 +187,32 @@ export const executeMutation = <
                 } satisfies Partial<LocalState>)
           ),
           catchError((error) =>
-            onError(error, restState.context as TContext, 0)
+            onError(error, restState.context as TContext, 0).pipe(
+              map((data) => ({
+                ...data,
+                data: undefined
+              }))
+            )
           )
         )
 
         return result$
       })
     )
-  ).pipe(mergeResults)
+  ).pipe(
+    scan((acc, current) => {
+      return {
+        ...acc,
+        ...current,
+        data: current.data ?? acc.data,
+        error: current.error ?? acc.error
+      }
+    }, getDefaultMutationState<TData, TError, TVariables, TContext>()),
+    distinctUntilChanged(
+      ({ data: prevData, ...prev }, { data: currData, ...curr }) =>
+        shallowEqual(prev, curr) && shallowEqual(prevData, currData)
+    )
+  )
 
   return mutation$
 }

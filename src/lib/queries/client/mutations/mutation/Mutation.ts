@@ -10,7 +10,9 @@ import {
   shareReplay,
   takeWhile,
   BehaviorSubject,
-  concat
+  concat,
+  toArray,
+  mergeMap
 } from "rxjs"
 import { getDefaultMutationState } from "../defaultMutationState"
 import { type DefaultError } from "../../types"
@@ -67,11 +69,59 @@ export class Mutation<
     const execution$ = this.executeSubject.pipe(
       switchMap((variables) =>
         executeMutation({
-          mutation: this,
-          mutationCache: this.mutationCache,
           options: {
             ...this.options,
-            // @todo test onError, onSettled
+            onMutate: (variables) => {
+              const onCacheMutate$ = functionAsObservable(
+                () =>
+                  mutationCache.config.onMutate?.(
+                    variables,
+                    this as Mutation<any, any, any, any>
+                  )
+              ) as Observable<TContext>
+
+              const onOptionMutate$ = functionAsObservable(
+                // eslint-disable-next-line @typescript-eslint/promise-function-async
+                () => this.options.onMutate?.(variables) ?? undefined
+              )
+
+              return onCacheMutate$.pipe(mergeMap(() => onOptionMutate$))
+            },
+            onError: (error, variables, context) => {
+              const onCacheError$ = functionAsObservable(
+                () =>
+                  mutationCache.config.onError?.(
+                    error as any,
+                    variables,
+                    context,
+                    this as Mutation<any, any, any, any>
+                  )
+              )
+
+              const onOptionError$ = functionAsObservable(
+                () => this.options.onError?.(error, variables, context)
+              )
+
+              return concat(onCacheError$, onOptionError$).pipe(toArray())
+            },
+            onSettled: (data, error, variables, context) => {
+              const onCacheSuccess$ = functionAsObservable(
+                () =>
+                  mutationCache.config.onSettled?.(
+                    data,
+                    error as Error,
+                    variables,
+                    context,
+                    this as Mutation<any, any, any, any>
+                  )
+              )
+
+              const onOptionSettled$ = functionAsObservable(
+                () => this.options.onSettled?.(data, error, variables, context)
+              )
+
+              return concat(onCacheSuccess$, onOptionSettled$).pipe(toArray())
+            },
             onSuccess: (data, variables, context) => {
               const onCacheSuccess$ = functionAsObservable(
                 () =>
@@ -87,7 +137,7 @@ export class Mutation<
                 () => this.options.onSuccess?.(data, variables, context)
               )
 
-              return concat(onCacheSuccess$, onOptionSuccess$)
+              return concat(onCacheSuccess$, onOptionSuccess$).pipe(toArray())
             }
           },
           state: this.state,
