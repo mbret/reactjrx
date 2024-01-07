@@ -250,66 +250,53 @@ describe("useMutation", () => {
   })
 
   describe("Given component unmount", () => {
-    describe("and there are no active mutation", () => {
-      // it("should complete and remove the result from this key in results$", async () => {
-      //   const client = new QueryClient()
-
-      //   const Comp = () => {
-      //     useMutation({
-      //       mutationKey: ["foo"],
-      //       mutationFn: async () => {}
-      //     })
-
-      //     return null
-      //   }
-
-      //   const { unmount } = render(
-      //     <React.StrictMode>
-      //       <QueryClientProvider client={client}>
-      //         <Comp />
-      //       </QueryClientProvider>
-      //     </React.StrictMode>
-      //   )
-
-      //   unmount()
-
-      //   const resultForKey =
-      //     client.mutationObserver.mutationResults$.getValue()[
-      //       serializeKey(["foo"])
-      //     ]
-
-      //   expect(resultForKey).toBeUndefined()
-      // })
-
-      it("should complete and remove the mutation from this key in mutations$", async () => {
-        const client = new QueryClient()
-
-        const Comp = () => {
-          useMutation({
-            mutationKey: ["foo"],
-            mutationFn: async () => {}
-          })
-
-          return null
-        }
-
-        const { unmount } = render(
-          <React.StrictMode>
-            <QueryClientProvider client={client}>
-              <Comp />
-            </QueryClientProvider>
-          </React.StrictMode>
-        )
-
-        unmount()
-
-        const resultForKey = client.mutationRunners.mutationRunnersByKey$
-          .getValue()
-          .get(serializeKey(["foo"]))
-
-        expect(resultForKey).toBeUndefined()
-      })
-    })
+    // describe("and there are no active mutation", () => {
+    // it("should complete and remove the result from this key in results$", async () => {
+    //   const client = new QueryClient()
+    //   const Comp = () => {
+    //     useMutation({
+    //       mutationKey: ["foo"],
+    //       mutationFn: async () => {}
+    //     })
+    //     return null
+    //   }
+    //   const { unmount } = render(
+    //     <React.StrictMode>
+    //       <QueryClientProvider client={client}>
+    //         <Comp />
+    //       </QueryClientProvider>
+    //     </React.StrictMode>
+    //   )
+    //   unmount()
+    //   const resultForKey =
+    //     client.mutationObserver.mutationResults$.getValue()[
+    //       serializeKey(["foo"])
+    //     ]
+    //   expect(resultForKey).toBeUndefined()
+    // })
+    // it("should complete and remove the mutation from this key in mutations$", async () => {
+    //   const client = new QueryClient()
+    //   const Comp = () => {
+    //     useMutation({
+    //       mutationKey: ["foo"],
+    //       mutationFn: async () => {}
+    //     })
+    //     return null
+    //   }
+    //   const { unmount } = render(
+    //     <React.StrictMode>
+    //       <QueryClientProvider client={client}>
+    //         <Comp />
+    //       </QueryClientProvider>
+    //     </React.StrictMode>
+    //   )
+    //   unmount()
+    //   const resultForKey = client.mutationRunners.mutationRunnersByKey$
+    //     .getValue()
+    //     .get(serializeKey(["foo"]))
+    //   expect(resultForKey).toBeUndefined()
+    // })
+    // })
 
     // describe("and there was an active mutation", () => {
     //   it("should complete and remove the result from this key in results$", async () => {

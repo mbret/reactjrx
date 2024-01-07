@@ -1,4 +1,4 @@
-import { type MutationState } from "./types"
+import { type MutationState } from "./mutation/types";
 
 export const getDefaultMutationState = <
   TData = unknown,

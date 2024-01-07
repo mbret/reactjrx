@@ -242,7 +242,6 @@ export const createMutationRunner = <
       options,
       mutation
     }: ObservedValueOf<typeof trigger$>) => {
-      console.log("trigger", args)
       mapOperator$.next(options.mapOperator)
       trigger$.next({ args, options, mutation })
     },

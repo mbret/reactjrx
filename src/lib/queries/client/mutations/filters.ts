@@ -22,6 +22,7 @@ export const createPredicateForFilters = <
     if (
       exact &&
       mutationKey !== undefined &&
+      mutation.options.mutationKey !== undefined &&
       !compareKeys(mutation.options.mutationKey, mutationKey, { exact })
     ) {
       return false
@@ -30,6 +31,7 @@ export const createPredicateForFilters = <
     if (
       !exact &&
       mutationKey !== undefined &&
+      mutation.options.mutationKey !== undefined &&
       !compareKeys(mutationKey, mutation.options.mutationKey, { exact })
     ) {
       return false

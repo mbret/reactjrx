@@ -23,7 +23,7 @@ import {
 import {
   type MutationRunner,
   createMutationRunner
-} from "../runners/MutationRunner"
+} from "../runner/MutationRunner"
 import { type MutationState } from "../mutation/types"
 
 /**
