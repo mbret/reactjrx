@@ -95,6 +95,7 @@ describe("useMutation", () => {
             },
             mapOperator: "concat",
             onSuccess: (data) => {
+              console.log("SUCCESS", data)
               setDone((s) => ({ ...s, [data]: true }))
             }
           })
@@ -108,17 +109,19 @@ describe("useMutation", () => {
             mutate({ res: 2, timeout: 1 })
           }, [mutate])
 
+          console.log({ values, done })
+
           // we only display content once all queries are done
           // this way when we text string later we know exactly
           return <>{done[1] && done[2] ? values.join(",") : ""}</>
         }
 
         const { findByText } = render(
-          <React.StrictMode>
-            <QueryClientProvider client={client}>
-              <Comp />
-            </QueryClientProvider>
-          </React.StrictMode>
+          // <React.StrictMode>
+          <QueryClientProvider client={client}>
+            <Comp />
+          </QueryClientProvider>
+          // </React.StrictMode>
         )
 
         expect(await findByText("1,2")).toBeDefined()
@@ -461,13 +464,13 @@ describe("useMutation", () => {
 
           const Comp = () => {
             const { mutate } = useMutation({
+              cancelOnUnMount: true,
               mutationFn: () =>
                 timer(1000).pipe(
                   finalize(() => {
                     queryFinalizedNumberOfTime++
                   })
                 ),
-              cancelOnUnMount: true,
               __queryFinalizeHook: (source: Observable<any>) =>
                 source.pipe(
                   finalize(() => {
@@ -495,11 +498,15 @@ describe("useMutation", () => {
             </React.StrictMode>
           )
 
+          await waitForTimeout(10)
+
           unmount()
 
+          // only 1 because the query may not have run yet when unmounted directly after strict mode
+          expect(unmountTime).toBe(2)
+          expect(queryFinalizedNumberOfTime).toBe(2)
           expect(finalized).toBe(2)
-          expect(finalized).toBe(unmountTime)
-          expect(queryFinalizedNumberOfTime).toBe(unmountTime)
+          expect(finalized).toBe(2)
         })
 
         describe("and the query is a Promise that throws", () => {

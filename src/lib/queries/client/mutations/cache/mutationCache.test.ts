@@ -278,9 +278,11 @@ describe("mutationCache", () => {
       )
 
       const [mutation1, mutation2] = testCache.getAll()
+
       expect(
         testCache.findAll({ mutationKey: ["a"], exact: false })
       ).toHaveLength(2)
+
       expect(testCache.find({ mutationKey: ["a", 1] })).toEqual(mutation1)
       expect(
         testCache.findAll({
@@ -359,6 +361,8 @@ describe("mutationCache", () => {
       expect(queryClient.getMutationCache().getAll()).toHaveLength(1)
 
       await sleep(150)
+
+      console.log("CHECK LENGTH")
 
       expect(queryClient.getMutationCache().getAll()).toHaveLength(1)
 

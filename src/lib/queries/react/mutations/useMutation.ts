@@ -67,7 +67,7 @@ export function useMutation<
     return () => {
       // eslint-disable-next-line react-hooks/exhaustive-deps
       if (optionsRef.current.cancelOnUnMount) {
-        mutationObserver.reset()
+        mutationObserver.cancel()
       }
     }
   }, [mutationObserver, optionsRef])

@@ -1,32 +1,33 @@
 import {
-  filter,
   switchMap,
   map,
-  distinctUntilChanged,
-  merge,
-  combineLatest,
+  BehaviorSubject,
+  EMPTY,
+  type Observable,
   mergeMap,
-  skip,
+  merge,
+  takeUntil,
   last,
-  tap,
-  first
+  tap
 } from "rxjs"
 import {
   type MutateOptions,
   type MutationState,
   type MutationFilters
 } from "../types"
-import { isDefined } from "../../../../utils/isDefined"
 import { getDefaultMutationState } from "../defaultMutationState"
 import { type QueryClient } from "../../createClient"
 import { type DefaultError } from "../../types"
 import { type Mutation } from "../Mutation"
-import { shallowEqual } from "../../../../utils/shallowEqual"
 import { nanoid } from "../../keys/nanoid"
 import {
   type MutationObserverOptions,
   type MutationObserverResult
 } from "./types"
+import {
+  type MutationRunner,
+  createMutationRunner
+} from "../runners/MutationRunner"
 
 /**
  * Provide API to observe mutations results globally.
@@ -39,7 +40,26 @@ export class MutationObserver<
   TContext = unknown
 > {
   protected numberOfObservers = 0
-  #currentMutation?: Mutation<TData, TError, TVariables, TContext>
+
+  protected mutationRunner: MutationRunner<TData, TError, TVariables, TContext>
+
+  readonly #currentMutationSubject = new BehaviorSubject<
+    | {
+        mutation: Mutation<TData, TError, TVariables, TContext>
+        options?: MutateOptions<TData, TError, TVariables, TContext>
+      }
+    | undefined
+  >(undefined)
+
+  readonly observed$: Observable<{
+    state: MutationObserverResult<TData, TError, TVariables, TContext>
+    options: MutateOptions<TData, TError, TVariables, TContext> | undefined
+  }>
+
+  readonly result$: Observable<{
+    state: MutationObserverResult<TData, TError, TVariables, TContext>
+    options: MutateOptions<TData, TError, TVariables, TContext> | undefined
+  }>
 
   constructor(
     protected client: QueryClient,
@@ -51,10 +71,69 @@ export class MutationObserver<
     > = {}
   ) {
     this.options.mutationKey = this.options?.mutationKey ?? [nanoid()]
+    this.mutationRunner = createMutationRunner<
+      TData,
+      TError,
+      TVariables,
+      TContext
+    >(this.client.getMutationCache(), this.options)
 
     // allow methods to be destructured
     this.mutate = this.mutate.bind(this)
     this.reset = this.reset.bind(this)
+
+    this.result$ = this.mutationRunner.runner$.pipe(
+      map((state) => ({
+        state: this.getObserverResultFromState(state),
+        options: {} as any
+      }))
+    )
+
+    this.observed$ = this.#currentMutationSubject.pipe(
+      switchMap(
+        (maybeMutation) =>
+          maybeMutation?.mutation.state$.pipe(
+            map((state) => ({
+              state: this.getObserverResultFromState(state),
+              options: maybeMutation.options
+            }))
+          ) ?? EMPTY
+      ),
+      mergeMap(({ state, options }) => {
+        if (state.status === "error") {
+          options?.onError &&
+            options?.onError(
+              state.error as TError,
+              state.variables,
+              state.context
+            )
+          options?.onSettled &&
+            options?.onSettled(
+              state.data,
+              state.error,
+              state.variables,
+              state.context
+            )
+        }
+        if (state.status === "success") {
+          options?.onSuccess &&
+            options?.onSuccess(
+              state.data as TData,
+              state.variables,
+              state.context as TContext
+            )
+          options?.onSettled &&
+            options?.onSettled(
+              state.data,
+              state.error,
+              state.variables,
+              state.context
+            )
+        }
+
+        return EMPTY
+      })
+    )
   }
 
   setOptions(
@@ -124,32 +203,39 @@ export class MutationObserver<
 
     const lastValue = this.getObserverResultFromState(finalState)
 
-    const result$ = this.client
-      .getMutationCache()
-      .observeMutationsBy(filters)
-      .pipe(
-        switchMap((mutations) =>
-          combineLatest(
-            mutations.map((mutation) =>
-              mutation.state$.pipe(
-                map((state) => ({ state, options: mutation.options }))
-              )
-            )
-          )
-        ),
-        map(this.reduceStateFromMutations),
-        filter(isDefined),
-        map(this.getObserverResultFromState),
-        distinctUntilChanged(shallowEqual),
-        tap({
-          subscribe: () => {
-            this.numberOfObservers++
-          },
-          finalize: () => {
-            this.numberOfObservers--
-          }
-        })
-      )
+    // const result$ = this.client
+    //   .getMutationCache()
+    //   .observeMutationsBy(filters)
+    //   .pipe(
+    //     switchMap((mutations) =>
+    //       combineLatest(
+    //         mutations.map((mutation) =>
+    //           mutation.state$.pipe(
+    //             map((state) => ({ state, options: mutation.options }))
+    //           )
+    //         )
+    //       )
+    //     ),
+    //     map(this.reduceStateFromMutations),
+    //     filter(isDefined),
+    //     map(this.getObserverResultFromState),
+    //     distinctUntilChanged(shallowEqual),
+    //     tap({
+    //       subscribe: () => {
+    //         this.numberOfObservers++
+    //       },
+    //       finalize: () => {
+    //         this.numberOfObservers--
+    //       }
+    //     })
+    //   )
+
+    const result$ = merge(this.observed$, this.result$).pipe(
+      map(({ state }) => state),
+      tap((s) => {
+        console.log("observed$", s)
+      })
+    )
 
     return { result$, lastValue }
   }
@@ -159,31 +245,10 @@ export class MutationObserver<
       result: MutationObserverResult<TData, TError, TVariables, TContext>
     ) => void
   ) {
-    const sub = this.client
-      .getMutationCache()
-      .mutations$.pipe(
-        mergeMap((mutations) => {
-          const observed$ = mutations.map((mutation) =>
-            mutation.state$.pipe(
-              // we only want next changes
-              skip(1)
-            )
-          )
-
-          return merge(...observed$)
-        }),
-        tap({
-          subscribe: () => {
-            this.numberOfObservers++
-          },
-          finalize: () => {
-            this.numberOfObservers--
-          }
-        })
-      )
-      .subscribe((state) => {
-        subscription(this.getObserverResultFromState(state))
-      })
+    const sub = merge(this.observed$, this.result$).subscribe((result) => {
+      console.log("subscribe", result)
+      subscription(result.state)
+    })
 
     return () => {
       sub.unsubscribe()
@@ -192,26 +257,23 @@ export class MutationObserver<
 
   async mutate(
     variables: TVariables,
-    options?: MutateOptions<TData, TError, TVariables, TContext>
+    options: MutateOptions<TData, TError, TVariables, TContext> = {}
   ) {
-    const mutation = this.client.mutationRunners.mutate<
-      TData,
-      TError,
-      TVariables,
-      TContext
-    >(variables as any, this.options as any)
+    const mutation = this.client
+      .getMutationCache()
+      .build<TData, TError, TVariables, TContext>(this.client, this.options)
 
-    this.#currentMutation = mutation
+    this.#currentMutationSubject.next({ mutation, options })
 
-    this.client.getMutationCache().removed$.pipe(
-      filter((mutation) => mutation === this.#currentMutation),
-      first(),
-      tap((mutation) => {
-        if (this.#currentMutation === mutation) {
-          this.#currentMutation = undefined
-        }
-      })
-    )
+    this.mutationRunner.runner$
+      .pipe(takeUntil(mutation.observeTillFinished().pipe(last())))
+      .subscribe()
+
+    this.mutationRunner.trigger({
+      args: variables,
+      options: this.options,
+      mutation
+    })
 
     return await new Promise<TData>((resolve, reject) => {
       mutation
@@ -222,36 +284,9 @@ export class MutationObserver<
             reject(error)
           },
           next: (data) => {
-            console.log("finished", this.numberOfObservers)
             if (data.error) {
-              if (this.numberOfObservers) {
-                options?.onError &&
-                  options?.onError(data.error, variables, data.context)
-                options?.onSettled &&
-                  options?.onSettled(
-                    data.data,
-                    data.error,
-                    variables,
-                    data.context
-                  )
-              }
               reject(data.error)
             } else {
-              if (this.numberOfObservers) {
-                options?.onSuccess &&
-                  options?.onSuccess(
-                    data.data as TData,
-                    variables,
-                    data.context as TContext
-                  )
-                options?.onSettled &&
-                  options?.onSettled(
-                    data.data,
-                    data.error,
-                    variables,
-                    data.context
-                  )
-              }
               resolve(data.data as TData)
             }
           }
@@ -275,6 +310,14 @@ export class MutationObserver<
   }
 
   reset() {
-    this.#currentMutation?.reset()
+    this.#currentMutationSubject.getValue()?.mutation.reset()
+  }
+
+  cancel() {
+    this.#currentMutationSubject.getValue()?.mutation.destroy()
+  }
+
+  destroy() {
+    this.mutationRunner.destroy()
   }
 }

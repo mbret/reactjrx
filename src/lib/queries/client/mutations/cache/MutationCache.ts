@@ -171,11 +171,17 @@ export class MutationCache {
             take(1)
           )
         ),
-        switchMap(() => timer(mutation.options.gcTime ?? 0)),
+        // defaults to 5mn
+        switchMap(() => {
+          console.log("START GC")
+
+          return timer(mutation.options.gcTime ?? 5 * 60 * 1000)
+        }),
         take(1)
       )
       .subscribe({
         complete: () => {
+          console.log("COMPLETED")
           /**
            * Will remove the mutation in all cases
            * - mutation cancelled (complete)

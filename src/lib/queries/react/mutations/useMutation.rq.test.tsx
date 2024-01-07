@@ -6,7 +6,7 @@
 /* eslint-disable @typescript-eslint/no-confusing-void-expression */
 /* eslint-disable @typescript-eslint/promise-function-async */
 import { describe, expect, it, vi } from "vitest"
-import { fireEvent, waitFor } from "@testing-library/react"
+import { fireEvent, render, waitFor } from "@testing-library/react"
 import * as React from "react"
 import { MutationCache } from "../../client/mutations/cache/MutationCache"
 import {
@@ -925,228 +925,228 @@ describe("useMutation", () => {
     expect(onSettledMutate).toHaveBeenCalledTimes(0)
   })
 
-  //   it("should call mutate callbacks only for the last observer", async () => {
-  //     const onSuccess = vi.fn()
-  //     const onSuccessMutate = vi.fn()
-  //     const onSettled = vi.fn()
-  //     const onSettledMutate = vi.fn()
-  //     let count = 0
+  it("should call mutate callbacks only for the last observer", async () => {
+    const onSuccess = vi.fn()
+    const onSuccessMutate = vi.fn()
+    const onSettled = vi.fn()
+    const onSettledMutate = vi.fn()
+    let count = 0
 
-  //     function Page() {
-  //       const mutation = useMutation({
-  //         mutationFn: async (text: string) => {
-  //           count++
-  //           const result = `result-${text}`
-  //           await sleep(10)
-  //           return result
-  //         },
-  //         onSuccess,
-  //         onSettled
-  //       })
+    function Page() {
+      const mutation = useMutation({
+        mutationFn: async (text: string) => {
+          count++
+          const result = `result-${text}`
+          await sleep(10)
+          return result
+        },
+        onSuccess,
+        onSettled
+      })
 
-  //       return (
-  //         <div>
-  //           <button
-  //             onClick={() =>
-  //               mutation.mutate("todo1", {
-  //                 onSuccess: onSuccessMutate,
-  //                 onSettled: onSettledMutate
-  //               })
-  //             }
-  //           >
-  //             mutate1
-  //           </button>
-  //           <button
-  //             onClick={() =>
-  //               mutation.mutate("todo2", {
-  //                 onSuccess: onSuccessMutate,
-  //                 onSettled: onSettledMutate
-  //               })
-  //             }
-  //           >
-  //             mutate2
-  //           </button>
-  //           <div>
-  //             data: {mutation.data ?? "null"}, status: {mutation.status}
-  //           </div>
-  //         </div>
-  //       )
-  //     }
+      return (
+        <div>
+          <button
+            onClick={() =>
+              mutation.mutate("todo1", {
+                onSuccess: onSuccessMutate,
+                onSettled: onSettledMutate
+              })
+            }
+          >
+            mutate1
+          </button>
+          <button
+            onClick={() =>
+              mutation.mutate("todo2", {
+                onSuccess: onSuccessMutate,
+                onSettled: onSettledMutate
+              })
+            }
+          >
+            mutate2
+          </button>
+          <div>
+            data: {mutation.data ?? "null"}, status: {mutation.status}
+          </div>
+        </div>
+      )
+    }
 
-  //     const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //     await rendered.findByText("data: null, status: idle")
+    await rendered.findByText("data: null, status: idle")
 
-  //     fireEvent.click(rendered.getByRole("button", { name: /mutate1/i }))
-  //     fireEvent.click(rendered.getByRole("button", { name: /mutate2/i }))
+    fireEvent.click(rendered.getByRole("button", { name: /mutate1/i }))
+    fireEvent.click(rendered.getByRole("button", { name: /mutate2/i }))
 
-  //     await rendered.findByText("data: result-todo2, status: success")
+    await rendered.findByText("data: result-todo2, status: success")
 
-  //     expect(count).toBe(2)
+    expect(count).toBe(2)
 
-  //     expect(onSuccess).toHaveBeenCalledTimes(2)
-  //     expect(onSuccess).toHaveBeenNthCalledWith(
-  //       1,
-  //       "result-todo1",
-  //       "todo1",
-  //       undefined
-  //     )
-  //     expect(onSuccess).toHaveBeenNthCalledWith(
-  //       2,
-  //       "result-todo2",
-  //       "todo2",
-  //       undefined
-  //     )
-  //     expect(onSettled).toHaveBeenCalledTimes(2)
-  //     expect(onSuccessMutate).toHaveBeenCalledTimes(1)
-  //     expect(onSuccessMutate).toHaveBeenCalledWith(
-  //       "result-todo2",
-  //       "todo2",
-  //       undefined
-  //     )
-  //     expect(onSettledMutate).toHaveBeenCalledTimes(1)
-  //     expect(onSettledMutate).toHaveBeenCalledWith(
-  //       "result-todo2",
-  //       null,
-  //       "todo2",
-  //       undefined
-  //     )
-  //   })
+    expect(onSuccess).toHaveBeenCalledTimes(2)
+    expect(onSuccess).toHaveBeenNthCalledWith(
+      1,
+      "result-todo1",
+      "todo1",
+      undefined
+    )
+    expect(onSuccess).toHaveBeenNthCalledWith(
+      2,
+      "result-todo2",
+      "todo2",
+      undefined
+    )
+    expect(onSettled).toHaveBeenCalledTimes(2)
+    expect(onSuccessMutate).toHaveBeenCalledTimes(1)
+    expect(onSuccessMutate).toHaveBeenCalledWith(
+      "result-todo2",
+      "todo2",
+      undefined
+    )
+    expect(onSettledMutate).toHaveBeenCalledTimes(1)
+    expect(onSettledMutate).toHaveBeenCalledWith(
+      "result-todo2",
+      null,
+      "todo2",
+      undefined
+    )
+  })
 
-  //   it("should go to error state if onSuccess callback errors", async () => {
-  //     const error = new Error("error from onSuccess")
-  //     const onError = vi.fn()
+  it("should go to error state if onSuccess callback errors", async () => {
+    const error = new Error("error from onSuccess")
+    const onError = vi.fn()
 
-  //     function Page() {
-  //       const mutation = useMutation({
-  //         mutationFn: async (_text: string) => {
-  //           await sleep(10)
-  //           return "result"
-  //         },
-  //         onSuccess: () => Promise.reject(error),
-  //         onError
-  //       })
+    function Page() {
+      const mutation = useMutation({
+        mutationFn: async (_text: string) => {
+          await sleep(10)
+          return "result"
+        },
+        onSuccess: () => Promise.reject(error),
+        onError
+      })
 
-  //       return (
-  //         <div>
-  //           <button onClick={() => mutation.mutate("todo")}>mutate</button>
-  //           <div>status: {mutation.status}</div>
-  //         </div>
-  //       )
-  //     }
+      return (
+        <div>
+          <button onClick={() => mutation.mutate("todo")}>mutate</button>
+          <div>status: {mutation.status}</div>
+        </div>
+      )
+    }
 
-  //     const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //     await rendered.findByText("status: idle")
+    await rendered.findByText("status: idle")
 
-  //     rendered.getByRole("button", { name: /mutate/i }).click()
+    rendered.getByRole("button", { name: /mutate/i }).click()
 
-  //     await rendered.findByText("status: error")
+    await rendered.findByText("status: error")
 
-  //     expect(onError).toHaveBeenCalledWith(error, "todo", undefined)
-  //   })
+    expect(onError).toHaveBeenCalledWith(error, "todo", undefined)
+  })
 
-  //   it("should go to error state if onError callback errors", async () => {
-  //     const error = new Error("error from onError")
-  //     const mutateFnError = new Error("mutateFnError")
+  it("should go to error state if onError callback errors", async () => {
+    const error = new Error("error from onError")
+    const mutateFnError = new Error("mutateFnError")
 
-  //     function Page() {
-  //       const mutation = useMutation({
-  //         mutationFn: async (_text: string) => {
-  //           await sleep(10)
-  //           throw mutateFnError
-  //         },
-  //         onError: () => Promise.reject(error)
-  //       })
+    function Page() {
+      const mutation = useMutation({
+        mutationFn: async (_text: string) => {
+          await sleep(10)
+          throw mutateFnError
+        },
+        onError: () => Promise.reject(error)
+      })
 
-  //       return (
-  //         <div>
-  //           <button onClick={() => mutation.mutate("todo")}>mutate</button>
-  //           <div>
-  //             error:{" "}
-  //             {mutation.error instanceof Error ? mutation.error.message : "null"},
-  //             status: {mutation.status}
-  //           </div>
-  //         </div>
-  //       )
-  //     }
+      return (
+        <div>
+          <button onClick={() => mutation.mutate("todo")}>mutate</button>
+          <div>
+            error:{" "}
+            {mutation.error instanceof Error ? mutation.error.message : "null"},
+            status: {mutation.status}
+          </div>
+        </div>
+      )
+    }
 
-  //     const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //     await rendered.findByText("error: null, status: idle")
+    await rendered.findByText("error: null, status: idle")
 
-  //     rendered.getByRole("button", { name: /mutate/i }).click()
+    rendered.getByRole("button", { name: /mutate/i }).click()
 
-  //     await rendered.findByText("error: mutateFnError, status: error")
-  //   })
+    await rendered.findByText("error: mutateFnError, status: error")
+  })
 
-  //   it("should go to error state if onSettled callback errors", async () => {
-  //     const error = new Error("error from onSettled")
-  //     const mutateFnError = new Error("mutateFnError")
-  //     const onError = vi.fn()
+  it("should go to error state if onSettled callback errors", async () => {
+    const error = new Error("error from onSettled")
+    const mutateFnError = new Error("mutateFnError")
+    const onError = vi.fn()
 
-  //     function Page() {
-  //       const mutation = useMutation({
-  //         mutationFn: async (_text: string) => {
-  //           await sleep(10)
-  //           throw mutateFnError
-  //         },
-  //         onSettled: () => Promise.reject(error),
-  //         onError
-  //       })
+    function Page() {
+      const mutation = useMutation({
+        mutationFn: async (_text: string) => {
+          await sleep(10)
+          throw mutateFnError
+        },
+        onSettled: () => Promise.reject(error),
+        onError
+      })
 
-  //       return (
-  //         <div>
-  //           <button onClick={() => mutation.mutate("todo")}>mutate</button>
-  //           <div>
-  //             error:{" "}
-  //             {mutation.error instanceof Error ? mutation.error.message : "null"},
-  //             status: {mutation.status}
-  //           </div>
-  //         </div>
-  //       )
-  //     }
+      return (
+        <div>
+          <button onClick={() => mutation.mutate("todo")}>mutate</button>
+          <div>
+            error:{" "}
+            {mutation.error instanceof Error ? mutation.error.message : "null"},
+            status: {mutation.status}
+          </div>
+        </div>
+      )
+    }
 
-  //     const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //     await rendered.findByText("error: null, status: idle")
+    await rendered.findByText("error: null, status: idle")
 
-  //     rendered.getByRole("button", { name: /mutate/i }).click()
+    rendered.getByRole("button", { name: /mutate/i }).click()
 
-  //     await rendered.findByText("error: mutateFnError, status: error")
+    await rendered.findByText("error: mutateFnError, status: error")
 
-  //     expect(onError).toHaveBeenCalledWith(mutateFnError, "todo", undefined)
-  //   })
+    expect(onError).toHaveBeenCalledWith(mutateFnError, "todo", undefined)
+  })
 
-  //   it("should use provided custom queryClient", async () => {
-  //     function Page() {
-  //       const mutation = useMutation(
-  //         {
-  //           mutationFn: async (text: string) => {
-  //             return Promise.resolve(text)
-  //           }
-  //         },
-  //         queryClient
-  //       )
+    it("should use provided custom queryClient", async () => {
+      function Page() {
+        const mutation = useMutation(
+          {
+            mutationFn: async (text: string) => {
+              return Promise.resolve(text)
+            }
+          },
+          queryClient
+        )
 
-  //       return (
-  //         <div>
-  //           <button onClick={() => mutation.mutate("custom client")}>
-  //             mutate
-  //           </button>
-  //           <div>
-  //             data: {mutation.data ?? "null"}, status: {mutation.status}
-  //           </div>
-  //         </div>
-  //       )
-  //     }
+        return (
+          <div>
+            <button onClick={() => mutation.mutate("custom client")}>
+              mutate
+            </button>
+            <div>
+              data: {mutation.data ?? "null"}, status: {mutation.status}
+            </div>
+          </div>
+        )
+      }
 
-  //     const rendered = render(<Page></Page>)
+      const rendered = render(<Page></Page>)
 
-  //     await rendered.findByText("data: null, status: idle")
+      await rendered.findByText("data: null, status: idle")
 
-  //     fireEvent.click(rendered.getByRole("button", { name: /mutate/i }))
+      fireEvent.click(rendered.getByRole("button", { name: /mutate/i }))
 
-  //     await rendered.findByText("data: custom client, status: success")
-  //   })
+      await rendered.findByText("data: custom client, status: success")
+    })
 })

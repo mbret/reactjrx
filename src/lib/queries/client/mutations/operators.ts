@@ -6,15 +6,12 @@ import { getDefaultMutationState } from "./defaultMutationState"
 export const mergeResults = <
   TData = unknown,
   TError = unknown,
-  TVariables = unknown,
-  TContext = unknown,
-  // TState extends Partial<
-  //   MutationState<TData, TError, TVariables, TContext>
-  // > = {}
+  TVariables = void,
+  TContext = unknown
 >(
-  stream$: Observable<Partial<
-  MutationState<TData, TError, TVariables, TContext>
->>
+  stream$: Observable<
+    Partial<MutationState<TData, TError, TVariables, TContext>>
+  >
 ): Observable<MutationState<TData, TError, TVariables, TContext>> =>
   stream$.pipe(
     scan((acc: MutationState<TData, TError, TVariables, TContext>, current) => {
