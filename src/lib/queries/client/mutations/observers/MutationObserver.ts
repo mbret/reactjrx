@@ -7,7 +7,7 @@ import {
   mergeMap,
   merge,
   takeUntil,
-  last,
+  last
 } from "rxjs"
 import { type MutateOptions } from "../types"
 import { getDefaultMutationState } from "../defaultMutationState"
@@ -19,10 +19,7 @@ import {
   type MutationObserverOptions,
   type MutationObserverResult
 } from "./types"
-import {
-  type MutationRunner,
-  createMutationRunner
-} from "../runner/MutationRunner"
+import { MutationRunner } from "../runner/MutationRunner"
 import { type MutationState } from "../mutation/types"
 
 /**
@@ -67,18 +64,18 @@ export class MutationObserver<
     > = {}
   ) {
     this.options.mutationKey = this.options?.mutationKey ?? [nanoid()]
-    this.mutationRunner = createMutationRunner<
+    this.mutationRunner = new MutationRunner<
       TData,
       TError,
       TVariables,
       TContext
-    >(this.client.getMutationCache(), this.options)
+    >(this.options)
 
     // allow methods to be destructured
     this.mutate = this.mutate.bind(this)
     this.reset = this.reset.bind(this)
 
-    this.result$ = this.mutationRunner.runner$.pipe(
+    this.result$ = this.mutationRunner.state$.pipe(
       map((state) => ({
         state: this.getObserverResultFromState(state),
         options: {} as any
@@ -231,7 +228,7 @@ export class MutationObserver<
 
     this.#currentMutationSubject.next({ mutation, options })
 
-    this.mutationRunner.runner$
+    this.mutationRunner.state$
       .pipe(takeUntil(mutation.observeTillFinished().pipe(last())))
       .subscribe()
 
