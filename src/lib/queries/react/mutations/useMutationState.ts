@@ -1,16 +1,14 @@
 import { useMemo } from "react"
 import { useObserve } from "../../../binding/useObserve"
 import { useQueryClient } from "../Provider"
-import {
-  type MutationState,
-  type MutationFilters
-} from "../../client/mutations/types"
+import { type MutationFilters } from "../../client/mutations/types"
 import { useLiveRef } from "../../../utils/useLiveRef"
 import { type Mutation } from "../../client/mutations/mutation/Mutation"
 import { skip } from "rxjs"
 import { serializeKey } from "../../client/keys/serializeKey"
 import { createPredicateForFilters } from "../../client/mutations/filters"
 import { type QueryClient } from "../../client/createClient"
+import { type MutationState } from "../../client/mutations/mutation/types"
 
 export interface MutationStateOptions<TResult, TData> {
   filters?: MutationFilters<TData>
@@ -34,7 +32,7 @@ export const useMutationState = <TData, TResult = MutationState>(
 
     const { lastValue, value$ } = finalQueryClient
       .getMutationCache()
-      .mutationStateBy<TData, TResult>({
+      .observe<TData, TResult>({
         filters: {
           ...filtersRef.current,
           predicate: (mutation) => {

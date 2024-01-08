@@ -8,9 +8,8 @@ import {
   merge,
   takeUntil,
   last,
-  tap
 } from "rxjs"
-import { type MutateOptions, type MutationFilters } from "../types"
+import { type MutateOptions } from "../types"
 import { getDefaultMutationState } from "../defaultMutationState"
 import { type QueryClient } from "../../createClient"
 import { type DefaultError } from "../../types"
@@ -191,60 +190,30 @@ export class MutationObserver<
     )
   }
 
-  /**
-   * @todo observer current mutation only
-   */
-  observeBy(filters: MutationFilters) {
-    const mutations = this.client.getMutationCache().findAll(filters)
-    const finalState = this.reduceStateFromMutations(mutations)
-
-    const lastValue = this.getObserverResultFromState(finalState)
-
-    // const result$ = this.client
-    //   .getMutationCache()
-    //   .observeMutationsBy(filters)
-    //   .pipe(
-    //     switchMap((mutations) =>
-    //       combineLatest(
-    //         mutations.map((mutation) =>
-    //           mutation.state$.pipe(
-    //             map((state) => ({ state, options: mutation.options }))
-    //           )
-    //         )
-    //       )
-    //     ),
-    //     map(this.reduceStateFromMutations),
-    //     filter(isDefined),
-    //     map(this.getObserverResultFromState),
-    //     distinctUntilChanged(shallowEqual),
-    //     tap({
-    //       subscribe: () => {
-    //         this.numberOfObservers++
-    //       },
-    //       finalize: () => {
-    //         this.numberOfObservers--
-    //       }
-    //     })
-    //   )
+  observe() {
+    const lastValue = this.getObserverResultFromState(
+      this.#currentMutationSubject.getValue()?.mutation.state ??
+        getDefaultMutationState()
+    )
 
     const result$ = merge(this.observed$, this.result$).pipe(
-      map(({ state }) => state),
-      tap((s) => {
-        console.log("observed$", s)
-      })
+      map(({ state }) => state)
     )
 
     return { result$, lastValue }
   }
 
+  /**
+   * @important
+   * Compliance react-query only
+   */
   subscribe(
     subscription: (
       result: MutationObserverResult<TData, TError, TVariables, TContext>
     ) => void
   ) {
-    const sub = merge(this.observed$, this.result$).subscribe((result) => {
-      console.log("subscribe", result)
-      subscription(result.state)
+    const sub = this.observe().result$.subscribe((result) => {
+      subscription(result)
     })
 
     return () => {

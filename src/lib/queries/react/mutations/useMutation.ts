@@ -46,10 +46,8 @@ export function useMutation<
   const observedMutation = useMemo(() => {
     void serializedKey
 
-    return mutationObserver.observeBy({
-      mutationKey: optionsRef.current.mutationKey ?? defaultKey.current
-    })
-  }, [serializedKey, defaultKey, mutationObserver, optionsRef])
+    return mutationObserver.observe()
+  }, [serializedKey, mutationObserver])
 
   const result =
     useObserve(observedMutation.result$) ?? observedMutation.lastValue

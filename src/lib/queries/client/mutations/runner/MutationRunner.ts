@@ -206,9 +206,6 @@ export const createMutationRunner = <
           ({ data: prevData, ...prev }, { data: currData, ...curr }) =>
             shallowEqual(prev, curr) && shallowEqual(prevData, currData)
         ),
-        tap((s) => {
-          console.log("s", s)
-        }),
         (__queryTriggerHook as typeof identity) ?? identity
       )
     }),

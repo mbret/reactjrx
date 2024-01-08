@@ -1,5 +1,37 @@
+import { type DefaultError } from "../../types"
 import { type Mutation } from "../mutation/Mutation"
 import { type MutationObserver } from "../observers/MutationObserver"
+
+export interface MutationCacheConfig {
+  onError?: <
+    Data = unknown,
+    TError = DefaultError,
+    TVariables = void,
+    TContext = unknown
+  >(
+    error: DefaultError,
+    variables: unknown,
+    context: unknown,
+    mutation: Mutation<Data, TError, TVariables, TContext>
+  ) => Promise<unknown> | unknown
+  onSuccess?: (
+    data: unknown,
+    variables: unknown,
+    context: unknown,
+    mutation: Mutation<unknown, unknown, unknown>
+  ) => Promise<unknown> | unknown
+  onMutate?: (
+    variables: unknown,
+    mutation: Mutation<unknown, unknown, unknown>
+  ) => Promise<unknown> | unknown
+  onSettled?: (
+    data: unknown | undefined,
+    error: DefaultError | null,
+    variables: unknown,
+    context: unknown,
+    mutation: Mutation<unknown, unknown, unknown>
+  ) => Promise<unknown> | unknown
+}
 
 export type NotifyEventType =
   | "added"
