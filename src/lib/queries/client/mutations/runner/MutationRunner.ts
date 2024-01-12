@@ -3,26 +3,21 @@ import {
   BehaviorSubject,
   type ObservedValueOf,
   Subject,
-  combineLatest,
   concatMap,
   defer,
   distinctUntilChanged,
   filter,
-  finalize,
-  first,
   identity,
-  map,
   merge,
   mergeMap,
   scan,
   shareReplay,
   skip,
-  startWith,
   switchMap,
-  take,
   takeUntil,
-  tap,
-  type Observable
+  type Observable,
+  last,
+  EMPTY
 } from "rxjs"
 import { isDefined } from "../../../../utils/isDefined"
 import { type DefaultError } from "../../types"
@@ -48,16 +43,16 @@ export class MutationRunner<
 
   protected mapOperator$ = new BehaviorSubject<MapOperator>("merge")
 
-  public closed = false
-
   public state$: Observable<MutationState<TData, TError, TVariables, TContext>>
 
   constructor({
-    __queryFinalizeHook,
-    __queryInitHook,
-    __queryTriggerHook
-  }: MutationObserverOptions<TData, TError, TVariables, TContext>) {
+    __queryFinalizeHook
+  }: MutationObserverOptions<TData, TError, TVariables, TContext> = {}) {
     const refCountSubject = new BehaviorSubject(0)
+
+    const noMoreObservers$ = refCountSubject.pipe(
+      filter((value) => value === 0)
+    )
 
     const stableMapOperator$ = this.mapOperator$.pipe(
       filter(isDefined),
@@ -65,7 +60,6 @@ export class MutationRunner<
     )
 
     this.state$ = stableMapOperator$.pipe(
-      (__queryInitHook as typeof identity) ?? identity,
       mergeMap((mapOperator) => {
         const switchOperator =
           mapOperator === "concat"
@@ -74,109 +68,32 @@ export class MutationRunner<
               ? switchMap
               : mergeMap
 
+        const mergeTrigger$ = this.trigger$.pipe(
+          filter(() => mapOperator === "merge")
+        )
+
         return this.trigger$.pipe(
           takeUntil(stableMapOperator$.pipe(skip(1))),
           switchOperator(({ args, mutation }) => {
-            const newMergeTrigger$ = this.trigger$.pipe(
-              filter(() => mapOperator === "merge"),
-              first()
-            )
-            const newConcatTrigger$ = this.trigger$.pipe(
-              filter(() => mapOperator === "concat"),
-              first()
-            )
+            const execute$ = defer(() => {
+              mutation.execute(args)
 
-            const state$ = defer(() => {
-              const state$ = mutation.state$.pipe(skip(1))
-
-              const mutation$ = mutation.execute(args)
-
-              /**
-               * @important
-               * we need to make sure to unsubscribe to the mutation.
-               * either when it is finished or by cancelling this one in the
-               * runner.
-               */
-              const queryIsOver$ = merge(
-                mutation$.pipe(
-                  filter(
-                    ({ status }) => status === "success" || status === "error"
-                  )
-                ),
-                mutation.destroyed$
-              )
-
-              const isThisCurrentFunctionLastOneCalled = this.trigger$.pipe(
-                take(1),
-                map(() => mapOperator === "concat"),
-                startWith(true),
-                takeUntil(queryIsOver$)
-              )
-
-              const newConcatTrigger$ = this.trigger$.pipe(
-                filter(() => mapOperator === "concat"),
-                first()
-              )
-
-              const result$ = combineLatest([
-                /**
-                 * This one is used to
-                 * - trigger the first pending state (before query)
-                 * - hold the reference to mutation until it finish or is switched
-                 * @todo avoid duplicate with below mutation$
-                 */
-                merge(
-                  mutation$.pipe(
-                    tap((s) => {
-                      console.log("SSSS", s)
-                    })
-                  ),
-                  state$.pipe(
-                    takeUntil(
-                      merge(
-                        refCountSubject.pipe(filter((value) => value === 0)),
-                        newConcatTrigger$
-                      )
-                    )
-                  )
-                ),
-                isThisCurrentFunctionLastOneCalled
-              ]).pipe(
-                map(([result, isLastMutationCalled]) => {
-                  if (
-                    (result.status === "success" ||
-                      result.status === "error") &&
-                    !isLastMutationCalled
-                  ) {
-                    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                    return {} as Partial<
-                      MutationState<TData, TError, TVariables, TContext>
-                    >
-                  }
-
-                  return result
-                }),
-                finalize(() => {
-                  console.log("mutation runner finalize")
-                }),
-                (__queryFinalizeHook as typeof identity) ?? identity
-              )
-
-              return result$
+              return EMPTY
             })
 
-            return merge(
-              mutation.state$.pipe(
-                skip(1),
-                takeUntil(
-                  merge(
-                    newConcatTrigger$,
-                    newMergeTrigger$,
-                    refCountSubject.pipe(filter((value) => value === 0))
-                  )
-                )
-              ),
-              state$
+            const resetState$ = mutation.observeTillFinished().pipe(
+              last(),
+              mergeMap(() => mutation.state$),
+              takeUntil(this.trigger$)
+            )
+
+            const stateUntilFinished$ = mutation
+              .observeTillFinished()
+              .pipe(skip(1))
+
+            return merge(stateUntilFinished$, resetState$, execute$).pipe(
+              (__queryFinalizeHook as typeof identity) ?? identity,
+              takeUntil(merge(noMoreObservers$, mergeTrigger$))
             )
           }),
           scan((acc, current) => {
@@ -194,11 +111,13 @@ export class MutationRunner<
           distinctUntilChanged(
             ({ data: prevData, ...prev }, { data: currData, ...curr }) =>
               shallowEqual(prev, curr) && shallowEqual(prevData, currData)
-          ),
-          (__queryTriggerHook as typeof identity) ?? identity
+          )
         )
       }),
-      shareReplay(1),
+      shareReplay({
+        refCount: true,
+        bufferSize: 1
+      }),
       trackSubscriptions((count) => {
         refCountSubject.next(count)
       })
@@ -209,22 +128,7 @@ export class MutationRunner<
     if (options.mapOperator) {
       this.mapOperator$.next(options.mapOperator)
     }
+
     this.trigger$.next({ args, options, mutation })
-  }
-
-  /**
-   * Mutation can be destroyed in two ways
-   * - caller unsubscribe to the mutation
-   * - caller call destroy directly
-   */
-  destroy() {
-    if (closed) {
-      throw new Error("Trying to close an already closed mutation")
-    }
-
-    this.closed = true
-
-    this.mapOperator$.complete()
-    this.trigger$.complete()
   }
 }

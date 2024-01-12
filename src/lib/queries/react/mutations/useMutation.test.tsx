@@ -12,7 +12,6 @@ import { useMutation } from "./useMutation"
 import { QueryClientProvider } from "../Provider"
 import { QueryClient } from "../../client/createClient"
 import { waitForTimeout } from "../../../../tests/utils"
-import { serializeKey } from "../../client/keys/serializeKey"
 
 afterEach(() => {
   cleanup()
@@ -95,7 +94,6 @@ describe("useMutation", () => {
             },
             mapOperator: "concat",
             onSuccess: (data) => {
-              console.log("SUCCESS", data)
               setDone((s) => ({ ...s, [data]: true }))
             }
           })
@@ -109,19 +107,17 @@ describe("useMutation", () => {
             mutate({ res: 2, timeout: 1 })
           }, [mutate])
 
-          console.log({ values, done })
-
           // we only display content once all queries are done
           // this way when we text string later we know exactly
           return <>{done[1] && done[2] ? values.join(",") : ""}</>
         }
 
         const { findByText } = render(
-          // <React.StrictMode>
-          <QueryClientProvider client={client}>
-            <Comp />
-          </QueryClientProvider>
-          // </React.StrictMode>
+          <React.StrictMode>
+            <QueryClientProvider client={client}>
+              <Comp />
+            </QueryClientProvider>
+          </React.StrictMode>
         )
 
         expect(await findByText("1,2")).toBeDefined()
@@ -250,54 +246,6 @@ describe("useMutation", () => {
   })
 
   describe("Given component unmount", () => {
-    // describe("and there are no active mutation", () => {
-    // it("should complete and remove the result from this key in results$", async () => {
-    //   const client = new QueryClient()
-    //   const Comp = () => {
-    //     useMutation({
-    //       mutationKey: ["foo"],
-    //       mutationFn: async () => {}
-    //     })
-    //     return null
-    //   }
-    //   const { unmount } = render(
-    //     <React.StrictMode>
-    //       <QueryClientProvider client={client}>
-    //         <Comp />
-    //       </QueryClientProvider>
-    //     </React.StrictMode>
-    //   )
-    //   unmount()
-    //   const resultForKey =
-    //     client.mutationObserver.mutationResults$.getValue()[
-    //       serializeKey(["foo"])
-    //     ]
-    //   expect(resultForKey).toBeUndefined()
-    // })
-    // it("should complete and remove the mutation from this key in mutations$", async () => {
-    //   const client = new QueryClient()
-    //   const Comp = () => {
-    //     useMutation({
-    //       mutationKey: ["foo"],
-    //       mutationFn: async () => {}
-    //     })
-    //     return null
-    //   }
-    //   const { unmount } = render(
-    //     <React.StrictMode>
-    //       <QueryClientProvider client={client}>
-    //         <Comp />
-    //       </QueryClientProvider>
-    //     </React.StrictMode>
-    //   )
-    //   unmount()
-    //   const resultForKey = client.mutationRunners.mutationRunnersByKey$
-    //     .getValue()
-    //     .get(serializeKey(["foo"]))
-    //   expect(resultForKey).toBeUndefined()
-    // })
-    // })
-
     // describe("and there was an active mutation", () => {
     //   it("should complete and remove the result from this key in results$", async () => {
     //     const client = new QueryClient()
@@ -426,11 +374,11 @@ describe("useMutation", () => {
           }
 
           const { unmount } = render(
-            // <React.StrictMode>
-            <QueryClientProvider client={client}>
-              <Comp />
-            </QueryClientProvider>
-            // </React.StrictMode>
+            <React.StrictMode>
+              <QueryClientProvider client={client}>
+                <Comp />
+              </QueryClientProvider>
+            </React.StrictMode>
           )
 
           unmount()
@@ -492,7 +440,6 @@ describe("useMutation", () => {
           // only 1 because the query may not have run yet when unmounted directly after strict mode
           expect(unmountTime).toBe(2)
           expect(queryFinalizedNumberOfTime).toBe(2)
-          expect(finalized).toBe(2)
           expect(finalized).toBe(2)
         })
 

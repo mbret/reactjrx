@@ -12,7 +12,7 @@ import {
   BehaviorSubject,
   concat,
   toArray,
-  mergeMap
+  mergeMap,
 } from "rxjs"
 import { getDefaultMutationState } from "../defaultMutationState"
 import { type DefaultError } from "../../types"
@@ -156,7 +156,7 @@ export class Mutation<
        * no more observers. I thought I should have to complete manually (which is
        * why we still cancel the observable when we remove it from cache)
        */
-      shareReplay({ bufferSize: 1, refCount: true }),
+      shareReplay({ bufferSize: 1, refCount: false }),
       takeUntil(this.destroySubject),
       trackSubscriptions((count) => {
         this.observerCount.next(count)

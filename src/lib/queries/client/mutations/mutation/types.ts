@@ -92,8 +92,6 @@ export interface MutationOptions<
   mutationKey?: MutationKey
   mapOperator?: MapOperator
   meta?: MutationMeta
-  __queryInitHook?: MonoTypeOperatorFunction<any>
   __queryRunnerHook?: MonoTypeOperatorFunction<any>
-  __queryTriggerHook?: MonoTypeOperatorFunction<Partial<TData>>
   __queryFinalizeHook?: MonoTypeOperatorFunction<Partial<TData>>
 }

@@ -362,8 +362,6 @@ describe("mutationCache", () => {
 
       await sleep(150)
 
-      console.log("CHECK LENGTH")
-
       expect(queryClient.getMutationCache().getAll()).toHaveLength(1)
 
       unsubscribe()

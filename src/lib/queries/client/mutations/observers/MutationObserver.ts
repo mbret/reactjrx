@@ -7,7 +7,8 @@ import {
   mergeMap,
   merge,
   takeUntil,
-  last
+  last,
+  filter
 } from "rxjs"
 import { type MutateOptions } from "../types"
 import { getDefaultMutationState } from "../defaultMutationState"
@@ -21,6 +22,7 @@ import {
 } from "./types"
 import { MutationRunner } from "../runner/MutationRunner"
 import { type MutationState } from "../mutation/types"
+import { isDefined } from "../../../../utils/isDefined"
 
 /**
  * Provide API to observe mutations results globally.
@@ -33,8 +35,7 @@ export class MutationObserver<
   TContext = unknown
 > {
   protected numberOfObservers = 0
-
-  protected mutationRunner: MutationRunner<TData, TError, TVariables, TContext>
+  protected mutationRunner: MutationRunner<any, any, any, TContext>
 
   readonly #currentMutationSubject = new BehaviorSubject<
     | {
@@ -61,15 +62,14 @@ export class MutationObserver<
       TError,
       TVariables,
       TContext
-    > = {}
+    > = {},
+    mutationRunner?: MutationRunner<any, any, any, TContext>
   ) {
     this.options.mutationKey = this.options?.mutationKey ?? [nanoid()]
-    this.mutationRunner = new MutationRunner<
-      TData,
-      TError,
-      TVariables,
-      TContext
-    >(this.options)
+
+    this.mutationRunner =
+      mutationRunner ??
+      new MutationRunner<TData, TError, TVariables, TContext>(this.options)
 
     // allow methods to be destructured
     this.mutate = this.mutate.bind(this)
@@ -82,6 +82,29 @@ export class MutationObserver<
       }))
     )
 
+    /**
+     * @important
+     * Make sure we always subscribe to the runner for every mutation.
+     * It will ensure the runner starts and keep running as long as there are
+     * mutations. Runner is automatically unsubscribed when they all finished.
+     */
+    this.#currentMutationSubject
+      .pipe(
+        filter(isDefined),
+        mergeMap((mutation) =>
+          this.mutationRunner.state$.pipe(
+            takeUntil(mutation.mutation.observeTillFinished().pipe(last()))
+          )
+        )
+      )
+      .subscribe()
+
+    /**
+     * @important
+     * We only run the callbacks on the current mutation IF
+     * it is being observed. The runner will not run them
+     * by itself.
+     */
     this.observed$ = this.#currentMutationSubject.pipe(
       switchMap(
         (maybeMutation) =>
@@ -166,27 +189,6 @@ export class MutationObserver<
     } as MutationObserverResult<TData, TError, TVariables, TContext>
   }
 
-  protected reduceStateFromMutations(
-    mutations: Array<Pick<Mutation<any, any, any, any>, "options" | "state">>
-  ) {
-    return mutations.reduce(
-      (acc, { state, options }) => {
-        if (options.mapOperator === "switch") return state
-
-        if (acc && state.submittedAt >= acc.submittedAt) {
-          return {
-            ...state,
-            data: state.data ?? acc.data,
-            error: state.error ?? acc.error
-          }
-        }
-
-        return acc
-      },
-      mutations[0]?.state ?? getDefaultMutationState()
-    )
-  }
-
   observe() {
     const lastValue = this.getObserverResultFromState(
       this.#currentMutationSubject.getValue()?.mutation.state ??
@@ -194,7 +196,11 @@ export class MutationObserver<
     )
 
     const result$ = merge(this.observed$, this.result$).pipe(
-      map(({ state }) => state)
+      map(({ state }) => {
+        console.log({ state })
+
+        return state
+      })
     )
 
     return { result$, lastValue }
@@ -227,10 +233,6 @@ export class MutationObserver<
       .build<TData, TError, TVariables, TContext>(this.client, this.options)
 
     this.#currentMutationSubject.next({ mutation, options })
-
-    this.mutationRunner.state$
-      .pipe(takeUntil(mutation.observeTillFinished().pipe(last())))
-      .subscribe()
 
     this.mutationRunner.trigger({
       args: variables,
@@ -277,10 +279,7 @@ export class MutationObserver<
   }
 
   cancel() {
+    console.log("cancel")
     this.#currentMutationSubject.getValue()?.mutation.destroy()
-  }
-
-  destroy() {
-    this.mutationRunner.destroy()
   }
 }
