@@ -59,18 +59,17 @@ export function retryBackoff<T>(config: RetryBackoffConfig<T>) {
         attempt < maxRetries && shouldRetry(attempt, error)
 
       return source.pipe(
-        catchError((error) => {
+        catchError<T, Observable<T>>((error) => {
           caughtErrors++
 
           if (!shouldRetryFn(caughtErrors - 1, error)) throw error
 
-          const caughtErrorResult = config.caughtError(caughtErrors, error)
+          const caughtErrorResult$ = config.caughtError?.(caughtErrors, error)
 
-          if (!caughtErrorResult) throw error
+          if (!caughtErrorResult$) throw error
 
           return merge(
-            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-            caughtErrorResult,
+            caughtErrorResult$ as unknown as Observable<T>,
             throwError(() => error)
           )
         }),
