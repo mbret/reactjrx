@@ -36,7 +36,7 @@ describe("mutationObserver", () => {
     void mutation.mutate("c")
 
     // cancel last one
-    mutation.cancel()
+    mutation.reset()
 
     await waitForTimeout(10)
 

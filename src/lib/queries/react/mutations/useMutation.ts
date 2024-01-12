@@ -40,7 +40,7 @@ export function useMutation<
   )
 
   useEffect(() => {
-    // mutationObserver.setOptions(options)
+    mutationObserver.setOptions(options)
   }, [mutationObserver, options])
 
   const observedMutation = useMemo(() => {
@@ -65,7 +65,7 @@ export function useMutation<
     return () => {
       // eslint-disable-next-line react-hooks/exhaustive-deps
       if (optionsRef.current.cancelOnUnMount) {
-        mutationObserver.cancel()
+        mutationObserver.reset()
       }
     }
   }, [mutationObserver, optionsRef])

@@ -23,6 +23,7 @@ import {
 import { MutationRunner } from "../runner/MutationRunner"
 import { type MutationState } from "../mutation/types"
 import { isDefined } from "../../../../utils/isDefined"
+import { compareKeys } from "../../keys/compareKeys"
 
 /**
  * Provide API to observe mutations results globally.
@@ -155,21 +156,22 @@ export class MutationObserver<
   setOptions(
     options: MutationObserverOptions<TData, TError, TVariables, TContext>
   ) {
+    const prevOptions = this.options
     this.options = this.client.defaultMutationOptions({
       mutationKey: this.options.mutationKey,
       ...options
     })
 
-    if (this.options.mutationKey) {
-      this.client
-        .getMutationCache()
-        .findAll({
-          exact: true,
-          mutationKey: this.options.mutationKey
-        })
-        .forEach((mutation) => {
-          mutation.setOptions(options)
-        })
+    this.#currentMutationSubject.getValue()?.mutation.setOptions(this.options)
+
+    if (
+      this.options.mutationKey &&
+      prevOptions.mutationKey &&
+      !compareKeys(this.options.mutationKey, prevOptions.mutationKey, {
+        exact: true
+      })
+    ) {
+      this.reset()
     }
   }
 
@@ -276,10 +278,5 @@ export class MutationObserver<
 
   reset() {
     this.#currentMutationSubject.getValue()?.mutation.reset()
-  }
-
-  cancel() {
-    console.log("cancel")
-    this.#currentMutationSubject.getValue()?.mutation.destroy()
   }
 }
