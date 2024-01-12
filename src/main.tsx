@@ -44,7 +44,7 @@ const Mutation = memo((_: { onClick: () => void }) => {
   const { mutate, ...rest } = useMutation({
     mutationKey: ["mutation1"],
     retry: 1,
-    mutationFn: async ({ time, v }: { v: string; time: number }) => {
+    mutationFn: async ({ time }: { v: string; time: number }) => {
       console.log("MUTATE")
       await sleep(time)
       throw new Error("sad")
@@ -55,7 +55,7 @@ const Mutation = memo((_: { onClick: () => void }) => {
       console.log("onSettled", ...args)
     }
   })
-  const { mutate: mutate2 } = rcUseMutation({
+  rcUseMutation({
     mutationKey: ["mutation2"],
     mutationFn: async ({ time, v }: { v: string; time: number }) => {
       await sleep(time)
