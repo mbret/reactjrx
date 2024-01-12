@@ -91,7 +91,7 @@ export const createQueryFetch = <T>({
         status: "error" as const,
         data: undefined,
         error
-      })
+      } as any)
     }),
     notifyQueryResult(options$),
     registerResultInCache({ serializedKey, options, queryStore })

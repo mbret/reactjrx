@@ -64,9 +64,9 @@ const Mutation = memo((_: { onClick: () => void }) => {
     }
   })
 
-  mutate2(undefined, {
-    onSuccess: () => {}
-  })
+  // mutate2({}, {
+  //   onSuccess: () => {}
+  // })
   console.log("mutate", rest)
   // console.log("mutate2", mutation2Result)
 

@@ -1,6 +1,6 @@
 import { lastValueFrom } from "rxjs"
 import { type QueryClient } from "../createClient"
-import { type MutationOptions } from "../mutations/types"
+import { type MutationOptions } from "../mutations/mutation/types"
 
 let queryKeyCount = 0
 export function queryKey(): string[] {

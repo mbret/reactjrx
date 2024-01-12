@@ -10,8 +10,8 @@ import {
   waitForTimeout
 } from "../../../../tests/utils"
 import { useMutation } from "./useMutation"
-import { type MutationState } from "../../client/mutations/types"
 import { memo } from "react"
+import { type MutationState } from "../../client/mutations/mutation/types"
 
 describe("useMutationState", () => {
   describe("types", () => {
