@@ -13,13 +13,11 @@ import {
   scan,
   shareReplay,
   skip,
-  switchMap,
   takeUntil,
   type Observable,
   last,
-  EMPTY
+  EMPTY,
 } from "rxjs"
-import { isDefined } from "../../../../utils/isDefined"
 import { type DefaultError } from "../../types"
 import { type MutationObserverOptions } from "../observers/types"
 import { type Mutation } from "../mutation/Mutation"
@@ -54,66 +52,53 @@ export class MutationRunner<
       filter((value) => value === 0)
     )
 
-    const stableMapOperator$ = this.mapOperator$.pipe(
-      filter(isDefined),
-      distinctUntilChanged()
-    )
-
-    this.state$ = stableMapOperator$.pipe(
-      mergeMap((mapOperator) => {
-        const switchOperator =
-          mapOperator === "concat"
-            ? concatMap
-            : mapOperator === "switch"
-              ? switchMap
-              : mergeMap
+    this.state$ = this.trigger$.pipe(
+      concatMap(({ args, mutation, options }) => {
+        const mapOperator = options.mapOperator ?? "merge"
 
         const mergeTrigger$ = this.trigger$.pipe(
           filter(() => mapOperator === "merge")
         )
 
-        return this.trigger$.pipe(
-          takeUntil(stableMapOperator$.pipe(skip(1))),
-          switchOperator(({ args, mutation }) => {
-            const execute$ = defer(() => {
-              mutation.execute(args)
+        const switchTrigger$ = this.trigger$.pipe(
+          filter(() => mapOperator === "switch")
+        )
 
-              return EMPTY
-            })
+        const execute$ = defer(() => {
+          mutation.execute(args)
 
-            const resetState$ = mutation.observeTillFinished().pipe(
-              last(),
-              mergeMap(() => mutation.state$),
-              takeUntil(this.trigger$)
-            )
+          return EMPTY
+        })
 
-            const stateUntilFinished$ = mutation
-              .observeTillFinished()
-              .pipe(skip(1))
+        const resetState$ = mutation.observeTillFinished().pipe(
+          last(),
+          mergeMap(() => mutation.state$),
+          takeUntil(this.trigger$)
+        )
 
-            return merge(stateUntilFinished$, resetState$, execute$).pipe(
-              (__queryFinalizeHook as typeof identity) ?? identity,
-              takeUntil(merge(noMoreObservers$, mergeTrigger$))
-            )
-          }),
-          scan((acc, current) => {
-            return {
-              ...acc,
-              ...current,
-              ...(current.status === "pending" && {
-                data: current.data ?? acc.data
-              }),
-              ...(current.status === "pending" && {
-                error: current.error ?? acc.error
-              })
-            }
-          }, getDefaultMutationState<TData, TError, TVariables, TContext>()),
-          distinctUntilChanged(
-            ({ data: prevData, ...prev }, { data: currData, ...curr }) =>
-              shallowEqual(prev, curr) && shallowEqual(prevData, currData)
-          )
+        const stateUntilFinished$ = mutation.observeTillFinished().pipe(skip(1))
+
+        return merge(stateUntilFinished$, resetState$, execute$).pipe(
+          (__queryFinalizeHook as typeof identity) ?? identity,
+          takeUntil(merge(noMoreObservers$, mergeTrigger$, switchTrigger$))
         )
       }),
+      scan((acc, current) => {
+        return {
+          ...acc,
+          ...current,
+          ...(current.status === "pending" && {
+            data: current.data ?? acc.data
+          }),
+          ...(current.status === "pending" && {
+            error: current.error ?? acc.error
+          })
+        }
+      }, getDefaultMutationState<TData, TError, TVariables, TContext>()),
+      distinctUntilChanged(
+        ({ data: prevData, ...prev }, { data: currData, ...curr }) =>
+          shallowEqual(prev, curr) && shallowEqual(prevData, currData)
+      ),
       shareReplay({
         refCount: true,
         bufferSize: 1
@@ -125,10 +110,6 @@ export class MutationRunner<
   }
 
   trigger({ args, options, mutation }: ObservedValueOf<typeof this.trigger$>) {
-    if (options.mapOperator) {
-      this.mapOperator$.next(options.mapOperator)
-    }
-
     this.trigger$.next({ args, options, mutation })
   }
 }

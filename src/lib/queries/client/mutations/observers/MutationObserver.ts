@@ -46,10 +46,13 @@ export class MutationObserver<
     | undefined
   >(undefined)
 
-  readonly observed$: Observable<{
-    state: MutationObserverResult<TData, TError, TVariables, TContext>
-    options: MutateOptions<TData, TError, TVariables, TContext> | undefined
-  }>
+  /**
+   * @important
+   * Used to maintain persistance to latest mutation. This ensure
+   * - mutation does not get garbage collected
+   * - mutation mutate options are run on finish
+   */
+  readonly observed$: Observable<never>
 
   readonly result$: Observable<{
     state: MutationObserverResult<TData, TError, TVariables, TContext>
@@ -100,18 +103,13 @@ export class MutationObserver<
       )
       .subscribe()
 
-    /**
-     * @important
-     * We only run the callbacks on the current mutation IF
-     * it is being observed. The runner will not run them
-     * by itself.
-     */
     this.observed$ = this.#currentMutationSubject.pipe(
       switchMap(
         (maybeMutation) =>
-          maybeMutation?.mutation.state$.pipe(
+          maybeMutation?.mutation.observeTillFinished().pipe(
+            last(),
             map((state) => ({
-              state: this.getObserverResultFromState(state),
+              state,
               options: maybeMutation.options
             }))
           ) ?? EMPTY
@@ -121,14 +119,14 @@ export class MutationObserver<
           options?.onError &&
             options?.onError(
               state.error as TError,
-              state.variables,
+              state.variables as TVariables,
               state.context
             )
           options?.onSettled &&
             options?.onSettled(
               state.data,
               state.error,
-              state.variables,
+              state.variables as TVariables,
               state.context
             )
         }
@@ -136,14 +134,14 @@ export class MutationObserver<
           options?.onSuccess &&
             options?.onSuccess(
               state.data as TData,
-              state.variables,
+              state.variables as TVariables,
               state.context as TContext
             )
           options?.onSettled &&
             options?.onSettled(
               state.data,
               state.error,
-              state.variables,
+              state.variables as TVariables,
               state.context
             )
         }
@@ -197,12 +195,9 @@ export class MutationObserver<
         getDefaultMutationState()
     )
 
-    const result$ = merge(this.observed$, this.result$).pipe(
-      map(({ state }) => {
-        console.log({ state })
-
-        return state
-      })
+    const result$ = merge(
+      this.observed$,
+      this.result$.pipe(map(({ state }) => state))
     )
 
     return { result$, lastValue }
