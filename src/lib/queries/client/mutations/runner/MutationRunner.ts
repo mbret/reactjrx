@@ -17,6 +17,7 @@ import {
   type Observable,
   last,
   EMPTY,
+  tap
 } from "rxjs"
 import { type DefaultError } from "../../types"
 import { type MutationObserverOptions } from "../observers/types"
@@ -25,7 +26,6 @@ import { shallowEqual } from "../../../../utils/shallowEqual"
 import { getDefaultMutationState } from "../defaultMutationState"
 import { trackSubscriptions } from "../../../../utils/operators/trackSubscriptions"
 import { type MutationOptions, type MutationState } from "../mutation/types"
-import { type MapOperator } from "../types"
 
 export class MutationRunner<
   TData,
@@ -38,8 +38,6 @@ export class MutationRunner<
     options: MutationOptions<TData, TError, TVariables, TContext>
     mutation: Mutation<TData, TError, TVariables, TContext>
   }>()
-
-  protected mapOperator$ = new BehaviorSubject<MapOperator>("merge")
 
   public state$: Observable<MutationState<TData, TError, TVariables, TContext>>
 
@@ -61,7 +59,10 @@ export class MutationRunner<
         )
 
         const switchTrigger$ = this.trigger$.pipe(
-          filter(() => mapOperator === "switch")
+          filter(() => mapOperator === "switch"),
+          tap(() => {
+            mutation.reset()
+          })
         )
 
         const execute$ = defer(() => {

@@ -162,7 +162,7 @@ describe("useMutation", () => {
 
           // we only display content once all queries are done
           // this way when we text string later we know exactly
-          return <>{done[1] && done[2] ? values.join(",") : ""}</>
+          return <>{done[2] ? values.join(",") : ""}</>
         }
 
         const { findByText } = render(
