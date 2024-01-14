@@ -10,12 +10,7 @@ import {
   catchError,
   scan,
   distinctUntilChanged,
-  filter,
-  timer,
-  mergeMap,
-  first,
-  shareReplay,
-  throwError,
+  shareReplay
 } from "rxjs"
 import { type MutationOptions, type MutationState } from "./types"
 import { functionAsObservable } from "../../utils/functionAsObservable"
@@ -24,6 +19,8 @@ import { type DefaultError } from "../../types"
 import { getDefaultMutationState } from "../defaultMutationState"
 import { shallowEqual } from "../../../../utils/shallowEqual"
 import { onlineManager } from "../../onlineManager"
+import { waitForNetworkOnError } from "./waitForNetworkOnError"
+import { delayWhenNetworkOnline } from "./delayWhenNetworkOnline"
 
 export const executeMutation = <
   TData = unknown,
@@ -103,54 +100,7 @@ export const executeMutation = <
             context
           })
         ),
-        (source) => {
-          let attempt = 0
-
-          return source.pipe(
-            catchError((error) => {
-              attempt++
-
-              if (attempt <= 1 && !onlineManager.isOnline()) {
-                return merge(
-                  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                  of({
-                    failureCount: attempt,
-                    failureReason: error
-                  } as QueryState),
-                  timer(1).pipe(
-                    mergeMap(() =>
-                      merge(
-                        of(
-                          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                          {
-                            isPaused: true
-                          } as QueryState
-                        ),
-                        onlineManager.online$.pipe(
-                          filter((isOnline) => isOnline),
-                          first(),
-                          mergeMap(() =>
-                            merge(
-                              of(
-                                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-                                {
-                                  isPaused: false
-                                } as QueryState
-                              ),
-                              throwError(() => error)
-                            )
-                          )
-                        )
-                      )
-                    )
-                  )
-                )
-              } else {
-                return throwError(() => error)
-              }
-            })
-          )
-        },
+        waitForNetworkOnError,
         retryOnError<QueryState>({
           ...options,
           caughtError: (attempt, error) =>
@@ -177,18 +127,7 @@ export const executeMutation = <
       if (onlineManager.isOnline() || options.networkMode === "offlineFirst") {
         return finalFn$
       } else {
-        return merge(
-          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-          of({ isPaused: true } as QueryState),
-          onlineManager.online$.pipe(
-            filter((isOnline) => isOnline),
-            first(),
-            mergeMap(() =>
-              // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-              merge(of({ isPaused: false } as QueryState), finalFn$)
-            )
-          )
-        )
+        return finalFn$.pipe(delayWhenNetworkOnline())
       }
     })
   )
