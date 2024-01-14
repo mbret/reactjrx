@@ -1,5 +1,5 @@
-import { defer, iif, type Observable, throwError, timer, merge } from "rxjs"
-import { catchError, concatMap, retryWhen, tap } from "rxjs/operators"
+import { defer, iif, type Observable, throwError, timer, merge, of } from "rxjs"
+import { catchError, concatMap, mergeMap, retryWhen, tap } from "rxjs/operators"
 
 export interface RetryBackoffConfig<T> {
   // Initial interval. It will eventually go as high as maxInterval.
@@ -68,10 +68,18 @@ export function retryBackoff<T>(config: RetryBackoffConfig<T>) {
 
           if (!caughtErrorResult$) throw error
 
-          return merge(
-            caughtErrorResult$ as unknown as Observable<T>,
-            throwError(() => error)
+          return caughtErrorResult$.pipe(
+            mergeMap((source) =>
+              merge(
+                of(source) as unknown as Observable<T>,
+                throwError(() => error)
+              )
+            )
           )
+          // return merge(
+          //   caughtErrorResult$ as unknown as Observable<T>,
+          //   throwError(() => error)
+          // )
         }),
         retryWhen<T>((errors) => {
           return errors.pipe(

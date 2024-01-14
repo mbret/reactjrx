@@ -12,7 +12,7 @@ import {
   BehaviorSubject,
   concat,
   toArray,
-  mergeMap,
+  mergeMap
 } from "rxjs"
 import { getDefaultMutationState } from "../defaultMutationState"
 import { type DefaultError } from "../../types"
@@ -82,7 +82,9 @@ export class Mutation<
 
               const onOptionMutate$ = functionAsObservable(
                 // eslint-disable-next-line @typescript-eslint/promise-function-async
-                () => this.options.onMutate?.(variables) ?? undefined
+                () => {
+                  return this.options.onMutate?.(variables) ?? undefined
+                }
               )
 
               return onCacheMutate$.pipe(mergeMap(() => onOptionMutate$))
@@ -143,21 +145,20 @@ export class Mutation<
           state: this.state,
           variables
         })
-      ),
-      tap((value) => {
-        this.state = { ...this.state, ...value }
-      }),
-      takeUntil(this.destroySubject)
+      )
     )
 
     this.state$ = merge(initialState$, execution$, resetState$).pipe(
+      tap((value) => {
+        this.state = { ...this.state, ...value }
+      }),
+      takeUntil(this.destroySubject),
       /**
        * refCount as true somewhat make NEVER complete when there are
        * no more observers. I thought I should have to complete manually (which is
        * why we still cancel the observable when we remove it from cache)
        */
       shareReplay({ bufferSize: 1, refCount: false }),
-      takeUntil(this.destroySubject),
       trackSubscriptions((count) => {
         this.observerCount.next(count)
       })
