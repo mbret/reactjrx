@@ -6,8 +6,6 @@ import {
   of,
   timer,
   mergeMap,
-  filter,
-  first,
   throwError
 } from "rxjs"
 import { onlineManager } from "../../onlineManager"
