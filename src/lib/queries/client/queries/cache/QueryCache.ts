@@ -1,1 +1,206 @@
-export class QueryCache {}
+import {
+  type Observable,
+  Subject,
+  map,
+  switchMap,
+  filter,
+  withLatestFrom,
+  BehaviorSubject,
+  takeWhile,
+  merge,
+  of,
+  finalize,
+  NEVER,
+  mergeMap,
+  share
+} from "rxjs"
+import { createCacheClient } from "../../cache/cacheClient"
+import { createInvalidationClient } from "../../invalidation/invalidationClient"
+import { createRefetchClient } from "../../refetch/client"
+import { createQueryStore } from "../../store/createQueryStore"
+import {
+  type QueryOptions,
+  type QueryFn,
+  type QueryTrigger,
+  type QueryResult
+} from "../../types"
+import { type QueryKey } from "../../keys/types"
+import { serializeKey } from "../../keys/serializeKey"
+import { createQueryTrigger } from "../../triggers"
+import { dispatchExternalRefetchToAllQueries } from "../../refetch/dispatchExternalRefetchToAllQueries"
+import { Logger } from "../../../../logger"
+import { updateStoreWithNewQuery } from "../../store/updateStoreWithNewQuery"
+import { markQueryAsStaleIfRefetch } from "../../refetch/markQueryAsStaleIfRefetch"
+import { createQueryFetch } from "../../fetch/queryFetch"
+import { mergeResults } from "../../operators"
+import { createQueryListener } from "../../store/queryListener"
+import { invalidateCache } from "../../cache/invalidateCache"
+import { markAsStale } from "../../invalidation/markAsStale"
+import { garbageCache } from "../../store/garbageCache"
+
+export const createClient = () => {
+  const queryStore = createQueryStore()
+  const invalidationClient = createInvalidationClient({ queryStore })
+  const cacheClient = createCacheClient({ queryStore })
+  const refetchClient = createRefetchClient({ queryStore })
+
+  let hasCalledStart = false
+
+  const query = <T>({
+    key,
+    fn$: maybeFn$,
+    fn: maybeFn,
+    trigger$: externalTrigger$ = new Subject(),
+    options$ = new BehaviorSubject<QueryOptions<T>>({})
+  }: {
+    key: QueryKey
+    fn?: QueryFn<T>
+    fn$?: Observable<QueryFn<T>>
+    trigger$?: Observable<QueryTrigger>
+    options$?: Observable<QueryOptions<T>>
+  }) => {
+    if (!hasCalledStart) {
+      throw new Error("You forgot to start client")
+    }
+
+    const serializedKey = serializeKey(key)
+    const fn$ = maybeFn$ ?? (maybeFn ? of(maybeFn) : NEVER)
+
+    Logger.log("query$)", serializedKey)
+
+    const runner$ = options$.pipe(map((options) => ({ options })))
+
+    let deleteRunner = () => {}
+
+    const trigger$ = merge(
+      externalTrigger$.pipe(
+        dispatchExternalRefetchToAllQueries({
+          queryStore,
+          serializedKey
+        })
+      ),
+      createQueryTrigger({
+        options$,
+        key: serializedKey,
+        queryStore
+      })
+    ).pipe(share())
+
+    const result$ = merge(
+      of({
+        type: "initial" as const
+      }),
+      trigger$
+    ).pipe(
+      updateStoreWithNewQuery({
+        key,
+        queryStore,
+        runner$,
+        serializedKey,
+        options$
+      }),
+      map(([value, deleteRunnerFn]) => {
+        if (deleteRunnerFn) {
+          deleteRunner = deleteRunnerFn
+        }
+
+        return value
+      }),
+      markQueryAsStaleIfRefetch({
+        key,
+        options$,
+        queryStore,
+        serializedKey
+      }),
+      withLatestFrom(fn$, options$),
+      map(([trigger, fn, options]) => ({ trigger, fn, options })),
+      map((value) => {
+        Logger.log(serializedKey, "query trigger", {
+          trigger: value.trigger,
+          options: value.options
+        })
+
+        return value
+      }),
+      filter(({ options }) => options.enabled !== false),
+      mergeMap(({ fn, options, trigger }) =>
+        createQueryFetch({
+          options$,
+          options,
+          fn,
+          queryStore,
+          serializedKey,
+          trigger,
+          trigger$
+        })
+      ),
+      mergeResults,
+      withLatestFrom(options$),
+      takeWhile(([result, options]) => {
+        const shouldStop =
+          result.data !== undefined && options.terminateOnFirstResult
+
+        return !shouldStop
+      }, true),
+      map(([result]) => result),
+      finalize(() => {
+        deleteRunner()
+      })
+    ) as Observable<QueryResult<T>>
+
+    return {
+      result$
+    }
+  }
+
+  const queryListener$ = createQueryListener(queryStore, (stream) =>
+    stream.pipe(
+      switchMap((key) => {
+        const key$ = of(key)
+
+        return merge(
+          invalidateCache({
+            queryStore
+          })(key$),
+          markAsStale({
+            queryStore
+          })(key$),
+          garbageCache({
+            queryStore
+          })(key$)
+        )
+      })
+    )
+  )
+
+  const destroy = () => {}
+
+  const start = () => {
+    hasCalledStart = true
+    const queryListenerSub = queryListener$.subscribe()
+    const started = [queryStore.start()]
+
+    return () => {
+      started.forEach((destroy) => {
+        destroy()
+      })
+      queryListenerSub.unsubscribe()
+    }
+  }
+
+  return {
+    start,
+    query,
+    queryStore,
+    ...invalidationClient,
+    ...cacheClient,
+    ...refetchClient,
+    destroy
+  }
+}
+
+export class QueryCache {
+  public client = createClient()
+
+  clear() {}
+}
