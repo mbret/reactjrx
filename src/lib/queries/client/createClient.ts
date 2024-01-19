@@ -43,6 +43,7 @@ import { MutationCache } from "./mutations/cache/MutationCache"
 import { type MutationObserverOptions } from "./mutations/observers/types"
 import { compareKeys } from "./keys/compareKeys"
 import { type MutationOptions } from "./mutations/mutation/types"
+import { QueryCache } from "./queries/cache/QueryCache"
 
 export const createClient = () => {
   const queryStore = createQueryStore()
@@ -208,16 +209,21 @@ export const createClient = () => {
 export class QueryClient {
   public client: ReturnType<typeof createClient>
   protected mutationCache: MutationCache
+  protected queryCache: QueryCache
   readonly #mutationDefaults = new Map()
 
   constructor(
-    { mutationCache }: { mutationCache: MutationCache } = {
-      mutationCache: new MutationCache()
+    {
+      mutationCache,
+      queryCache
+    }: { mutationCache: MutationCache; queryCache: QueryCache } = {
+      mutationCache: new MutationCache(),
+      queryCache: new QueryCache()
     }
   ) {
     this.mutationCache = mutationCache
-
-    this.client = createClient()
+    this.queryCache = queryCache
+    this.queryCache = this.client = createClient()
   }
 
   mount() {
@@ -230,6 +236,10 @@ export class QueryClient {
 
   getMutationCache() {
     return this.mutationCache
+  }
+
+  getQueryCache() {
+    return this.queryCache
   }
 
   defaultMutationOptions<T extends MutationOptions<any, any, any, any>>(

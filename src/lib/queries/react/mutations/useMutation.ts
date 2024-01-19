@@ -25,8 +25,7 @@ export function useMutation<
   options: UseMutationOptions<TData, TError, TVariables, TContext>,
   queryClient?: QueryClient
 ): UseMutationResult<TData, TError, TVariables, TContext> {
-  const defaultQueryClient = useQueryClient({ unsafe: !!queryClient })
-  const finalQueryClient = queryClient ?? defaultQueryClient
+  const defaultQueryClient = useQueryClient(queryClient)
   const optionsRef = useLiveRef(options)
   const defaultKey = useConstant(() => [nanoid()])
   const serializedKey = serializeKey(options.mutationKey ?? defaultKey.current)
@@ -34,7 +33,7 @@ export function useMutation<
   const [mutationObserver] = useState(
     () =>
       new MutationObserver<TData, TError, TVariables, TContext>(
-        finalQueryClient,
+        defaultQueryClient,
         options
       )
   )

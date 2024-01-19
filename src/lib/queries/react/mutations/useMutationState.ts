@@ -19,8 +19,7 @@ export const useMutationState = <TData, TResult = MutationState>(
   { filters, select }: MutationStateOptions<TResult, TData> = {},
   queryClient?: QueryClient
 ): TResult[] => {
-  const defaultQueryClient = useQueryClient({ unsafe: !!queryClient })
-  const finalQueryClient = queryClient ?? defaultQueryClient
+  const finalQueryClient = useQueryClient(queryClient)
   const { mutationKey, status } = filters ?? {}
   const filtersRef = useLiveRef(filters)
   const serializedKey = mutationKey ? serializeKey(mutationKey) : undefined
