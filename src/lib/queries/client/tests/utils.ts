@@ -1,5 +1,5 @@
 import { lastValueFrom } from "rxjs"
-import { type QueryClient } from "../createClient"
+import { type QueryClient } from "../QueryClient"
 import { type MutationOptions } from "../mutations/mutation/types"
 import { type SpyInstance, vi } from "vitest"
 import { onlineManager } from "../onlineManager"

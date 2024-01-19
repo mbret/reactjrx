@@ -1,6 +1,6 @@
 import { type DefaultError } from "@tanstack/react-query"
 import { Mutation } from "../mutation/Mutation"
-import { type QueryClient } from "../../createClient"
+import { type QueryClient } from "../../QueryClient"
 import { type MutationFilters } from "../types"
 import {
   BehaviorSubject,

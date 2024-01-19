@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest"
 import { Subject, lastValueFrom, scan, take, takeWhile, tap } from "rxjs"
 import { type QueryResult, type QueryTrigger } from "../types"
-import { QueryClient } from "../createClient"
+import { QueryClient } from "../QueryClient"
 
 describe("refetch", () => {
   describe("Given two queries with same key", () => {
     describe("and we refetch query a on first success", () => {
       it("should refetch the second query as well", async () => {
-        const client = new QueryClient().client
+        const client = new QueryClient().getQueryCache().client
         const trigger$ = new Subject<QueryTrigger>()
         let hasRefetch = false
         let result = 0
@@ -99,7 +99,7 @@ describe("refetch", () => {
 
     describe("and we refetch query with same key from client", () => {
       it("should refetch the second query as well", async () => {
-        const client = new QueryClient().client
+        const client = new QueryClient().getQueryCache().client
         const trigger$ = new Subject<QueryTrigger>()
         let hasRefetch = false
         let result = 0

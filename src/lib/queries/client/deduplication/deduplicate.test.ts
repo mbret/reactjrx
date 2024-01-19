@@ -10,7 +10,7 @@ import {
 import { expect, it, describe } from "vitest"
 import { deduplicate } from "./deduplicate"
 import { serializeKey } from "../keys/serializeKey"
-import { QueryClient } from "../createClient"
+import { QueryClient } from "../QueryClient"
 import { type QueryOptions } from "../types"
 import { createQueryStore } from "../store/createQueryStore"
 
@@ -106,7 +106,7 @@ describe("deduplicate tests", () => {
             const options$ = new BehaviorSubject<QueryOptions>({
               terminateOnFirstResult: true
             })
-            const client = new QueryClient().client
+            const client = new QueryClient().getQueryCache().client
 
             client.start()
 

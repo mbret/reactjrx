@@ -101,7 +101,7 @@ export function useQuery<T>({
       return newQueryTrigger$.pipe(
         withLatestFrom(key$),
         switchMap(([, key]) => {
-          const { result$ } = client.client.query({
+          const { result$ } = client.getQueryCache().client.query({
             key,
             fn$,
             options$,

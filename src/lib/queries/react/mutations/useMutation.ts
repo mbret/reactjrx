@@ -5,7 +5,7 @@ import { useQueryClient } from "../Provider"
 import { serializeKey } from "../../client/keys/serializeKey"
 import { nanoid } from "../../client/keys/nanoid"
 import { useConstant } from "../../../utils/useConstant"
-import { type QueryClient } from "../../client/createClient"
+import { type QueryClient } from "../../client/QueryClient"
 import { type DefaultError } from "../../client/types"
 import { MutationObserver } from "../../client/mutations/observers/MutationObserver"
 import {

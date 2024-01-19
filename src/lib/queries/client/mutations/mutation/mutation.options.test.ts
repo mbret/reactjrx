@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
-import { type QueryClient } from "../../createClient"
+import { type QueryClient } from "../../QueryClient"
 import { createQueryClient, waitForTimeout } from "../../../../../tests/utils"
 import { MutationObserver } from "../observers/MutationObserver"
 import { waitFor } from "@testing-library/react"

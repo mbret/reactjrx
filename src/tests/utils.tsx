@@ -1,5 +1,5 @@
 import { act, render } from "@testing-library/react"
-import { QueryClient } from "../lib/queries/client/createClient"
+import { QueryClient } from "../lib/queries/client/QueryClient"
 import { QueryClientProvider } from "../lib/queries/react/Provider"
 import { MutationCache } from "../lib/queries/client/mutations/cache/MutationCache"
 

@@ -4,7 +4,7 @@ import {
   sleep,
   waitForTimeout
 } from "../../../../../tests/utils"
-import { type QueryClient } from "../../createClient"
+import { type QueryClient } from "../../QueryClient"
 import { MutationObserver } from "./MutationObserver"
 
 describe("mutationObserver", () => {

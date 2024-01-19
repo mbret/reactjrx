@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest"
 import { BehaviorSubject, Subject, of } from "rxjs"
-import { QueryClient } from "../createClient"
+import { QueryClient } from "../QueryClient"
 import { waitForTimeout } from "../../../../tests/utils"
 
 describe("invalidation", () => {
   describe("Given an observable that does not emit yet", () => {
     describe("and a cache and stale of 0", () => {
       it("should only call the function once", async () => {
-        const client = new QueryClient().client
+        const client = new QueryClient().getQueryCache().client
 
         const deferredResult$ = new Subject()
         const queryMock = vi.fn().mockImplementation(() => deferredResult$)
@@ -42,7 +42,7 @@ describe("invalidation", () => {
   describe("Given a query that is in the cache", () => {
     describe("and the query fn is called again", () => {
       it("should call the function only once", async () => {
-        const client = new QueryClient().client
+        const client = new QueryClient().getQueryCache().client
         const deferredResult$ = new Subject<number>()
         const queryMock = vi.fn().mockImplementation(() => deferredResult$)
 
@@ -80,7 +80,7 @@ describe("invalidation", () => {
 
       describe("and new query is marked as stale", () => {
         it("should call the fn again", async () => {
-          const client = new QueryClient().client
+          const client = new QueryClient().getQueryCache().client
           const deferredResult$ = new Subject<number>()
           const queryMock = vi.fn().mockImplementation(() => deferredResult$)
 
@@ -121,7 +121,7 @@ describe("invalidation", () => {
 
   describe("and cache does not exists", () => {
     it("should call the function twice", async () => {
-      const client = new QueryClient().client
+      const client = new QueryClient().getQueryCache().client
 
       const deferredResult$ = new Subject<number>()
       const deferredResult2$ = new Subject<number>()

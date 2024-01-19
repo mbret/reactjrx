@@ -23,7 +23,7 @@ export * from "./lib/utils/useLiveRef"
 export * from "./lib/queries/react/mutations/useMutation"
 export * from "./lib/queries/react/queries/useQuery"
 export * from "./lib/queries/react/useSubscribeEffect"
-export * from "./lib/queries/client/createClient"
+export * from "./lib/queries/client/QueryClient"
 export {
   QueryClientProvider,
   useQueryClient

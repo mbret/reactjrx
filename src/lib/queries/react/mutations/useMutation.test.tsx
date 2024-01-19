@@ -10,7 +10,7 @@ import { render, cleanup } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
 import { useMutation } from "./useMutation"
 import { QueryClientProvider } from "../Provider"
-import { QueryClient } from "../../client/createClient"
+import { QueryClient } from "../../client/QueryClient"
 import { waitForTimeout } from "../../../../tests/utils"
 
 afterEach(() => {

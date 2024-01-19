@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { render, cleanup } from "@testing-library/react"
 import { useQuery } from "./useQuery"
-import { QueryClient } from "../../client/createClient"
+import { QueryClient } from "../../client/QueryClient"
 import { QueryClientProvider } from "../../../.."
 import { waitForTimeout } from "../../../../tests/utils"
 import { printQuery } from "../../../../tests/testUtils"

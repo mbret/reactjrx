@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { filter, firstValueFrom, of, tap } from "rxjs"
-import { QueryClient } from "../createClient"
+import { QueryClient } from "../QueryClient"
 import { serializeKey } from "../keys/serializeKey"
 import { waitForTimeout } from "../../../../tests/utils"
 
@@ -8,7 +8,7 @@ describe("cache", () => {
   describe("Given a query", () => {
     describe("and a cache time of 0", () => {
       it("should not have value in cache", async () => {
-        const client = new QueryClient().client
+        const client = new QueryClient().getQueryCache().client
         const serializedKey = serializeKey(["foo"])
 
         client.start()
@@ -34,7 +34,7 @@ describe("cache", () => {
       })
 
       it("it should remove the query from the store once the query is done", async () => {
-        const client = new QueryClient().client
+        const client = new QueryClient().getQueryCache().client
         const serializedKey = serializeKey(["foo"])
 
         client.start()
@@ -57,7 +57,7 @@ describe("cache", () => {
 
     describe("and a cache time of infinity", () => {
       it("should have value in cache", async () => {
-        const client = new QueryClient().client
+        const client = new QueryClient().getQueryCache().client
         const serializedKey = serializeKey(["foo"])
 
         client.start()
@@ -83,7 +83,7 @@ describe("cache", () => {
       })
 
       it("it should not remove the query from the store once the query is done", async () => {
-        const client = new QueryClient().client
+        const client = new QueryClient().getQueryCache().client
         const serializedKey = serializeKey(["foo"])
 
         client.start()
@@ -106,7 +106,7 @@ describe("cache", () => {
 
     describe("and a cache time of several ms", () => {
       it("should have value in cache", async () => {
-        const client = new QueryClient().client
+        const client = new QueryClient().getQueryCache().client
         const serializedKey = serializeKey(["foo"])
 
         client.start()
@@ -132,7 +132,7 @@ describe("cache", () => {
       })
 
       it("it should remove the query shortly after the cache expire", async () => {
-        const client = new QueryClient().client
+        const client = new QueryClient().getQueryCache().client
         const serializedKey = serializeKey(["foo"])
 
         client.start()

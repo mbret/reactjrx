@@ -12,7 +12,7 @@ import {
 } from "rxjs"
 import { type MutateOptions } from "../types"
 import { getDefaultMutationState } from "../defaultMutationState"
-import { type QueryClient } from "../../createClient"
+import { type QueryClient } from "../../QueryClient"
 import { type DefaultError } from "../../types"
 import { type Mutation } from "../mutation/Mutation"
 import { nanoid } from "../../keys/nanoid"

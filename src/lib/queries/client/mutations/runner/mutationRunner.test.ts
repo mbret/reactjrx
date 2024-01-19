@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from "vitest"
 import { waitFor } from "@testing-library/react"
 import { sleep } from "../../../../../tests/utils"
-import { QueryClient } from "../../createClient"
+import { QueryClient } from "../../QueryClient"
 import { MutationObserver } from "../observers/MutationObserver"
 import { MutationRunner } from "./MutationRunner"
 

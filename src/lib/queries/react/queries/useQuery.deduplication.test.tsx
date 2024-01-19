@@ -4,7 +4,7 @@ import { render, cleanup } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
 import { useQuery } from "./useQuery"
 import { QueryClientProvider, useQueryClient } from "../Provider"
-import { QueryClient } from "../../client/createClient"
+import { QueryClient } from "../../client/QueryClient"
 import { serializeKey } from "../../client/keys/serializeKey"
 
 afterEach(() => {
@@ -35,7 +35,8 @@ describe("useQuery", () => {
       )
 
       expect(
-        client.client.queryStore?.get(serializedKey)?.deduplication_fn
+        client.getQueryCache().client.queryStore?.get(serializedKey)
+          ?.deduplication_fn
       ).toBeDefined()
 
       subject.next(2)
@@ -44,7 +45,8 @@ describe("useQuery", () => {
       expect(await findByText("2")).toBeDefined()
 
       expect(
-        client.client.queryStore?.get(serializedKey)?.deduplication_fn
+        client.getQueryCache().client.queryStore?.get(serializedKey)
+          ?.deduplication_fn
       ).toBeUndefined()
     })
   })
@@ -56,14 +58,16 @@ describe("useQuery", () => {
         const query = async () => {
           await new Promise((resolve) => setTimeout(resolve, 100))
         }
-        let _queryStore: QueryClient["client"]["queryStore"] | undefined
+        let _queryStore:
+          | ReturnType<QueryClient["getQueryCache"]>["client"]["queryStore"]
+          | undefined
 
         const Comp2 = () => {
           useQuery({ queryKey: ["foo"], queryFn: query })
 
           const client = useQueryClient()
 
-          _queryStore = client.client.queryStore
+          _queryStore = client.getQueryCache().client.queryStore
 
           return null
         }

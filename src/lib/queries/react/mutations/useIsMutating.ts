@@ -1,5 +1,5 @@
 import { type MutationFilters } from "../../client/mutations/types"
-import { type QueryClient } from "../../client/createClient"
+import { type QueryClient } from "../../client/QueryClient"
 import { useMutationState } from "./useMutationState"
 
 export const useIsMutating = <TData>(
