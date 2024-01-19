@@ -2,6 +2,7 @@ import { act, render } from "@testing-library/react"
 import { QueryClient } from "../lib/queries/client/QueryClient"
 import { QueryClientProvider } from "../lib/queries/react/Provider"
 import { MutationCache } from "../lib/queries/client/mutations/cache/MutationCache"
+import { type QueryCache } from "../lib/queries/client/queries/cache/QueryCache"
 
 export const waitForTimeout = async (timeout: number) =>
   await new Promise((resolve) => setTimeout(resolve, timeout))
@@ -49,7 +50,8 @@ export function renderWithClient(
  */
 export function createQueryClient(
   params: {
-    mutationCache: MutationCache
+    mutationCache?: MutationCache
+    queryCache?: QueryCache
   } = { mutationCache: new MutationCache() }
 ): QueryClient {
   return new QueryClient(params)

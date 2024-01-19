@@ -27,6 +27,7 @@ import {
 import { createActivityTrigger } from "../triggers/activityTrigger"
 import { createNetworkTrigger } from "../triggers/networkTrigger"
 import { useQueryParams } from "./helpers"
+import { type QueryClient } from "../../client/QueryClient"
 
 const defaultValue = {
   data: undefined,
@@ -43,9 +44,9 @@ export function useQuery<T>({
 }: {
   queryKey?: any[]
   queryFn?: QueryFn<T>
-} & UseQueryOptions<T>): UseQueryResult<T> {
+} & UseQueryOptions<T>, queryClient?: QueryClient): UseQueryResult<T> {
   const internalRefresh$ = useSubject<QueryTrigger>()
-  const client = useQueryClient()
+  const client = useQueryClient(queryClient)
   const params$ = useQueryParams({ queryFn, queryKey, ...options })
 
   interface ObserveResult {

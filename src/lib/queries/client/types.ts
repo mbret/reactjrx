@@ -1,6 +1,6 @@
 import { type Observable } from "rxjs"
 import { type QueryKey } from "./keys/types"
-import { type QueryStore } from "./store/createQueryStore"
+import { type QueryStore } from "./oldqueries/store/createQueryStore"
 
 export interface QueryResult<T> {
   data: { result: T } | undefined
