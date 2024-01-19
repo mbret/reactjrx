@@ -21,3 +21,5 @@ export const serializeKey = (key: QueryKey | MutationKey) => {
 
   return serializeObject(key)
 }
+
+export const hashKey = serializeKey
