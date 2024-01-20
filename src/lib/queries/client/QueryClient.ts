@@ -15,15 +15,14 @@ export class QueryClient {
 
   #destroy = () => {}
 
-  constructor(
-    {
-      mutationCache,
-      queryCache
-    }: { mutationCache: MutationCache; queryCache?: QueryCache } = {
-      mutationCache: new MutationCache()
-    }
-  ) {
-    this.#mutationCache = mutationCache
+  constructor({
+    mutationCache,
+    queryCache
+  }: {
+    mutationCache?: MutationCache
+    queryCache?: QueryCache
+  } = {}) {
+    this.#mutationCache = mutationCache ?? new MutationCache()
     this.#queryCache = queryCache ?? new QueryCache()
   }
 
@@ -85,7 +84,8 @@ export class QueryClient {
   }
 
   isFetching(filters?: QueryFilters) {
-    return true
+    return this.#queryCache.findAll({ ...filters, fetchStatus: "fetching" })
+      .length
   }
 
   clear(): void {

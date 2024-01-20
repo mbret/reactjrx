@@ -7,7 +7,7 @@ import {
   skip
 } from "rxjs"
 import { type QueryTrigger, type QueryOptions } from "./types"
-import { type QueryStore } from "./store/createQueryStore"
+import { type QueryStore } from "./oldqueries/store/createQueryStore"
 
 export const createQueryTrigger = <T>({
   options$,
