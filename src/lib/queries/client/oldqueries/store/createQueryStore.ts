@@ -10,7 +10,7 @@ import { type QueryKey } from "../../keys/types"
 import { isDefined } from "../../../../utils/isDefined"
 import { shallowEqual } from "../../../../utils/shallowEqual"
 import { createDebugger } from "./debugger"
-import { type QueryTrigger, type QueryOptions } from "../../types"
+import { type QueryTrigger, type DeprecatedQueryOptions } from "../../types"
 
 export interface StoreObject<T = unknown> {
   queryKey: QueryKey
@@ -22,7 +22,7 @@ export interface StoreObject<T = unknown> {
    * Each query runs on its own individual context so they
    * have to register/deregister themselves into the global context.
    */
-  runners: Array<Observable<{ options: QueryOptions<T> }>>
+  runners: Array<Observable<{ options: DeprecatedQueryOptions<T> }>>
   cache_fnResult?: undefined | { result: T }
   deduplication_fn?: Observable<T>
 }

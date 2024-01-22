@@ -4,11 +4,11 @@ import {
   withLatestFrom,
   type MonoTypeOperatorFunction
 } from "rxjs"
-import { type QueryOptions, type QueryResult } from "../../types"
+import { type DeprecatedQueryOptions, type QueryResult } from "../../types"
 
 export const notifyQueryResult =
   <R>(
-    options$: Observable<QueryOptions<R>>
+    options$: Observable<DeprecatedQueryOptions<R>>
   ): MonoTypeOperatorFunction<Partial<QueryResult<R>>> =>
   (stream$) =>
     stream$.pipe(

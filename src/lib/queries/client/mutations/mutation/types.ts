@@ -1,7 +1,7 @@
 import { type Observable, type MonoTypeOperatorFunction } from "rxjs"
 import {
   type DefaultError,
-  type Query,
+  type DeprecatedQuery,
   type QueryResult,
   type Register
 } from "../../types"
@@ -29,7 +29,9 @@ export interface MutationState<
 export type MutationMeta = Register extends {
   mutationMeta: infer TMutationMeta
 }
-  ? TMutationMeta
+  ? TMutationMeta extends Record<string, unknown>
+    ? TMutationMeta
+    : Record<string, unknown>
   : Record<string, unknown>
 
 export interface MutationOptions<
@@ -63,7 +65,7 @@ export interface MutationOptions<
     | false
     | ((
         data: QueryResult<TData>["data"] | undefined,
-        query: Query
+        query: DeprecatedQuery
       ) => number | false)
   terminateOnFirstResult?: boolean
   onMutate?: (

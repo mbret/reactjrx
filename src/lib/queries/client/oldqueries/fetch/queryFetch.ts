@@ -17,7 +17,7 @@ import {
 import {
   type QueryResult,
   type QueryFn,
-  type QueryOptions,
+  type DeprecatedQueryOptions,
   type QueryTrigger
 } from "../../types"
 import { deduplicate } from "../deduplication/deduplicate"
@@ -37,8 +37,8 @@ export const createQueryFetch = <T>({
   trigger$
 }: {
   fn: QueryFn<T>
-  options$: Observable<QueryOptions<T>>
-  options: QueryOptions<T>
+  options$: Observable<DeprecatedQueryOptions<T>>
+  options: DeprecatedQueryOptions<T>
   queryStore: ReturnType<typeof createQueryStore>
   serializedKey: string
   trigger: QueryTrigger

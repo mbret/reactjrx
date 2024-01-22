@@ -11,7 +11,7 @@ import { expect, it, describe } from "vitest"
 import { deduplicate } from "./deduplicate"
 import { serializeKey } from "../../keys/serializeKey"
 import { QueryClient } from "../../QueryClient"
-import { type QueryOptions } from "../../types"
+import { type DeprecatedQueryOptions } from "../../types"
 import { createQueryStore } from "../store/createQueryStore"
 
 describe("deduplicate tests", () => {
@@ -103,7 +103,7 @@ describe("deduplicate tests", () => {
             }
 
             const query$ = new BehaviorSubject(query)
-            const options$ = new BehaviorSubject<QueryOptions>({
+            const options$ = new BehaviorSubject<DeprecatedQueryOptions>({
               terminateOnFirstResult: true
             })
             const client = new QueryClient().getQueryCache().client

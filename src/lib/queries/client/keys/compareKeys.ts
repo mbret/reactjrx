@@ -25,3 +25,6 @@ export const compareKeys = (
     return serializeObject(value) === serializeObject(keyB[index])
   }, true)
 }
+
+export const partialMatchKey = (keyA: QueryKey, keyB: QueryKey) =>
+  compareKeys(keyA, keyB, { exact: false })

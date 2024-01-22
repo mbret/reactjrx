@@ -19,13 +19,13 @@ export type DefaultError = Register extends {
   : Error
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface Query {}
+export interface DeprecatedQuery {}
 
 export interface QueryCommand<T> {
   key: QueryKey
   fn$?: Observable<QueryFn<T>>
   refetch$?: Observable<{ ignoreStale: boolean }>
-  options$?: Observable<QueryOptions<T>>
+  options$?: Observable<DeprecatedQueryOptions<T>>
 }
 
 export type QueryFn<T> =
@@ -37,7 +37,7 @@ export interface QueryPipelineParams<R> {
   queryStore: QueryStore
   serializedKey: string
   key: QueryKey
-  options$: Observable<QueryOptions<R>>
+  options$: Observable<DeprecatedQueryOptions<R>>
 }
 
 /**
@@ -56,7 +56,7 @@ export type QueryTrigger =
       type: "enabled"
     }
 
-export interface QueryOptions<T = unknown, TError = DefaultError> {
+export interface DeprecatedQueryOptions<T = unknown, TError = DefaultError> {
   enabled?: boolean
   retry?: false | number | ((attempt: number, error: unknown) => boolean)
   retryDelay?: number | ((failureCount: number, error: TError) => number)
@@ -80,7 +80,7 @@ export interface QueryOptions<T = unknown, TError = DefaultError> {
     | false
     | ((
         data: QueryResult<T>["data"] | undefined,
-        query: Query
+        query: DeprecatedQuery
       ) => number | false)
   terminateOnFirstResult?: boolean
   onError?: (error: unknown) => void

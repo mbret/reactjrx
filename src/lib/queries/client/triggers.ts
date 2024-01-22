@@ -6,7 +6,7 @@ import {
   merge,
   skip
 } from "rxjs"
-import { type QueryTrigger, type QueryOptions } from "./types"
+import { type QueryTrigger, type DeprecatedQueryOptions } from "./types"
 import { type QueryStore } from "./oldqueries/store/createQueryStore"
 
 export const createQueryTrigger = <T>({
@@ -14,7 +14,7 @@ export const createQueryTrigger = <T>({
   queryStore,
   key
 }: {
-  options$: Observable<QueryOptions<T>>
+  options$: Observable<DeprecatedQueryOptions<T>>
   queryStore: QueryStore
   key: string
 }): Observable<QueryTrigger> => {

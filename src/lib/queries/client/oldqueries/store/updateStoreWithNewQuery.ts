@@ -6,7 +6,7 @@ import {
 } from "rxjs"
 import {
   type QueryPipelineParams,
-  type QueryOptions,
+  type DeprecatedQueryOptions,
   type QueryTrigger
 } from "../../types"
 import { getInitialQueryEntity } from "./initializeQueryInStore"
@@ -20,7 +20,7 @@ export const updateStoreWithNewQuery =
     key
   }: QueryPipelineParams<R> & {
     runner$: Observable<{
-      options: QueryOptions<R>
+      options: DeprecatedQueryOptions<R>
     }>
   }): OperatorFunction<
     QueryTrigger,

@@ -1,15 +1,15 @@
-import { type Query, type QueryOptions } from "../../client/types"
+import { type DeprecatedQuery, type DeprecatedQueryOptions } from "../../client/types"
 
-export interface UseQueryOptions<R = unknown> extends QueryOptions<R> {
+export interface UseQueryOptions<R = unknown> extends DeprecatedQueryOptions<R> {
   refetchOnWindowFocus?:
     | boolean
     | "always"
-    | ((query: Query) => boolean | "always")
+    | ((query: DeprecatedQuery) => boolean | "always")
   refetchOnReconnect?:
     | boolean
     | "always"
-    | ((query: Query) => boolean | "always")
-  refetchOnMount?: boolean | "always" | ((query: Query) => boolean | "always")
+    | ((query: DeprecatedQuery) => boolean | "always")
+  refetchOnMount?: boolean | "always" | ((query: DeprecatedQuery) => boolean | "always")
 }
 
 export interface UseQueryResult<R> {

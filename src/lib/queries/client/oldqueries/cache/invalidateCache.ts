@@ -10,10 +10,10 @@ import {
 import { type StoreObject, type QueryStore } from "../store/createQueryStore"
 import { shallowEqual } from "../../../../utils/shallowEqual"
 import { mapStoreQueryToRunnerOptions } from "../store/mapStoreQueryToRunnerOptions"
-import { type QueryOptions } from "../../types"
+import { type DeprecatedQueryOptions } from "../../types"
 
 const mapOptionsToOption: OperatorFunction<
-  QueryOptions[],
+  DeprecatedQueryOptions[],
   { lowestCacheTime?: number }
 > = (stream) =>
   stream.pipe(

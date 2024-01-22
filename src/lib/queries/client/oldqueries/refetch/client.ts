@@ -14,7 +14,7 @@ import {
 import { type createQueryStore } from "../store/createQueryStore"
 import {
   type QueryTrigger,
-  type QueryOptions,
+  type DeprecatedQueryOptions,
   type QueryResult
 } from "../../types"
 import { isDefined } from "../../../../utils/isDefined"
@@ -31,7 +31,7 @@ export const createRefetchClient = (_: {
     }: {
       key: string
       queryStore: ReturnType<typeof createQueryStore>
-      options$: Observable<QueryOptions<T>>
+      options$: Observable<DeprecatedQueryOptions<T>>
       refetch$: Observable<QueryTrigger>
     }): MonoTypeOperatorFunction<R> =>
     (stream) => {

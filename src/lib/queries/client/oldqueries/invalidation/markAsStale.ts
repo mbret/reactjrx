@@ -11,11 +11,11 @@ import {
 import { type QueryEvent, type QueryStore } from "../store/createQueryStore"
 import { logger } from "./logger"
 import { mapStoreQueryToRunnerOptions } from "../store/mapStoreQueryToRunnerOptions"
-import { type QueryOptions } from "../../types"
+import { type DeprecatedQueryOptions } from "../../types"
 import { shallowEqual } from "../../../../utils/shallowEqual"
 
 const mapOptionsToOption: OperatorFunction<
-  QueryOptions[],
+  DeprecatedQueryOptions[],
   { lowestStaleTime?: number }
 > = (stream) =>
   stream.pipe(
