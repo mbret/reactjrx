@@ -821,20 +821,20 @@ describe("query", () => {
   //     resetIsServer()
   //   })
 
-  //   test("constructor should call initialDataUpdatedAt if defined as a function", async () => {
-  //     const key = queryKey()
+  test("constructor should call initialDataUpdatedAt if defined as a function", async () => {
+    const key = queryKey()
 
-  //     const initialDataUpdatedAtSpy = vi.fn()
+    const initialDataUpdatedAtSpy = vi.fn()
 
-  //     await queryClient.prefetchQuery({
-  //       queryKey: key,
-  //       queryFn: () => "data",
-  //       initialData: "initial",
-  //       initialDataUpdatedAt: initialDataUpdatedAtSpy
-  //     })
+    await queryClient.prefetchQuery({
+      queryKey: key,
+      queryFn: () => "data",
+      initialData: "initial",
+      initialDataUpdatedAt: initialDataUpdatedAtSpy
+    })
 
-  //     expect(initialDataUpdatedAtSpy).toHaveBeenCalled()
-  //   })
+    expect(initialDataUpdatedAtSpy).toHaveBeenCalled()
+  })
 
   //   test("queries should be garbage collected even if they never fetched", async () => {
   //     const key = queryKey()
