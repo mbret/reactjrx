@@ -623,23 +623,23 @@ describe("query", () => {
   //     expect(query.meta).toBe(meta)
   //   })
 
-  //   test("provides meta object inside query function", async () => {
-  //     const meta = {
-  //       it: "works"
-  //     }
+  test("provides meta object inside query function", async () => {
+    const meta = {
+      it: "works"
+    }
 
-  //     const queryFn = vi.fn(() => "data")
+    const queryFn = vi.fn(() => "data")
 
-  //     const key = queryKey()
+    const key = queryKey()
 
-  //     await queryClient.prefetchQuery({ queryKey: key, queryFn, meta })
+    await queryClient.prefetchQuery({ queryKey: key, queryFn, meta })
 
-  //     expect(queryFn).toBeCalledWith(
-  //       expect.objectContaining({
-  //         meta
-  //       })
-  //     )
-  //   })
+    expect(queryFn).toBeCalledWith(
+      expect.objectContaining({
+        meta
+      })
+    )
+  })
 
   //   test("should refetch the observer when online method is called", async () => {
   //     const key = queryKey()
