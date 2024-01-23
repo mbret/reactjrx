@@ -395,11 +395,9 @@ describe("query", () => {
     expect(isCancelledError(query.state.error)).toBe(true)
     const result = await query.fetch()
 
-    console.log("HERE")
-
     expect(result).toBe("data")
-    // expect(query.state.error).toBe(null)
-    // expect(queryFn).toHaveBeenCalledTimes(2)
+    expect(query.state.error).toBe(null)
+    expect(queryFn).toHaveBeenCalledTimes(2)
   })
 
   test("cancelling a resolved query should not have any effect", async () => {
