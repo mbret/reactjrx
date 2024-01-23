@@ -5,12 +5,12 @@ import {
   shareReplay,
   map,
   filter,
-  scan,
   takeWhile,
   tap,
   takeUntil,
   merge,
-  last
+  last,
+  finalize
 } from "rxjs"
 import { isServer } from "../../../../utils/isServer"
 import { type QueryKey } from "../../keys/types"
@@ -23,6 +23,7 @@ import { type FetchOptions, type QueryState } from "./types"
 import { executeQuery } from "./executeQuery"
 import { type CancelOptions } from "../retryer/types"
 import { CancelledError } from "../retryer/CancelledError"
+import { mergeResults } from "./operators"
 
 interface QueryConfig<
   TQueryFnData,
@@ -87,13 +88,22 @@ export class Query<
           () =>
             ({
               status: "error",
+              fetchStatus: "idle",
               error: new CancelledError() as TError
             }) satisfies Partial<typeof this.state>
         )
       ),
       this.executeSubject.pipe(
         mergeMap(() =>
-          executeQuery(this.options).pipe(takeUntil(this.cancelSubject))
+          executeQuery(this.options).pipe(
+            tap((t) => {
+              console.log("executeSubject", t)
+            }),
+            finalize(() => {
+              console.log("executeSubject FINALIZE")
+            }),
+            takeUntil(this.cancelSubject)
+          )
         ),
         takeUntil(this.resetSubject)
       )
@@ -101,12 +111,7 @@ export class Query<
       tap((t) => {
         console.log("RESULT", t)
       }),
-      scan((acc, current) => {
-        return {
-          ...acc,
-          ...current
-        }
-      }, this.state),
+      mergeResults(this.state),
       tap((state) => {
         this.state = state
       }),
@@ -179,19 +184,27 @@ export class Query<
     return await new Promise<TData>((resolve, reject) => {
       this.state$
         .pipe(
-          takeWhile(
-            (result) =>
-              result.status !== "error" && result.status !== "success",
-            true
-          ),
+          // tap((state) => {
+          //   console.log("query fetch, initial state", state)
+          // }),
+          takeWhile((result) => {
+            const isSuccessOrError =
+              result.status === "error" || result.status === "success"
+            const isFetchingOrPaused = result.fetchStatus !== "idle"
+
+            void isSuccessOrError
+
+            return isFetchingOrPaused
+          }, true),
           last()
         )
         .subscribe({
           error: (error) => {
-            console.log("ERROR", error)
+            // console.log("ERROR", error)
             reject(error)
           },
           next: (data) => {
+            // console.log("query fetch done", data)
             if (data.error) {
               reject(data.error)
             } else {

@@ -1,4 +1,4 @@
-import { type Observable, of, switchMap, catchError, merge } from "rxjs"
+import { type Observable, of, switchMap, catchError, merge, tap } from "rxjs"
 import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
 import { functionAsObservable } from "../../utils/functionAsObservable"
@@ -28,29 +28,51 @@ export const executeQuery = <
 
   const defaultState = getDefaultState(options)
 
+  // console.log("executeSubject TRIGGER")
+
   return merge(
     of({
       status: "pending",
+      fetchStatus: "pending",
       data: defaultState.data,
       error: defaultState.error
     }),
     fn$.pipe(
+      tap({
+        // next: (res) => {
+        //   console.log("fn next", res)
+        // },
+        // complete: () => {
+        //   console.log("fn complete")
+        // },
+        // subscribe: () => {
+        //   console.log("fn subscribe")
+        // }
+      }),
+      catchError((e) => {
+        // console.log("ERROR", e)
+        throw e
+      }),
       retryOnError<TQueryFnData>({
         retry: 3,
         retryDelay: 10
       }),
       switchMap((result) => {
+        // console.log("SUCCESS", result)
         return of({
           status: "success",
+          fetchStatus: "idle",
           data: result
         })
       }),
-      catchError((error) =>
-        of({
+      catchError((error) => {
+        // console.log("ERROR", error)
+        return of({
           status: "error",
+          fetchStatus: "idle",
           error
         })
-      )
+      })
     )
   )
 }
