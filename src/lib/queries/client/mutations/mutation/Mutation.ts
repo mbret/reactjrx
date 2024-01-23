@@ -200,12 +200,14 @@ export class Mutation<
     return this.execute(this.state.variables as TVariables)
   }
 
+  // @todo merge with query
   destroy() {
     this.destroySubject.next()
     this.destroySubject.complete()
     this.executeSubject.complete()
   }
 
+  // @todo merge with query
   reset() {
     this.resetSubject.next()
     this.resetSubject.complete()

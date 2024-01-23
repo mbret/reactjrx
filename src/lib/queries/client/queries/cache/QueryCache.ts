@@ -14,29 +14,37 @@ import {
   mergeMap,
   share
 } from "rxjs"
-import { createCacheClient } from "../../cache/cacheClient"
-import { createInvalidationClient } from "../../invalidation/invalidationClient"
-import { createRefetchClient } from "../../refetch/client"
-import { createQueryStore } from "../../store/createQueryStore"
+import { createCacheClient } from "../../oldqueries/cache/cacheClient"
+import { createInvalidationClient } from "../../oldqueries/invalidation/invalidationClient"
+import { createRefetchClient } from "../../oldqueries/refetch/client"
+import { createQueryStore } from "../../oldqueries/store/createQueryStore"
 import {
-  type QueryOptions,
+  type DeprecatedQueryOptions,
   type QueryFn,
   type QueryTrigger,
-  type QueryResult
+  type QueryResult,
+  type DefaultError
 } from "../../types"
 import { type QueryKey } from "../../keys/types"
 import { serializeKey } from "../../keys/serializeKey"
 import { createQueryTrigger } from "../../triggers"
-import { dispatchExternalRefetchToAllQueries } from "../../refetch/dispatchExternalRefetchToAllQueries"
+import { dispatchExternalRefetchToAllQueries } from "../../oldqueries/refetch/dispatchExternalRefetchToAllQueries"
 import { Logger } from "../../../../logger"
-import { updateStoreWithNewQuery } from "../../store/updateStoreWithNewQuery"
-import { markQueryAsStaleIfRefetch } from "../../refetch/markQueryAsStaleIfRefetch"
-import { createQueryFetch } from "../../fetch/queryFetch"
+import { updateStoreWithNewQuery } from "../../oldqueries/store/updateStoreWithNewQuery"
+import { markQueryAsStaleIfRefetch } from "../../oldqueries/refetch/markQueryAsStaleIfRefetch"
+import { createQueryFetch } from "../../oldqueries/fetch/queryFetch"
 import { mergeResults } from "../../operators"
-import { createQueryListener } from "../../store/queryListener"
-import { invalidateCache } from "../../cache/invalidateCache"
-import { markAsStale } from "../../invalidation/markAsStale"
-import { garbageCache } from "../../store/garbageCache"
+import { createQueryListener } from "../../oldqueries/store/queryListener"
+import { invalidateCache } from "../../oldqueries/cache/invalidateCache"
+import { markAsStale } from "../../oldqueries/invalidation/markAsStale"
+import { garbageCache } from "../../oldqueries/store/garbageCache"
+import { Query } from "../query/Query"
+import { type QueryOptions, type QueryFilters } from "../types"
+import { hashQueryKeyByOptions, matchQuery } from "../utils"
+import { type QueryClient } from "../../QueryClient"
+import { type QueryState } from "../query/types"
+import { nanoid } from "../../keys/nanoid"
+import { type WithRequired } from "../../../../utils/types"
 
 export const createClient = () => {
   const queryStore = createQueryStore()
@@ -51,13 +59,13 @@ export const createClient = () => {
     fn$: maybeFn$,
     fn: maybeFn,
     trigger$: externalTrigger$ = new Subject(),
-    options$ = new BehaviorSubject<QueryOptions<T>>({})
+    options$ = new BehaviorSubject<DeprecatedQueryOptions<T>>({})
   }: {
     key: QueryKey
     fn?: QueryFn<T>
     fn$?: Observable<QueryFn<T>>
     trigger$?: Observable<QueryTrigger>
-    options$?: Observable<QueryOptions<T>>
+    options$?: Observable<DeprecatedQueryOptions<T>>
   }) => {
     if (!hasCalledStart) {
       throw new Error("You forgot to start client")
@@ -199,8 +207,84 @@ export const createClient = () => {
   }
 }
 
+export interface QueryStore {
+  has: (queryHash: string) => boolean
+  set: (queryHash: string, query: Query) => void
+  get: (queryHash: string) => Query | undefined
+  delete: (queryHash: string) => void
+  values: () => IterableIterator<Query>
+}
+
 export class QueryCache {
   public client = createClient()
+  readonly #queries: QueryStore = new Map<string, Query>()
+
+  getAll(): Query[] {
+    return [...this.#queries.values()]
+  }
+
+  findAll(filters: QueryFilters = {}): Query[] {
+    const queries = this.getAll()
+    return Object.keys(filters).length > 0
+      ? queries.filter((query) => matchQuery(filters, query))
+      : queries
+  }
+
+  build<TQueryFnData, TError, TData, TQueryKey extends QueryKey>(
+    client: QueryClient,
+    options: QueryOptions<TQueryFnData, TError, TData, TQueryKey>,
+    state?: QueryState<TData, TError>
+  ): Query<TQueryFnData, TError, TData, TQueryKey> {
+    const queryKey = options.queryKey ?? ([nanoid()] as unknown as TQueryKey)
+    const queryHash =
+      options.queryHash ?? hashQueryKeyByOptions(queryKey, options)
+    let query = this.get<TQueryFnData, TError, TData, TQueryKey>(queryHash)
+
+    if (!query) {
+      query = new Query({
+        cache: this,
+        queryKey,
+        queryHash,
+        options: client.defaultQueryOptions(options),
+        state,
+        defaultOptions: client.getQueryDefaults(queryKey)
+      })
+      this.add(query)
+    }
+
+    return query
+  }
+
+  add(query: Query<any, any, any, any>): void {
+    if (!this.#queries.has(query.queryHash)) {
+      this.#queries.set(query.queryHash, query)
+
+      // @todo use observer
+    }
+  }
+
+  get<
+    TQueryFnData = unknown,
+    TError = DefaultError,
+    TData = TQueryFnData,
+    TQueryKey extends QueryKey = QueryKey
+  >(
+    queryHash: string
+  ): Query<TQueryFnData, TError, TData, TQueryKey> | undefined {
+    return this.#queries.get(queryHash) as
+      | Query<TQueryFnData, TError, TData, TQueryKey>
+      | undefined
+  }
+
+  find<TQueryFnData = unknown, TError = DefaultError, TData = TQueryFnData>(
+    filters: WithRequired<QueryFilters, "queryKey">
+  ): Query<TQueryFnData, TError, TData> | undefined {
+    const defaultedFilters = { exact: true, ...filters }
+
+    return this.getAll().find((query) =>
+      matchQuery(defaultedFilters, query)
+    ) as Query<TQueryFnData, TError, TData> | undefined
+  }
 
   clear() {}
 }
