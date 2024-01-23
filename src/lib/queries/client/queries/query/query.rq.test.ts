@@ -696,21 +696,21 @@ describe("query", () => {
   //     notifySpy.mockRestore()
   //   })
 
-  //   test("should not change state on invalidate() if already invalidated", async () => {
-  //     const key = queryKey()
+  test("should not change state on invalidate() if already invalidated", async () => {
+    const key = queryKey()
 
-  //     await queryClient.prefetchQuery({ queryKey: key, queryFn: () => "data" })
-  //     const query = queryCache.find({ queryKey: key })!
+    await queryClient.prefetchQuery({ queryKey: key, queryFn: () => "data" })
+    const query = queryCache.find({ queryKey: key })!
 
-  //     query.invalidate()
-  //     expect(query.state.isInvalidated).toBeTruthy()
+    query.invalidate()
+    expect(query.state.isInvalidated).toBeTruthy()
 
-  //     const previousState = query.state
+    const previousState = query.state
 
-  //     query.invalidate()
+    query.invalidate()
 
-  //     expect(query.state).toBe(previousState)
-  //   })
+    expect(query.state).toBe(previousState)
+  })
 
   //   test('fetch should not dispatch "fetch" query is already fetching', async () => {
   //     const key = queryKey()

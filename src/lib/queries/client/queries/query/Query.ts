@@ -62,6 +62,7 @@ export class Query<
   // @todo to share with mutation
   protected executeSubject = new Subject<void>()
   protected cancelSubject = new Subject<void>()
+  protected invalidatedSubject = new Subject<void>()
   protected resetSubject = new Subject<void>()
   protected destroySubject = new Subject<void>()
   protected state$: Observable<typeof this.state>
@@ -79,6 +80,14 @@ export class Query<
     this.gcTime = this.updateGcTime(this.options.gcTime)
 
     this.state$ = merge(
+      this.invalidatedSubject.pipe(
+        map(
+          () =>
+            ({
+              isInvalidated: true
+            }) satisfies Partial<QueryState<TData, TError>>
+        )
+      ),
       this.resetSubject.pipe(map(() => this.#initialState)),
       this.cancelSubject.pipe(
         filter(
@@ -213,6 +222,12 @@ export class Query<
           }
         })
     })
+  }
+
+  invalidate(): void {
+    if (!this.state.isInvalidated) {
+      this.invalidatedSubject.next()
+    }
   }
 
   async cancel(options?: CancelOptions): Promise<void> {
