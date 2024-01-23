@@ -8,6 +8,7 @@ import { type QueryCache } from "../cache/QueryCache"
 import { type QueryClient } from "../../QueryClient"
 import { mockVisibilityState, queryKey } from "../../tests/utils"
 import { isCancelledError } from "../retryer/utils"
+import { focusManager } from "../../focusManager"
 
 describe("query", () => {
   let queryClient: QueryClient
@@ -44,52 +45,54 @@ describe("query", () => {
     expect(query.gcTime).toBe(200)
   })
 
-  // it("should continue retry after focus regain and resolve all promises", async () => {
-  //   const key = queryKey()
+  it("should continue retry after focus regain and resolve all promises", async () => {
+    const key = queryKey()
 
-  //   // make page unfocused
-  //   const visibilityMock = mockVisibilityState("hidden")
+    // make page unfocused
+    const visibilityMock = mockVisibilityState("hidden")
+    focusManager.refresh()
 
-  //   let count = 0
-  //   let result
+    let count = 0
+    let result
 
-  //   const promise = queryClient.fetchQuery({
-  //     queryKey: key,
-  //     queryFn: async () => {
-  //       count++
+    const promise = queryClient.fetchQuery({
+      queryKey: key,
+      queryFn: async () => {
+        count++
 
-  //       if (count === 3) {
-  //         return `data${count}`
-  //       }
+        if (count === 3) {
+          return `data${count}`
+        }
 
-  //       throw new Error(`error${count}`)
-  //     },
-  //     retry: 3,
-  //     retryDelay: 1
-  //   })
+        throw new Error(`error${count}`)
+      },
+      retry: 3,
+      retryDelay: 1
+    })
 
-  //   promise.then((data) => {
-  //     result = data
-  //   })
+    promise.then((data) => {
+      result = data
+    })
 
-  //   // Check if we do not have a result
-  //   expect(result).toBeUndefined()
+    // Check if we do not have a result
+    expect(result).toBeUndefined()
 
-  //   // Check if the query is really paused
-  //   await sleep(50)
-  //   expect(result).toBeUndefined()
+    // Check if the query is really paused
+    await sleep(50)
+    expect(result).toBeUndefined()
 
-  //   // Reset visibilityState to original value
-  //   visibilityMock.mockRestore()
-  //   window.dispatchEvent(new Event("visibilitychange"))
+    // // Reset visibilityState to original value
+    visibilityMock.mockRestore()
+    window.dispatchEvent(new Event("visibilitychange"))
 
-  //   // There should not be a result yet
-  //   expect(result).toBeUndefined()
+    // There should not be a result yet
+    expect(result).toBeUndefined()
 
-  //   // By now we should have a value
-  //   await sleep(50)
-  //   expect(result).toBe("data3")
-  // })
+    // By now we should have a value
+    await sleep(50)
+
+    expect(result).toBe("data3")
+  })
 
   //   it("should continue retry after reconnect and resolve all promises", async () => {
   //     const key = queryKey()

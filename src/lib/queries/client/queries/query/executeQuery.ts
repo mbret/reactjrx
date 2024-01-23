@@ -2,10 +2,12 @@ import { type Observable, of, switchMap, catchError, merge, tap } from "rxjs"
 import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
 import { functionAsObservable } from "../../utils/functionAsObservable"
-import { type QueryOptions } from "../types"
 import { type QueryState } from "./types"
 import { retryOnError } from "../../operators"
 import { getDefaultState } from "./getDefaultState"
+import { delayWhenVisibilityChange } from "./delayWhenVisibilityChange"
+import { focusManager } from "../../focusManager"
+import { type QueryOptions } from "../types"
 
 export const executeQuery = <
   TQueryFnData = unknown,
@@ -40,6 +42,7 @@ export const executeQuery = <
       error: defaultState.error
     } satisfies Result),
     fn$.pipe(
+      delayWhenVisibilityChange(focusManager),
       retryOnError<TQueryFnData>({
         retry: 3,
         retryDelay: 10
