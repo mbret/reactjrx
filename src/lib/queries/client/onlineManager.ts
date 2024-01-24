@@ -1,25 +1,34 @@
-import { fromEvent, map, merge, shareReplay, startWith, tap } from "rxjs"
+import { BehaviorSubject, filter, first, fromEvent, map, merge } from "rxjs"
+import { emitToSubject } from "../../utils/operators/emitToSubject"
 
 export class OnlineManager {
-  public readonly online$ = merge(
-    fromEvent(window, "offline").pipe(map(() => false)),
-    fromEvent(window, "online").pipe(map(() => true))
-  ).pipe(startWith(true), shareReplay(1))
+  protected isOnlineSubject = new BehaviorSubject(true)
 
-  #online = true
+  public readonly online$ = this.isOnlineSubject.asObservable()
+  public readonly backToOnline$ = this.online$.pipe(
+    filter((isOnline) => isOnline),
+    first()
+  )
 
   constructor() {
-    this.online$
-      .pipe(
-        tap((value) => {
-          this.#online = value
-        })
-      )
+    merge(
+      fromEvent(window, "offline").pipe(map(() => false)),
+      fromEvent(window, "online").pipe(map(() => true))
+    )
+      .pipe(emitToSubject(this.isOnlineSubject))
       .subscribe()
   }
 
   isOnline() {
-    return this.#online
+    return this.isOnlineSubject.getValue()
+  }
+
+  setOnline(online: boolean) {
+    const changed = this.isOnlineSubject.getValue() !== online
+
+    if (changed) {
+      this.isOnlineSubject.next(online)
+    }
   }
 }
 

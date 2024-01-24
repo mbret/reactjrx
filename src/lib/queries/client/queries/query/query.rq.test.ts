@@ -9,6 +9,7 @@ import { type QueryClient } from "../../QueryClient"
 import { mockVisibilityState, queryKey } from "../../tests/utils"
 import { isCancelledError } from "../retryer/utils"
 import { focusManager } from "../../focusManager"
+import { onlineManager } from "../../onlineManager"
 
 describe("query", () => {
   let queryClient: QueryClient
@@ -94,50 +95,50 @@ describe("query", () => {
     expect(result).toBe("data3")
   })
 
-  //   it("should continue retry after reconnect and resolve all promises", async () => {
-  //     const key = queryKey()
+  it("should continue retry after reconnect and resolve all promises", async () => {
+    const key = queryKey()
 
-  //     onlineManager.setOnline(false)
+    onlineManager.setOnline(false)
 
-  //     let count = 0
-  //     let result
+    let count = 0
+    let result
 
-  //     const promise = queryClient.fetchQuery({
-  //       queryKey: key,
-  //       queryFn: async () => {
-  //         count++
+    const promise = queryClient.fetchQuery({
+      queryKey: key,
+      queryFn: async () => {
+        count++
 
-  //         if (count === 3) {
-  //           return `data${count}`
-  //         }
+        if (count === 3) {
+          return `data${count}`
+        }
 
-  //         throw new Error(`error${count}`)
-  //       },
-  //       retry: 3,
-  //       retryDelay: 1
-  //     })
+        throw new Error(`error${count}`)
+      },
+      retry: 3,
+      retryDelay: 1
+    })
 
-  //     promise.then((data) => {
-  //       result = data
-  //     })
+    promise.then((data) => {
+      result = data
+    })
 
-  //     // Check if we do not have a result
-  //     expect(result).toBeUndefined()
+    // Check if we do not have a result
+    expect(result).toBeUndefined()
 
-  //     // Check if the query is really paused
-  //     await sleep(50)
-  //     expect(result).toBeUndefined()
+    // Check if the query is really paused
+    await sleep(50)
+    expect(result).toBeUndefined()
 
-  //     // Reset navigator to original value
-  //     onlineManager.setOnline(true)
+    // Reset navigator to original value
+    onlineManager.setOnline(true)
 
-  //     // There should not be a result yet
-  //     expect(result).toBeUndefined()
+    // There should not be a result yet
+    expect(result).toBeUndefined()
 
-  //     // Promise should eventually be resolved
-  //     await promise
-  //     expect(result).toBe("data3")
-  //   })
+    // // Promise should eventually be resolved
+    await promise
+    expect(result).toBe("data3")
+  })
 
   //   it("should throw a CancelledError when a paused query is cancelled", async () => {
   //     const key = queryKey()

@@ -8,6 +8,7 @@ import { getDefaultState } from "./getDefaultState"
 import { delayWhenVisibilityChange } from "./delayWhenVisibilityChange"
 import { focusManager } from "../../focusManager"
 import { type QueryOptions } from "../types"
+import { delayWhenNetworkOnline } from "./delayWhenNetworkOnline"
 
 export const executeQuery = <
   TQueryFnData = unknown,
@@ -43,6 +44,7 @@ export const executeQuery = <
     } satisfies Result),
     fn$.pipe(
       delayWhenVisibilityChange(focusManager),
+      delayWhenNetworkOnline(),
       retryOnError<TQueryFnData>({
         retry: 3,
         retryDelay: 10
