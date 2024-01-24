@@ -594,23 +594,23 @@ describe("query", () => {
     expect(query.options.meta).toBe(meta)
   })
 
-  //   test("updates meta object on change", async () => {
-  //     const meta = {
-  //       it: "works"
-  //     }
+  test("updates meta object on change", async () => {
+    const meta = {
+      it: "works"
+    }
 
-  //     const key = queryKey()
-  //     const queryFn = () => "data"
+    const key = queryKey()
+    const queryFn = () => "data"
 
-  //     await queryClient.prefetchQuery({ queryKey: key, queryFn, meta })
+    await queryClient.prefetchQuery({ queryKey: key, queryFn, meta })
 
-  //     await queryClient.prefetchQuery({ queryKey: key, queryFn, meta: undefined })
+    await queryClient.prefetchQuery({ queryKey: key, queryFn, meta: undefined })
 
-  //     const query = queryCache.find({ queryKey: key })!
+    const query = queryCache.find({ queryKey: key })!
 
-  //     expect(query.meta).toBeUndefined()
-  //     expect(query.options.meta).toBeUndefined()
-  //   })
+    expect(query.meta).toBeUndefined()
+    expect(query.options.meta).toBeUndefined()
+  })
 
   //   test("can use default meta", async () => {
   //     const meta = {
