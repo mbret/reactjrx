@@ -550,30 +550,30 @@ describe("query", () => {
     expect(queryCache.find({ queryKey: key })).toBeDefined()
   })
 
-  //   test("should return proper count of observers", async () => {
-  //     const key = queryKey()
-  //     const options = { queryKey: key, queryFn: async () => "data" }
-  //     const observer = new QueryObserver(queryClient, options)
-  //     const observer2 = new QueryObserver(queryClient, options)
-  //     const observer3 = new QueryObserver(queryClient, options)
-  //     const query = queryCache.find({ queryKey: key })
+  test("should return proper count of observers", async () => {
+    const key = queryKey()
+    const options = { queryKey: key, queryFn: async () => "data" }
+    const observer = new QueryObserver(queryClient, options)
+    const observer2 = new QueryObserver(queryClient, options)
+    const observer3 = new QueryObserver(queryClient, options)
+    const query = queryCache.find({ queryKey: key })
 
-  //     expect(query?.getObserversCount()).toEqual(0)
+    expect(query?.getObserversCount()).toEqual(0)
 
-  //     const unsubscribe1 = observer.subscribe(() => undefined)
-  //     const unsubscribe2 = observer2.subscribe(() => undefined)
-  //     const unsubscribe3 = observer3.subscribe(() => undefined)
-  //     expect(query?.getObserversCount()).toEqual(3)
+    const unsubscribe1 = observer.subscribe(() => undefined)
+    const unsubscribe2 = observer2.subscribe(() => undefined)
+    const unsubscribe3 = observer3.subscribe(() => undefined)
+    expect(query?.getObserversCount()).toEqual(3)
 
-  //     unsubscribe3()
-  //     expect(query?.getObserversCount()).toEqual(2)
+    unsubscribe3()
+    expect(query?.getObserversCount()).toEqual(2)
 
-  //     unsubscribe2()
-  //     expect(query?.getObserversCount()).toEqual(1)
+    unsubscribe2()
+    expect(query?.getObserversCount()).toEqual(1)
 
-  //     unsubscribe1()
-  //     expect(query?.getObserversCount()).toEqual(0)
-  //   })
+    unsubscribe1()
+    expect(query?.getObserversCount()).toEqual(0)
+  })
 
   //   test("stores meta object in query", async () => {
   //     const meta = {

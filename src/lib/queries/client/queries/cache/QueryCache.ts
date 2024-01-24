@@ -253,6 +253,7 @@ export class QueryCache {
         state,
         defaultOptions: client.getQueryDefaults(queryKey)
       })
+
       this.add(query)
     }
 
@@ -263,11 +264,11 @@ export class QueryCache {
     if (!this.#queries.has(query.queryHash)) {
       this.#queries.set(query.queryHash, query)
 
-      // @todo use observer
-
       const noMoreObservers$ = query.observerCount$.pipe(
-        tap((count) => { console.log("observerCount", count); }),
-        filter((count) => count <= 1),
+        tap((count) => {
+          console.log("observerCount", count)
+        }),
+        filter((count) => count < 1),
         take(1)
       )
 

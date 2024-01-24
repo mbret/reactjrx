@@ -68,6 +68,8 @@ export class Query<
   protected resetSubject = new Subject<void>()
   protected destroySubject = new Subject<void>()
   protected observerCount = new BehaviorSubject(0)
+  protected observedState$: Observable<typeof this.state>
+
   public observerCount$ = this.observerCount.asObservable()
   public state$: Observable<typeof this.state>
 
@@ -129,14 +131,17 @@ export class Query<
         this.state = state
       }),
       takeUntil(this.destroySubject),
-      shareReplay({ bufferSize: 1, refCount: false }),
+      shareReplay({ bufferSize: 1, refCount: false })
+      // trackSubscriptions((count) => {
+      //   this.observerCount.next(count)
+      // })
+    )
+
+    this.observedState$ = this.state$.pipe(
       trackSubscriptions((count) => {
         this.observerCount.next(count)
       })
     )
-
-    // @todo maybe remove
-    // this.state$.subscribe()
   }
 
   #setOptions(options?: QueryOptions<TQueryFnData, TError, TData, TQueryKey>) {
@@ -145,6 +150,14 @@ export class Query<
     this.updateGcTime(this.options.gcTime)
 
     return this.options
+  }
+
+  observe() {
+    return this.observedState$
+  }
+
+  getObserversCount() {
+    return this.observerCount.getValue()
   }
 
   protected updateGcTime(newGcTime: number | undefined) {
