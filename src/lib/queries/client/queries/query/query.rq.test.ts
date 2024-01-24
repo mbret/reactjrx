@@ -575,24 +575,24 @@ describe("query", () => {
     expect(query?.getObserversCount()).toEqual(0)
   })
 
-  //   test("stores meta object in query", async () => {
-  //     const meta = {
-  //       it: "works"
-  //     }
+  test("stores meta object in query", async () => {
+    const meta = {
+      it: "works"
+    }
 
-  //     const key = queryKey()
+    const key = queryKey()
 
-  //     await queryClient.prefetchQuery({
-  //       queryKey: key,
-  //       queryFn: () => "data",
-  //       meta
-  //     })
+    await queryClient.prefetchQuery({
+      queryKey: key,
+      queryFn: () => "data",
+      meta
+    })
 
-  //     const query = queryCache.find({ queryKey: key })!
+    const query = queryCache.find({ queryKey: key })!
 
-  //     expect(query.meta).toBe(meta)
-  //     expect(query.options.meta).toBe(meta)
-  //   })
+    expect(query.meta).toBe(meta)
+    expect(query.options.meta).toBe(meta)
+  })
 
   //   test("updates meta object on change", async () => {
   //     const meta = {

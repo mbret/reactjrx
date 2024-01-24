@@ -20,7 +20,7 @@ import { type QueryCache } from "../cache/QueryCache"
 import { type SetDataOptions, type QueryOptions } from "../types"
 import { replaceData, timeUntilStale } from "../utils"
 import { getDefaultState } from "./getDefaultState"
-import { type FetchOptions, type QueryState } from "./types"
+import { type QueryMeta, type FetchOptions, type QueryState } from "./types"
 import { executeQuery } from "./executeQuery"
 import { type CancelOptions } from "../retryer/types"
 import { CancelledError } from "../retryer/CancelledError"
@@ -150,6 +150,10 @@ export class Query<
     this.updateGcTime(this.options.gcTime)
 
     return this.options
+  }
+
+  get meta(): QueryMeta | undefined {
+    return this.options.meta
   }
 
   observe() {
