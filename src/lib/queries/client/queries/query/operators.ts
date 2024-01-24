@@ -1,6 +1,6 @@
 import { type QueryState } from "@tanstack/react-query"
 import { type DefaultError } from "../../types"
-import { type Observable, scan } from "rxjs"
+import { type Observable, scan, map } from "rxjs"
 
 export const mergeResults =
   <TQueryFnData = unknown, TError = DefaultError, TData = TQueryFnData>(
@@ -19,3 +19,17 @@ export const mergeResults =
         }
       }, initialState)
     )
+
+export const isQueryFinished = <
+  TQueryFnData = unknown,
+  TError = DefaultError,
+  TData = TQueryFnData
+>(
+  source: Observable<Partial<QueryState<TData, TError>>>
+) =>
+  source.pipe(
+    map(
+      ({ status, fetchStatus }) =>
+        fetchStatus === "idle" && (status === "success" || status === "error")
+    )
+  )

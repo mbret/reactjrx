@@ -47,6 +47,7 @@ import { type QueryClient } from "../../QueryClient"
 import { type QueryState } from "../query/types"
 import { nanoid } from "../../keys/nanoid"
 import { type WithRequired } from "../../../../utils/types"
+import { isQueryFinished } from "../query/operators"
 
 export const createClient = () => {
   const queryStore = createQueryStore()
@@ -263,6 +264,11 @@ export class QueryCache {
 
       // @todo use observer
 
+      const noMoreObservers$ = query.observerCount$.pipe(
+        filter((count) => count <= 1),
+        take(1)
+      )
+
       /**
        * @important
        * unsubscribe automatically when mutation is done and gc collected
@@ -273,17 +279,17 @@ export class QueryCache {
            * Once a mutation is finished and there are no more observers than us
            * we start the process of cleaning it up based on gc settings
            */
-          filter(({ status }) => status === "success" || status === "error"),
-          switchMap(() =>
-            query.observerCount$.pipe(
-              filter((count) => count <= 1),
-              take(1)
-            )
+          isQueryFinished,
+          switchMap((isFinished) =>
+            !isFinished
+              ? NEVER
+              : noMoreObservers$.pipe(
+                  // defaults to 5mn
+                  switchMap(() => {
+                    return timer(query.options.gcTime ?? 5 * 60 * 1000)
+                  })
+                )
           ),
-          // defaults to 5mn
-          switchMap(() => {
-            return timer(query.options.gcTime ?? 5 * 60 * 1000)
-          }),
           take(1)
         )
         .subscribe({

@@ -490,46 +490,46 @@ describe("query", () => {
     expect(count).toBe(1)
   })
 
-  //   test("should be garbage collected when unsubscribed to", async () => {
-  //     const key = queryKey()
-  //     const observer = new QueryObserver(queryClient, {
-  //       queryKey: key,
-  //       queryFn: async () => "data",
-  //       gcTime: 0
-  //     })
-  //     expect(queryCache.find({ queryKey: key })).toBeDefined()
-  //     const unsubscribe = observer.subscribe(() => undefined)
-  //     expect(queryCache.find({ queryKey: key })).toBeDefined()
-  //     unsubscribe()
-  //     await waitFor(() =>
-  //       { expect(queryCache.find({ queryKey: key })).toBeUndefined(); }
-  //     )
-  //   })
+  test("should be garbage collected when unsubscribed to", async () => {
+    const key = queryKey()
+    const observer = new QueryObserver(queryClient, {
+      queryKey: key,
+      queryFn: async () => "data",
+      gcTime: 0
+    })
+    expect(queryCache.find({ queryKey: key })).toBeDefined()
+    const unsubscribe = observer.subscribe(() => undefined)
+    expect(queryCache.find({ queryKey: key })).toBeDefined()
+    unsubscribe()
+    await waitFor(() => {
+      expect(queryCache.find({ queryKey: key })).toBeUndefined()
+    })
+  })
 
-  //   test("should be garbage collected later when unsubscribed and query is fetching", async () => {
-  //     const key = queryKey()
-  //     const observer = new QueryObserver(queryClient, {
-  //       queryKey: key,
-  //       queryFn: async () => {
-  //         await sleep(20)
-  //         return "data"
-  //       },
-  //       gcTime: 10
-  //     })
-  //     const unsubscribe = observer.subscribe(() => undefined)
-  //     await sleep(20)
-  //     expect(queryCache.find({ queryKey: key })).toBeDefined()
-  //     observer.refetch()
-  //     unsubscribe()
-  //     await sleep(10)
-  //     // unsubscribe should not remove even though gcTime has elapsed b/c query is still fetching
-  //     expect(queryCache.find({ queryKey: key })).toBeDefined()
-  //     await sleep(10)
-  //     // should be removed after an additional staleTime wait
-  //     await waitFor(() =>
-  //       { expect(queryCache.find({ queryKey: key })).toBeUndefined(); }
-  //     )
-  //   })
+  test("should be garbage collected later when unsubscribed and query is fetching", async () => {
+    const key = queryKey()
+    const observer = new QueryObserver(queryClient, {
+      queryKey: key,
+      queryFn: async () => {
+        await sleep(20)
+        return "data"
+      },
+      gcTime: 10
+    })
+    const unsubscribe = observer.subscribe(() => undefined)
+    await sleep(20)
+    expect(queryCache.find({ queryKey: key })).toBeDefined()
+    observer.refetch()
+    unsubscribe()
+    await sleep(10)
+    // unsubscribe should not remove even though gcTime has elapsed b/c query is still fetching
+    expect(queryCache.find({ queryKey: key })).toBeDefined()
+    await sleep(10)
+    // // should be removed after an additional staleTime wait
+    await waitFor(() => {
+      expect(queryCache.find({ queryKey: key })).toBeUndefined()
+    })
+  })
 
   //   test("should not be garbage collected unless there are no subscribers", async () => {
   //     const key = queryKey()

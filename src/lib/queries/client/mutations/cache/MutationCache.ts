@@ -119,11 +119,7 @@ export class MutationCache {
            * - mutation is finished (success /error)
            * - this subscription complete (external remove)
            */
-          this.mutationsSubject.next(
-            this.mutationsSubject
-              .getValue()
-              .filter((toRemove) => mutation !== toRemove)
-          )
+          this.remove(mutation)
         }
       })
 
@@ -142,6 +138,12 @@ export class MutationCache {
     })
 
     toRemove?.destroy()
+
+    this.mutationsSubject.next(
+      this.mutationsSubject
+        .getValue()
+        .filter((toRemove) => mutationToRemove !== toRemove)
+    )
   }
 
   find<
