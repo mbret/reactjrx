@@ -127,6 +127,10 @@ export class QueryObserver<
   subscribe(listener: () => void) {
     this.fetch().catch(noop)
 
-    return () => {}
+    const sub = this.#currentQuery.state$.subscribe()
+
+    return () => {
+      sub.unsubscribe()
+    }
   }
 }

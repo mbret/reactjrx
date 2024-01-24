@@ -9,6 +9,17 @@ import {
   type QueryBehavior
 } from "./query/types"
 
+export declare const dataTagSymbol: unique symbol
+export type DataTag<Type, Value> = Type & {
+  [dataTagSymbol]: Value
+}
+
+export type Updater<TInput, TOutput> = TOutput | ((input: TInput) => TOutput)
+
+export interface SetDataOptions {
+  updatedAt?: number
+}
+
 export type QueryStatus = "pending" | "error" | "success"
 export type FetchStatus = "fetching" | "paused" | "idle"
 export type NetworkMode = "online" | "always" | "offlineFirst"

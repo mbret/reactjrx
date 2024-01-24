@@ -6,14 +6,21 @@ import { type MutationObserverOptions } from "./mutations/observers/types"
 import { compareKeys, partialMatchKey } from "./keys/compareKeys"
 import { type MutationOptions } from "./mutations/mutation/types"
 import { QueryCache } from "./queries/cache/QueryCache"
-import { type FetchQueryOptions, type QueryFilters } from "./queries/types"
+import {
+  type DataTag,
+  type Updater,
+  type FetchQueryOptions,
+  type QueryFilters,
+  type SetDataOptions
+} from "./queries/types"
 import { type DefaultError } from "./types"
 import { type QueryKey } from "./keys/types"
 import {
   type DefaultedQueryObserverOptions,
   type QueryObserverOptions
 } from "./queries/observer/types"
-import { hashQueryKeyByOptions } from "./queries/utils"
+import { functionalUpdate, hashQueryKeyByOptions } from "./queries/utils"
+import { type NoInfer } from "../../utils/types"
 
 export interface DefaultOptions<TError = DefaultError> {
   queries?: Omit<QueryObserverOptions<unknown, TError>, "suspense">
@@ -190,6 +197,44 @@ export class QueryClient {
     options: FetchQueryOptions<TQueryFnData, TError, TData, TQueryKey>
   ): Promise<void> {
     await this.fetchQuery(options).then(noop).catch(noop)
+  }
+
+  setQueryData<
+    TQueryFnData = unknown,
+    TaggedQueryKey extends QueryKey = QueryKey,
+    TInferredQueryFnData = TaggedQueryKey extends DataTag<
+      unknown,
+      infer TaggedValue
+    >
+      ? TaggedValue
+      : TQueryFnData
+  >(
+    queryKey: TaggedQueryKey,
+    updater: Updater<
+      NoInfer<TInferredQueryFnData> | undefined,
+      NoInfer<TInferredQueryFnData> | undefined
+    >,
+    options?: SetDataOptions
+  ): TInferredQueryFnData | undefined {
+    const query = this.#queryCache.find<TInferredQueryFnData>({ queryKey })
+    const prevData = query?.state.data
+    const data = functionalUpdate(updater, prevData)
+
+    if (typeof data === "undefined") {
+      return undefined
+    }
+
+    const defaultedOptions = this.defaultQueryOptions<
+      any,
+      any,
+      unknown,
+      any,
+      QueryKey
+    >({ queryKey })
+
+    return this.#queryCache
+      .build(this, defaultedOptions)
+      .setData(data, { ...options, manual: true })
   }
 
   getMutationDefaults(

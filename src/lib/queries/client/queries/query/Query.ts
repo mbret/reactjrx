@@ -17,8 +17,8 @@ import { isServer } from "../../../../utils/isServer"
 import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
 import { type QueryCache } from "../cache/QueryCache"
-import { type QueryOptions } from "../types"
-import { timeUntilStale } from "../utils"
+import { type SetDataOptions, type QueryOptions } from "../types"
+import { replaceData, timeUntilStale } from "../utils"
 import { getDefaultState } from "./getDefaultState"
 import { type FetchOptions, type QueryState } from "./types"
 import { executeQuery } from "./executeQuery"
@@ -229,6 +229,15 @@ export class Query<
           }
         })
     })
+  }
+
+  setData(
+    newData: TData,
+    options?: SetDataOptions & { manual: boolean }
+  ): TData {
+    const data = replaceData(this.state.data, newData, this.options)
+
+    return data
   }
 
   invalidate(): void {

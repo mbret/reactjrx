@@ -14,7 +14,8 @@ import {
   mergeMap,
   share,
   take,
-  timer
+  timer,
+  tap
 } from "rxjs"
 import { createCacheClient } from "../../oldqueries/cache/cacheClient"
 import { createInvalidationClient } from "../../oldqueries/invalidation/invalidationClient"
@@ -265,6 +266,7 @@ export class QueryCache {
       // @todo use observer
 
       const noMoreObservers$ = query.observerCount$.pipe(
+        tap((count) => { console.log("observerCount", count); }),
         filter((count) => count <= 1),
         take(1)
       )
@@ -280,8 +282,9 @@ export class QueryCache {
            * we start the process of cleaning it up based on gc settings
            */
           isQueryFinished,
-          switchMap((isFinished) =>
-            !isFinished
+          switchMap((isFinished) => {
+            console.log("FINISHED", isFinished)
+            return !isFinished
               ? NEVER
               : noMoreObservers$.pipe(
                   // defaults to 5mn
@@ -289,7 +292,7 @@ export class QueryCache {
                     return timer(query.options.gcTime ?? 5 * 60 * 1000)
                   })
                 )
-          ),
+          }),
           take(1)
         )
         .subscribe({

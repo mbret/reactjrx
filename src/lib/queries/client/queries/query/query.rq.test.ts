@@ -531,24 +531,24 @@ describe("query", () => {
     })
   })
 
-  //   test("should not be garbage collected unless there are no subscribers", async () => {
-  //     const key = queryKey()
-  //     const observer = new QueryObserver(queryClient, {
-  //       queryKey: key,
-  //       queryFn: async () => "data",
-  //       gcTime: 0
-  //     })
-  //     expect(queryCache.find({ queryKey: key })).toBeDefined()
-  //     const unsubscribe = observer.subscribe(() => undefined)
-  //     await sleep(100)
-  //     expect(queryCache.find({ queryKey: key })).toBeDefined()
-  //     unsubscribe()
-  //     await sleep(100)
-  //     expect(queryCache.find({ queryKey: key })).toBeUndefined()
-  //     queryClient.setQueryData(key, "data")
-  //     await sleep(100)
-  //     expect(queryCache.find({ queryKey: key })).toBeDefined()
-  //   })
+  test("should not be garbage collected unless there are no subscribers", async () => {
+    const key = queryKey()
+    const observer = new QueryObserver(queryClient, {
+      queryKey: key,
+      queryFn: async () => "data",
+      gcTime: 0
+    })
+    expect(queryCache.find({ queryKey: key })).toBeDefined()
+    const unsubscribe = observer.subscribe(() => undefined)
+    await sleep(100)
+    expect(queryCache.find({ queryKey: key })).toBeDefined()
+    unsubscribe()
+    await sleep(100)
+    expect(queryCache.find({ queryKey: key })).toBeUndefined()
+    queryClient.setQueryData(key, "data")
+    await sleep(100)
+    expect(queryCache.find({ queryKey: key })).toBeDefined()
+  })
 
   //   test("should return proper count of observers", async () => {
   //     const key = queryKey()

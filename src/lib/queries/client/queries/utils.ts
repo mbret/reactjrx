@@ -1,8 +1,9 @@
+import { replaceEqualDeep } from "../../../utils/replaceEqualDeep"
 import { compareKeys } from "../keys/compareKeys"
 import { hashKey } from "../keys/serializeKey"
 import { type QueryKey } from "../keys/types"
 import { type Query } from "./query/Query"
-import { type QueryOptions, type QueryFilters } from "./types"
+import { type QueryOptions, type QueryFilters, type Updater } from "./types"
 
 export function hashQueryKeyByOptions<TQueryKey extends QueryKey = QueryKey>(
   queryKey: TQueryKey,
@@ -65,4 +66,26 @@ export function matchQuery(
 
 export function timeUntilStale(updatedAt: number, staleTime?: number): number {
   return Math.max(updatedAt + (staleTime ?? 0) - Date.now(), 0)
+}
+
+export function functionalUpdate<TInput, TOutput>(
+  updater: Updater<TInput, TOutput>,
+  input: TInput
+): TOutput {
+  return typeof updater === "function"
+    ? (updater as (_: TInput) => TOutput)(input)
+    : updater
+}
+
+export function replaceData<
+  TData,
+  TOptions extends QueryOptions<any, any, any, any>
+>(prevData: TData | undefined, data: TData, options: TOptions): TData {
+  if (typeof options.structuralSharing === "function") {
+    return options.structuralSharing(prevData, data)
+  } else if (options.structuralSharing !== false) {
+    // Structurally share data between prev and new data if needed
+    return replaceEqualDeep(prevData, data)
+  }
+  return data
 }
