@@ -140,48 +140,48 @@ describe("query", () => {
     expect(result).toBe("data3")
   })
 
-  //   it("should throw a CancelledError when a paused query is cancelled", async () => {
-  //     const key = queryKey()
+  it("should throw a CancelledError when a paused query is cancelled", async () => {
+    const key = queryKey()
 
-  //     // make page unfocused
-  //     const visibilityMock = mockVisibilityState("hidden")
+    // make page unfocused
+    const visibilityMock = mockVisibilityState("hidden")
 
-  //     let count = 0
-  //     let result
+    let count = 0
+    let result
 
-  //     const promise = queryClient.fetchQuery({
-  //       queryKey: key,
-  //       queryFn: async (): Promise<unknown> => {
-  //         count++
-  //         throw new Error(`error${count}`)
-  //       },
-  //       retry: 3,
-  //       retryDelay: 1
-  //     })
+    const promise = queryClient.fetchQuery({
+      queryKey: key,
+      queryFn: async (): Promise<unknown> => {
+        count++
+        throw new Error(`error${count}`)
+      },
+      retry: 3,
+      retryDelay: 1
+    })
 
-  //     promise.catch((data) => {
-  //       result = data
-  //     })
+    promise.catch((data) => {
+      result = data
+    })
 
-  //     const query = queryCache.find({ queryKey: key })!
+    const query = queryCache.find({ queryKey: key })!
 
-  //     // Check if the query is really paused
-  //     await sleep(50)
-  //     expect(result).toBeUndefined()
+    // Check if the query is really paused
+    await sleep(50)
+    expect(result).toBeUndefined()
 
-  //     // Cancel query
-  //     query.cancel()
+    // Cancel query
+    query.cancel()
 
-  //     // Check if the error is set to the cancelled error
-  //     try {
-  //       await promise
-  //     } catch {
-  //       expect(isCancelledError(result)).toBe(true)
-  //     } finally {
-  //       // Reset visibilityState to original value
-  //       visibilityMock.mockRestore()
-  //     }
-  //   })
+    // Check if the error is set to the cancelled error
+    try {
+      await promise
+    } catch {
+      expect(isCancelledError(result)).toBe(true)
+    } finally {
+      // Reset visibilityState to original value
+      visibilityMock.mockRestore()
+    }
+  })
 
   //   test("should provide context to queryFn", async () => {
   //     const key = queryKey()
