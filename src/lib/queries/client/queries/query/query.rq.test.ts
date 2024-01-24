@@ -10,6 +10,7 @@ import { mockVisibilityState, queryKey } from "../../tests/utils"
 import { isCancelledError } from "../retryer/utils"
 import { focusManager } from "../../focusManager"
 import { onlineManager } from "../../onlineManager"
+import { type QueryFunctionContext } from "./types"
 
 describe("query", () => {
   let queryClient: QueryClient
@@ -183,28 +184,28 @@ describe("query", () => {
     }
   })
 
-  //   test("should provide context to queryFn", async () => {
-  //     const key = queryKey()
+  test("should provide context to queryFn", async () => {
+    const key = queryKey()
 
-  //     const queryFn = vi
-  //       .fn<
-  //         [QueryFunctionContext<ReturnType<typeof queryKey>>],
-  //         Promise<"data">
-  //       >()
-  //       .mockResolvedValue("data")
+    const queryFn = vi
+      .fn<
+        [QueryFunctionContext<ReturnType<typeof queryKey>>],
+        Promise<"data">
+      >()
+      .mockResolvedValue("data")
 
-  //     queryClient.prefetchQuery({ queryKey: key, queryFn })
+    queryClient.prefetchQuery({ queryKey: key, queryFn })
 
-  //     await sleep(10)
+    await sleep(10)
 
-  //     expect(queryFn).toHaveBeenCalledTimes(1)
-  //     const args = queryFn.mock.calls[0]![0]
-  //     expect(args).toBeDefined()
-  //     // @ts-expect-error page param should be undefined
-  //     expect(args.pageParam).toBeUndefined()
-  //     expect(args.queryKey).toEqual(key)
-  //     expect(args.signal).toBeInstanceOf(AbortSignal)
-  //   })
+    expect(queryFn).toHaveBeenCalledTimes(1)
+    const args = queryFn.mock.calls[0]![0]
+    expect(args).toBeDefined()
+    // @ts-expect-error page param should be undefined
+    expect(args.pageParam).toBeUndefined()
+    expect(args.queryKey).toEqual(key)
+    expect(args.signal).toBeInstanceOf(AbortSignal)
+  })
 
   //   test("should continue if cancellation is not supported and signal is not consumed", async () => {
   //     const key = queryKey()

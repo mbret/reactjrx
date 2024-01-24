@@ -104,7 +104,7 @@ export class Query<
       ),
       this.executeSubject.pipe(
         mergeMap(() =>
-          executeQuery(this.options).pipe(
+          executeQuery({ ...this.options, queryKey: this.queryKey }).pipe(
             tap((t) => {
               console.log("executeSubject", t)
             }),

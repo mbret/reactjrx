@@ -1,4 +1,4 @@
-import { type Observable, of, switchMap, catchError, merge, tap } from "rxjs"
+import { type Observable, of, switchMap, catchError, merge } from "rxjs"
 import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
 import { functionAsObservable } from "../../utils/functionAsObservable"
@@ -16,7 +16,9 @@ export const executeQuery = <
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey
 >(
-  options: QueryOptions<TQueryFnData, TError, TData, TQueryKey>
+  options: QueryOptions<TQueryFnData, TError, TData, TQueryKey> & {
+    queryKey: TQueryKey
+  }
 ): Observable<Partial<QueryState<TData, TError>>> => {
   type Result = Partial<QueryState<TData, TError>>
 
@@ -25,10 +27,18 @@ export const executeQuery = <
 
   const queryFn = options.queryFn ?? defaultFn
 
+  const abortController = new AbortController()
+
   const fn$ =
     typeof queryFn === "function"
       ? // eslint-disable-next-line @typescript-eslint/promise-function-async
-        functionAsObservable(() => queryFn({ meta: options.meta }))
+        functionAsObservable(() =>
+          queryFn({
+            meta: options.meta,
+            queryKey: options.queryKey,
+            signal: abortController.signal
+          })
+        )
       : queryFn
 
   const defaultState = getDefaultState(options)
