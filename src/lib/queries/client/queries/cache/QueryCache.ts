@@ -12,7 +12,9 @@ import {
   finalize,
   NEVER,
   mergeMap,
-  share
+  share,
+  take,
+  timer
 } from "rxjs"
 import { createCacheClient } from "../../oldqueries/cache/cacheClient"
 import { createInvalidationClient } from "../../oldqueries/invalidation/invalidationClient"
@@ -260,6 +262,41 @@ export class QueryCache {
       this.#queries.set(query.queryHash, query)
 
       // @todo use observer
+
+      /**
+       * @important
+       * unsubscribe automatically when mutation is done and gc collected
+       */
+      query.state$
+        .pipe(
+          /**
+           * Once a mutation is finished and there are no more observers than us
+           * we start the process of cleaning it up based on gc settings
+           */
+          filter(({ status }) => status === "success" || status === "error"),
+          switchMap(() =>
+            query.observerCount$.pipe(
+              filter((count) => count <= 1),
+              take(1)
+            )
+          ),
+          // defaults to 5mn
+          switchMap(() => {
+            return timer(query.options.gcTime ?? 5 * 60 * 1000)
+          }),
+          take(1)
+        )
+        .subscribe({
+          complete: () => {
+            /**
+             * Will remove the mutation in all cases
+             * - mutation cancelled (complete)
+             * - mutation is finished (success /error)
+             * - this subscription complete (external remove)
+             */
+            this.remove(query)
+          }
+        })
     }
   }
 
@@ -284,6 +321,18 @@ export class QueryCache {
     return this.getAll().find((query) =>
       matchQuery(defaultedFilters, query)
     ) as Query<TQueryFnData, TError, TData> | undefined
+  }
+
+  remove(query: Query<any, any, any, any>): void {
+    const queryInMap = this.#queries.get(query.queryHash)
+
+    if (queryInMap) {
+      query.destroy()
+
+      if (queryInMap === query) {
+        this.#queries.delete(query.queryHash)
+      }
+    }
   }
 
   clear() {}

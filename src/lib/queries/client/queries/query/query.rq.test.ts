@@ -11,6 +11,7 @@ import { isCancelledError } from "../retryer/utils"
 import { focusManager } from "../../focusManager"
 import { onlineManager } from "../../onlineManager"
 import { type QueryFunctionContext } from "./types"
+import { QueryObserver } from "../observer/QueryObserver"
 
 describe("query", () => {
   let queryClient: QueryClient
@@ -463,31 +464,31 @@ describe("query", () => {
     expect(query.state.status).toBe("error")
   })
 
-  //   test("queries with gcTime 0 should be removed immediately after unsubscribing", async () => {
-  //     const key = queryKey()
-  //     let count = 0
-  //     const observer = new QueryObserver(queryClient, {
-  //       queryKey: key,
-  //       queryFn: () => {
-  //         count++
-  //         return "data"
-  //       },
-  //       gcTime: 0,
-  //       staleTime: Infinity
-  //     })
-  //     const unsubscribe1 = observer.subscribe(() => undefined)
-  //     unsubscribe1()
-  //     await waitFor(() =>
-  //       { expect(queryCache.find({ queryKey: key })).toBeUndefined(); }
-  //     )
-  //     const unsubscribe2 = observer.subscribe(() => undefined)
-  //     unsubscribe2()
+  test("queries with gcTime 0 should be removed immediately after unsubscribing", async () => {
+    const key = queryKey()
+    let count = 0
+    const observer = new QueryObserver(queryClient, {
+      queryKey: key,
+      queryFn: () => {
+        count++
+        return "data"
+      },
+      gcTime: 0,
+      staleTime: Infinity
+    })
+    const unsubscribe1 = observer.subscribe(() => undefined)
+    unsubscribe1()
+    await waitFor(() => {
+      expect(queryCache.find({ queryKey: key })).toBeUndefined()
+    })
+    const unsubscribe2 = observer.subscribe(() => undefined)
+    unsubscribe2()
 
-  //     await waitFor(() =>
-  //       { expect(queryCache.find({ queryKey: key })).toBeUndefined(); }
-  //     )
-  //     expect(count).toBe(1)
-  //   })
+    await waitFor(() => {
+      expect(queryCache.find({ queryKey: key })).toBeUndefined()
+    })
+    expect(count).toBe(1)
+  })
 
   //   test("should be garbage collected when unsubscribed to", async () => {
   //     const key = queryKey()

@@ -10,7 +10,8 @@ import {
   takeUntil,
   merge,
   last,
-  finalize
+  finalize,
+  BehaviorSubject
 } from "rxjs"
 import { isServer } from "../../../../utils/isServer"
 import { type QueryKey } from "../../keys/types"
@@ -24,6 +25,7 @@ import { executeQuery } from "./executeQuery"
 import { type CancelOptions } from "../retryer/types"
 import { CancelledError } from "../retryer/CancelledError"
 import { mergeResults } from "./operators"
+import { trackSubscriptions } from "../../../../utils/operators/trackSubscriptions"
 
 interface QueryConfig<
   TQueryFnData,
@@ -65,7 +67,9 @@ export class Query<
   protected invalidatedSubject = new Subject<void>()
   protected resetSubject = new Subject<void>()
   protected destroySubject = new Subject<void>()
-  protected state$: Observable<typeof this.state>
+  protected observerCount = new BehaviorSubject(0)
+  public observerCount$ = this.observerCount.asObservable()
+  public state$: Observable<typeof this.state>
 
   constructor(config: QueryConfig<TQueryFnData, TError, TData, TQueryKey>) {
     // this.#abortSignalConsumed = false
@@ -125,11 +129,14 @@ export class Query<
         this.state = state
       }),
       takeUntil(this.destroySubject),
-      shareReplay({ bufferSize: 1, refCount: false })
+      shareReplay({ bufferSize: 1, refCount: false }),
+      trackSubscriptions((count) => {
+        this.observerCount.next(count)
+      })
     )
 
     // @todo maybe remove
-    this.state$.subscribe()
+    // this.state$.subscribe()
   }
 
   #setOptions(options?: QueryOptions<TQueryFnData, TError, TData, TQueryKey>) {
@@ -250,6 +257,4 @@ export class Query<
     this.resetSubject.complete()
     this.destroy()
   }
-
-  foo() {}
 }
