@@ -1,5 +1,5 @@
 import { lastValueFrom, noop } from "rxjs"
-import { serializeKey } from "./keys/serializeKey"
+import { hashKey, serializeKey } from "./keys/serializeKey"
 import { type MutationKey } from "./mutations/types"
 import { MutationCache } from "./mutations/cache/MutationCache"
 import { type MutationObserverOptions } from "./mutations/observers/types"
@@ -259,6 +259,18 @@ export class QueryClient {
   ) {
     this.#mutationDefaults.set(serializeKey(mutationKey), {
       mutationKey,
+      defaultOptions: options
+    })
+  }
+
+  setQueryDefaults(
+    queryKey: QueryKey,
+    options: Partial<
+      Omit<QueryObserverOptions<unknown, any, any, any>, "queryKey">
+    >
+  ): void {
+    this.#queryDefaults.set(hashKey(queryKey), {
+      queryKey,
       defaultOptions: options
     })
   }

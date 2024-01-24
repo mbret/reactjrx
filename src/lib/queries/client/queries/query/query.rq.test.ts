@@ -612,22 +612,22 @@ describe("query", () => {
     expect(query.options.meta).toBeUndefined()
   })
 
-  //   test("can use default meta", async () => {
-  //     const meta = {
-  //       it: "works"
-  //     }
+  test("can use default meta", async () => {
+    const meta = {
+      it: "works"
+    }
 
-  //     const key = queryKey()
-  //     const queryFn = () => "data"
+    const key = queryKey()
+    const queryFn = () => "data"
 
-  //     queryClient.setQueryDefaults(key, { meta })
+    queryClient.setQueryDefaults(key, { meta })
 
-  //     await queryClient.prefetchQuery({ queryKey: key, queryFn })
+    await queryClient.prefetchQuery({ queryKey: key, queryFn })
 
-  //     const query = queryCache.find({ queryKey: key })!
+    const query = queryCache.find({ queryKey: key })!
 
-  //     expect(query.meta).toBe(meta)
-  //   })
+    expect(query.meta).toBe(meta)
+  })
 
   test("provides meta object inside query function", async () => {
     const meta = {
