@@ -47,9 +47,9 @@ describe('useIsFetching', () => {
     const { findByText, getByRole } = renderWithClient(queryClient, <Page />)
 
     await findByText('isFetching: 0')
-    // fireEvent.click(getByRole('button', { name: /setReady/i }))
-    // await findByText('isFetching: 1')
-    // await findByText('isFetching: 0')
+    fireEvent.click(getByRole('button', { name: /setReady/i }))
+    await findByText('isFetching: 1')
+    await findByText('isFetching: 0')
   })
 
   // it('should not update state while rendering', async () => {

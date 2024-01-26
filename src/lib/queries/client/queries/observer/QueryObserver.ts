@@ -1,4 +1,4 @@
-import { noop } from "rxjs"
+import { map, noop } from "rxjs"
 import { type QueryClient } from "../../QueryClient"
 import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
@@ -57,7 +57,12 @@ export class QueryObserver<
     >,
     notifyOptions?: NotifyOptions
   ) {
+    const prevOptions = this.options
     this.options = this.#client.defaultQueryOptions(options)
+
+    if (!prevOptions.enabled && this.options.enabled) {
+      this.refetch().catch(noop)
+    }
 
     return this.options
   }
@@ -124,6 +129,10 @@ export class QueryObserver<
     return this.getObserverResultFromQuery(this.#currentQuery)
   }
 
+  getCurrentResult(): QueryObserverResult<TData, TError> {
+    return this.getObserverResultFromQuery(this.#currentQuery)
+  }
+
   subscribe(listener: () => void) {
     this.fetch().catch(noop)
 
@@ -132,5 +141,11 @@ export class QueryObserver<
     return () => {
       sub.unsubscribe()
     }
+  }
+
+  observe() {
+    return this.#currentQuery
+      .observe()
+      .pipe(map(() => this.getObserverResultFromQuery(this.#currentQuery)))
   }
 }
