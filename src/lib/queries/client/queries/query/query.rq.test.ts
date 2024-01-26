@@ -647,24 +647,24 @@ describe("query", () => {
     )
   })
 
-  //   test("should refetch the observer when online method is called", async () => {
-  //     const key = queryKey()
+  // test("should refetch the observer when online method is called", async () => {
+  //   const key = queryKey()
 
-  //     const observer = new QueryObserver(queryClient, {
-  //       queryKey: key,
-  //       queryFn: () => "data"
-  //     })
-
-  //     const refetchSpy = vi.spyOn(observer, "refetch")
-  //     const unsubscribe = observer.subscribe(() => undefined)
-  //     queryCache.onOnline()
-
-  //     // Should refetch the observer
-  //     expect(refetchSpy).toHaveBeenCalledTimes(1)
-
-  //     unsubscribe()
-  //     refetchSpy.mockRestore()
+  //   const observer = new QueryObserver(queryClient, {
+  //     queryKey: key,
+  //     queryFn: () => "data"
   //   })
+
+  //   const refetchSpy = vi.spyOn(observer, "refetch")
+  //   const unsubscribe = observer.subscribe(() => undefined)
+  //   queryCache.onOnline()
+
+  //   // Should refetch the observer
+  //   expect(refetchSpy).toHaveBeenCalledTimes(1)
+
+  //   unsubscribe()
+  //   refetchSpy.mockRestore()
+  // })
 
   //   test("should not add an existing observer", async () => {
   //     const key = queryKey()

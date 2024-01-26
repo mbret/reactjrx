@@ -132,9 +132,6 @@ export class Query<
       }),
       takeUntil(this.destroySubject),
       shareReplay({ bufferSize: 1, refCount: false })
-      // trackSubscriptions((count) => {
-      //   this.observerCount.next(count)
-      // })
     )
 
     this.observedState$ = this.state$.pipe(
