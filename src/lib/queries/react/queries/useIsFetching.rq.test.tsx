@@ -191,61 +191,61 @@ describe("useIsFetching", () => {
     expect(isFetchings).toEqual(expect.not.arrayContaining([2]))
   })
 
-  // it('should show the correct fetching state when mounted after a query', async () => {
-  //   const queryClient = createQueryClient()
-  //   const key = queryKey()
+  it("should show the correct fetching state when mounted after a query", async () => {
+    const queryClient = createQueryClient()
+    const key = queryKey()
 
-  //   function Page() {
-  //     useQuery({
-  //       queryKey: key,
-  //       queryFn: async () => {
-  //         await sleep(10)
-  //         return 'test'
-  //       },
-  //     })
+    function Page() {
+      useQuery({
+        queryKey: key,
+        queryFn: async () => {
+          await sleep(10)
+          return "test"
+        }
+      })
 
-  //     const isFetching = useIsFetching()
+      const isFetching = useIsFetching()
 
-  //     return (
-  //       <div>
-  //         <div>isFetching: {isFetching}</div>
-  //       </div>
-  //     )
-  //   }
+      return (
+        <div>
+          <div>isFetching: {isFetching}</div>
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await rendered.findByText('isFetching: 1')
-  //   await rendered.findByText('isFetching: 0')
-  // })
+    await rendered.findByText("isFetching: 1")
+    await rendered.findByText("isFetching: 0")
+  })
 
-  // it('should use provided custom queryClient', async () => {
-  //   const queryClient = createQueryClient()
-  //   const key = queryKey()
+  it('should use provided custom queryClient', async () => {
+    const queryClient = createQueryClient()
+    const key = queryKey()
 
-  //   function Page() {
-  //     useQuery(
-  //       {
-  //         queryKey: key,
-  //         queryFn: async () => {
-  //           await sleep(10)
-  //           return 'test'
-  //         },
-  //       },
-  //       queryClient,
-  //     )
+    function Page() {
+      useQuery(
+        {
+          queryKey: key,
+          queryFn: async () => {
+            await sleep(10)
+            return 'test'
+          },
+        },
+        queryClient,
+      )
 
-  //     const isFetching = useIsFetching({}, queryClient)
+      const isFetching = useIsFetching({}, queryClient)
 
-  //     return (
-  //       <div>
-  //         <div>isFetching: {isFetching}</div>
-  //       </div>
-  //     )
-  //   }
+      return (
+        <div>
+          <div>isFetching: {isFetching}</div>
+        </div>
+      )
+    }
 
-  //   const rendered = render(<Page></Page>)
+    const rendered = render(<Page></Page>)
 
-  //   await waitFor(() => rendered.getByText('isFetching: 1'))
-  // })
+    await waitFor(() => rendered.getByText('isFetching: 1'))
+  })
 })
