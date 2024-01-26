@@ -3,77 +3,29 @@ import { Mutation } from "../mutation/Mutation"
 import { type QueryClient } from "../../QueryClient"
 import { type MutationFilters } from "../types"
 import {
-  BehaviorSubject,
   distinctUntilChanged,
   map,
   switchMap,
   timer,
   filter,
   take,
-  share,
-  pairwise,
   merge,
   tap,
-  mergeMap,
-  from,
-  takeUntil,
   startWith,
   combineLatest,
   EMPTY
 } from "rxjs"
 import { createPredicateForFilters } from "../filters"
-import { arrayEqual } from "../../../../utils/arrayEqual"
 import {
   type MutationCacheConfig,
   type MutationCacheNotifyEvent
 } from "./types"
-import { isDefined } from "../../../../utils/isDefined"
 import { shallowEqual } from "../../../../utils/shallowEqual"
 import { type MutationOptions, type MutationState } from "../mutation/types"
+import { Store } from "../../store"
 
 export class MutationCache {
-  protected readonly mutationsSubject = new BehaviorSubject<
-    Array<Mutation<any, any, any, any>>
-  >([])
-
-  protected mutations$ = this.mutationsSubject.pipe(
-    map((mutations) => mutations.map((mutation) => mutation)),
-    distinctUntilChanged(arrayEqual),
-    share()
-  )
-
-  protected added$ = this.mutations$.pipe(
-    pairwise(),
-    map(
-      ([previous, current]) =>
-        current.filter((mutation) => !previous.includes(mutation))[0]
-    ),
-    filter(isDefined),
-    share()
-  )
-
-  protected removed$ = this.mutations$.pipe(
-    pairwise(),
-    map(([previous, current]) =>
-      previous.filter((mutation) => !current.includes(mutation))
-    ),
-    mergeMap((removedItems) => from(removedItems)),
-    share()
-  )
-
-  protected stateChange$ = this.added$.pipe(
-    mergeMap((mutation) =>
-      mutation.state$.pipe(
-        map(() => mutation),
-        takeUntil(
-          this.removed$.pipe(
-            filter((removedMutation) => removedMutation === mutation)
-          )
-        )
-      )
-    ),
-    share()
-  )
+  protected readonly store = new Store<Mutation<any, any, any, any>>()
 
   constructor(public config: MutationCacheConfig = {}) {}
 
@@ -123,7 +75,7 @@ export class MutationCache {
         }
       })
 
-    this.mutationsSubject.next([...this.mutationsSubject.getValue(), mutation])
+    this.store.add(mutation)
 
     return mutation
   }
@@ -133,17 +85,13 @@ export class MutationCache {
   }
 
   remove(mutationToRemove: Mutation<any, any, any, any>): void {
-    const toRemove = this.mutationsSubject.getValue().find((mutation) => {
+    const toRemove = this.store.getValues().find((mutation) => {
       return mutation === mutationToRemove
     })
 
     toRemove?.destroy()
 
-    this.mutationsSubject.next(
-      this.mutationsSubject
-        .getValue()
-        .filter((toRemove) => mutationToRemove !== toRemove)
-    )
+    this.store.remove(mutationToRemove)
   }
 
   find<
@@ -158,9 +106,7 @@ export class MutationCache {
 
     const predicate = createPredicateForFilters(defaultedFilters)
 
-    return this.mutationsSubject
-      .getValue()
-      .find((mutation) => predicate(mutation))
+    return this.store.getValues().find((mutation) => predicate(mutation))
   }
 
   findAll(filters: MutationFilters = {}): Array<Mutation<any, any, any, any>> {
@@ -168,8 +114,8 @@ export class MutationCache {
 
     const predicate = createPredicateForFilters(defaultedFilters)
 
-    return this.mutationsSubject
-      .getValue()
+    return this.store
+      .getValues()
       .filter((mutation) => predicate(mutation))
       .map((mutation) => mutation)
   }
@@ -194,7 +140,7 @@ export class MutationCache {
       .filter(predicate)
       .map((mutation) => finalSelect(mutation))
 
-    const value$ = this.stateChange$.pipe(
+    const value$ = this.store.stateChange$.pipe(
       startWith(),
       map(() => {
         const filteredMutations = this.getAll().filter(predicate)
@@ -213,7 +159,7 @@ export class MutationCache {
    */
   subscribe(listener: (event: MutationCacheNotifyEvent) => void) {
     const sub = merge(
-      this.added$.pipe(
+      this.store.added$.pipe(
         tap((mutation) => {
           listener({
             type: "added",
@@ -221,7 +167,7 @@ export class MutationCache {
           })
         })
       ),
-      this.removed$.pipe(
+      this.store.removed$.pipe(
         tap((mutation) => {
           listener({
             type: "removed",
@@ -229,7 +175,7 @@ export class MutationCache {
           })
         })
       ),
-      this.stateChange$.pipe(
+      this.store.stateChange$.pipe(
         tap((mutation) => {
           listener({
             type: "updated",

@@ -15,7 +15,9 @@ import {
   share,
   take,
   timer,
-  tap
+  tap,
+  distinctUntilChanged,
+  startWith
 } from "rxjs"
 import { createCacheClient } from "../../oldqueries/cache/cacheClient"
 import { createInvalidationClient } from "../../oldqueries/invalidation/invalidationClient"
@@ -49,6 +51,7 @@ import { type QueryState } from "../query/types"
 import { nanoid } from "../../keys/nanoid"
 import { type WithRequired } from "../../../../utils/types"
 import { isQueryFinished } from "../query/operators"
+import { Store } from "../../store"
 
 export const createClient = () => {
   const queryStore = createQueryStore()
@@ -221,10 +224,41 @@ export interface QueryStore {
 
 export class QueryCache {
   public client = createClient()
-  readonly #queries: QueryStore = new Map<string, Query>()
+  // readonly #queries: QueryStore = new Map<string, Query>()
+
+  protected readonly store = new Store<Query>()
+
+  // protected mountSubscriptions: Subscription[]
+
+  mount() {
+    // this.mountSubscriptions
+  }
+
+  unmount() {
+    // this.mountSubscriptions.forEach((sub) => sub.unsubscribe)
+    // this.mountSubscriptions = []
+  }
+
+  observeIsFetching(filters?: QueryFilters) {
+    const value$ = this.store.stateChange$.pipe(
+      // we force a first result
+      startWith(),
+      map(() => {
+        const filteredEntities = this.findAll({
+          ...filters,
+          fetchStatus: "fetching"
+        })
+
+        return filteredEntities.length
+      }),
+      distinctUntilChanged()
+    )
+
+    return value$
+  }
 
   getAll(): Query[] {
-    return [...this.#queries.values()]
+    return [...this.store.getValues()]
   }
 
   findAll(filters: QueryFilters = {}): Query[] {
@@ -261,8 +295,8 @@ export class QueryCache {
   }
 
   add(query: Query<any, any, any, any>): void {
-    if (!this.#queries.has(query.queryHash)) {
-      this.#queries.set(query.queryHash, query)
+    if (!this.store.find((entity) => entity.queryHash === query.queryHash)) {
+      this.store.add(query)
 
       const noMoreObservers$ = query.observerCount$.pipe(
         tap((count) => {
@@ -318,7 +352,7 @@ export class QueryCache {
   >(
     queryHash: string
   ): Query<TQueryFnData, TError, TData, TQueryKey> | undefined {
-    return this.#queries.get(queryHash) as
+    return this.store.find((query) => query.queryHash === queryHash) as
       | Query<TQueryFnData, TError, TData, TQueryKey>
       | undefined
   }
@@ -334,13 +368,13 @@ export class QueryCache {
   }
 
   remove(query: Query<any, any, any, any>): void {
-    const queryInMap = this.#queries.get(query.queryHash)
+    const queryInMap = this.store.find((entity) => entity === query)
 
     if (queryInMap) {
       query.destroy()
 
       if (queryInMap === query) {
-        this.#queries.delete(query.queryHash)
+        this.store.remove(query)
       }
     }
   }
