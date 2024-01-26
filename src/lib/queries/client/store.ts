@@ -6,11 +6,9 @@ import {
   from,
   map,
   mergeMap,
-  pairwise,
   share,
   takeUntil,
   Subject,
-  tap,
   merge,
   first
 } from "rxjs"
@@ -22,10 +20,16 @@ export class Store<Entity extends { state$: Observable<any> }> {
    * Query store. Could be turned into a map for more performance.
    */
   protected readonly entriesSubject = new BehaviorSubject<Entity[]>([])
-  protected readonly changeSubject = new Subject<{
-    type: "added"
-    entity: Entity
-  }>()
+  protected readonly changeSubject = new Subject<
+    { entity: Entity } & (
+      | {
+          type: "added"
+        }
+      | {
+          type: "removed"
+        }
+    )
+  >()
 
   public readonly entries$ = this.entriesSubject.pipe(
     distinctUntilChanged(arrayEqual),
@@ -35,18 +39,12 @@ export class Store<Entity extends { state$: Observable<any> }> {
   public readonly added$ = this.changeSubject.pipe(
     filter(({ type }) => type === "added"),
     map(({ entity }) => entity),
-    tap(() => {
-      console.log("ADDED")
-    }),
     share()
   )
 
-  public readonly removed$ = this.entries$.pipe(
-    pairwise(),
-    map(([previous, current]) =>
-      previous.filter((mutation) => !current.includes(mutation))
-    ),
-    mergeMap((removedItems) => from(removedItems)),
+  public readonly removed$ = this.changeSubject.pipe(
+    filter(({ type }) => type === "removed"),
+    map(({ entity }) => entity),
     share()
   )
 
@@ -78,6 +76,7 @@ export class Store<Entity extends { state$: Observable<any> }> {
     this.entriesSubject.next(
       this.entriesSubject.getValue().filter((toRemove) => entity !== toRemove)
     )
+    this.changeSubject.next({ type: "removed", entity })
   }
 
   add(entity: Entity) {
