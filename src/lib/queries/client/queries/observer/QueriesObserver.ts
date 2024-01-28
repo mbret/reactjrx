@@ -47,7 +47,7 @@ export class QueriesObserver<TCombinedResult = QueryObserverResult[]> {
     this.#observers = []
 
     this.#setResult([])
-    this.setQueries(queries, options)
+    // this.setQueries(queries, options)
   }
 
   #setResult(value: QueryObserverResult[]) {
@@ -244,7 +244,7 @@ export class QueriesObserver<TCombinedResult = QueryObserverResult[]> {
     const index = this.#observers.indexOf(observer)
     if (index !== -1) {
       this.#setResult(replaceAt(this.#result, index, result))
-      this.#notify()
+      // this.#notify()
     }
   }
 
