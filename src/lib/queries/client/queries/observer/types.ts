@@ -1,8 +1,21 @@
-import { type NonFunctionGuard, type WithRequired } from "../../../../utils/types"
+import {
+  type NonFunctionGuard,
+  type WithRequired
+} from "../../../../utils/types"
 import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
 import { type Query } from "../query/Query"
-import { type ThrowOnError, type QueryOptions, type PlaceholderDataFunction, type NotifyOnChangeProps } from "../types"
+import {
+  type ThrowOnError,
+  type QueryOptions,
+  type PlaceholderDataFunction,
+  type NotifyOnChangeProps,
+  type RefetchOptions,
+  type QueryStatus,
+  type FetchStatus,
+  type FetchNextPageOptions,
+  type FetchPreviousPageOptions
+} from "../types"
 
 export interface QueryObserverOptions<
   TQueryFnData = unknown,
@@ -135,8 +148,237 @@ export type DefaultedQueryObserverOptions<
   TError = DefaultError,
   TData = TQueryFnData,
   TQueryData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
+  TQueryKey extends QueryKey = QueryKey
 > = WithRequired<
   QueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>,
-  'throwOnError' | 'refetchOnReconnect' | 'queryHash'
+  "throwOnError" | "refetchOnReconnect" | "queryHash"
 >
+
+export interface QueryObserverBaseResult<
+  TData = unknown,
+  TError = DefaultError
+> {
+  data: TData | undefined
+  dataUpdatedAt: number
+  error: TError | null
+  errorUpdatedAt: number
+  failureCount: number
+  failureReason: TError | null
+  errorUpdateCount: number
+  isError: boolean
+  isFetched: boolean
+  isFetchedAfterMount: boolean
+  isFetching: boolean
+  isLoading: boolean
+  isPending: boolean
+  isLoadingError: boolean
+  /**
+   * @deprecated isInitialLoading is being deprecated in favor of isLoading
+   * and will be removed in the next major version.
+   */
+  isInitialLoading: boolean
+  isPaused: boolean
+  isPlaceholderData: boolean
+  isRefetchError: boolean
+  isRefetching: boolean
+  isStale: boolean
+  isSuccess: boolean
+  refetch: (
+    options?: RefetchOptions
+  ) => Promise<QueryObserverResult<TData, TError>>
+  status: QueryStatus
+  fetchStatus: FetchStatus
+}
+
+export interface QueryObserverPendingResult<
+  TData = unknown,
+  TError = DefaultError
+> extends QueryObserverBaseResult<TData, TError> {
+  data: undefined
+  error: null
+  isError: false
+  isPending: true
+  isLoadingError: false
+  isRefetchError: false
+  isSuccess: false
+  status: "pending"
+}
+
+export interface QueryObserverLoadingErrorResult<
+  TData = unknown,
+  TError = DefaultError
+> extends QueryObserverBaseResult<TData, TError> {
+  data: undefined
+  error: TError
+  isError: true
+  isPending: false
+  isLoading: false
+  isLoadingError: true
+  isRefetchError: false
+  isSuccess: false
+  status: "error"
+}
+
+export interface QueryObserverRefetchErrorResult<
+  TData = unknown,
+  TError = DefaultError
+> extends QueryObserverBaseResult<TData, TError> {
+  data: TData
+  error: TError
+  isError: true
+  isPending: false
+  isLoading: false
+  isLoadingError: false
+  isRefetchError: true
+  isSuccess: false
+  status: "error"
+}
+
+export interface InfiniteQueryObserverSuccessResult<
+  TData = unknown,
+  TError = DefaultError
+> extends InfiniteQueryObserverBaseResult<TData, TError> {
+  data: TData
+  error: null
+  isError: false
+  isPending: false
+  isLoading: false
+  isLoadingError: false
+  isRefetchError: false
+  isSuccess: true
+  status: "success"
+}
+
+export interface InfiniteQueryObserverRefetchErrorResult<
+  TData = unknown,
+  TError = DefaultError
+> extends InfiniteQueryObserverBaseResult<TData, TError> {
+  data: TData
+  error: TError
+  isError: true
+  isPending: false
+  isLoading: false
+  isLoadingError: false
+  isRefetchError: true
+  isSuccess: false
+  status: "error"
+}
+
+export type DefinedInfiniteQueryObserverResult<
+  TData = unknown,
+  TError = DefaultError
+> =
+  | InfiniteQueryObserverRefetchErrorResult<TData, TError>
+  | InfiniteQueryObserverSuccessResult<TData, TError>
+
+export interface InfiniteQueryObserverBaseResult<
+  TData = unknown,
+  TError = DefaultError
+> extends QueryObserverBaseResult<TData, TError> {
+  fetchNextPage: (
+    options?: FetchNextPageOptions
+  ) => Promise<InfiniteQueryObserverResult<TData, TError>>
+  fetchPreviousPage: (
+    options?: FetchPreviousPageOptions
+  ) => Promise<InfiniteQueryObserverResult<TData, TError>>
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+  isFetchingNextPage: boolean
+  isFetchingPreviousPage: boolean
+}
+
+export interface QueryObserverSuccessResult<
+  TData = unknown,
+  TError = DefaultError
+> extends QueryObserverBaseResult<TData, TError> {
+  data: TData
+  error: null
+  isError: false
+  isPending: false
+  isLoading: false
+  isLoadingError: false
+  isRefetchError: false
+  isSuccess: true
+  status: "success"
+}
+
+export interface QueryObserverLoadingResult<
+  TData = unknown,
+  TError = DefaultError
+> extends QueryObserverBaseResult<TData, TError> {
+  data: undefined
+  error: null
+  isError: false
+  isPending: true
+  isLoading: true
+  isLoadingError: false
+  isRefetchError: false
+  isSuccess: false
+  status: "pending"
+}
+
+export type DefinedQueryObserverResult<
+  TData = unknown,
+  TError = DefaultError
+> =
+  | QueryObserverRefetchErrorResult<TData, TError>
+  | QueryObserverSuccessResult<TData, TError>
+
+export interface InfiniteQueryObserverPendingResult<
+  TData = unknown,
+  TError = DefaultError
+> extends InfiniteQueryObserverBaseResult<TData, TError> {
+  data: undefined
+  error: null
+  isError: false
+  isPending: true
+  isLoadingError: false
+  isRefetchError: false
+  isSuccess: false
+  status: "pending"
+}
+
+export interface InfiniteQueryObserverLoadingResult<
+  TData = unknown,
+  TError = DefaultError
+> extends InfiniteQueryObserverBaseResult<TData, TError> {
+  data: undefined
+  error: null
+  isError: false
+  isPending: true
+  isLoading: true
+  isLoadingError: false
+  isRefetchError: false
+  isSuccess: false
+  status: "pending"
+}
+
+export interface InfiniteQueryObserverLoadingErrorResult<
+  TData = unknown,
+  TError = DefaultError
+> extends InfiniteQueryObserverBaseResult<TData, TError> {
+  data: undefined
+  error: TError
+  isError: true
+  isPending: false
+  isLoading: false
+  isLoadingError: true
+  isRefetchError: false
+  isSuccess: false
+  status: "error"
+}
+
+export type QueryObserverResult<TData = unknown, TError = DefaultError> =
+  | DefinedQueryObserverResult<TData, TError>
+  | QueryObserverLoadingErrorResult<TData, TError>
+  | QueryObserverLoadingResult<TData, TError>
+  | QueryObserverPendingResult<TData, TError>
+
+export type InfiniteQueryObserverResult<
+  TData = unknown,
+  TError = DefaultError
+> =
+  | DefinedInfiniteQueryObserverResult<TData, TError>
+  | InfiniteQueryObserverLoadingErrorResult<TData, TError>
+  | InfiniteQueryObserverLoadingResult<TData, TError>
+  | InfiniteQueryObserverPendingResult<TData, TError>

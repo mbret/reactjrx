@@ -148,4 +148,10 @@ export class QueryObserver<
       .observe()
       .pipe(map(() => this.getObserverResultFromQuery(this.#currentQuery)))
   }
+
+  destroy(): void {
+    // this.#clearStaleTimeout()
+    // this.#clearRefetchInterval()
+    // this.#currentQuery.removeObserver(this)
+  }
 }
