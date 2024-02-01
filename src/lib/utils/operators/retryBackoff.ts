@@ -76,10 +76,6 @@ export function retryBackoff<T>(config: RetryBackoffConfig<T>) {
               )
             )
           )
-          // return merge(
-          //   caughtErrorResult$ as unknown as Observable<T>,
-          //   throwError(() => error)
-          // )
         }),
         retryWhen<T>((errors) => {
           return errors.pipe(

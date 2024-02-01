@@ -131,7 +131,7 @@ export class Query<
         this.state = state
       }),
       tap((state) => {
-        console.log("Query state", state)
+        // console.log("Query state", state)
       }),
       takeUntil(this.destroySubject),
       shareReplay({ bufferSize: 1, refCount: false })
@@ -221,9 +221,6 @@ export class Query<
     return await new Promise<TData>((resolve, reject) => {
       this.state$
         .pipe(
-          // tap((state) => {
-          //   console.log("query fetch, initial state", state)
-          // }),
           takeWhile((result) => {
             const isSuccessOrError =
               result.status === "error" || result.status === "success"
@@ -236,10 +233,7 @@ export class Query<
           last()
         )
         .subscribe({
-          error: (error) => {
-            // console.log("ERROR", error)
-            reject(error)
-          },
+          error: reject,
           next: (data) => {
             // console.log("query fetch done", data)
             if (data.error) {

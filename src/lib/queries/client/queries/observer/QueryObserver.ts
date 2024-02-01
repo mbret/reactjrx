@@ -117,7 +117,7 @@ export class QueryObserver<
         state.errorUpdateCount > queryInitialState.errorUpdateCount,
       isFetching,
       isRefetching: false,
-      isLoadingError: false,
+      isLoadingError: isError && state.dataUpdatedAt === 0,
       isPaused: false,
       isPlaceholderData: false,
       isRefetchError: false,

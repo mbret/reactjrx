@@ -3,6 +3,7 @@ import { type QueryClient } from "../QueryClient"
 import { type MutationOptions } from "../mutations/mutation/types"
 import { type SpyInstance, vi } from "vitest"
 import { onlineManager } from "../onlineManager"
+import { focusManager } from "../focusManager"
 
 let queryKeyCount = 0
 export function queryKey(): string[] {
@@ -32,5 +33,18 @@ export function mockOnlineManagerIsOnline(
 export function mockVisibilityState(
   value: DocumentVisibilityState
 ): SpyInstance<[], DocumentVisibilityState> {
-  return vi.spyOn(document, "visibilityState", "get").mockReturnValue(value)
+  const mock = vi
+    .spyOn(document, "visibilityState", "get")
+    .mockReturnValue(value)
+
+  focusManager.refresh()
+
+  const _mockRestore = mock.mockRestore
+
+  mock.mockRestore = () => {
+    _mockRestore()
+    focusManager.refresh()
+  }
+
+  return mock
 }

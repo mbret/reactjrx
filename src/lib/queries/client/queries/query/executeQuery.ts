@@ -1,4 +1,10 @@
-import { type Observable, of, switchMap, catchError, merge } from "rxjs"
+import {
+  type Observable,
+  of,
+  switchMap,
+  merge,
+  map,
+} from "rxjs"
 import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
 import { functionAsObservable } from "../../utils/functionAsObservable"
@@ -43,8 +49,6 @@ export const executeQuery = <
 
   const defaultState = getDefaultState(options)
 
-  // console.log("executeSubject TRIGGER")
-
   return merge(
     of({
       status: "pending",
@@ -53,24 +57,39 @@ export const executeQuery = <
       error: defaultState.error
     } satisfies Result),
     fn$.pipe(
+      map(
+        (data): Result => ({
+          data: data as any,
+          error: null
+        })
+      ),
       delayWhenVisibilityChange(focusManager),
       delayWhenNetworkOnline(),
-      retryOnError<TQueryFnData>({
-        retry: 3,
-        retryDelay: 10
+      retryOnError<Result, TError>({
+        retry: options.retry,
+        retryDelay: options.retryDelay,
+        catchError: (attempt, error) =>
+          of({
+            status: "error",
+            fetchStatus: "idle",
+            fetchFailureCount: attempt,
+            errorUpdateCount: 1,
+            error
+          } satisfies Result),
+        caughtError: (attempt, error) =>
+          // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+          of({
+            fetchFailureCount: attempt,
+            fetchFailureReason: error
+          } as Result)
       }),
-      switchMap((result) => {
+      switchMap((state) => {
+        if (state.fetchFailureReason ?? state.error) return of(state)
+
         return of({
+          ...state,
           status: "success",
-          fetchStatus: "idle",
-          data: result as TData | undefined
-        } satisfies Result)
-      }),
-      catchError((error) => {
-        return of({
-          status: "error",
-          fetchStatus: "idle",
-          error
+          fetchStatus: "idle"
         } satisfies Result)
       })
     )

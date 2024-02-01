@@ -285,116 +285,118 @@ describe('useQuery', () => {
     })
   })
 
-  // it('should return the correct states for an unsuccessful query', async () => {
-  //   const key = queryKey()
+  it('should return the correct states for an unsuccessful query', async () => {
+    const key = queryKey()
 
-  //   const states: Array<UseQueryResult> = []
+    const states: UseQueryResult[] = []
 
-  //   function Page() {
-  //     const state = useQuery({
-  //       queryKey: key,
-  //       queryFn: () => Promise.reject(new Error('rejected')),
+    function Page() {
+      const state = useQuery({
+        queryKey: key,
+        queryFn: () => Promise.reject(new Error('rejected')),
 
-  //       retry: 1,
-  //       retryDelay: 1,
-  //     })
+        retry: 1,
+        retryDelay: 1,
+      })
 
-  //     states.push(state)
+      states.push(state)
 
-  //     return (
-  //       <div>
-  //         <h1>Status: {state.status}</h1>
-  //         <div>Failure Count: {state.failureCount}</div>
-  //         <div>Failure Reason: {state.failureReason?.message}</div>
-  //       </div>
-  //     )
-  //   }
+      return (
+        <div>
+          <h1>Status: {state.status}</h1>
+          <div>Failure Count: {state.failureCount}</div>
+          <div>Failure Reason: {state.failureReason?.message}</div>
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() => rendered.getByText('Status: error'))
+    await waitFor(() => rendered.getByText('Status: error'))
 
-  //   expect(states[0]).toEqual({
-  //     data: undefined,
-  //     dataUpdatedAt: 0,
-  //     error: null,
-  //     errorUpdatedAt: 0,
-  //     failureCount: 0,
-  //     failureReason: null,
-  //     errorUpdateCount: 0,
-  //     isError: false,
-  //     isFetched: false,
-  //     isFetchedAfterMount: false,
-  //     isFetching: true,
-  //     isPaused: false,
-  //     isPending: true,
-  //     isInitialLoading: true,
-  //     isLoading: true,
-  //     isLoadingError: false,
-  //     isPlaceholderData: false,
-  //     isRefetchError: false,
-  //     isRefetching: false,
-  //     isStale: true,
-  //     isSuccess: false,
-  //     refetch: expect.any(Function),
-  //     status: 'pending',
-  //     fetchStatus: 'fetching',
-  //   })
+    // console.log(states)
 
-  //   expect(states[1]).toEqual({
-  //     data: undefined,
-  //     dataUpdatedAt: 0,
-  //     error: null,
-  //     errorUpdatedAt: 0,
-  //     failureCount: 1,
-  //     failureReason: new Error('rejected'),
-  //     errorUpdateCount: 0,
-  //     isError: false,
-  //     isFetched: false,
-  //     isFetchedAfterMount: false,
-  //     isFetching: true,
-  //     isPaused: false,
-  //     isPending: true,
-  //     isInitialLoading: true,
-  //     isLoading: true,
-  //     isLoadingError: false,
-  //     isPlaceholderData: false,
-  //     isRefetchError: false,
-  //     isRefetching: false,
-  //     isStale: true,
-  //     isSuccess: false,
-  //     refetch: expect.any(Function),
-  //     status: 'pending',
-  //     fetchStatus: 'fetching',
-  //   })
+    expect(states[0]).toEqual({
+      data: undefined,
+      dataUpdatedAt: 0,
+      error: null,
+      errorUpdatedAt: 0,
+      failureCount: 0,
+      failureReason: null,
+      errorUpdateCount: 0,
+      isError: false,
+      isFetched: false,
+      isFetchedAfterMount: false,
+      isFetching: true,
+      isPaused: false,
+      isPending: true,
+      isInitialLoading: true,
+      isLoading: true,
+      isLoadingError: false,
+      isPlaceholderData: false,
+      isRefetchError: false,
+      isRefetching: false,
+      isStale: true,
+      isSuccess: false,
+      refetch: expect.any(Function),
+      status: 'pending',
+      fetchStatus: 'fetching',
+    })
 
-  //   expect(states[2]).toEqual({
-  //     data: undefined,
-  //     dataUpdatedAt: 0,
-  //     error: new Error('rejected'),
-  //     errorUpdatedAt: expect.any(Number),
-  //     failureCount: 2,
-  //     failureReason: new Error('rejected'),
-  //     errorUpdateCount: 1,
-  //     isError: true,
-  //     isFetched: true,
-  //     isFetchedAfterMount: true,
-  //     isFetching: false,
-  //     isPaused: false,
-  //     isPending: false,
-  //     isInitialLoading: false,
-  //     isLoading: false,
-  //     isLoadingError: true,
-  //     isPlaceholderData: false,
-  //     isRefetchError: false,
-  //     isRefetching: false,
-  //     isStale: true,
-  //     isSuccess: false,
-  //     refetch: expect.any(Function),
-  //     status: 'error',
-  //     fetchStatus: 'idle',
-  //   })
-  // })
+    expect(states[1]).toEqual({
+      data: undefined,
+      dataUpdatedAt: 0,
+      error: null,
+      errorUpdatedAt: 0,
+      failureCount: 1,
+      failureReason: new Error('rejected'),
+      errorUpdateCount: 0,
+      isError: false,
+      isFetched: false,
+      isFetchedAfterMount: false,
+      isFetching: true,
+      isPaused: false,
+      isPending: true,
+      isInitialLoading: true,
+      isLoading: true,
+      isLoadingError: false,
+      isPlaceholderData: false,
+      isRefetchError: false,
+      isRefetching: false,
+      isStale: true,
+      isSuccess: false,
+      refetch: expect.any(Function),
+      status: 'pending',
+      fetchStatus: 'fetching',
+    })
+
+    expect(states[2]).toEqual({
+      data: undefined,
+      dataUpdatedAt: 0,
+      error: new Error('rejected'),
+      errorUpdatedAt: expect.any(Number),
+      failureCount: 2,
+      failureReason: new Error('rejected'),
+      errorUpdateCount: 1,
+      isError: true,
+      isFetched: true,
+      isFetchedAfterMount: true,
+      isFetching: false,
+      isPaused: false,
+      isPending: false,
+      isInitialLoading: false,
+      isLoading: false,
+      isLoadingError: true,
+      isPlaceholderData: false,
+      isRefetchError: false,
+      isRefetching: false,
+      isStale: true,
+      isSuccess: false,
+      refetch: expect.any(Function),
+      status: 'error',
+      fetchStatus: 'idle',
+    })
+  })
 
   // it('should set isFetchedAfterMount to true after a query has been fetched', async () => {
   //   const key = queryKey()
