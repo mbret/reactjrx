@@ -241,6 +241,9 @@ export class QueryCache {
 
   observeIsFetching(filters?: QueryFilters) {
     const value$ = this.store.stateChange$.pipe(
+      tap((value) => {
+        console.log("STATE CHANGE", value)
+      }),
       // we force a first result
       startWith(),
       map(() => {
@@ -300,7 +303,7 @@ export class QueryCache {
 
       const noMoreObservers$ = query.observerCount$.pipe(
         tap((count) => {
-          console.log("observerCount", count)
+          // console.log("observerCount", count)
         }),
         filter((count) => count < 1),
         take(1)
@@ -318,7 +321,7 @@ export class QueryCache {
            */
           isQueryFinished,
           switchMap((isFinished) => {
-            console.log("FINISHED", isFinished)
+            // console.log("FINISHED", isFinished)
             return !isFinished
               ? NEVER
               : noMoreObservers$.pipe(

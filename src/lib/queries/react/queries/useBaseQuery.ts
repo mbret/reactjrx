@@ -6,9 +6,10 @@ import { useQueryClient } from "../Provider"
 import { type QueryObserver } from "../../client/queries/observer/QueryObserver"
 import { type QueryKey } from "../../client/keys/types"
 import { type QueryClient } from "../../client/QueryClient"
-import { type QueryObserverResult } from "../../client/queries/types"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useObserve } from "../../../binding/useObserve"
+import { type QueryObserverResult } from "../../client/queries/observer/types"
+import { skip } from "rxjs"
 
 export function useBaseQuery<
   TQueryFnData,
@@ -44,9 +45,14 @@ export function useBaseQuery<
       )
   )
 
-  const result = useObserve(
+  const { result: firstResult, result$ } = useMemo(
     () => observer.observe(),
-    { defaultValue: observer.getCurrentResult() },
+    [observer]
+  )
+
+  const result = useObserve(
+    () => result$.pipe(skip(1)),
+    { defaultValue: firstResult },
     []
   )
 

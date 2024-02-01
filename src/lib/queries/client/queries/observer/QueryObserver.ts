@@ -4,8 +4,8 @@ import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
 import { type Query } from "../query/Query"
 import { type FetchOptions } from "../query/types"
-import { type QueryObserverResult, type RefetchOptions } from "../types"
-import { type QueryObserverOptions } from "./types"
+import { type RefetchOptions } from "../types"
+import { type QueryObserverResult, type QueryObserverOptions } from "./types"
 
 export interface ObserverFetchOptions extends FetchOptions {
   throwOnError?: boolean
@@ -23,7 +23,7 @@ export class QueryObserver<
   TQueryKey extends QueryKey = QueryKey
 > {
   readonly #client: QueryClient
-  readonly #currentQuery: Query<TQueryFnData, TError, TQueryData, TQueryKey>
+  #currentQuery: Query<TQueryFnData, TError, TQueryData, TQueryKey>
 
   readonly #currentRefetchInterval?: number | false
 
@@ -39,8 +39,9 @@ export class QueryObserver<
   ) {
     this.#client = client
     this.bindMethods()
-    this.options = this.setOptions(options)
-    this.#currentQuery = this.buildQuery(this.options)
+    const initOptions = this.setOptions(options)
+    this.#currentQuery = initOptions.query
+    this.options = initOptions.options
   }
 
   protected bindMethods(): void {
@@ -59,12 +60,15 @@ export class QueryObserver<
   ) {
     const prevOptions = this.options
     this.options = this.#client.defaultQueryOptions(options)
+    this.#currentQuery = this.buildQuery(this.options)
 
     if (!prevOptions.enabled && this.options.enabled) {
       this.refetch().catch(noop)
     }
 
-    return this.options
+    // this.fetch().catch(noop)
+
+    return { options: this.options, query: this.#currentQuery }
   }
 
   buildQuery(
@@ -84,31 +88,40 @@ export class QueryObserver<
   protected getObserverResultFromQuery = (
     query: Query<TQueryFnData, TError, TQueryData, TQueryKey>
   ): QueryObserverResult<TData, TError> => {
+    const state = query.state
+    const isFetching = query.state.fetchStatus === "fetching"
+    const isPending = query.state.status === "pending"
+    const isError = query.state.status === "error"
+    const isLoading = isPending && isFetching
+    const queryInitialState = query.getInitialState()
+
     return {
       status: query.state.status,
       fetchStatus: query.state.fetchStatus,
-      isPending: false,
+      isPending,
       isSuccess: query.state.status === "success",
-      isError: query.state.status === "error",
-      isInitialLoading: false,
-      isLoading: false,
+      isError,
+      isInitialLoading: isLoading,
+      isLoading,
       data: query.state.data,
       dataUpdatedAt: query.state.dataUpdatedAt,
-      error: undefined,
+      error: query.state.error,
       errorUpdatedAt: 0,
       failureCount: query.state.fetchFailureCount,
       failureReason: query.state.fetchFailureReason,
       errorUpdateCount: query.state.errorUpdateCount,
       isFetched:
         query.state.dataUpdateCount > 0 || query.state.errorUpdateCount > 0,
-      isFetchedAfterMount: false,
-      isFetching: false,
+      isFetchedAfterMount:
+        state.dataUpdateCount > queryInitialState.dataUpdateCount ||
+        state.errorUpdateCount > queryInitialState.errorUpdateCount,
+      isFetching,
       isRefetching: false,
       isLoadingError: false,
       isPaused: false,
       isPlaceholderData: false,
       isRefetchError: false,
-      isStale: false,
+      isStale: true,
       refetch: this.refetch
     }
   }
@@ -134,7 +147,7 @@ export class QueryObserver<
   }
 
   subscribe(listener: () => void) {
-    const sub = this.observe().subscribe()
+    const sub = this.observe().result$.subscribe()
 
     return () => {
       sub.unsubscribe()
@@ -144,9 +157,13 @@ export class QueryObserver<
   observe() {
     this.fetch().catch(noop)
 
-    return this.#currentQuery
+    const result$ = this.#currentQuery
       .observe()
       .pipe(map(() => this.getObserverResultFromQuery(this.#currentQuery)))
+
+    const result = this.getCurrentResult()
+
+    return { result$, result }
   }
 
   destroy(): void {

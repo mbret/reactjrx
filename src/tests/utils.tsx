@@ -58,3 +58,10 @@ export function createQueryClient(
 }
 
 export const doNotExecute = (_func: () => void) => true
+
+/**
+ * Assert the parameter is not typed as `any`
+ */
+export function expectTypeNotAny<T>(_: 0 extends 1 & T ? never : T): void {
+  return undefined
+}

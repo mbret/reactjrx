@@ -12,6 +12,10 @@ export const mergeResults =
         return {
           ...acc,
           ...current,
+          dataUpdateCount:
+            current.status === "success" && acc.status !== "success"
+              ? acc.dataUpdateCount + 1
+              : acc.dataUpdateCount,
           status:
             (current.status === "pending" && acc.status === "error"
               ? acc.status

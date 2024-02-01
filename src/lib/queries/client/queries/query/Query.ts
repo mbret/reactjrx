@@ -112,10 +112,10 @@ export class Query<
         mergeMap(() =>
           executeQuery({ ...this.options, queryKey: this.queryKey }).pipe(
             tap((t) => {
-              console.log("executeSubject", t)
+              // console.log("executeSubject", t)
             }),
             finalize(() => {
-              console.log("executeSubject FINALIZE")
+              // console.log("executeSubject FINALIZE")
             }),
             takeUntil(this.cancelSubject)
           )
@@ -124,11 +124,14 @@ export class Query<
       )
     ).pipe(
       tap((t) => {
-        console.log("RESULT", t)
+        // console.log("RESULT", t)
       }),
       mergeResults(this.state),
       tap((state) => {
         this.state = state
+      }),
+      tap((state) => {
+        console.log("Query state", state)
       }),
       takeUntil(this.destroySubject),
       shareReplay({ bufferSize: 1, refCount: false })
@@ -198,6 +201,10 @@ export class Query<
       !this.state.dataUpdatedAt ||
       !timeUntilStale(this.state.dataUpdatedAt, staleTime)
     )
+  }
+
+  getInitialState() {
+    return this.#initialState
   }
 
   async fetch(
