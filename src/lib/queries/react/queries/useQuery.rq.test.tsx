@@ -1,21 +1,24 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/promise-function-async */
-import { describe, expect, expectTypeOf, it, test, vi } from 'vitest'
-import { act, fireEvent, render, waitFor } from '@testing-library/react'
-import { QueryCache } from '../../client/queries/cache/QueryCache'
-import { createQueryClient, renderWithClient, sleep } from '../../../../tests/utils'
-import { queryKey } from '../../client/tests/utils'
-import { useQuery } from './useQuery'
-import { type QueryFunction } from '../../client/queries/query/types'
-import { type UseQueryResult, type UseQueryOptions } from './types'
+import { describe, expect, expectTypeOf, it, test, vi } from "vitest"
+import { act, fireEvent, render, waitFor } from "@testing-library/react"
+import { QueryCache } from "../../client/queries/cache/QueryCache"
+import {
+  createQueryClient,
+  renderWithClient,
+  sleep
+} from "../../../../tests/utils"
+import { queryKey } from "../../client/tests/utils"
+import { useQuery } from "./useQuery"
+import { type QueryFunction } from "../../client/queries/query/types"
+import { type UseQueryResult, type UseQueryOptions } from "./types"
 
-
-describe('useQuery', () => {
+describe("useQuery", () => {
   const queryCache = new QueryCache()
   const queryClient = createQueryClient({ queryCache })
 
-  it('should return the correct types', () => {
+  it("should return the correct types", () => {
     const key = queryKey()
 
     // @ts-expect-error
@@ -27,14 +30,14 @@ describe('useQuery', () => {
       expectTypeOf<unknown>(noQueryFn.error)
 
       // it should infer the result type from the query function
-      const fromQueryFn = useQuery({ queryKey: key, queryFn: () => 'test' })
+      const fromQueryFn = useQuery({ queryKey: key, queryFn: () => "test" })
       expectTypeOf<string | undefined>(fromQueryFn.data)
       expectTypeOf<unknown>(fromQueryFn.error)
 
       // it should be possible to specify the result type
       const withResult = useQuery<string>({
         queryKey: key,
-        queryFn: () => 'test',
+        queryFn: () => "test"
       })
       expectTypeOf<string | undefined>(withResult.data)
       expectTypeOf<unknown | null>(withResult.error)
@@ -42,7 +45,7 @@ describe('useQuery', () => {
       // it should be possible to specify the error type
       const withError = useQuery<string, Error>({
         queryKey: key,
-        queryFn: () => 'test',
+        queryFn: () => "test"
       })
       expectTypeOf<string | undefined>(withError.data)
       expectTypeOf<Error | null>(withError.error)
@@ -50,24 +53,24 @@ describe('useQuery', () => {
       // it should provide the result type in the configuration
       useQuery({
         queryKey: [key],
-        queryFn: async () => true,
+        queryFn: async () => true
       })
 
       // it should be possible to specify a union type as result type
       const unionTypeSync = useQuery({
         queryKey: key,
-        queryFn: () => (Math.random() > 0.5 ? 'a' : 'b'),
+        queryFn: () => (Math.random() > 0.5 ? "a" : "b")
       })
-      expectTypeOf<'a' | 'b' | undefined>(unionTypeSync.data)
-      const unionTypeAsync = useQuery<'a' | 'b'>({
+      expectTypeOf<"a" | "b" | undefined>(unionTypeSync.data)
+      const unionTypeAsync = useQuery<"a" | "b">({
         queryKey: key,
-        queryFn: () => Promise.resolve(Math.random() > 0.5 ? 'a' : 'b'),
+        queryFn: () => Promise.resolve(Math.random() > 0.5 ? "a" : "b")
       })
-      expectTypeOf<'a' | 'b' | undefined>(unionTypeAsync.data)
+      expectTypeOf<"a" | "b" | undefined>(unionTypeAsync.data)
 
       // should error when the query function result does not match with the specified type
       // @ts-expect-error
-      useQuery<number>({ queryKey: key, queryFn: () => 'test' })
+      useQuery<number>({ queryKey: key, queryFn: () => "test" })
 
       // it should infer the result type from a generic query function
       function queryFn<T = string>(): Promise<T> {
@@ -76,48 +79,48 @@ describe('useQuery', () => {
 
       const fromGenericQueryFn = useQuery({
         queryKey: key,
-        queryFn: () => queryFn(),
+        queryFn: () => queryFn()
       })
       expectTypeOf<string | undefined>(fromGenericQueryFn.data)
       expectTypeOf<unknown>(fromGenericQueryFn.error)
 
       const fromGenericOptionsQueryFn = useQuery({
         queryKey: key,
-        queryFn: () => queryFn(),
+        queryFn: () => queryFn()
       })
       expectTypeOf<string | undefined>(fromGenericOptionsQueryFn.data)
       expectTypeOf<unknown>(fromGenericOptionsQueryFn.error)
 
       type MyData = number
-      type MyQueryKey = readonly ['my-data', number]
+      type MyQueryKey = readonly ["my-data", number]
 
       const getMyDataArrayKey: QueryFunction<MyData, MyQueryKey> = async ({
-        queryKey: [, n],
+        queryKey: [, n]
       }) => {
         return n + 42
       }
 
       useQuery({
-        queryKey: ['my-data', 100],
-        queryFn: getMyDataArrayKey,
+        queryKey: ["my-data", 100],
+        queryFn: getMyDataArrayKey
       })
 
-      const getMyDataStringKey: QueryFunction<MyData, ['1']> = async (
-        context,
+      const getMyDataStringKey: QueryFunction<MyData, ["1"]> = async (
+        context
       ) => {
-        expectTypeOf<['1']>(context.queryKey)
+        expectTypeOf<["1"]>(context.queryKey)
         return Number(context.queryKey[0]) + 42
       }
 
       useQuery({
-        queryKey: ['1'],
-        queryFn: getMyDataStringKey,
+        queryKey: ["1"],
+        queryFn: getMyDataStringKey
       })
 
       // it should handle query-functions that return Promise<any>
       useQuery({
         queryKey: key,
-        queryFn: () => fetch('return Promise<any>').then((resp) => resp.json()),
+        queryFn: () => fetch("return Promise<any>").then((resp) => resp.json())
       })
 
       // handles wrapped queries with custom fetcher passed as inline queryFn
@@ -125,25 +128,25 @@ describe('useQuery', () => {
         TQueryKey extends [string, Record<string, unknown>?],
         TQueryFnData,
         TError,
-        TData = TQueryFnData,
+        TData = TQueryFnData
       >(
         qk: TQueryKey,
         fetcher: (
           obj: TQueryKey[1],
-          token: string,
+          token: string
           // return type must be wrapped with TQueryFnReturn
         ) => Promise<TQueryFnData>,
         options?: Omit<
           UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
-          'queryKey' | 'queryFn' | 'initialData'
-        >,
+          "queryKey" | "queryFn" | "initialData"
+        >
       ) =>
         useQuery({
           queryKey: qk,
-          queryFn: () => fetcher(qk[1], 'token'),
-          ...options,
+          queryFn: () => fetcher(qk[1], "token"),
+          ...options
         })
-      const testQuery = useWrappedQuery([''], async () => '1')
+      const testQuery = useWrappedQuery([""], async () => "1")
       expectTypeOf<string | undefined>(testQuery.data)
 
       // handles wrapped queries with custom fetcher passed directly to useQuery
@@ -151,31 +154,31 @@ describe('useQuery', () => {
         TQueryKey extends [string, Record<string, unknown>?],
         TQueryFnData,
         TError,
-        TData = TQueryFnData,
+        TData = TQueryFnData
       >(
         qk: TQueryKey,
         fetcher: () => Promise<TQueryFnData>,
         options?: Omit<
           UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
-          'queryKey' | 'queryFn' | 'initialData'
-        >,
+          "queryKey" | "queryFn" | "initialData"
+        >
       ) => useQuery({ queryKey: qk, queryFn: fetcher, ...options })
-      const testFuncStyle = useWrappedFuncStyleQuery([''], async () => true)
+      const testFuncStyle = useWrappedFuncStyleQuery([""], async () => true)
       expectTypeOf<boolean | undefined>(testFuncStyle.data)
     }
   })
 
   // See https://github.com/tannerlinsley/react-query/issues/105
-  it('should allow to set default data value', async () => {
+  it("should allow to set default data value", async () => {
     const key = queryKey()
 
     function Page() {
-      const { data = 'default' } = useQuery({
+      const { data = "default" } = useQuery({
         queryKey: key,
         queryFn: async () => {
           await sleep(10)
-          return 'test'
-        },
+          return "test"
+        }
       })
 
       return (
@@ -187,12 +190,12 @@ describe('useQuery', () => {
 
     const rendered = renderWithClient(queryClient, <Page />)
 
-    rendered.getByText('default')
+    rendered.getByText("default")
 
-    await waitFor(() => rendered.getByText('test'))
+    await waitFor(() => rendered.getByText("test"))
   })
 
-  it('should return the correct states for a successful query', async () => {
+  it("should return the correct states for a successful query", async () => {
     const key = queryKey()
     const states: Array<UseQueryResult<string>> = []
 
@@ -201,8 +204,8 @@ describe('useQuery', () => {
         queryKey: key,
         queryFn: async () => {
           await sleep(10)
-          return 'test'
-        },
+          return "test"
+        }
       })
 
       states.push(state)
@@ -226,7 +229,7 @@ describe('useQuery', () => {
 
     const rendered = renderWithClient(queryClient, <Page />)
 
-    await waitFor(() => rendered.getByText('test'))
+    await waitFor(() => rendered.getByText("test"))
 
     expect(states.length).toEqual(2)
 
@@ -253,12 +256,12 @@ describe('useQuery', () => {
       isStale: true,
       isSuccess: false,
       refetch: expect.any(Function),
-      status: 'pending',
-      fetchStatus: 'fetching',
+      status: "pending",
+      fetchStatus: "fetching"
     })
 
     expect(states[1]).toEqual({
-      data: 'test',
+      data: "test",
       dataUpdatedAt: expect.any(Number),
       error: null,
       errorUpdatedAt: 0,
@@ -280,12 +283,12 @@ describe('useQuery', () => {
       isStale: true,
       isSuccess: true,
       refetch: expect.any(Function),
-      status: 'success',
-      fetchStatus: 'idle',
+      status: "success",
+      fetchStatus: "idle"
     })
   })
 
-  it('should return the correct states for an unsuccessful query', async () => {
+  it("should return the correct states for an unsuccessful query", async () => {
     const key = queryKey()
 
     const states: UseQueryResult[] = []
@@ -293,10 +296,10 @@ describe('useQuery', () => {
     function Page() {
       const state = useQuery({
         queryKey: key,
-        queryFn: () => Promise.reject(new Error('rejected')),
+        queryFn: () => Promise.reject(new Error("rejected")),
 
         retry: 1,
-        retryDelay: 1,
+        retryDelay: 1
       })
 
       states.push(state)
@@ -312,9 +315,7 @@ describe('useQuery', () => {
 
     const rendered = renderWithClient(queryClient, <Page />)
 
-    await waitFor(() => rendered.getByText('Status: error'))
-
-    // console.log(states)
+    await waitFor(() => rendered.getByText("Status: error"))
 
     expect(states[0]).toEqual({
       data: undefined,
@@ -339,8 +340,8 @@ describe('useQuery', () => {
       isStale: true,
       isSuccess: false,
       refetch: expect.any(Function),
-      status: 'pending',
-      fetchStatus: 'fetching',
+      status: "pending",
+      fetchStatus: "fetching"
     })
 
     expect(states[1]).toEqual({
@@ -349,7 +350,7 @@ describe('useQuery', () => {
       error: null,
       errorUpdatedAt: 0,
       failureCount: 1,
-      failureReason: new Error('rejected'),
+      failureReason: new Error("rejected"),
       errorUpdateCount: 0,
       isError: false,
       isFetched: false,
@@ -366,17 +367,17 @@ describe('useQuery', () => {
       isStale: true,
       isSuccess: false,
       refetch: expect.any(Function),
-      status: 'pending',
-      fetchStatus: 'fetching',
+      status: "pending",
+      fetchStatus: "fetching"
     })
 
     expect(states[2]).toEqual({
       data: undefined,
       dataUpdatedAt: 0,
-      error: new Error('rejected'),
+      error: new Error("rejected"),
       errorUpdatedAt: expect.any(Number),
       failureCount: 2,
-      failureReason: new Error('rejected'),
+      failureReason: new Error("rejected"),
       errorUpdateCount: 1,
       isError: true,
       isFetched: true,
@@ -393,45 +394,45 @@ describe('useQuery', () => {
       isStale: true,
       isSuccess: false,
       refetch: expect.any(Function),
-      status: 'error',
-      fetchStatus: 'idle',
+      status: "error",
+      fetchStatus: "idle"
     })
   })
 
-  // it('should set isFetchedAfterMount to true after a query has been fetched', async () => {
-  //   const key = queryKey()
+  it("should set isFetchedAfterMount to true after a query has been fetched", async () => {
+    const key = queryKey()
 
-  //   await queryClient.prefetchQuery({
-  //     queryKey: key,
-  //     queryFn: () => 'prefetched',
-  //   })
+    await queryClient.prefetchQuery({
+      queryKey: key,
+      queryFn: () => "prefetched"
+    })
 
-  //   function Page() {
-  //     const result = useQuery({ queryKey: key, queryFn: () => 'new data' })
+    function Page() {
+      const result = useQuery({ queryKey: key, queryFn: () => "new data" })
 
-  //     return (
-  //       <>
-  //         <div>data: {result.data}</div>
-  //         <div>isFetched: {result.isFetched ? 'true' : 'false'}</div>
-  //         <div>
-  //           isFetchedAfterMount: {result.isFetchedAfterMount ? 'true' : 'false'}
-  //         </div>
-  //       </>
-  //     )
-  //   }
+      return (
+        <>
+          <div>data: {result.data}</div>
+          <div>isFetched: {result.isFetched ? "true" : "false"}</div>
+          <div>
+            isFetchedAfterMount: {result.isFetchedAfterMount ? "true" : "false"}
+          </div>
+        </>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   rendered.getByText('data: prefetched')
-  //   rendered.getByText('isFetched: true')
-  //   rendered.getByText('isFetchedAfterMount: false')
+    rendered.getByText("data: prefetched")
+    rendered.getByText("isFetched: true")
+    rendered.getByText("isFetchedAfterMount: false")
 
-  //   await waitFor(() => {
-  //     rendered.getByText('data: new data')
-  //     rendered.getByText('isFetched: true')
-  //     rendered.getByText('isFetchedAfterMount: true')
-  //   })
-  // })
+    await waitFor(() => {
+      rendered.getByText("data: new data")
+      rendered.getByText("isFetched: true")
+      rendered.getByText("isFetchedAfterMount: true")
+    })
+  })
 
   // it('should not cancel an ongoing fetch when refetch is called with cancelRefetch=false if we have data already', async () => {
   //   const key = queryKey()

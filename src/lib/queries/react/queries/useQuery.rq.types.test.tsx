@@ -21,8 +21,6 @@ describe("initialData", () => {
           }
         })
 
-        type S = Equal<{ wow: boolean }, typeof data>
-
         const result: Expect<Equal<{ wow: boolean }, typeof data>> = true
         return result
       })

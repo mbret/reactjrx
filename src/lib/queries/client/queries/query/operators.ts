@@ -12,6 +12,7 @@ export const mergeResults =
         return {
           ...acc,
           ...current,
+          data: current.data ?? acc.data,
           dataUpdateCount:
             current.status === "success" && acc.status !== "success"
               ? acc.dataUpdateCount + 1

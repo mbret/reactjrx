@@ -4,6 +4,9 @@ import {
   switchMap,
   merge,
   map,
+  timer,
+  mergeMap,
+  delay
 } from "rxjs"
 import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
@@ -57,6 +60,18 @@ export const executeQuery = <
       error: defaultState.error
     } satisfies Result),
     fn$.pipe(
+      /**
+       * @important
+       * This delay is necessary in order to pass RQ tests. This is because
+       * their flow expect a sequence of results to sometimes happens in a specific
+       * way. If we have non promise function, we have results faster than what RQ expect
+       * due to this library architecture and some variables are impossible to determine
+       * correctly (eg: isFetchedAfterMount). There is nothing wrong, it's just a way to
+       * force any function as promise (or more specifically to return in next tick).
+       *
+       * There is in theory no problem associated to that.
+       */
+      delay(1),
       map(
         (data): Result => ({
           data: data as any,

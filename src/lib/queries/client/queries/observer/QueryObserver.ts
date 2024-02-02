@@ -1,4 +1,4 @@
-import { map, noop } from "rxjs"
+import { BehaviorSubject, map, noop, switchMap, tap } from "rxjs"
 import { type QueryClient } from "../../QueryClient"
 import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
@@ -23,7 +23,11 @@ export class QueryObserver<
   TQueryKey extends QueryKey = QueryKey
 > {
   readonly #client: QueryClient
-  #currentQuery: Query<TQueryFnData, TError, TQueryData, TQueryKey>
+  readonly currentQuerySubject: BehaviorSubject<
+    Query<TQueryFnData, TError, TQueryData, TQueryKey>
+  >
+
+  protected isObserving = false
 
   readonly #currentRefetchInterval?: number | false
 
@@ -40,7 +44,7 @@ export class QueryObserver<
     this.#client = client
     this.bindMethods()
     const initOptions = this.setOptions(options)
-    this.#currentQuery = initOptions.query
+    this.currentQuerySubject = initOptions.query
     this.options = initOptions.options
   }
 
@@ -60,7 +64,8 @@ export class QueryObserver<
   ) {
     const prevOptions = this.options
     this.options = this.#client.defaultQueryOptions(options)
-    this.#currentQuery = this.buildQuery(this.options)
+    const query = this.buildQuery(this.options)
+    const currentQuery = new BehaviorSubject(query)
 
     if (!prevOptions.enabled && this.options.enabled) {
       this.refetch().catch(noop)
@@ -68,7 +73,7 @@ export class QueryObserver<
 
     // this.fetch().catch(noop)
 
-    return { options: this.options, query: this.#currentQuery }
+    return { options: this.options, query: currentQuery }
   }
 
   buildQuery(
@@ -86,7 +91,8 @@ export class QueryObserver<
   }
 
   protected getObserverResultFromQuery = (
-    query: Query<TQueryFnData, TError, TQueryData, TQueryKey>
+    query: Query<TQueryFnData, TError, TQueryData, TQueryKey>,
+    lastObservedState?: typeof query.state
   ): QueryObserverResult<TData, TError> => {
     const state = query.state
     const isFetching = query.state.fetchStatus === "fetching"
@@ -112,9 +118,10 @@ export class QueryObserver<
       errorUpdateCount: query.state.errorUpdateCount,
       isFetched:
         query.state.dataUpdateCount > 0 || query.state.errorUpdateCount > 0,
-      isFetchedAfterMount:
-        state.dataUpdateCount > queryInitialState.dataUpdateCount ||
-        state.errorUpdateCount > queryInitialState.errorUpdateCount,
+      isFetchedAfterMount: !lastObservedState
+        ? false
+        : state.dataUpdateCount > lastObservedState.dataUpdateCount ||
+          state.errorUpdateCount > lastObservedState.errorUpdateCount,
       isFetching,
       isRefetching: false,
       isLoadingError: isError && state.dataUpdatedAt === 0,
@@ -137,13 +144,9 @@ export class QueryObserver<
   protected async fetch(
     fetchOptions?: ObserverFetchOptions
   ): Promise<QueryObserverResult<TData, TError>> {
-    await this.#currentQuery.fetch()
+    await this.currentQuerySubject.getValue().fetch(this.options)
 
-    return this.getObserverResultFromQuery(this.#currentQuery)
-  }
-
-  getCurrentResult(): QueryObserverResult<TData, TError> {
-    return this.getObserverResultFromQuery(this.#currentQuery)
+    return this.getObserverResultFromQuery(this.currentQuerySubject.getValue())
   }
 
   subscribe(listener: () => void) {
@@ -155,13 +158,38 @@ export class QueryObserver<
   }
 
   observe() {
+    const observedQuery = this.currentQuerySubject.getValue()
+
+    // needs to be before the return of the first result.
+    // whether the consumer subscribe or not
+    // the function needs to run at least in the next tick (or its result)
+    // to have a proper flow (see isFetchedAfterMount). We get inconsistencies
+    // otherwise
     this.fetch().catch(noop)
 
-    const result$ = this.#currentQuery
-      .observe()
-      .pipe(map(() => this.getObserverResultFromQuery(this.#currentQuery)))
+    const result$ = this.currentQuerySubject.pipe(
+      switchMap((query) => {
+        const initialObservedState = query.state
 
-    const result = this.getCurrentResult()
+        return query
+          .observe()
+          .pipe(
+            map(() =>
+              this.getObserverResultFromQuery(query, initialObservedState)
+            )
+          )
+      }),
+      tap({
+        subscribe: () => {
+          this.isObserving = true
+        },
+        unsubscribe: () => {
+          this.isObserving = false
+        }
+      })
+    )
+
+    const result = this.getObserverResultFromQuery(observedQuery)
 
     return { result$, result }
   }
