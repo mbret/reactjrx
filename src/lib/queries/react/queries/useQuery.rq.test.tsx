@@ -538,26 +538,26 @@ describe("useQuery", () => {
   //   expect(fetchCount).toBe(1)
   // })
 
-  // it('should be able to watch a query without providing a query function', async () => {
-  //   const key = queryKey()
-  //   const states: Array<UseQueryResult<string>> = []
+  it("should be able to watch a query without providing a query function", async () => {
+    const key = queryKey()
+    const states: Array<UseQueryResult<string>> = []
 
-  //   queryClient.setQueryDefaults(key, { queryFn: () => 'data' })
+    queryClient.setQueryDefaults(key, { queryFn: () => "data" })
 
-  //   function Page() {
-  //     const state = useQuery<string>({ queryKey: key })
-  //     states.push(state)
-  //     return null
-  //   }
+    function Page() {
+      const state = useQuery<string>({ queryKey: key })
+      states.push(state)
+      return null
+    }
 
-  //   renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, <Page />)
 
-  //   await sleep(10)
+    await sleep(10)
 
-  //   expect(states.length).toBe(2)
-  //   expect(states[0]).toMatchObject({ data: undefined })
-  //   expect(states[1]).toMatchObject({ data: 'data' })
-  // })
+    expect(states.length).toBe(2)
+    expect(states[0]).toMatchObject({ data: undefined })
+    expect(states[1]).toMatchObject({ data: "data" })
+  })
 
   // it('should pick up a query when re-mounting with gcTime 0', async () => {
   //   const key = queryKey()
@@ -694,28 +694,28 @@ describe("useQuery", () => {
   //   expect(states[3]).toMatchObject({ isPending: false, isSuccess: true })
   // })
 
-  // it('should fetch when refetchOnMount is false and nothing has been fetched yet', async () => {
-  //   const key = queryKey()
-  //   const states: Array<UseQueryResult<string>> = []
+  it('should fetch when refetchOnMount is false and nothing has been fetched yet', async () => {
+    const key = queryKey()
+    const states: Array<UseQueryResult<string>> = []
 
-  //   function Page() {
-  //     const state = useQuery({
-  //       queryKey: key,
-  //       queryFn: () => 'test',
-  //       refetchOnMount: false,
-  //     })
-  //     states.push(state)
-  //     return null
-  //   }
+    function Page() {
+      const state = useQuery({
+        queryKey: key,
+        queryFn: () => 'test',
+        refetchOnMount: false,
+      })
+      states.push(state)
+      return null
+    }
 
-  //   renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, <Page />)
 
-  //   await sleep(10)
+    await sleep(10)
 
-  //   expect(states.length).toBe(2)
-  //   expect(states[0]).toMatchObject({ data: undefined })
-  //   expect(states[1]).toMatchObject({ data: 'test' })
-  // })
+    expect(states.length).toBe(2)
+    expect(states[0]).toMatchObject({ data: undefined })
+    expect(states[1]).toMatchObject({ data: 'test' })
+  })
 
   // it('should not fetch when refetchOnMount is false and data has been fetched already', async () => {
   //   const key = queryKey()
