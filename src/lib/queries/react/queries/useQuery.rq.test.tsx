@@ -717,29 +717,29 @@ describe("useQuery", () => {
     expect(states[1]).toMatchObject({ data: 'test' })
   })
 
-  // it('should not fetch when refetchOnMount is false and data has been fetched already', async () => {
-  //   const key = queryKey()
-  //   const states: Array<UseQueryResult<string>> = []
+  it('should not fetch when refetchOnMount is false and data has been fetched already', async () => {
+    const key = queryKey()
+    const states: Array<UseQueryResult<string>> = []
 
-  //   queryClient.setQueryData(key, 'prefetched')
+    queryClient.setQueryData(key, 'prefetched')
 
-  //   function Page() {
-  //     const state = useQuery({
-  //       queryKey: key,
-  //       queryFn: () => 'test',
-  //       refetchOnMount: false,
-  //     })
-  //     states.push(state)
-  //     return null
-  //   }
+    function Page() {
+      const state = useQuery({
+        queryKey: key,
+        queryFn: () => 'test',
+        refetchOnMount: false,
+      })
+      states.push(state)
+      return null
+    }
 
-  //   renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, <Page />)
 
-  //   await sleep(10)
+    await sleep(10)
 
-  //   expect(states.length).toBe(1)
-  //   expect(states[0]).toMatchObject({ data: 'prefetched' })
-  // })
+    expect(states.length).toBe(1)
+    expect(states[0]).toMatchObject({ data: 'prefetched' })
+  })
 
   // it('should be able to select a part of the data with select', async () => {
   //   const key = queryKey()

@@ -6,6 +6,7 @@ import { type Query } from "../query/Query"
 import { type FetchOptions } from "../query/types"
 import { type RefetchOptions } from "../types"
 import { type QueryObserverResult, type QueryObserverOptions } from "./types"
+import { shouldFetchOnMount } from "./queryStateHelpers"
 
 export interface ObserverFetchOptions extends FetchOptions {
   throwOnError?: boolean
@@ -165,7 +166,9 @@ export class QueryObserver<
     // the function needs to run at least in the next tick (or its result)
     // to have a proper flow (see isFetchedAfterMount). We get inconsistencies
     // otherwise
-    this.fetch().catch(noop)
+    if (shouldFetchOnMount(observedQuery, this.options)) {
+      this.fetch().catch(noop)
+    }
 
     const result$ = this.currentQuerySubject.pipe(
       switchMap((query) => {

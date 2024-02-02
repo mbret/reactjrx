@@ -252,6 +252,13 @@ export class Query<
   ): TData {
     const data = replaceData(this.state.data, newData, this.options)
 
+    // @todo we probably need to dispatch so other can watch data change
+    /**
+     * @important incomplete
+     */
+    this.state.data = data
+    this.state.dataUpdatedAt = new Date().getTime()
+
     return data
   }
 
