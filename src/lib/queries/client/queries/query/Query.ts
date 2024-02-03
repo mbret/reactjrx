@@ -67,7 +67,11 @@ export class Query<
   // @todo to share with mutation
   protected executeSubject = new Subject<void>()
   protected cancelSubject = new Subject<void>()
-  protected setDataSubject = new Subject<TData>()
+  protected setDataSubject = new Subject<{
+    data: TData
+    options?: SetDataOptions & { manual: boolean }
+  }>()
+
   protected invalidatedSubject = new Subject<void>()
   protected resetSubject = new Subject<void>()
   protected destroySubject = new Subject<void>()
@@ -128,11 +132,14 @@ export class Query<
       ),
       this.setDataSubject.pipe(
         map(
-          (data) =>
+          ({ data, options }) =>
             ({
               status: "success",
               data,
-              dataUpdatedAt: new Date().getTime()
+              dataUpdatedAt:
+                options?.updatedAt !== undefined
+                  ? options.updatedAt
+                  : new Date().getTime()
             }) satisfies Partial<QueryState<TData, TError>>
         )
       )
@@ -273,7 +280,7 @@ export class Query<
   ): TData {
     const data = replaceData(this.state.data, newData, this.options)
 
-    this.setDataSubject.next(data)
+    this.setDataSubject.next({ data, options })
 
     return data
   }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/prefer-ts-expect-error */
 /* eslint-disable @typescript-eslint/return-await */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-confusing-void-expression */
@@ -5924,74 +5925,77 @@ describe("useQuery", () => {
   //   })
   // })
 
-  // it('it should have status=error on mount when a query has failed', async () => {
-  //   const key = queryKey()
-  //   const states: Array<UseQueryResult<unknown>> = []
-  //   const error = new Error('oops')
+  it('it should have status=error on mount when a query has failed', async () => {
+    const key = queryKey()
+    const states: Array<UseQueryResult<unknown>> = []
+    const error = new Error('oops')
 
-  //   const queryFn = async (): Promise<unknown> => {
-  //     throw error
-  //   }
+    const queryFn = async (): Promise<unknown> => {
+      throw error
+    }
 
-  //   function Page() {
-  //     const state = useQuery({
-  //       queryKey: key,
-  //       queryFn,
-  //       retry: false,
-  //       retryOnMount: false,
-  //     })
+    function Page() {
+      const state = useQuery({
+        queryKey: key,
+        queryFn,
+        retry: false,
+        retryOnMount: false,
+      })
 
-  //     states.push(state)
+      states.push(state)
 
-  //     return <></>
-  //   }
+      return <></>
+    }
 
-  //   await queryClient.prefetchQuery({ queryKey: key, queryFn })
-  //   renderWithClient(queryClient, <Page />)
+    await queryClient.prefetchQuery({ queryKey: key, queryFn })
+    renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() => expect(states).toHaveLength(1))
+    await waitFor(() => expect(states).toHaveLength(1))
 
-  //   expect(states[0]).toMatchObject({
-  //     status: 'error',
-  //     error,
-  //   })
-  // })
+    expect(states[0]).toMatchObject({
+      status: 'error',
+      error,
+    })
+  })
 
-  // it('setQueryData - should respect updatedAt', async () => {
-  //   const key = queryKey()
+  it("setQueryData - should respect updatedAt", async () => {
+    const key = queryKey()
 
-  //   function Page() {
-  //     const state = useQuery({ queryKey: key, queryFn: () => 'data' })
-  //     return (
-  //       <div>
-  //         <div>data: {state.data}</div>
-  //         <div>dataUpdatedAt: {state.dataUpdatedAt}</div>
-  //         <button
-  //           onClick={() => {
-  //             queryClient.setQueryData(key, 'newData', {
-  //               updatedAt: 100,
-  //             })
-  //           }}
-  //         >
-  //           setQueryData
-  //         </button>
-  //       </div>
-  //     )
-  //   }
+    function Page() {
+      const state = useQuery({ queryKey: key, queryFn: () => "data" })
+      return (
+        <div>
+          <div>data: {state.data}</div>
+          <div>dataUpdatedAt: {state.dataUpdatedAt}</div>
+          <button
+            onClick={() => {
+              queryClient.setQueryData(key, "newData", {
+                updatedAt: 100
+              })
+            }}
+          >
+            setQueryData
+          </button>
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() => rendered.getByText('data: data'))
-  //   fireEvent.click(rendered.getByRole('button', { name: /setQueryData/i }))
-  //   await waitFor(() => rendered.getByText('data: newData'))
-  //   await waitFor(() => {
-  //     expect(rendered.getByText('dataUpdatedAt: 100')).toBeInTheDocument()
-  //   })
-  // })
+    await waitFor(() => rendered.getByText("data: data"))
+    fireEvent.click(rendered.getByRole("button", { name: /setQueryData/i }))
+    await waitFor(() => rendered.getByText("data: newData"))
+    await waitFor(() => {
+      expect(
+        rendered.getByText("dataUpdatedAt: 100")
+        // @ts-ignore
+      ).toBeInTheDocument()
+    })
+  })
 
   it("errorUpdateCount should increased on each fetch failure", async () => {
     const key = queryKey()
-    const error = new Error('oops')
+    const error = new Error("oops")
 
     function Page() {
       const { refetch, errorUpdateCount } = useQuery({
