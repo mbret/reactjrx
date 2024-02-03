@@ -11,7 +11,10 @@ import {
   merge,
   last,
   finalize,
-  BehaviorSubject
+  BehaviorSubject,
+  startWith,
+  catchError,
+  EMPTY
 } from "rxjs"
 import { isServer } from "../../../../utils/isServer"
 import { type QueryKey } from "../../keys/types"
@@ -64,6 +67,7 @@ export class Query<
   // @todo to share with mutation
   protected executeSubject = new Subject<void>()
   protected cancelSubject = new Subject<void>()
+  protected setDataSubject = new Subject<TData>()
   protected invalidatedSubject = new Subject<void>()
   protected resetSubject = new Subject<void>()
   protected destroySubject = new Subject<void>()
@@ -121,11 +125,19 @@ export class Query<
           )
         ),
         takeUntil(this.resetSubject)
+      ),
+      this.setDataSubject.pipe(
+        map(
+          (data) =>
+            ({
+              status: "success",
+              data,
+              dataUpdatedAt: new Date().getTime()
+            }) satisfies Partial<QueryState<TData, TError>>
+        )
       )
     ).pipe(
-      tap((t) => {
-        // console.log("RESULT", t)
-      }),
+      startWith(this.#initialState),
       mergeResults({
         initialState: this.state,
         getOptions: () => this.options,
@@ -135,7 +147,12 @@ export class Query<
         this.state = state
       }),
       tap((state) => {
-        // console.log("Query state", state)
+        console.log("Query state", state)
+      }),
+      catchError((error) => {
+        console.error(error)
+
+        return EMPTY
       }),
       takeUntil(this.destroySubject),
       shareReplay({ bufferSize: 1, refCount: false })
@@ -256,12 +273,7 @@ export class Query<
   ): TData {
     const data = replaceData(this.state.data, newData, this.options)
 
-    // @todo we probably need to dispatch so other can watch data change
-    /**
-     * @important incomplete
-     */
-    this.state.data = data
-    this.state.dataUpdatedAt = new Date().getTime()
+    this.setDataSubject.next(data)
 
     return data
   }

@@ -4,8 +4,6 @@ import {
   switchMap,
   merge,
   map,
-  timer,
-  mergeMap,
   delay
 } from "rxjs"
 import { type QueryKey } from "../../keys/types"
@@ -88,7 +86,6 @@ export const executeQuery = <
             status: "error",
             fetchStatus: "idle",
             fetchFailureCount: attempt,
-            errorUpdateCount: 1,
             error
           } satisfies Result),
         caughtError: (attempt, error) =>

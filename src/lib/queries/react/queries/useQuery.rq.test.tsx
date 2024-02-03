@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/return-await */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-confusing-void-expression */
 /* eslint-disable @typescript-eslint/no-floating-promises */
 /* eslint-disable @typescript-eslint/no-misused-promises */
@@ -18,6 +20,7 @@ import { useQuery } from "./useQuery"
 import { type QueryFunction } from "../../client/queries/query/types"
 import { type UseQueryResult, type UseQueryOptions } from "./types"
 import React from "react"
+import { noop } from "rxjs"
 
 describe("useQuery", () => {
   const queryCache = new QueryCache()
@@ -866,7 +869,7 @@ describe("useQuery", () => {
     expect(runs).toEqual(2)
   })
 
-  it('should track properties and only re-render when a tracked property changes', async () => {
+  it("should track properties and only re-render when a tracked property changes", async () => {
     const key = queryKey()
     const states: Array<UseQueryResult<string>> = []
 
@@ -875,8 +878,8 @@ describe("useQuery", () => {
         queryKey: key,
         queryFn: async () => {
           await sleep(10)
-          return 'test'
-        },
+          return "test"
+        }
       })
 
       states.push(state)
@@ -900,20 +903,20 @@ describe("useQuery", () => {
 
     const rendered = renderWithClient(queryClient, <Page />)
 
-    await waitFor(() => rendered.getByText('test'))
+    await waitFor(() => rendered.getByText("test"))
 
     expect(states.length).toBe(2)
     expect(states[0]).toMatchObject({ data: undefined })
-    expect(states[1]).toMatchObject({ data: 'test' })
+    expect(states[1]).toMatchObject({ data: "test" })
   })
 
-  it('should always re-render if we are tracking props but not using any', async () => {
+  it("should always re-render if we are tracking props but not using any", async () => {
     const key = queryKey()
     let renderCount = 0
     const states: Array<UseQueryResult<string>> = []
 
     function Page() {
-      const state = useQuery({ queryKey: key, queryFn: () => 'test' })
+      const state = useQuery({ queryKey: key, queryFn: () => "test" })
 
       states.push(state)
 
@@ -940,7 +943,7 @@ describe("useQuery", () => {
     expect(renderCount).toBe(2)
     expect(states.length).toBe(2)
     expect(states[0]).toMatchObject({ data: undefined })
-    expect(states[1]).toMatchObject({ data: 'test' })
+    expect(states[1]).toMatchObject({ data: "test" })
   })
 
   // it('should be able to remove a query', async () => {
@@ -1039,17 +1042,17 @@ describe("useQuery", () => {
   //   expect(states[3]).toMatchObject({ data: 2 })
   // })
 
-  it('should share equal data structures between query results', async () => {
+  it("should share equal data structures between query results", async () => {
     const key = queryKey()
 
     const result1 = [
-      { id: '1', done: false },
-      { id: '2', done: false },
+      { id: "1", done: false },
+      { id: "2", done: false }
     ]
 
     const result2 = [
-      { id: '1', done: false },
-      { id: '2', done: true },
+      { id: "1", done: false },
+      { id: "2", done: true }
     ]
 
     const states: Array<UseQueryResult<typeof result1>> = []
@@ -1064,7 +1067,7 @@ describe("useQuery", () => {
           count++
           return count === 1 ? result1 : result2
         },
-        notifyOnChangeProps: 'all',
+        notifyOnChangeProps: "all"
       })
 
       states.push(state)
@@ -1081,10 +1084,10 @@ describe("useQuery", () => {
 
     const rendered = renderWithClient(queryClient, <Page />)
 
-    await waitFor(() => rendered.getByText('data: false'))
+    await waitFor(() => rendered.getByText("data: false"))
     await sleep(20)
-    fireEvent.click(rendered.getByRole('button', { name: /refetch/i }))
-    await waitFor(() => rendered.getByText('data: true'))
+    fireEvent.click(rendered.getByRole("button", { name: /refetch/i }))
+    await waitFor(() => rendered.getByText("data: true"))
 
     await waitFor(() => expect(states.length).toBe(4))
 
@@ -1096,7 +1099,6 @@ describe("useQuery", () => {
     const lastTodo1 = lastTodos?.[0]
     const newTodo2 = lastTodos?.[1]
 
-    console.log({states, newTodo1: lastTodo1, todo1: previousTodo1})
     expect(previousTodos).toEqual(result1)
     expect(lastTodos).toEqual(result2)
     expect(lastTodos).not.toBe(previousTodos)
@@ -5987,91 +5989,91 @@ describe("useQuery", () => {
   //   })
   // })
 
-  // it('errorUpdateCount should increased on each fetch failure', async () => {
-  //   const key = queryKey()
-  //   const error = new Error('oops')
+  it("errorUpdateCount should increased on each fetch failure", async () => {
+    const key = queryKey()
+    const error = new Error('oops')
 
-  //   function Page() {
-  //     const { refetch, errorUpdateCount } = useQuery({
-  //       queryKey: key,
-  //       queryFn: async (): Promise<unknown> => {
-  //         throw error
-  //       },
-  //       retry: false,
-  //     })
-  //     return (
-  //       <div>
-  //         <button onClick={() => refetch()}>refetch</button>
-  //         <span>data: {errorUpdateCount}</span>
-  //       </div>
-  //     )
-  //   }
+    function Page() {
+      const { refetch, errorUpdateCount } = useQuery({
+        queryKey: key,
+        queryFn: async (): Promise<unknown> => {
+          throw error
+        },
+        retry: false
+      })
+      return (
+        <div>
+          <button onClick={() => refetch().catch(noop)}>refetch</button>
+          <span>data: {errorUpdateCount}</span>
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
-  //   const fetchBtn = rendered.getByRole('button', { name: 'refetch' })
-  //   await waitFor(() => rendered.getByText('data: 1'))
-  //   fireEvent.click(fetchBtn)
-  //   await waitFor(() => rendered.getByText('data: 2'))
-  //   fireEvent.click(fetchBtn)
-  //   await waitFor(() => rendered.getByText('data: 3'))
-  // })
+    const rendered = renderWithClient(queryClient, <Page />)
+    const fetchBtn = rendered.getByRole("button", { name: "refetch" })
+    await waitFor(() => rendered.getByText("data: 1"))
+    fireEvent.click(fetchBtn)
+    await waitFor(() => rendered.getByText("data: 2"))
+    fireEvent.click(fetchBtn)
+    await waitFor(() => rendered.getByText("data: 3"))
+  })
 
-  // it('should use provided custom queryClient', async () => {
-  //   const key = queryKey()
-  //   const queryFn = async () => {
-  //     return Promise.resolve('custom client')
-  //   }
+  it("should use provided custom queryClient", async () => {
+    const key = queryKey()
+    const queryFn = async () => {
+      return Promise.resolve("custom client")
+    }
 
-  //   function Page() {
-  //     const { data } = useQuery(
-  //       {
-  //         queryKey: key,
-  //         queryFn,
-  //       },
-  //       queryClient,
-  //     )
+    function Page() {
+      const { data } = useQuery(
+        {
+          queryKey: key,
+          queryFn
+        },
+        queryClient
+      )
 
-  //     return <div>data: {data}</div>
-  //   }
+      return <div>data: {data}</div>
+    }
 
-  //   const rendered = render(<Page></Page>)
+    const rendered = render(<Page></Page>)
 
-  //   await waitFor(() => rendered.getByText('data: custom client'))
-  // })
+    await waitFor(() => rendered.getByText("data: custom client"))
+  })
 
-  // it('should be notified of updates between create and subscribe', async () => {
-  //   const key = queryKey()
+  it("should be notified of updates between create and subscribe", async () => {
+    const key = queryKey()
 
-  //   function Page() {
-  //     const mounted = React.useRef<boolean>(false)
-  //     const { data, status } = useQuery({
-  //       enabled: false,
-  //       queryKey: key,
-  //       queryFn: async () => {
-  //         await sleep(10)
-  //         return 5
-  //       },
-  //     })
+    function Page() {
+      const mounted = React.useRef<boolean>(false)
+      const { data, status } = useQuery({
+        enabled: false,
+        queryKey: key,
+        queryFn: async () => {
+          await sleep(10)
+          return 5
+        }
+      })
 
-  //     // this simulates a synchronous update between the time the query is created
-  //     // and the time it is subscribed to that could be missed otherwise
-  //     if (!mounted.current) {
-  //       mounted.current = true
-  //       queryClient.setQueryData(key, 1)
-  //     }
+      // this simulates a synchronous update between the time the query is created
+      // and the time it is subscribed to that could be missed otherwise
+      if (!mounted.current) {
+        mounted.current = true
+        queryClient.setQueryData(key, 1)
+      }
 
-  //     return (
-  //       <div>
-  //         <span>status: {status}</span>
-  //         <span>data: {data}</span>
-  //       </div>
-  //     )
-  //   }
+      return (
+        <div>
+          <span>status: {status}</span>
+          <span>data: {data}</span>
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
-  //   await waitFor(() => rendered.getByText('status: success'))
-  //   await waitFor(() => rendered.getByText('data: 1'))
-  // })
+    const rendered = renderWithClient(queryClient, <Page />)
+    await waitFor(() => rendered.getByText("status: success"))
+    await waitFor(() => rendered.getByText("data: 1"))
+  })
   // it('should reuse same data object reference when queryKey changes back to some cached data', async () => {
   //   const key = queryKey()
   //   const spy = vi.fn()
@@ -6195,27 +6197,27 @@ describe("useQuery", () => {
   //   await waitFor(() => rendered.getByText('Rendered Id: 2'))
   //   expect(spy).toHaveBeenCalledTimes(1)
   // })
-  // it('should not cause an infinite render loop when using unstable callback ref', async () => {
-  //   const key = queryKey()
+  it("should not cause an infinite render loop when using unstable callback ref", async () => {
+    const key = queryKey()
 
-  //   function Test() {
-  //     const [_, setRef] = React.useState<HTMLDivElement | null>()
+    function Test() {
+      const [_, setRef] = React.useState<HTMLDivElement | null>()
 
-  //     const { data } = useQuery({
-  //       queryKey: [key],
-  //       queryFn: async () => {
-  //         await sleep(5)
-  //         return 'Works'
-  //       },
-  //     })
+      const { data } = useQuery({
+        queryKey: [key],
+        queryFn: async () => {
+          await sleep(5)
+          return "Works"
+        }
+      })
 
-  //     return <div ref={(value) => setRef(value)}>{data}</div>
-  //   }
+      return <div ref={(value) => setRef(value)}>{data}</div>
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Test />)
+    const rendered = renderWithClient(queryClient, <Test />)
 
-  //   await waitFor(() => rendered.getByText('Works'))
-  // })
+    await waitFor(() => rendered.getByText("Works"))
+  })
 
   // it('should keep the previous data when placeholderData is set and cache is used', async () => {
   //   const key = queryKey()

@@ -214,8 +214,6 @@ export class QueryObserver<
 
         return query.observe().pipe(
           map((state) => {
-            // console.log("new state", state)
-
             const result = this.getObserverResultFromQuery(
               query,
               initialObservedState

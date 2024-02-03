@@ -9,7 +9,8 @@ import { type QueryClient } from "../../client/QueryClient"
 import { useEffect, useMemo, useState } from "react"
 import { useObserve } from "../../../binding/useObserve"
 import { type QueryObserverResult } from "../../client/queries/observer/types"
-import { skip, tap } from "rxjs"
+import { skip, skipWhile, tap } from "rxjs"
+import { shallowEqual } from "../../../utils/shallowEqual"
 
 export function useBaseQuery<
   TQueryFnData,
@@ -53,7 +54,12 @@ export function useBaseQuery<
   const result = useObserve(
     () =>
       result$.pipe(
-        skip(1)
+        /**
+         * By the time this observer runs the result may have changed (eg: synchronous setData).
+         * It's important to not skip the first result (even tho most of the time they are equal).
+         * We only skip if they are the same.
+         */
+        skipWhile((result) => shallowEqual(result, firstResult))
       ),
     { defaultValue: firstResult },
     []

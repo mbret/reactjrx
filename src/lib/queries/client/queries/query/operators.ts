@@ -17,6 +17,8 @@ export const mergeResults =
   (source: Observable<Partial<QueryState<TData, TError>>>) =>
     source.pipe(
       scan((acc, current) => {
+        // console.log("mergeResults", { acc, current })
+
         const currentData = current.data
 
         const newData =
@@ -27,6 +29,12 @@ export const mergeResults =
         return {
           ...acc,
           ...current,
+          errorUpdateCount:
+            current.status === "error" &&
+            ((acc.status === "error" && acc.fetchStatus === "fetching") ||
+              acc.status !== "error")
+              ? acc.errorUpdateCount + 1
+              : acc.errorUpdateCount,
           data: newData,
           dataUpdateCount:
             current.status === "success" && acc.status !== "success"
