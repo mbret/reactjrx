@@ -126,7 +126,11 @@ export class Query<
       tap((t) => {
         // console.log("RESULT", t)
       }),
-      mergeResults(this.state),
+      mergeResults({
+        initialState: this.state,
+        getOptions: () => this.options,
+        getState: () => this.state
+      }),
       tap((state) => {
         this.state = state
       }),
