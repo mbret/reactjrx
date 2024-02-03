@@ -101,6 +101,10 @@ export class QueryObserver<
     const isError = query.state.status === "error"
     const isLoading = isPending && isFetching
     const queryInitialState = query.getInitialState()
+    const data = state.data
+
+    const selectedResult =
+      this.options.select && data ? this.options.select(data) : data
 
     return {
       status: query.state.status,
@@ -110,7 +114,7 @@ export class QueryObserver<
       isError,
       isInitialLoading: isLoading,
       isLoading,
-      data: query.state.data,
+      data: selectedResult,
       dataUpdatedAt: query.state.dataUpdatedAt,
       error: query.state.error,
       errorUpdatedAt: 0,
@@ -159,6 +163,7 @@ export class QueryObserver<
   }
 
   observe() {
+    console.log(this.options)
     const observedQuery = this.currentQuerySubject.getValue()
 
     // needs to be before the return of the first result.
@@ -174,13 +179,16 @@ export class QueryObserver<
       switchMap((query) => {
         const initialObservedState = query.state
 
-        return query
-          .observe()
-          .pipe(
-            map(() =>
-              this.getObserverResultFromQuery(query, initialObservedState)
+        return query.observe().pipe(
+          map(() => {
+            const result = this.getObserverResultFromQuery(
+              query,
+              initialObservedState
             )
-          )
+
+            return result
+          })
+        )
       }),
       tap({
         subscribe: () => {

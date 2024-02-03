@@ -741,31 +741,31 @@ describe("useQuery", () => {
     expect(states[0]).toMatchObject({ data: 'prefetched' })
   })
 
-  // it('should be able to select a part of the data with select', async () => {
-  //   const key = queryKey()
-  //   const states: Array<UseQueryResult<string>> = []
+  it('should be able to select a part of the data with select', async () => {
+    const key = queryKey()
+    const states: Array<UseQueryResult<string>> = []
 
-  //   function Page() {
-  //     const state = useQuery({
-  //       queryKey: key,
-  //       queryFn: () => ({ name: 'test' }),
-  //       select: (data) => data.name,
-  //     })
-  //     states.push(state)
+    function Page() {
+      const state = useQuery({
+        queryKey: key,
+        queryFn: () => ({ name: 'test' }),
+        select: (data) => data.name,
+      })
+      states.push(state)
 
-  //     return <div>{state.data}</div>
-  //   }
+      return <div>{state.data}</div>
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() => {
-  //     rendered.getByText('test')
-  //   })
+    await waitFor(() => {
+      rendered.getByText('test')
+    })
 
-  //   expect(states.length).toBe(2)
-  //   expect(states[0]).toMatchObject({ data: undefined })
-  //   expect(states[1]).toMatchObject({ data: 'test' })
-  // })
+    expect(states.length).toBe(2)
+    expect(states[0]).toMatchObject({ data: undefined })
+    expect(states[1]).toMatchObject({ data: 'test' })
+  })
 
   // it('should be able to select a part of the data with select in object syntax', async () => {
   //   const key = queryKey()
