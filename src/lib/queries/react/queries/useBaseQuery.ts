@@ -9,7 +9,7 @@ import { type QueryClient } from "../../client/QueryClient"
 import { useEffect, useMemo, useState } from "react"
 import { useObserve } from "../../../binding/useObserve"
 import { type QueryObserverResult } from "../../client/queries/observer/types"
-import { skip } from "rxjs"
+import { skip, tap } from "rxjs"
 
 export function useBaseQuery<
   TQueryFnData,
@@ -51,7 +51,10 @@ export function useBaseQuery<
   )
 
   const result = useObserve(
-    () => result$.pipe(skip(1)),
+    () =>
+      result$.pipe(
+        skip(1)
+      ),
     { defaultValue: firstResult },
     []
   )

@@ -28,9 +28,10 @@ export class QueryObserver<
     Query<TQueryFnData, TError, TQueryData, TQueryKey>
   >
 
-  protected isObserving = false
-
-  readonly #currentRefetchInterval?: number | false
+  protected lastObservedResult: {
+    state?: Query<TQueryFnData, TError, TQueryData, TQueryKey>["state"]
+    result?: QueryObserverResult<TData, TError>
+  } = {}
 
   constructor(
     client: QueryClient,
@@ -72,8 +73,6 @@ export class QueryObserver<
       this.refetch().catch(noop)
     }
 
-    // this.fetch().catch(noop)
-
     return { options: this.options, query: currentQuery }
   }
 
@@ -109,12 +108,23 @@ export class QueryObserver<
       isSelected?: boolean
     } => {
       try {
-        const s =
-          this.options.select && data
-            ? { data: this.options.select(data), isSelected: true }
-            : { data }
+        const selectFn = this.options.select
 
-        return s
+        if (selectFn && typeof data !== "undefined") {
+          const lastObservedResultSelectedData =
+            this.lastObservedResult.result?.data
+
+          if (
+            this.lastObservedResult?.state?.data === data &&
+            lastObservedResultSelectedData !== undefined
+          ) {
+            return { data: lastObservedResultSelectedData }
+          }
+
+          return { data: selectFn(data), isSelected: true }
+        }
+
+        return { data }
       } catch (error) {
         return { error: error as TError }
       }
@@ -169,9 +179,13 @@ export class QueryObserver<
   protected async fetch(
     fetchOptions?: ObserverFetchOptions
   ): Promise<QueryObserverResult<TData, TError>> {
-    await this.currentQuerySubject.getValue().fetch(this.options)
+    const query = this.currentQuerySubject.getValue()
 
-    return this.getObserverResultFromQuery(this.currentQuerySubject.getValue())
+    await query.fetch(this.options)
+
+    const result = this.getObserverResultFromQuery(query)
+
+    return result
   }
 
   subscribe(listener: () => void) {
@@ -183,7 +197,6 @@ export class QueryObserver<
   }
 
   observe() {
-    console.log(this.options)
     const observedQuery = this.currentQuerySubject.getValue()
 
     // needs to be before the return of the first result.
@@ -200,23 +213,24 @@ export class QueryObserver<
         const initialObservedState = query.state
 
         return query.observe().pipe(
-          map(() => {
+          map((state) => {
+            // console.log("new state", state)
+
             const result = this.getObserverResultFromQuery(
               query,
               initialObservedState
             )
+
+            this.lastObservedResult.result = result
+            this.lastObservedResult.state = state
 
             return result
           })
         )
       }),
       tap({
-        subscribe: () => {
-          this.isObserving = true
-        },
-        unsubscribe: () => {
-          this.isObserving = false
-        }
+        subscribe: () => {},
+        unsubscribe: () => {}
       })
     )
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-misused-promises */
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/promise-function-async */
@@ -13,6 +14,7 @@ import { queryKey } from "../../client/tests/utils"
 import { useQuery } from "./useQuery"
 import { type QueryFunction } from "../../client/queries/query/types"
 import { type UseQueryResult, type UseQueryOptions } from "./types"
+import React from "react"
 
 describe("useQuery", () => {
   const queryCache = new QueryCache()
@@ -823,42 +825,43 @@ describe("useQuery", () => {
     expect(states[1]).toMatchObject({ status: 'error', error })
   })
 
-  // it('should not re-run a stable select when it re-renders if selector throws an error', async () => {
-  //   const key = queryKey()
-  //   const error = new Error('Select Error')
-  //   let runs = 0
+  it('should not re-run a stable select when it re-renders if selector throws an error', async () => {
+    const key = queryKey()
+    const error = new Error('Select Error')
+    let runs = 0
 
-  //   function Page() {
-  //     const [, rerender] = React.useReducer(() => ({}), {})
-  //     const state = useQuery<string, Error>({
-  //       queryKey: key,
-  //       queryFn: () => (runs === 0 ? 'test' : 'test2'),
+    function Page() {
+      const [, rerender] = React.useReducer(() => ({}), {})
+      const state = useQuery<string, Error>({
+        queryKey: key,
+        queryFn: () => (runs === 0 ? 'test' : 'test2'),
 
-  //       select: React.useCallback(() => {
-  //         runs++
-  //         throw error
-  //       }, []),
-  //     })
-  //     return (
-  //       <div>
-  //         <div>error: {state.error?.message}</div>
-  //         <button onClick={rerender}>rerender</button>
-  //         <button onClick={() => state.refetch()}>refetch</button>
-  //       </div>
-  //     )
-  //   }
+        select: React.useCallback(() => {
+          console.log("run select")
+          runs++
+          throw error
+        }, []),
+      })
+      return (
+        <div>
+          <div>error: {state.error?.message}</div>
+          <button onClick={rerender}>rerender</button>
+          <button onClick={() => state.refetch()}>refetch</button>
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() => rendered.getByText('error: Select Error'))
-  //   expect(runs).toEqual(1)
-  //   fireEvent.click(rendered.getByRole('button', { name: 'rerender' }))
-  //   await sleep(10)
-  //   expect(runs).toEqual(1)
-  //   fireEvent.click(rendered.getByRole('button', { name: 'refetch' }))
-  //   await sleep(10)
-  //   expect(runs).toEqual(2)
-  // })
+    await waitFor(() => rendered.getByText('error: Select Error'))
+    expect(runs).toEqual(1)
+    // fireEvent.click(rendered.getByRole('button', { name: 'rerender' }))
+    // await sleep(10)
+    // expect(runs).toEqual(1)
+    // fireEvent.click(rendered.getByRole('button', { name: 'refetch' }))
+    // await sleep(10)
+    // expect(runs).toEqual(2)
+  })
 
   // it('should track properties and only re-render when a tracked property changes', async () => {
   //   const key = queryKey()
