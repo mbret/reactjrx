@@ -103,20 +103,40 @@ export class QueryObserver<
     const queryInitialState = query.getInitialState()
     const data = state.data
 
-    const selectedResult =
-      this.options.select && data ? this.options.select(data) : data
+    const getSelectedValue = (): {
+      data?: TData | TQueryData
+      error?: TError
+      isSelected?: boolean
+    } => {
+      try {
+        const s =
+          this.options.select && data
+            ? { data: this.options.select(data), isSelected: true }
+            : { data }
+
+        return s
+      } catch (error) {
+        return { error: error as TError }
+      }
+    }
+
+    const {
+      data: selectData,
+      error: selectError,
+      isSelected
+    } = getSelectedValue()
 
     return {
-      status: query.state.status,
+      status: selectError ? "error" : query.state.status,
       fetchStatus: query.state.fetchStatus,
       isPending,
       isSuccess: query.state.status === "success",
       isError,
       isInitialLoading: isLoading,
       isLoading,
-      data: selectedResult,
+      data: isSelected ? selectData : data,
       dataUpdatedAt: query.state.dataUpdatedAt,
-      error: query.state.error,
+      error: selectError ?? query.state.error,
       errorUpdatedAt: 0,
       failureCount: query.state.fetchFailureCount,
       failureReason: query.state.fetchFailureReason,

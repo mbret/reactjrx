@@ -767,61 +767,61 @@ describe("useQuery", () => {
     expect(states[1]).toMatchObject({ data: 'test' })
   })
 
-  // it('should be able to select a part of the data with select in object syntax', async () => {
-  //   const key = queryKey()
-  //   const states: Array<UseQueryResult<string>> = []
+  it('should be able to select a part of the data with select in object syntax', async () => {
+    const key = queryKey()
+    const states: Array<UseQueryResult<string>> = []
 
-  //   function Page() {
-  //     const state = useQuery({
-  //       queryKey: key,
-  //       queryFn: () => ({ name: 'test' }),
-  //       select: (data) => data.name,
-  //     })
-  //     states.push(state)
+    function Page() {
+      const state = useQuery({
+        queryKey: key,
+        queryFn: () => ({ name: 'test' }),
+        select: (data) => data.name,
+      })
+      states.push(state)
 
-  //     return <div>{state.data}</div>
-  //   }
+      return <div>{state.data}</div>
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() => {
-  //     rendered.getByText('test')
-  //   })
+    await waitFor(() => {
+      rendered.getByText('test')
+    })
 
-  //   expect(states.length).toBe(2)
-  //   expect(states[0]).toMatchObject({ data: undefined })
-  //   expect(states[1]).toMatchObject({ data: 'test' })
-  // })
+    expect(states.length).toBe(2)
+    expect(states[0]).toMatchObject({ data: undefined })
+    expect(states[1]).toMatchObject({ data: 'test' })
+  })
 
-  // it('should throw an error when a selector throws', async () => {
-  //   const key = queryKey()
-  //   const states: Array<UseQueryResult<string>> = []
-  //   const error = new Error('Select Error')
+  it('should throw an error when a selector throws', async () => {
+    const key = queryKey()
+    const states: Array<UseQueryResult<string>> = []
+    const error = new Error('Select Error')
 
-  //   function Page() {
-  //     const state = useQuery({
-  //       queryKey: key,
-  //       queryFn: () => ({ name: 'test' }),
-  //       select: () => {
-  //         throw error
-  //       },
-  //     })
-  //     states.push(state)
+    function Page() {
+      const state = useQuery({
+        queryKey: key,
+        queryFn: () => ({ name: 'test' }),
+        select: () => {
+          throw error
+        },
+      })
+      states.push(state)
 
-  //     return <div>{state.status}</div>
-  //   }
+      return <div>{state.status}</div>
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() => {
-  //     rendered.getByText('error')
-  //   })
+    await waitFor(() => {
+      rendered.getByText('error')
+    })
 
-  //   expect(states.length).toBe(2)
+    expect(states.length).toBe(2)
 
-  //   expect(states[0]).toMatchObject({ status: 'pending', data: undefined })
-  //   expect(states[1]).toMatchObject({ status: 'error', error })
-  // })
+    expect(states[0]).toMatchObject({ status: 'pending', data: undefined })
+    expect(states[1]).toMatchObject({ status: 'error', error })
+  })
 
   // it('should not re-run a stable select when it re-renders if selector throws an error', async () => {
   //   const key = queryKey()
