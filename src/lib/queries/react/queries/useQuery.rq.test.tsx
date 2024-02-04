@@ -4917,32 +4917,32 @@ describe("useQuery", () => {
   //   })
   // })
 
-  // it('should only call the query hash function once each render', async () => {
-  //   const key = queryKey()
+  it("should only call the query hash function once each render", async () => {
+    const key = queryKey()
 
-  //   let hashes = 0
-  //   let renders = 0
+    let hashes = 0
+    let renders = 0
 
-  //   function queryKeyHashFn(x: any) {
-  //     hashes++
-  //     return JSON.stringify(x)
-  //   }
+    function queryKeyHashFn(x: any) {
+      hashes++
+      return JSON.stringify(x)
+    }
 
-  //   function Page() {
-  //     React.useEffect(() => {
-  //       renders++
-  //     })
+    function Page() {
+      React.useEffect(() => {
+        renders++
+      })
 
-  //     useQuery({ queryKey: key, queryFn: () => 'test', queryKeyHashFn })
-  //     return null
-  //   }
+      useQuery({ queryKey: key, queryFn: () => "test", queryKeyHashFn })
+      return null
+    }
 
-  //   renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, <Page />)
 
-  //   await sleep(10)
+    await sleep(10)
 
-  //   expect(renders).toBe(hashes)
-  // })
+    expect(renders).toBe(hashes)
+  })
 
   // it('should refetch when changed enabled to true in error state', async () => {
   //   const queryFn = vi.fn<Array<unknown>, unknown>()
@@ -5456,136 +5456,142 @@ describe("useQuery", () => {
   //     onlineMock.mockRestore()
   //   })
 
-  //   it('online queries should not get stuck in fetching state when pausing multiple times', async () => {
-  //     const key = queryKey()
-  //     let count = 0
+  // it("online queries should not get stuck in fetching state when pausing multiple times", async () => {
+  //   const key = queryKey()
+  //   let count = 0
 
-  //     function Page() {
-  //       const state = useQuery({
-  //         queryKey: key,
-  //         queryFn: async () => {
-  //           count++
-  //           await sleep(10)
-  //           return 'data' + count
-  //         },
-  //         initialData: 'initial',
-  //       })
-
-  //       return (
-  //         <div>
-  //           <div>
-  //             status: {state.status}, fetchStatus: {state.fetchStatus}
-  //           </div>
-  //           <div>data: {state.data}</div>
-  //           <button
-  //             onClick={() => queryClient.invalidateQueries({ queryKey: key })}
-  //           >
-  //             invalidate
-  //           </button>
-  //         </div>
-  //       )
-  //     }
-
-  //     const onlineMock = mockOnlineManagerIsOnline(false)
-
-  //     const rendered = renderWithClient(queryClient, <Page />)
-  //     window.dispatchEvent(new Event('offline'))
-
-  //     await waitFor(() =>
-  //       rendered.getByText('status: success, fetchStatus: paused'),
-  //     )
-  //     await waitFor(() => {
-  //       expect(rendered.getByText('data: initial')).toBeInTheDocument()
+  //   function Page() {
+  //     const state = useQuery({
+  //       queryKey: key,
+  //       queryFn: async () => {
+  //         count++
+  //         await sleep(10)
+  //         return "data" + count
+  //       },
+  //       initialData: "initial"
   //     })
 
-  //     // triggers one pause
-  //     fireEvent.click(rendered.getByRole('button', { name: /invalidate/i }))
+  //   return (
+  //     <div>
+  //       <div>
+  //         status: {state.status}, fetchStatus: {state.fetchStatus}
+  //       </div>
+  //       <div>data: {state.data}</div>
+  //       <button
+  //         onClick={() => queryClient.invalidateQueries({ queryKey: key })}
+  //       >
+  //         invalidate
+  //       </button>
+  //     </div>
+  //   )
+  // }
 
-  //     await sleep(15)
+  // const onlineMock = mockOnlineManagerIsOnline(false)
 
-  //     await waitFor(() =>
-  //       rendered.getByText('status: success, fetchStatus: paused'),
-  //     )
+  // const rendered = renderWithClient(queryClient, <Page />)
+  // window.dispatchEvent(new Event("offline"))
 
-  //     // triggers a second pause
-  //     act(() => {
-  //       window.dispatchEvent(new Event('visibilitychange'))
-  //     })
+  // await waitFor(() =>
+  //   rendered.getByText("status: success, fetchStatus: paused")
+  // )
+  // await waitFor(() => {
+  //   expect(
+  //     rendered.getByText("data: initial")
+  //     // @ts-ignore
+  //   ).toBeInTheDocument()
+  // })
 
-  //     onlineMock.mockRestore()
-  //     act(() => {
-  //       window.dispatchEvent(new Event('online'))
-  //     })
+  // // triggers one pause
+  // fireEvent.click(rendered.getByRole("button", { name: /invalidate/i }))
 
-  //     await waitFor(() =>
-  //       rendered.getByText('status: success, fetchStatus: idle'),
-  //     )
-  //     await waitFor(() => {
-  //       expect(rendered.getByText('data: data1')).toBeInTheDocument()
-  //     })
+  // await sleep(15)
 
-  //     expect(count).toBe(1)
-  //   })
+  // await waitFor(() =>
+  //   rendered.getByText("status: success, fetchStatus: paused")
+  // )
 
-  //   it('online queries should pause retries if you are offline', async () => {
-  //     const key = queryKey()
-  //     let count = 0
+  // triggers a second pause
+  // act(() => {
+  //   window.dispatchEvent(new Event("visibilitychange"))
+  // })
 
-  //     function Page() {
-  //       const state = useQuery<unknown, Error>({
-  //         queryKey: key,
-  //         queryFn: async (): Promise<unknown> => {
-  //           count++
-  //           await sleep(10)
-  //           throw new Error('failed' + count)
-  //         },
-  //         retry: 2,
-  //         retryDelay: 10,
-  //       })
+  // onlineMock.mockRestore()
+  // act(() => {
+  //   window.dispatchEvent(new Event("online"))
+  // })
 
-  //       return (
-  //         <div>
-  //           <div>
-  //             status: {state.status}, fetchStatus: {state.fetchStatus},
-  //             failureCount: {state.failureCount}
-  //           </div>
-  //           <div>failureReason: {state.failureReason?.message ?? 'null'}</div>
-  //         </div>
-  //       )
-  //     }
+  // await waitFor(() =>
+  //   rendered.getByText("status: success, fetchStatus: idle")
+  // )
+  // await waitFor(() => {
+  //   expect(
+  //     rendered.getByText("data: data1")
+  //     // @ts-ignore
+  //   ).toBeInTheDocument()
+  // })
 
-  //     const rendered = renderWithClient(queryClient, <Page />)
+  // expect(count).toBe(1)
+  // })
 
-  //     await waitFor(() =>
-  //       rendered.getByText(/status: pending, fetchStatus: fetching/i),
-  //     )
+  it("online queries should pause retries if you are offline", async () => {
+    const key = queryKey()
+    let count = 0
 
-  //     const onlineMock = mockOnlineManagerIsOnline(false)
-  //     window.dispatchEvent(new Event('offline'))
+    function Page() {
+      const state = useQuery<unknown, Error>({
+        queryKey: key,
+        queryFn: async (): Promise<unknown> => {
+          count++
+          await sleep(10)
+          throw new Error("failed" + count)
+        },
+        retry: 2,
+        retryDelay: 10
+      })
 
-  //     await sleep(20)
+      return (
+        <div>
+          <div>
+            status: {state.status}, fetchStatus: {state.fetchStatus},
+            failureCount: {state.failureCount}
+          </div>
+          <div>failureReason: {state.failureReason?.message ?? "null"}</div>
+        </div>
+      )
+    }
 
-  //     await waitFor(() =>
-  //       rendered.getByText(
-  //         'status: pending, fetchStatus: paused, failureCount: 1',
-  //       ),
-  //     )
-  //     await waitFor(() => rendered.getByText('failureReason: failed1'))
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //     expect(count).toBe(1)
+    await waitFor(() =>
+      rendered.getByText(/status: pending, fetchStatus: fetching/i)
+    )
 
-  //     onlineMock.mockReturnValue(true)
-  //     window.dispatchEvent(new Event('online'))
+    const onlineMock = mockOnlineManagerIsOnline(false)
+    window.dispatchEvent(new Event("offline"))
 
-  //     await waitFor(() =>
-  //       rendered.getByText('status: error, fetchStatus: idle, failureCount: 3'),
-  //     )
-  //     await waitFor(() => rendered.getByText('failureReason: failed3'))
+    await sleep(20)
 
-  //     expect(count).toBe(3)
+    await waitFor(() =>
+      rendered.getByText(
+        "status: pending, fetchStatus: paused, failureCount: 1"
+      )
+    )
+    await waitFor(() => rendered.getByText("failureReason: failed1"))
 
-  //     onlineMock.mockRestore()
-  //   })
+    expect(count).toBe(1)
+
+    onlineMock.mockReturnValue(true)
+    window.dispatchEvent(new Event("online"))
+
+    await waitFor(() =>
+      rendered.getByText("status: error, fetchStatus: idle, failureCount: 3")
+    )
+    await waitFor(() => rendered.getByText("failureReason: failed3"))
+
+    expect(count).toBe(3)
+
+    onlineMock.mockRestore()
+  })
 
   //   it('online queries should fetch if paused and we go online even if already unmounted (because not cancelled)', async () => {
   //     const key = queryKey()
@@ -5783,94 +5789,100 @@ describe("useQuery", () => {
   //   })
   // })
 
-  // describe('networkMode always', () => {
-  //   it('always queries should start fetching even if you are offline', async () => {
-  //     const onlineMock = mockOnlineManagerIsOnline(false)
+  describe("networkMode always", () => {
+    it("always queries should start fetching even if you are offline", async () => {
+      const onlineMock = mockOnlineManagerIsOnline(false)
 
-  //     const key = queryKey()
-  //     let count = 0
+      const key = queryKey()
+      let count = 0
 
-  //     function Page() {
-  //       const state = useQuery({
-  //         queryKey: key,
-  //         queryFn: async () => {
-  //           count++
-  //           await sleep(10)
-  //           return 'data ' + count
-  //         },
-  //         networkMode: 'always',
-  //       })
+      function Page() {
+        const state = useQuery({
+          queryKey: key,
+          queryFn: async () => {
+            count++
+            await sleep(10)
+            return "data " + count
+          },
+          networkMode: "always"
+        })
 
-  //       return (
-  //         <div>
-  //           <div>
-  //             status: {state.status}, isPaused: {String(state.isPaused)}
-  //           </div>
-  //           <div>data: {state.data}</div>
-  //         </div>
-  //       )
-  //     }
+        return (
+          <div>
+            <div>
+              status: {state.status}, isPaused: {String(state.isPaused)}
+            </div>
+            <div>data: {state.data}</div>
+          </div>
+        )
+      }
 
-  //     const rendered = renderWithClient(queryClient, <Page />)
+      const rendered = renderWithClient(queryClient, <Page />)
 
-  //     await waitFor(() =>
-  //       rendered.getByText('status: success, isPaused: false'),
-  //     )
+      await waitFor(() =>
+        rendered.getByText("status: success, isPaused: false")
+      )
 
-  //     await waitFor(() => {
-  //       expect(rendered.getByText('data: data 1')).toBeInTheDocument()
-  //     })
+      await waitFor(() => {
+        expect(
+          rendered.getByText("data: data 1")
+          // @ts-ignore
+        ).toBeInTheDocument()
+      })
 
-  //     onlineMock.mockRestore()
-  //   })
+      onlineMock.mockRestore()
+    })
 
-  //   it('always queries should not pause retries', async () => {
-  //     const onlineMock = mockOnlineManagerIsOnline(false)
+    it("always queries should not pause retries", async () => {
+      const onlineMock = mockOnlineManagerIsOnline(false)
 
-  //     const key = queryKey()
-  //     let count = 0
+      const key = queryKey()
+      let count = 0
 
-  //     function Page() {
-  //       const state = useQuery({
-  //         queryKey: key,
-  //         queryFn: async (): Promise<unknown> => {
-  //           count++
-  //           await sleep(10)
-  //           throw new Error('error ' + count)
-  //         },
-  //         networkMode: 'always',
-  //         retry: 1,
-  //         retryDelay: 5,
-  //       })
+      function Page() {
+        const state = useQuery({
+          queryKey: key,
+          queryFn: async (): Promise<unknown> => {
+            count++
+            await sleep(10)
+            throw new Error("error " + count)
+          },
+          networkMode: "always",
+          retry: 1,
+          retryDelay: 5
+        })
 
-  //       return (
-  //         <div>
-  //           <div>
-  //             status: {state.status}, isPaused: {String(state.isPaused)}
-  //           </div>
-  //           <div>
-  //             error: {state.error instanceof Error && state.error.message}
-  //           </div>
-  //         </div>
-  //       )
-  //     }
+        return (
+          <div>
+            <div>
+              status: {state.status}, isPaused: {String(state.isPaused)}
+            </div>
+            <div>
+              error: {state.error instanceof Error && state.error.message}
+            </div>
+          </div>
+        )
+      }
 
-  //     const rendered = renderWithClient(queryClient, <Page />)
+      const rendered = renderWithClient(queryClient, <Page />)
 
-  //     await waitFor(() => rendered.getByText('status: error, isPaused: false'))
+      await waitFor(() => rendered.getByText("status: error, isPaused: false"))
 
-  //     await waitFor(() => {
-  //       expect(rendered.getByText('error: error 2')).toBeInTheDocument()
-  //     })
+      await waitFor(() => {
+        expect(
+          rendered.getByText("error: error 2")
+          // @ts-ignore
+        ).toBeInTheDocument()
+      })
 
-  //     expect(count).toBe(2)
+      expect(count).toBe(2)
 
-  //     onlineMock.mockRestore()
-  //   })
-  // })
+      onlineMock.mockRestore()
+    })
+  })
 
-  describe('networkMode offlineFirst', () => {
-    it('offlineFirst queries should start fetching if you are offline, but pause retries', async () => {
+  describe("networkMode offlineFirst", () => {
+    it("offlineFirst queries should start fetching if you are offline, but pause retries", async () => {
       const onlineMock = mockOnlineManagerIsOnline(false)
 
       const key = queryKey()
@@ -5882,11 +5894,11 @@ describe("useQuery", () => {
           queryFn: async (): Promise<unknown> => {
             count++
             await sleep(10)
-            throw new Error('failed' + count)
+            throw new Error("failed" + count)
           },
           retry: 2,
           retryDelay: 1,
-          networkMode: 'offlineFirst',
+          networkMode: "offlineFirst"
         })
 
         return (
@@ -5895,40 +5907,40 @@ describe("useQuery", () => {
               status: {state.status}, fetchStatus: {state.fetchStatus},
               failureCount: {state.failureCount}
             </div>
-            <div>failureReason: {state.failureReason?.message ?? 'null'}</div>
+            <div>failureReason: {state.failureReason?.message ?? "null"}</div>
           </div>
         )
       }
 
       const rendered = renderWithClient(queryClient, <Page />)
 
-      window.dispatchEvent(new Event('offline'))
+      window.dispatchEvent(new Event("offline"))
 
       await waitFor(() =>
         rendered.getByText(
-          'status: pending, fetchStatus: paused, failureCount: 1',
-        ),
+          "status: pending, fetchStatus: paused, failureCount: 1"
+        )
       )
-      await waitFor(() => rendered.getByText('failureReason: failed1'))
+      await waitFor(() => rendered.getByText("failureReason: failed1"))
 
       expect(count).toBe(1)
 
       onlineMock.mockRestore()
-      window.dispatchEvent(new Event('online'))
+      window.dispatchEvent(new Event("online"))
 
       await waitFor(() =>
-        rendered.getByText('status: error, fetchStatus: idle, failureCount: 3'),
+        rendered.getByText("status: error, fetchStatus: idle, failureCount: 3")
       )
-      await waitFor(() => rendered.getByText('failureReason: failed3'))
+      await waitFor(() => rendered.getByText("failureReason: failed3"))
 
       expect(count).toBe(3)
     })
   })
 
-  it('it should have status=error on mount when a query has failed', async () => {
+  it("it should have status=error on mount when a query has failed", async () => {
     const key = queryKey()
     const states: Array<UseQueryResult<unknown>> = []
-    const error = new Error('oops')
+    const error = new Error("oops")
 
     const queryFn = async (): Promise<unknown> => {
       throw error
@@ -5939,7 +5951,7 @@ describe("useQuery", () => {
         queryKey: key,
         queryFn,
         retry: false,
-        retryOnMount: false,
+        retryOnMount: false
       })
 
       states.push(state)
@@ -5953,8 +5965,8 @@ describe("useQuery", () => {
     await waitFor(() => expect(states).toHaveLength(1))
 
     expect(states[0]).toMatchObject({
-      status: 'error',
-      error,
+      status: "error",
+      error
     })
   })
 
