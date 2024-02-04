@@ -1,11 +1,4 @@
-import {
-  type Observable,
-  of,
-  switchMap,
-  merge,
-  map,
-  delay
-} from "rxjs"
+import { type Observable, of, switchMap, merge, map, delay, filter } from "rxjs"
 import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
 import { functionAsObservable } from "../../utils/functionAsObservable"
@@ -16,6 +9,7 @@ import { delayWhenVisibilityChange } from "./delayWhenVisibilityChange"
 import { focusManager } from "../../focusManager"
 import { type QueryOptions } from "../types"
 import { delayWhenNetworkOnline } from "./delayWhenNetworkOnline"
+import { onlineManager } from "../../onlineManager"
 
 export const executeQuery = <
   TQueryFnData = unknown,
@@ -57,6 +51,15 @@ export const executeQuery = <
       data: defaultState.data,
       error: defaultState.error
     } satisfies Result),
+    onlineManager.online$.pipe(
+      filter((isOnline) => !isOnline),
+      map(
+        () =>
+          ({
+            fetchStatus: "paused"
+          }) satisfies Result
+      )
+    ),
     fn$.pipe(
       /**
        * @important
@@ -86,6 +89,7 @@ export const executeQuery = <
             status: "error",
             fetchStatus: "idle",
             fetchFailureCount: attempt,
+            fetchFailureReason: error,
             error
           } satisfies Result),
         caughtError: (attempt, error) =>

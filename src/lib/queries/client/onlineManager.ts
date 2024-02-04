@@ -1,10 +1,21 @@
-import { BehaviorSubject, filter, first, fromEvent, map, merge } from "rxjs"
+import {
+  BehaviorSubject,
+  distinctUntilChanged,
+  filter,
+  first,
+  fromEvent,
+  map,
+  merge
+} from "rxjs"
 import { emitToSubject } from "../../utils/operators/emitToSubject"
 
 export class OnlineManager {
   protected isOnlineSubject = new BehaviorSubject(true)
 
-  public readonly online$ = this.isOnlineSubject.asObservable()
+  public readonly online$ = this.isOnlineSubject
+    .asObservable()
+    .pipe(distinctUntilChanged())
+
   public readonly backToOnline$ = this.online$.pipe(
     filter((isOnline) => isOnline),
     first()

@@ -52,8 +52,8 @@ export class Query<
 > {
   public queryKey: TQueryKey
   public queryHash: string
-  gcTime: number
-  options: QueryOptions<TQueryFnData, TError, TData, TQueryKey>
+  public gcTime: number
+  public options: QueryOptions<TQueryFnData, TError, TData, TQueryKey>
   readonly #defaultOptions?: QueryOptions<
     TQueryFnData,
     TError,
@@ -154,7 +154,7 @@ export class Query<
         this.state = state
       }),
       tap((state) => {
-        console.log("Query state", state)
+        // console.log("Query state", state)
       }),
       catchError((error) => {
         console.error(error)
