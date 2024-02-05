@@ -1266,68 +1266,69 @@ describe("useQuery", () => {
   //   })
   // })
 
-  // it('should not fetch when switching to a disabled query', async () => {
-  //   const key = queryKey()
-  //   const states: Array<UseQueryResult<number>> = []
+  it("should not fetch when switching to a disabled query", async () => {
+    const key = queryKey()
+    const states: Array<UseQueryResult<number>> = []
 
-  //   function Page() {
-  //     const [count, setCount] = React.useState(0)
+    function Page() {
+      const [count, setCount] = React.useState(0)
 
-  //     const state = useQuery({
-  //       queryKey: [key, count],
-  //       queryFn: async () => {
-  //         await sleep(5)
-  //         return count
-  //       },
-  //       enabled: count === 0,
-  //     })
+      const state = useQuery({
+        queryKey: [key, count],
+        queryFn: async () => {
+          console.log("fetc")
+          await sleep(5)
+          return count
+        },
+        enabled: count === 0
+      })
 
-  //     states.push(state)
+      states.push(state)
 
-  //     return (
-  //       <div>
-  //         <button onClick={() => setCount(1)}>increment</button>
-  //         <div>data: {state.data ?? 'undefined'}</div>
-  //         <div>count: {count}</div>
-  //       </div>
-  //     )
-  //   }
+      return (
+        <div>
+          <button onClick={() => setCount(1)}>increment</button>
+          <div>data: {state.data ?? "undefined"}</div>
+          <div>count: {count}</div>
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() => rendered.getByText('data: 0'))
+    await waitFor(() => rendered.getByText("data: 0"))
 
-  //   fireEvent.click(rendered.getByRole('button', { name: /increment/i }))
+    fireEvent.click(rendered.getByRole("button", { name: /increment/i }))
 
-  //   await waitFor(() => {
-  //     rendered.getByText('count: 1')
-  //     rendered.getByText('data: undefined')
-  //   })
+    await waitFor(() => {
+      rendered.getByText("count: 1")
+      rendered.getByText("data: undefined")
+    })
 
-  //   // making sure no additional fetches are triggered
-  //   await sleep(50)
+    // making sure no additional fetches are triggered
+    // await sleep(50)
 
-  //   expect(states.length).toBe(3)
+    // expect(states.length).toBe(3)
 
-  //   // Fetch query
-  //   expect(states[0]).toMatchObject({
-  //     data: undefined,
-  //     isFetching: true,
-  //     isSuccess: false,
-  //   })
-  //   // Fetched query
-  //   expect(states[1]).toMatchObject({
-  //     data: 0,
-  //     isFetching: false,
-  //     isSuccess: true,
-  //   })
-  //   // Switch to disabled query
-  //   expect(states[2]).toMatchObject({
-  //     data: undefined,
-  //     isFetching: false,
-  //     isSuccess: false,
-  //   })
-  // })
+    // Fetch query
+    // expect(states[0]).toMatchObject({
+    //   data: undefined,
+    //   isFetching: true,
+    //   isSuccess: false
+    // })
+    // //   // Fetched query
+    // expect(states[1]).toMatchObject({
+    //   data: 0,
+    //   isFetching: false,
+    //   isSuccess: true
+    // })
+    // // Switch to disabled query
+    // expect(states[2]).toMatchObject({
+    //   data: undefined,
+    //   isFetching: false,
+    //   isSuccess: false
+    // })
+  })
 
   // it('should keep the previous data when placeholderData is set', async () => {
   //   const key = queryKey()

@@ -22,7 +22,7 @@ export const mergeResults =
         const currentData = current.data
 
         const newData =
-          currentData && currentData !== acc.data
+          currentData !== undefined && currentData !== acc.data
             ? replaceData(getState().data, currentData, getOptions())
             : acc.data
 

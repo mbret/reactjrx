@@ -45,14 +45,25 @@ export class QueryObserver<
   ) {
     this.#client = client
     this.bindMethods()
-    const initOptions = this.setOptions(options)
-    this.currentQuerySubject = initOptions.query
-    this.options = initOptions.options
+    this.options = this.#client.defaultQueryOptions(options)
+    this.currentQuerySubject = new BehaviorSubject(
+      this.buildQuery(this.options)
+    )
   }
 
   protected bindMethods(): void {
     this.refetch = this.refetch.bind(this)
   }
+
+  protected getQueryForOptions(
+    options?: QueryObserverOptions<
+      TQueryFnData,
+      TError,
+      TData,
+      TQueryData,
+      TQueryKey
+    >
+  ) {}
 
   setOptions(
     options?: QueryObserverOptions<
@@ -67,13 +78,14 @@ export class QueryObserver<
     const prevOptions = this.options
     this.options = this.#client.defaultQueryOptions(options)
     const query = this.buildQuery(this.options)
-    const currentQuery = new BehaviorSubject(query)
+
+    if (query !== this.currentQuerySubject.getValue()) {
+      this.currentQuerySubject.next(query)
+    }
 
     if (!prevOptions.enabled && this.options.enabled) {
       this.refetch().catch(noop)
     }
-
-    return { options: this.options, query: currentQuery }
   }
 
   buildQuery(
