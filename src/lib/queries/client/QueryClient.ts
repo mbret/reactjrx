@@ -291,6 +291,14 @@ export class QueryClient {
     return result
   }
 
+  removeQueries(filters?: QueryFilters): void {
+    const queryCache = this.#queryCache
+
+    queryCache.findAll(filters).forEach((query) => {
+      queryCache.remove(query)
+    })
+  }
+
   async resumePausedMutations() {
     return await lastValueFrom(this.#mutationCache.resumePausedMutations())
   }

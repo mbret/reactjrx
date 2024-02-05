@@ -1,16 +1,27 @@
-import { BehaviorSubject, map, noop, switchMap, tap } from "rxjs"
+import {
+  BehaviorSubject,
+  Subject,
+  ignoreElements,
+  map,
+  merge,
+  noop,
+  pairwise,
+  startWith,
+  switchMap,
+  tap,
+} from "rxjs"
 import { type QueryClient } from "../../QueryClient"
 import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
 import { type Query } from "../query/Query"
-import { type QueryState, type FetchOptions } from "../query/types"
+import { type FetchOptions } from "../query/types"
 import { type RefetchOptions } from "../types"
 import {
   type QueryObserverResult,
   type QueryObserverOptions,
   type DefaultedQueryObserverOptions
 } from "./types"
-import { shouldFetchOnMount } from "./queryStateHelpers"
+import { shouldFetchOnMount, shouldFetchOptionally } from "./queryStateHelpers"
 import { shallowEqual } from "../../../../utils/shallowEqual"
 
 export interface ObserverFetchOptions extends FetchOptions {
@@ -32,6 +43,22 @@ export class QueryObserver<
   readonly currentQuerySubject: BehaviorSubject<
     Query<TQueryFnData, TError, TQueryData, TQueryKey>
   >
+
+  // @todo turn that into a variable
+  readonly optionsSubject: BehaviorSubject<
+    QueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>
+  >
+
+  readonly updateSubject = new Subject<{
+    options: QueryObserverOptions<
+      TQueryFnData,
+      TError,
+      TData,
+      TQueryData,
+      TQueryKey
+    >
+    query: Query<TQueryFnData, TError, TQueryData, TQueryKey>
+  }>()
 
   /**
    * Mostly used to compare the state before and after mount
@@ -55,7 +82,7 @@ export class QueryObserver<
 
   constructor(
     client: QueryClient,
-    public options: QueryObserverOptions<
+    options: QueryObserverOptions<
       TQueryFnData,
       TError,
       TData,
@@ -65,9 +92,11 @@ export class QueryObserver<
   ) {
     this.#client = client
     this.bindMethods()
-    this.options = this.#client.defaultQueryOptions(options)
+    this.optionsSubject = new BehaviorSubject(
+      this.#client.defaultQueryOptions(options)
+    )
     this.currentQuerySubject = new BehaviorSubject(
-      this.buildQuery(this.options)
+      this.buildQuery(this.optionsSubject.getValue())
     )
     const query = this.currentQuerySubject.getValue()
     this.queryInitialState = query.state
@@ -75,7 +104,7 @@ export class QueryObserver<
       state: query.state,
       result: this.getObserverResultFromQuery({
         query,
-        options: this.options,
+        options: this.optionsSubject.getValue(),
         lastObservedResult: {
           state: this.queryInitialState
         }
@@ -97,21 +126,23 @@ export class QueryObserver<
     >,
     notifyOptions?: NotifyOptions
   ) {
-    const prevOptions = this.options
-    this.options = this.#client.defaultQueryOptions(options)
-    const query = this.buildQuery(this.options)
+    const newOptions = this.#client.defaultQueryOptions(options)
+
+    this.optionsSubject.next(newOptions)
+    const query = this.buildQuery(this.optionsSubject.getValue())
 
     if (query !== this.currentQuerySubject.getValue()) {
       this.queryInitialState = query.state
       this.currentQuerySubject.next(query)
     }
 
-    if (!prevOptions.enabled && this.options.enabled) {
-      this.refetch().catch(noop)
-    }
+    this.updateSubject.next({
+      options: newOptions,
+      query
+    })
   }
 
-  buildQuery(
+  protected buildQuery(
     options: QueryObserverOptions<
       TQueryFnData,
       TError,
@@ -237,7 +268,7 @@ export class QueryObserver<
       TQueryKey
     >
   ): QueryObserverResult<TData, TError> {
-    const query = this.#client.getQueryCache().build(this.#client, options)
+    const query = this.buildQuery(options)
 
     const observedResult = this.getObserverResultFromQuery({
       query,
@@ -292,13 +323,23 @@ export class QueryObserver<
   protected async fetch(
     fetchOptions?: ObserverFetchOptions
   ): Promise<QueryObserverResult<TData, TError>> {
-    const query = this.currentQuerySubject.getValue()
+    // Make sure we reference the latest query as the current one might have been removed
+    const query = this.buildQuery(this.optionsSubject.getValue())
 
-    await query.fetch(this.options)
+    if (query !== this.currentQuerySubject.getValue()) {
+      this.currentQuerySubject.next(query)
+    }
+
+    /**
+     * @important
+     * we should fetch after we changed the query subject so current observer
+     * still get a chance to retrieve the new query prefetch state
+     */
+    await query.fetch(this.optionsSubject.getValue())
 
     const { result } = this.getObserverResultFromQuery({
       query,
-      options: this.options,
+      options: this.optionsSubject.getValue(),
       lastObservedResult: this.lastObservedResult
     })
 
@@ -306,6 +347,8 @@ export class QueryObserver<
   }
 
   subscribe(listener: () => void) {
+    void listener
+
     const sub = this.observe().result$.subscribe()
 
     return () => {
@@ -321,48 +364,64 @@ export class QueryObserver<
     // the function needs to run at least in the next tick (or its result)
     // to have a proper flow (see isFetchedAfterMount). We get inconsistencies
     // otherwise
-    if (shouldFetchOnMount(observedQuery, this.options)) {
+    if (shouldFetchOnMount(observedQuery, this.optionsSubject.getValue())) {
       this.fetch().catch(noop)
     }
 
-    const result$ = this.currentQuerySubject.pipe(
-      switchMap((query) => {
-        // We have an observer and a new query so we need to fetch again if needed
-        if (
-          observedQuery !== query &&
-          shouldFetchOnMount(observedQuery, this.options)
-        ) {
-          this.fetch().catch(noop)
-        }
+    const result$ = merge(
+      this.updateSubject.pipe(
+        startWith({
+          query: this.currentQuerySubject.getValue(),
+          options: this.optionsSubject.getValue()
+        }),
+        pairwise(),
+        tap(
+          ([
+            { options: prevOptions, query: prevQuery },
+            { options, query }
+          ]) => {
+            /**
+             * @important
+             * We monitor here the changes of options and query to eventually trigger
+             * an automatic refetch. This is used after options have changed for example.
+             * This is only valid if there is a subscriber
+             */
+            if (shouldFetchOptionally(query, prevQuery, options, prevOptions)) {
+              this.fetch().catch(noop)
+            }
+          }
+        ),
+        ignoreElements()
+      ),
+      this.currentQuerySubject.pipe(
+        switchMap((query) => {
+          const options = this.optionsSubject.getValue()
 
-        return query.observe().pipe(
-          map(() => {
-            const result = this.getObserverResultFromQuery({
-              query,
-              options: this.options,
-              lastObservedResult: this.lastObservedResult
+          return query.observe().pipe(
+            map(() => {
+              const result = this.getObserverResultFromQuery({
+                query,
+                options,
+                lastObservedResult: this.lastObservedResult
+              })
+
+              this.updateObservedResult({ query, ...result })
+
+              return result.result
             })
-
-            this.updateObservedResult({ query, ...result })
-
-            return result.result
-          })
-        )
-      }),
-      tap({
-        subscribe: () => {},
-        unsubscribe: () => {}
-      })
+          )
+        }),
+        tap({
+          subscribe: () => {},
+          unsubscribe: () => {}
+        })
+      )
     )
 
     return { result$ }
   }
 
-  destroy(): void {
-    // this.#clearStaleTimeout()
-    // this.#clearRefetchInterval()
-    // this.#currentQuery.removeObserver(this)
-  }
+  destroy(): void {}
 }
 
 // this function would decide if we will update the observer's 'current'

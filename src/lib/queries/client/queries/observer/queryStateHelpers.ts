@@ -2,12 +2,12 @@ import { type Query } from "../query/Query"
 import { type QueryObserverOptions } from "./types"
 
 function isStale(
-    query: Query<any, any, any, any>,
-    options: QueryObserverOptions<any, any, any, any, any>,
-  ): boolean {
-    return query.isStaleByTime(options.staleTime)
-  }
-  
+  query: Query<any, any, any, any>,
+  options: QueryObserverOptions<any, any, any, any, any>
+): boolean {
+  return query.isStaleByTime(options.staleTime)
+}
+
 function shouldLoadOnMount(
   query: Query<any, any, any, any>,
   options: QueryObserverOptions<any, any, any, any>
@@ -27,6 +27,21 @@ export function shouldFetchOnMount(
     shouldLoadOnMount(query, options) ||
     (query.state.dataUpdatedAt > 0 &&
       shouldFetchOn(query, options, options.refetchOnMount))
+  )
+}
+
+export function shouldFetchOptionally(
+  query: Query<any, any, any, any>,
+  prevQuery: Query<any, any, any, any>,
+  options: QueryObserverOptions<any, any, any, any, any>,
+  prevOptions: QueryObserverOptions<any, any, any, any, any>
+): boolean {
+  return (
+    query.state.fetchStatus !== "fetching" &&
+    options.enabled !== false &&
+    (query !== prevQuery || prevOptions.enabled === false) &&
+    (!options.suspense || query.state.status !== "error") &&
+    isStale(query, options)
   )
 }
 

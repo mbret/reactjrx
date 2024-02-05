@@ -94,7 +94,8 @@ export const executeQuery = <
       return of({
         ...state,
         status: "success",
-        fetchStatus: "idle"
+        fetchStatus: "idle",
+        dataUpdatedAt: new Date().getTime()
       } satisfies Result).pipe(
         /**
          * Because we don't know yet whether the fn is an observable or a promise we wait

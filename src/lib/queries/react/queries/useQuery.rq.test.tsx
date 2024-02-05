@@ -217,7 +217,6 @@ describe("useQuery", () => {
         }
       })
 
-      console.log({state})
       states.push(state)
 
       if (state.isPending) {
@@ -994,55 +993,55 @@ describe("useQuery", () => {
   //   expect(states[3]).toMatchObject({ status: 'success', data: 2 })
   // })
 
-  // it('should create a new query when refetching a removed query', async () => {
-  //   const key = queryKey()
-  //   const states: Array<UseQueryResult<number>> = []
-  //   let count = 0
+  it("should create a new query when refetching a removed query", async () => {
+    const key = queryKey()
+    const states: Array<UseQueryResult<number>> = []
+    let count = 0
 
-  //   function Page() {
-  //     const state = useQuery({
-  //       queryKey: key,
-  //       queryFn: async () => {
-  //         await sleep(10)
-  //         return ++count
-  //       },
-  //       notifyOnChangeProps: 'all',
-  //     })
+    function Page() {
+      const state = useQuery({
+        queryKey: key,
+        queryFn: async () => {
+          await sleep(10)
+          return ++count
+        },
+        notifyOnChangeProps: "all"
+      })
 
-  //     states.push(state)
+      states.push(state)
 
-  //     const { refetch } = state
+      const { refetch } = state
 
-  //     return (
-  //       <div>
-  //         <button onClick={() => queryClient.removeQueries({ queryKey: key })}>
-  //           remove
-  //         </button>
-  //         <button onClick={() => refetch()}>refetch</button>
-  //         data: {state.data ?? 'null'}
-  //       </div>
-  //     )
-  //   }
+      return (
+        <div>
+          <button onClick={() => queryClient.removeQueries({ queryKey: key })}>
+            remove
+          </button>
+          <button onClick={() => refetch()}>refetch</button>
+          data: {state.data ?? "null"}
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() => rendered.getByText('data: 1'))
-  //   fireEvent.click(rendered.getByRole('button', { name: /remove/i }))
+    await waitFor(() => rendered.getByText("data: 1"))
+    fireEvent.click(rendered.getByRole("button", { name: /remove/i }))
 
-  //   await sleep(50)
-  //   fireEvent.click(rendered.getByRole('button', { name: /refetch/i }))
-  //   await waitFor(() => rendered.getByText('data: 2'))
+    await sleep(50)
+    fireEvent.click(rendered.getByRole("button", { name: /refetch/i }))
+    await waitFor(() => rendered.getByText("data: 2"))
 
-  //   expect(states.length).toBe(4)
-  //   // Initial
-  //   expect(states[0]).toMatchObject({ data: undefined, dataUpdatedAt: 0 })
-  //   // Fetched
-  //   expect(states[1]).toMatchObject({ data: 1 })
-  //   // Switch
-  //   expect(states[2]).toMatchObject({ data: undefined, dataUpdatedAt: 0 })
-  //   // Fetched
-  //   expect(states[3]).toMatchObject({ data: 2 })
-  // })
+    expect(states.length).toBe(4)
+    // Initial
+    expect(states[0]).toMatchObject({ data: undefined, dataUpdatedAt: 0 })
+    // Fetched
+    expect(states[1]).toMatchObject({ data: 1 })
+    // Switch
+    expect(states[2]).toMatchObject({ data: undefined, dataUpdatedAt: 0 })
+    // Fetched
+    expect(states[3]).toMatchObject({ data: 2 })
+  })
 
   it("should share equal data structures between query results", async () => {
     const key = queryKey()
