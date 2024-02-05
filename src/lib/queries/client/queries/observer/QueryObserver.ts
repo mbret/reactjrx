@@ -327,6 +327,14 @@ export class QueryObserver<
 
     const result$ = this.currentQuerySubject.pipe(
       switchMap((query) => {
+        // We have an observer and a new query so we need to fetch again if needed
+        if (
+          observedQuery !== query &&
+          shouldFetchOnMount(observedQuery, this.options)
+        ) {
+          this.fetch().catch(noop)
+        }
+
         return query.observe().pipe(
           map(() => {
             const result = this.getObserverResultFromQuery({

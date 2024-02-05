@@ -10,11 +10,11 @@ import {
   takeUntil,
   merge,
   last,
-  finalize,
   BehaviorSubject,
   startWith,
   catchError,
-  EMPTY
+  EMPTY,
+  distinctUntilChanged
 } from "rxjs"
 import { isServer } from "../../../../utils/isServer"
 import { type QueryKey } from "../../keys/types"
@@ -29,6 +29,7 @@ import { type CancelOptions } from "../retryer/types"
 import { CancelledError } from "../retryer/CancelledError"
 import { mergeResults } from "./operators"
 import { trackSubscriptions } from "../../../../utils/operators/trackSubscriptions"
+import { shallowEqual } from "../../../../utils/shallowEqual"
 
 interface QueryConfig<
   TQueryFnData,
@@ -119,12 +120,6 @@ export class Query<
       this.executeSubject.pipe(
         mergeMap(() =>
           executeQuery({ ...this.options, queryKey: this.queryKey }).pipe(
-            tap((t) => {
-              // console.log("executeSubject", t)
-            }),
-            finalize(() => {
-              // console.log("executeSubject FINALIZE")
-            }),
             takeUntil(this.cancelSubject)
           )
         ),
@@ -145,11 +140,15 @@ export class Query<
       )
     ).pipe(
       startWith(this.#initialState),
+      tap((state) => {
+        // console.log("Query result", state)
+      }),
       mergeResults({
         initialState: this.state,
         getOptions: () => this.options,
         getState: () => this.state
       }),
+      distinctUntilChanged(shallowEqual),
       tap((state) => {
         this.state = state
       }),

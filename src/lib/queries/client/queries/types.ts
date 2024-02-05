@@ -1,3 +1,4 @@
+import { type Observable } from "rxjs"
 import { type NoInfer, type WithRequired } from "../../../utils/types"
 import { type QueryKey } from "../keys/types"
 import { type DefaultError } from "../types"
@@ -103,7 +104,7 @@ export interface QueryOptions<
    * Setting it to `Infinity` will disable garbage collection.
    */
   gcTime?: number
-  queryFn?: QueryFunction<TQueryFnData, TQueryKey, TPageParam>
+  queryFn?: QueryFunction<TQueryFnData, TQueryKey, TPageParam> | Observable<TQueryFnData>
   persister?: QueryPersister<
     NoInfer<TQueryFnData>,
     NoInfer<TQueryKey>,

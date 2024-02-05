@@ -26,7 +26,17 @@ describe("useQuery", () => {
           }
         })
 
-        return <>{printQuery(result)}</>
+        return (
+          <>
+            {printQuery(result, [
+              "data",
+              "error",
+              "isLoading",
+              "status",
+              "fetchStatus"
+            ])}
+          </>
+        )
       }
 
       const client = new QueryClient()
@@ -44,7 +54,7 @@ describe("useQuery", () => {
         await findByText(
           printQuery({
             data: 2,
-            error: undefined,
+            error: null,
             isLoading: false,
             status: "success",
             fetchStatus: "idle"
@@ -65,7 +75,7 @@ describe("useQuery", () => {
         await findByText(
           printQuery({
             data: 3,
-            error: undefined,
+            error: null,
             isLoading: false,
             status: "success",
             fetchStatus: "idle"
@@ -87,7 +97,18 @@ describe("useQuery", () => {
               queryFn: triggerSubject
             })
 
-            return <>{printQuery(result)}</>
+            console.log(result)
+            return (
+              <>
+                {printQuery(result, [
+                  "data",
+                  "error",
+                  "isLoading",
+                  "status",
+                  "fetchStatus"
+                ])}
+              </>
+            )
           }
 
           const client = new QueryClient()
@@ -106,7 +127,7 @@ describe("useQuery", () => {
             await findByText(
               printQuery({
                 data: 2,
-                error: undefined,
+                error: null,
                 fetchStatus: "fetching",
                 isLoading: false,
                 status: "success"
@@ -126,10 +147,10 @@ describe("useQuery", () => {
             await findByText(
               printQuery({
                 data: undefined,
-                error: undefined,
+                error: null,
                 fetchStatus: "fetching",
                 isLoading: true,
-                status: "loading"
+                status: "pending"
               })
             )
           ).toBeDefined()
@@ -140,7 +161,7 @@ describe("useQuery", () => {
             await findByText(
               printQuery({
                 data: 3,
-                error: undefined,
+                error: null,
                 fetchStatus: "fetching",
                 isLoading: false,
                 status: "success"
@@ -158,7 +179,7 @@ describe("useQuery", () => {
             await findByText(
               printQuery({
                 data: 3,
-                error: undefined,
+                error: null,
                 fetchStatus: "idle",
                 isLoading: false,
                 status: "success"
