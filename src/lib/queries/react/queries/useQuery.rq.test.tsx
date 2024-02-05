@@ -7,8 +7,8 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/promise-function-async */
-import { describe, expect, expectTypeOf, it, test, vi } from "vitest"
-import { act, fireEvent, render, waitFor } from "@testing-library/react"
+import { describe, expect, expectTypeOf, it } from "vitest"
+import { fireEvent, render, waitFor } from "@testing-library/react"
 import { QueryCache } from "../../client/queries/cache/QueryCache"
 import {
   createQueryClient,
@@ -217,6 +217,7 @@ describe("useQuery", () => {
         }
       })
 
+      console.log({state})
       states.push(state)
 
       if (state.isPending) {
@@ -844,11 +845,11 @@ describe("useQuery", () => {
         queryFn: () => (runs === 0 ? "test" : "test2"),
 
         select: React.useCallback(() => {
-          console.log("run select")
           runs++
           throw error
         }, [])
       })
+
       return (
         <div>
           <div>error: {state.error?.message}</div>
@@ -1276,7 +1277,6 @@ describe("useQuery", () => {
       const state = useQuery({
         queryKey: [key, count],
         queryFn: async () => {
-          console.log("fetc")
           await sleep(5)
           return count
         },
@@ -1306,28 +1306,29 @@ describe("useQuery", () => {
     })
 
     // making sure no additional fetches are triggered
-    // await sleep(50)
+    await sleep(50)
 
-    // expect(states.length).toBe(3)
+    expect(states.length).toBe(3)
 
     // Fetch query
-    // expect(states[0]).toMatchObject({
-    //   data: undefined,
-    //   isFetching: true,
-    //   isSuccess: false
-    // })
-    // //   // Fetched query
-    // expect(states[1]).toMatchObject({
-    //   data: 0,
-    //   isFetching: false,
-    //   isSuccess: true
-    // })
-    // // Switch to disabled query
-    // expect(states[2]).toMatchObject({
-    //   data: undefined,
-    //   isFetching: false,
-    //   isSuccess: false
-    // })
+    expect(states[0]).toMatchObject({
+      data: undefined,
+      isFetching: true,
+      isSuccess: false
+    })
+
+    // Fetched query
+    expect(states[1]).toMatchObject({
+      data: 0,
+      isFetching: false,
+      isSuccess: true
+    })
+    // Switch to disabled query
+    expect(states[2]).toMatchObject({
+      data: undefined,
+      isFetching: false,
+      isSuccess: false
+    })
   })
 
   // it('should keep the previous data when placeholderData is set', async () => {

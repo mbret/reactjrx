@@ -231,10 +231,6 @@ export class Query<
     )
   }
 
-  getInitialState() {
-    return this.#initialState
-  }
-
   async fetch(
     options?: QueryOptions<TQueryFnData, TError, TData, TQueryKey>,
     fetchOptions?: FetchOptions

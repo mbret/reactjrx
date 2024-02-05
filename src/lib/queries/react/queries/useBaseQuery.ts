@@ -9,8 +9,11 @@ import { type QueryClient } from "../../client/QueryClient"
 import { useEffect, useMemo, useState } from "react"
 import { useObserve } from "../../../binding/useObserve"
 import { type QueryObserverResult } from "../../client/queries/observer/types"
-import { skip, skipWhile, tap } from "rxjs"
+import { filter, skip, skipWhile, tap } from "rxjs"
 import { shallowEqual } from "../../../utils/shallowEqual"
+import { useLiveRef } from "../../../utils/useLiveRef"
+import { useSubscribe } from "../../../binding/useSubscribe"
+import { useConstant } from "../../../utils/useConstant"
 
 export function useBaseQuery<
   TQueryFnData,
@@ -46,22 +49,26 @@ export function useBaseQuery<
       )
   )
 
-  const { result: firstResult, result$ } = useMemo(
-    () => observer.observe(),
-    [observer]
+  /**
+   * We make sure to start observing before getting optimistic updates
+   * so that it starts fetching if needed
+   */
+  const result$ = useConstant(() => observer.observe())
+
+  const optimisticResult = useLiveRef(
+    observer.getOptimisticResult(defaultedOptions)
   )
 
-  const result = useObserve(
+  useObserve(
     () =>
-      result$.pipe(
+      result$.current.result$.pipe(
         /**
          * By the time this observer runs the result may have changed (eg: synchronous setData).
          * It's important to not skip the first result (even tho most of the time they are equal).
          * We only skip if they are the same.
          */
-        skipWhile((result) => shallowEqual(result, firstResult))
+        filter((result) => !shallowEqual(result, optimisticResult.current))
       ),
-    { defaultValue: firstResult },
     []
   )
 
@@ -69,5 +76,5 @@ export function useBaseQuery<
     observer.setOptions(defaultedOptions, { listeners: false })
   }, [defaultedOptions, observer])
 
-  return result
+  return optimisticResult.current
 }
