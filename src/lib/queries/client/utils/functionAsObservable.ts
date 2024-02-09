@@ -1,16 +1,34 @@
-import { Observable, defer, from, of } from "rxjs"
+import { type Observable, defer, from, isObservable, of } from "rxjs"
+import { isPromiseLike } from "../../../utils/isPromiseLike"
 
-export const functionAsObservable = <Data>(
-  fn: () => Observable<Data> | Promise<Data> | Data
+export const makeObservable = <Data>(
+  something:
+    | (() => Observable<Data>)
+    | Promise<Data>
+    | Observable<Data>
+    | (() => Promise<Data>)
+    | (() => Data)
+    | Data
 ): Observable<Data> => {
-  return defer(() => {
-    const result = fn()
+  if (isObservable(something)) return something
 
-    if (result instanceof Promise) {
+  if (isPromiseLike(something)) return from(something)
+
+  if (typeof something !== "function") return of(something)
+
+  const somethingAsFunction = something as
+    | (() => Observable<Data>)
+    | (() => Promise<Data>)
+    | (() => Data)
+
+  return defer(() => {
+    const result = somethingAsFunction()
+
+    if (isPromiseLike(result)) {
       return from(result)
     }
 
-    if (result instanceof Observable) {
+    if (isObservable(result)) {
       return result
     }
 

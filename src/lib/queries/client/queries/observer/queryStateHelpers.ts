@@ -1,7 +1,7 @@
 import { type Query } from "../query/Query"
 import { type QueryObserverOptions } from "./types"
 
-function isStale(
+export function isStale(
   query: Query<any, any, any, any>,
   options: QueryObserverOptions<any, any, any, any, any>
 ): boolean {

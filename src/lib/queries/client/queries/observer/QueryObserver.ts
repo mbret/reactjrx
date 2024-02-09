@@ -1,14 +1,18 @@
 import {
   BehaviorSubject,
   Subject,
+  distinctUntilChanged,
+  filter,
   ignoreElements,
   map,
   merge,
   noop,
   pairwise,
+  share,
   startWith,
   switchMap,
   tap,
+  timer
 } from "rxjs"
 import { type QueryClient } from "../../QueryClient"
 import { type QueryKey } from "../../keys/types"
@@ -21,8 +25,13 @@ import {
   type QueryObserverOptions,
   type DefaultedQueryObserverOptions
 } from "./types"
-import { shouldFetchOnMount, shouldFetchOptionally } from "./queryStateHelpers"
+import {
+  isStale,
+  shouldFetchOnMount,
+  shouldFetchOptionally
+} from "./queryStateHelpers"
 import { shallowEqual } from "../../../../utils/shallowEqual"
+import { filterObjectByKey } from "../../../../utils/filterObjectByKey"
 
 export interface ObserverFetchOptions extends FetchOptions {
   throwOnError?: boolean
@@ -245,7 +254,7 @@ export class QueryObserver<
       isPaused: false,
       isPlaceholderData: false,
       isRefetchError: false,
-      isStale: true,
+      isStale: isStale(query, options),
       refetch: this.refetch
     }
 
@@ -397,7 +406,52 @@ export class QueryObserver<
         switchMap((query) => {
           const options = this.optionsSubject.getValue()
 
-          return query.observe().pipe(
+          const observed$ = query.observe().pipe(share())
+
+          const notifyOnStale$ = observed$.pipe(
+            filter((state) => state.status === "success"),
+            switchMap((state) =>
+              timer(this.optionsSubject.getValue().staleTime ?? 1).pipe(
+                map(() => state)
+              )
+            )
+          )
+
+          // @todo move into its own operator
+          const comparisonFunction = (
+            objA: QueryObserverResult<TData, TError>,
+            objB: QueryObserverResult<TData, TError>
+          ) => {
+            const notifyOnChangeProps = options.notifyOnChangeProps
+            const notifyOnChangePropsValue =
+              typeof notifyOnChangeProps === "function"
+                ? notifyOnChangeProps()
+                : notifyOnChangeProps
+
+            const reducedFunction = Array.isArray(notifyOnChangePropsValue)
+              ? notifyOnChangePropsValue.length === 0
+                ? () => true
+                : (
+                    objA: QueryObserverResult<TData, TError>,
+                    objB: QueryObserverResult<TData, TError>
+                  ) => {
+                    const reducedObjA = filterObjectByKey(
+                      objA,
+                      notifyOnChangePropsValue as any
+                    )
+                    const reducedObjB = filterObjectByKey(
+                      objB,
+                      notifyOnChangePropsValue as any
+                    )
+
+                    return shallowEqual(reducedObjA, reducedObjB)
+                  }
+              : shallowEqual
+
+            return reducedFunction(objA, objB)
+          }
+
+          return merge(observed$, notifyOnStale$).pipe(
             map(() => {
               const result = this.getObserverResultFromQuery({
                 query,
@@ -408,7 +462,11 @@ export class QueryObserver<
               this.updateObservedResult({ query, ...result })
 
               return result.result
-            })
+            }),
+            // This one ensure we don't re-trigger same state
+            distinctUntilChanged(shallowEqual),
+            // This one make sure we dispatch based on user preference
+            distinctUntilChanged(comparisonFunction)
           )
         }),
         tap({

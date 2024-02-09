@@ -1,9 +1,9 @@
 "use client"
 
-import { useQueryClient } from "../Provider"
 import { type QueryClient } from "../../client/QueryClient"
 import { type QueryFilters } from "../../client/queries/types"
 import { useObserve } from "../../../binding/useObserve"
+import { useQueryClient } from "../useQueryClient"
 
 export function useIsFetching(
   filters?: QueryFilters,

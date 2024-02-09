@@ -50,10 +50,12 @@ describe("useQuery", () => {
       )
 
       // we have to account for strict mode
+      // but a query will recover from currently running
+      // query if possible so it will return the first result
       expect(
         await findByText(
           printQuery({
-            data: 2,
+            data: 1,
             error: null,
             isLoading: false,
             status: "success",
@@ -74,7 +76,7 @@ describe("useQuery", () => {
       expect(
         await findByText(
           printQuery({
-            data: 3,
+            data: 2,
             error: null,
             isLoading: false,
             status: "success",

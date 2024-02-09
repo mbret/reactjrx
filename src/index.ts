@@ -19,13 +19,10 @@ export * from "./lib/utils/useUnmountObservable"
 export * from "./lib/utils/operators/retryBackoff"
 export * from "./lib/utils/useLiveRef"
 
-// higher helpers
+// query
 export * from "./lib/queries/react/mutations/useMutation"
 export * from "./lib/queries/react/queries/useQuery"
-export * from "./lib/queries/react/useSubscribeEffect"
+export * from "./lib/binding/useSubscribeEffect"
 export * from "./lib/queries/client/QueryClient"
-export {
-  QueryClientProvider,
-  useQueryClient
-} from "./lib/queries/react/Provider"
+export { QueryClientProvider } from "./lib/queries/react/Provider"
 export { MutationCache } from "./lib/queries/client/mutations/cache/MutationCache"

@@ -2,18 +2,17 @@
 
 import type { UseBaseQueryOptions } from "./types"
 import { useIsRestoring } from "./isRestoring"
-import { useQueryClient } from "../Provider"
 import { type QueryObserver } from "../../client/queries/observer/QueryObserver"
 import { type QueryKey } from "../../client/keys/types"
 import { type QueryClient } from "../../client/QueryClient"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { useObserve } from "../../../binding/useObserve"
 import { type QueryObserverResult } from "../../client/queries/observer/types"
-import { filter, skip, skipWhile, tap } from "rxjs"
+import { filter} from "rxjs"
 import { shallowEqual } from "../../../utils/shallowEqual"
 import { useLiveRef } from "../../../utils/useLiveRef"
-import { useSubscribe } from "../../../binding/useSubscribe"
 import { useConstant } from "../../../utils/useConstant"
+import { useQueryClient } from "../useQueryClient"
 
 export function useBaseQuery<
   TQueryFnData,

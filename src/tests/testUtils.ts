@@ -9,8 +9,18 @@ function sortObj(obj: any) {
     }, {})
 }
 
-export const printQuery = (data: any) => {
-  return JSON.stringify(sortObj(data), (_, v) =>
+export const printQuery = (data: any, keys?: string[]) => {
+  const match = !keys?.length
+    ? data
+    : Object.keys(data)
+        .filter((key) => keys.includes(key))
+        .reduce<any>((acc, key) => {
+          acc[key] = data[key]
+
+          return acc
+        }, {})
+
+  return JSON.stringify(sortObj(match), (_, v) =>
     v === undefined ? "__undefined" : v
   ).replace(/"__undefined"/g, "undefined")
 }

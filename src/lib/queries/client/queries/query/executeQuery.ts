@@ -13,7 +13,7 @@ import {
 } from "rxjs"
 import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
-import { functionAsObservable } from "../../utils/functionAsObservable"
+import { makeObservable } from "../../utils/functionAsObservable"
 import { type QueryState } from "./types"
 import { retryOnError } from "../../operators"
 import { getDefaultState } from "./getDefaultState"
@@ -45,7 +45,7 @@ export const executeQuery = <
   const fn$ =
     typeof queryFn === "function"
       ? // eslint-disable-next-line @typescript-eslint/promise-function-async
-        functionAsObservable(() =>
+        makeObservable(() =>
           queryFn({
             meta: options.meta,
             queryKey: options.queryKey,

@@ -234,6 +234,38 @@ export class Query<
     options?: QueryOptions<TQueryFnData, TError, TData, TQueryKey>,
     fetchOptions?: FetchOptions
   ): Promise<TData> {
+    const createPromise = async () =>
+      await new Promise<TData>((resolve, reject) => {
+        this.state$
+          .pipe(
+            takeWhile((result) => {
+              const isSuccessOrError =
+                result.status === "error" || result.status === "success"
+              const isFetchingOrPaused = result.fetchStatus !== "idle"
+
+              void isSuccessOrError
+
+              return isFetchingOrPaused
+            }, true),
+            last()
+          )
+          .subscribe({
+            error: reject,
+            next: (data) => {
+              if (data.error) {
+                reject(data.error)
+              } else {
+                resolve(data.data as TData)
+              }
+            }
+          })
+      })
+
+    if (this.state.fetchStatus !== "idle") {
+      // Return current promise if we are already fetching
+      return await createPromise()
+    }
+
     // Update config if passed, otherwise the config from the last execution is used
     if (options) {
       this.#setOptions(options)
@@ -241,32 +273,7 @@ export class Query<
 
     this.executeSubject.next()
 
-    return await new Promise<TData>((resolve, reject) => {
-      this.state$
-        .pipe(
-          takeWhile((result) => {
-            const isSuccessOrError =
-              result.status === "error" || result.status === "success"
-            const isFetchingOrPaused = result.fetchStatus !== "idle"
-
-            void isSuccessOrError
-
-            return isFetchingOrPaused
-          }, true),
-          last()
-        )
-        .subscribe({
-          error: reject,
-          next: (data) => {
-            // console.log("query fetch done", data)
-            if (data.error) {
-              reject(data.error)
-            } else {
-              resolve(data.data as TData)
-            }
-          }
-        })
-    })
+    return await createPromise()
   }
 
   setData(

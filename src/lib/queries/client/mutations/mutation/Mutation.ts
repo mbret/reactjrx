@@ -17,7 +17,7 @@ import {
 import { getDefaultMutationState } from "../defaultMutationState"
 import { type DefaultError } from "../../types"
 import { type MutationCache } from "../cache/MutationCache"
-import { functionAsObservable } from "../../utils/functionAsObservable"
+import { makeObservable } from "../../utils/functionAsObservable"
 import {
   type MutationState,
   type MutationMeta,
@@ -72,7 +72,7 @@ export class Mutation<
           options: {
             ...this.options,
             onMutate: (variables) => {
-              const onCacheMutate$ = functionAsObservable(
+              const onCacheMutate$ = makeObservable(
                 () =>
                   mutationCache.config.onMutate?.(
                     variables,
@@ -80,7 +80,7 @@ export class Mutation<
                   )
               ) as Observable<TContext>
 
-              const onOptionMutate$ = functionAsObservable(
+              const onOptionMutate$ = makeObservable(
                 // eslint-disable-next-line @typescript-eslint/promise-function-async
                 () => {
                   return this.options.onMutate?.(variables) ?? undefined
@@ -90,7 +90,7 @@ export class Mutation<
               return onCacheMutate$.pipe(mergeMap(() => onOptionMutate$))
             },
             onError: (error, variables, context) => {
-              const onCacheError$ = functionAsObservable(
+              const onCacheError$ = makeObservable(
                 () =>
                   mutationCache.config.onError?.(
                     error as any,
@@ -100,14 +100,14 @@ export class Mutation<
                   )
               )
 
-              const onOptionError$ = functionAsObservable(
+              const onOptionError$ = makeObservable(
                 () => this.options.onError?.(error, variables, context)
               )
 
               return concat(onCacheError$, onOptionError$).pipe(toArray())
             },
             onSettled: (data, error, variables, context) => {
-              const onCacheSuccess$ = functionAsObservable(
+              const onCacheSuccess$ = makeObservable(
                 () =>
                   mutationCache.config.onSettled?.(
                     data,
@@ -118,14 +118,14 @@ export class Mutation<
                   )
               )
 
-              const onOptionSettled$ = functionAsObservable(
+              const onOptionSettled$ = makeObservable(
                 () => this.options.onSettled?.(data, error, variables, context)
               )
 
               return concat(onCacheSuccess$, onOptionSettled$).pipe(toArray())
             },
             onSuccess: (data, variables, context) => {
-              const onCacheSuccess$ = functionAsObservable(
+              const onCacheSuccess$ = makeObservable(
                 () =>
                   mutationCache.config.onSuccess?.(
                     data,
@@ -135,7 +135,7 @@ export class Mutation<
                   )
               )
 
-              const onOptionSuccess$ = functionAsObservable(
+              const onOptionSuccess$ = makeObservable(
                 () => this.options.onSuccess?.(data, variables, context)
               )
 

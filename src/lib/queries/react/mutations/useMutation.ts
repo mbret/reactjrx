@@ -1,7 +1,6 @@
 import { useLiveRef } from "../../../utils/useLiveRef"
 import { useObserve } from "../../../binding/useObserve"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { useQueryClient } from "../Provider"
 import { serializeKey } from "../../client/keys/serializeKey"
 import { nanoid } from "../../client/keys/nanoid"
 import { useConstant } from "../../../utils/useConstant"
@@ -13,6 +12,7 @@ import {
   type UseMutateFunction,
   type UseMutationOptions
 } from "./types"
+import { useQueryClient } from "../useQueryClient"
 
 function noop() {}
 

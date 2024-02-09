@@ -13,7 +13,7 @@ import {
   shareReplay
 } from "rxjs"
 import { type MutationOptions, type MutationState } from "./types"
-import { functionAsObservable } from "../../utils/functionAsObservable"
+import { makeObservable } from "../../utils/functionAsObservable"
 import { retryOnError } from "../../operators"
 import { type DefaultError } from "../../types"
 import { getDefaultMutationState } from "../defaultMutationState"
@@ -48,7 +48,7 @@ export const executeMutation = <
   const onOptionMutate$ = iif(
     () => isPaused,
     of(state.context),
-    functionAsObservable(
+    makeObservable(
       // eslint-disable-next-line @typescript-eslint/promise-function-async
       () => options.onMutate?.(variables) ?? undefined
     )
@@ -64,7 +64,7 @@ export const executeMutation = <
   const onError = (error: TError, context: TContext, attempt: number) => {
     console.error(error)
 
-    const onError$ = functionAsObservable(
+    const onError$ = makeObservable(
       () => options.onError?.(error, variables, context)
     )
 
@@ -87,7 +87,7 @@ export const executeMutation = <
       const fn$ =
         typeof mutationFn === "function"
           ? // eslint-disable-next-line @typescript-eslint/promise-function-async
-            functionAsObservable(() => mutationFn(variables))
+            makeObservable(() => mutationFn(variables))
           : mutationFn
 
       const finalFn$ = fn$.pipe(
@@ -156,7 +156,7 @@ export const executeMutation = <
 
         const onSuccess$ = error
           ? of(null)
-          : functionAsObservable(
+          : makeObservable(
               () =>
                 options.onSuccess?.(
                   mutationData?.data as TData,
@@ -165,7 +165,7 @@ export const executeMutation = <
                 )
             )
 
-        const onOptionSettled$ = functionAsObservable(
+        const onOptionSettled$ = makeObservable(
           () =>
             options.onSettled?.(
               mutationData?.data,

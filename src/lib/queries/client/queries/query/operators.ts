@@ -37,11 +37,12 @@ export const mergeResults =
               : acc.errorUpdateCount,
           data: newData,
           dataUpdateCount:
-            current.status === "success" && acc.status !== "success"
+            current.fetchStatus === "idle" && acc.fetchStatus !== "idle"
               ? acc.dataUpdateCount + 1
               : acc.dataUpdateCount,
           status:
-            (current.status === "pending" && acc.status === "error"
+            (current.status === "pending" &&
+            (acc.status === "error" || acc.status === "success")
               ? acc.status
               : current.status) ?? acc.status
         }
