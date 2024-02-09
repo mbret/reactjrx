@@ -1,37 +1,16 @@
 import { type DependencyList, useEffect } from "react"
-import { type Observable, catchError, EMPTY } from "rxjs"
 import { useLiveRef } from "../utils/useLiveRef"
-
-export function useSubscribe<T>(source: Observable<T>): void
-
-export function useSubscribe<T>(
-  source$: () => Observable<T>,
-  deps: DependencyList
-): void
+import { makeObservable } from "../queries/client/utils/functionAsObservable"
+import { type SubscribeSource } from "./types"
 
 export function useSubscribe<T>(
-  source: Observable<T> | (() => Observable<T>),
+  source: SubscribeSource<T>,
   deps: DependencyList = []
 ) {
   const sourceRef = useLiveRef(source)
-  const sourceAsObservable = typeof source === "function" ? undefined : source
 
   useEffect(() => {
-    const source = sourceRef.current
-    const makeObservable = typeof source === "function" ? source : () => source
-
-    const sub = makeObservable()
-      .pipe(
-        catchError((error) => {
-          console.error(
-            "Uncaught error at useSubscribe. Please consider adding a catchError or other handling."
-          )
-          console.error(error)
-
-          return EMPTY
-        })
-      )
-      .subscribe()
+    const sub = makeObservable(sourceRef.current).subscribe()
 
     return () => {
       sub.unsubscribe()
@@ -39,7 +18,6 @@ export function useSubscribe<T>(
   }, [
     // eslint-disable-next-line react-hooks/exhaustive-deps
     ...deps,
-    sourceAsObservable,
     sourceRef
   ])
 }

@@ -2,7 +2,7 @@
 export * from "./lib/binding/useObserve"
 export * from "./lib/binding/useSubscribe"
 export * from "./lib/binding/useObserveCallback"
-export * from "./lib/binding/trigger"
+export * from "./lib/binding/useObservableState"
 export * from "./lib/binding/useSubject"
 export * from "./lib/binding/useBehaviorSubject"
 

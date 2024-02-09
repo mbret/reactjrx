@@ -1,33 +1,34 @@
 import { type DependencyList, useCallback } from "react"
-import { type Observable, catchError, identity, retry } from "rxjs"
+import { catchError, identity, retry } from "rxjs"
 import { useSubscribe } from "./useSubscribe"
 import { useLiveRef } from "../utils/useLiveRef"
 import { makeObservable } from "../queries/client/utils/functionAsObservable"
+import { type SubscribeSource } from "./types"
 
 interface Option {
   retry?: boolean
   onError?: (error: unknown) => void
 }
 
-export function useSubscribeEffect<T>(source: Observable<T>): void
+export function useSubscribeEffect<T>(source: SubscribeSource<T>): void
 export function useSubscribeEffect<T>(
-  source: Observable<T>,
+  source: SubscribeSource<T>,
   options: Option
 ): void
 
 export function useSubscribeEffect<T>(
-  source: () => Observable<T>,
+  source: SubscribeSource<T>,
   deps: DependencyList
 ): void
 
 export function useSubscribeEffect<T>(
-  source: () => Observable<T>,
+  source: SubscribeSource<T>,
   options: Option,
   deps: DependencyList
 ): void
 
 export function useSubscribeEffect<T>(
-  source: Observable<T> | (() => Observable<T>),
+  source: SubscribeSource<T>,
   unsafeOptions?: Option | DependencyList,
   deps: DependencyList = []
 ) {
