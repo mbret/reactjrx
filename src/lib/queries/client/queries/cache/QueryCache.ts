@@ -327,7 +327,7 @@ export class QueryCache {
               : noMoreObservers$.pipe(
                   // defaults to 5mn
                   switchMap(() => {
-                    return timer(query.options.gcTime ?? 5 * 60 * 1000)
+                    return timer(query.gcTime)
                   })
                 )
           }),

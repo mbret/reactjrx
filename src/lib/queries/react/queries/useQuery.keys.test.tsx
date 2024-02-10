@@ -49,9 +49,9 @@ describe("useQuery", () => {
         </React.StrictMode>
       )
 
-      // we have to account for strict mode
-      // but a query will recover from currently running
-      // query if possible so it will return the first result
+      // we have to account for strict mode but
+      // - because we don't have data yet the next request
+      // will not cancel the previous one and therefore be ignored
       expect(
         await findByText(
           printQuery({

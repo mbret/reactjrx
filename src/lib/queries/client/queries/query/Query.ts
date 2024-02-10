@@ -66,7 +66,7 @@ export class Query<
   state: QueryState<TData, TError>
 
   // @todo to share with mutation
-  protected executeSubject = new Subject<void>()
+  protected executeSubject = new Subject<FetchOptions | undefined>()
   protected cancelSubject = new Subject<void>()
   protected setDataSubject = new Subject<{
     data: TData
@@ -85,7 +85,7 @@ export class Query<
   constructor(config: QueryConfig<TQueryFnData, TError, TData, TQueryKey>) {
     // this.#abortSignalConsumed = false
     this.#defaultOptions = config.defaultOptions
-    this.options = this.#setOptions(config.options)
+    this.options = this.setOptions(config.options)
     // this.#observers = []
     // this.#cache = config.cache
     this.queryKey = config.queryKey
@@ -118,11 +118,16 @@ export class Query<
         )
       ),
       this.executeSubject.pipe(
-        mergeMap(() =>
-          executeQuery({ ...this.options, queryKey: this.queryKey }).pipe(
-            takeUntil(this.cancelSubject)
+        mergeMap(() => {
+          const cancelFromNewRefetch$ = this.executeSubject.pipe(
+            filter((options) => options?.cancelRefetch !== false)
           )
-        ),
+
+          return executeQuery({
+            ...this.options,
+            queryKey: this.queryKey
+          }).pipe(takeUntil(merge(this.cancelSubject, cancelFromNewRefetch$)))
+        }),
         takeUntil(this.resetSubject)
       ),
       this.setDataSubject.pipe(
@@ -171,7 +176,9 @@ export class Query<
     )
   }
 
-  #setOptions(options?: QueryOptions<TQueryFnData, TError, TData, TQueryKey>) {
+  public setOptions(
+    options?: QueryOptions<TQueryFnData, TError, TData, TQueryKey>
+  ) {
     this.options = { ...this.#defaultOptions, ...options }
 
     this.updateGcTime(this.options.gcTime)
@@ -191,6 +198,7 @@ export class Query<
     return this.observerCount.getValue()
   }
 
+  // @todo this can be shared with mutation
   protected updateGcTime(newGcTime: number | undefined) {
     // Default to 5 minutes (Infinity for server-side) if no gcTime is set
     this.gcTime = Math.max(
@@ -261,17 +269,23 @@ export class Query<
           })
       })
 
+    const { cancelRefetch = true } = fetchOptions ?? {}
+
     if (this.state.fetchStatus !== "idle") {
-      // Return current promise if we are already fetching
-      return await createPromise()
+      const shouldCancelRequest = cancelRefetch && this.state.dataUpdatedAt
+
+      if (!shouldCancelRequest) {
+        // Return current promise if we are already fetching
+        return await createPromise()
+      }
     }
 
     // Update config if passed, otherwise the config from the last execution is used
     if (options) {
-      this.#setOptions(options)
+      this.setOptions(options)
     }
 
-    this.executeSubject.next()
+    this.executeSubject.next(fetchOptions)
 
     return await createPromise()
   }
@@ -295,19 +309,16 @@ export class Query<
 
   async cancel(options?: CancelOptions): Promise<void> {
     this.cancelSubject.next()
-    // const promise = this.#promise
-    // this.#retryer?.cancel(options)
-    // return promise ? promise.then(noop).catch(noop) : Promise.resolve()
   }
 
-  // @todo merge with query
+  // @todo merge with mutation
   destroy() {
     this.destroySubject.next()
     this.destroySubject.complete()
     this.executeSubject.complete()
   }
 
-  // @todo merge with query
+  // @todo merge with mutation
   reset() {
     this.resetSubject.next()
     this.resetSubject.complete()

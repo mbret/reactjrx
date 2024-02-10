@@ -11,9 +11,10 @@ import {
   type Updater,
   type FetchQueryOptions,
   type QueryFilters,
-  type SetDataOptions
+  type SetDataOptions,
+  type RefetchOptions
 } from "./queries/types"
-import { type DefaultError } from "./types"
+import { type RefetchQueryFilters, type DefaultError } from "./types"
 import { type QueryKey } from "./keys/types"
 import {
   type DefaultedQueryObserverOptions,
@@ -197,6 +198,30 @@ export class QueryClient {
     options: FetchQueryOptions<TQueryFnData, TError, TData, TQueryKey>
   ): Promise<void> {
     await this.fetchQuery(options).then(noop).catch(noop)
+  }
+
+  async refetchQueries(
+    filters: RefetchQueryFilters = {},
+    options?: RefetchOptions
+  ): Promise<void> {
+    const fetchOptions = {
+      ...options,
+      cancelRefetch: options?.cancelRefetch ?? true
+    }
+
+    const promises = this.#queryCache
+      .findAll(filters)
+      .filter((query) => !query.isDisabled())
+      .map(async (query) => {
+        let promise = query.fetch(undefined, fetchOptions)
+        if (!fetchOptions.throwOnError) {
+          promise = promise.catch(noop)
+        }
+
+        return query.state.fetchStatus === "paused" ? undefined : await promise
+      })
+
+    await Promise.all(promises).then(noop)
   }
 
   setQueryData<
