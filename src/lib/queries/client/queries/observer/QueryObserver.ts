@@ -347,7 +347,6 @@ export class QueryObserver<
   async refetch({ ...options }: RefetchOptions = {}): Promise<
     QueryObserverResult<TData, TError>
   > {
-    console.log("refetch")
     return await this.fetch({
       ...options
     })

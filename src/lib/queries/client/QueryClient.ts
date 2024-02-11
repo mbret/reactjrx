@@ -14,7 +14,12 @@ import {
   type SetDataOptions,
   type RefetchOptions
 } from "./queries/types"
-import { type RefetchQueryFilters, type DefaultError, type InvalidateOptions, type InvalidateQueryFilters } from "./types"
+import {
+  type RefetchQueryFilters,
+  type DefaultError,
+  type InvalidateOptions,
+  type InvalidateQueryFilters
+} from "./types"
 import { type QueryKey } from "./keys/types"
 import {
   type DefaultedQueryObserverOptions,
@@ -22,6 +27,7 @@ import {
 } from "./queries/observer/types"
 import { functionalUpdate, hashQueryKeyByOptions } from "./queries/utils"
 import { type NoInfer } from "../../utils/types"
+import { type QueryState } from "./queries/query/types"
 
 export interface DefaultOptions<TError = DefaultError> {
   queries?: Omit<QueryObserverOptions<unknown, TError>, "suspense">
@@ -278,6 +284,12 @@ export class QueryClient {
     return result
   }
 
+  getQueryState<TQueryFnData = unknown, TError = DefaultError>(
+    queryKey: QueryKey
+  ): QueryState<TQueryFnData, TError> | undefined {
+    return this.#queryCache.find<TQueryFnData, TError>({ queryKey })?.state
+  }
+
   setMutationDefaults(
     mutationKey: MutationKey,
     options: Omit<MutationObserverOptions<any, any, any, any>, "mutationKey">
@@ -333,7 +345,8 @@ export class QueryClient {
     })
 
     if (filters.refetchType === "none") {
-      await Promise.resolve(); return;
+      await Promise.resolve()
+      return
     }
 
     const refetchFilters: RefetchQueryFilters = {
@@ -341,7 +354,7 @@ export class QueryClient {
       type: filters.refetchType ?? filters.type ?? "active"
     }
 
-    await this.refetchQueries(refetchFilters, options);
+    await this.refetchQueries(refetchFilters, options)
   }
 
   async resumePausedMutations() {

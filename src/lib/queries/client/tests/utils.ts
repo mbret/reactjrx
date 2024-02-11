@@ -1,4 +1,4 @@
-import { lastValueFrom } from "rxjs"
+import { lastValueFrom, of } from "rxjs"
 import { type QueryClient } from "../QueryClient"
 import { type MutationOptions } from "../mutations/mutation/types"
 import { type SpyInstance, vi } from "vitest"
@@ -24,10 +24,35 @@ export const executeMutation = async <TVariables>(
   )
 }
 
-export function mockOnlineManagerIsOnline(
-  value: boolean
-): SpyInstance<[], boolean> {
-  return vi.spyOn(onlineManager, "isOnline").mockReturnValue(value)
+export function mockOnlineManagerIsOnline(value: boolean) {
+  // const mocks = [
+  //   vi.spyOn(onlineManager, "isOnline").mockReturnValue(value),
+  //   vi.spyOn(onlineManager, "backToOnline$", "get").mockReturnValue(of(value)),
+  //   vi.spyOn(onlineManager, "online$", "get").mockReturnValue(of(value))
+  // ]
+  window.dispatchEvent(new Event(value ? "online" : "offline"))
+  // onlineManager.setOnline(value)
+  // onlineManager.setOnline(value)
+
+  // onlineManager.refresh()
+
+  // const _mockRestore = mock.mockRestore
+
+  // mock.mockRestore = () => {
+  //   _mockRestore()
+  //   onlineManager.setOnline(true)
+  //   // onlineManager.refresh()
+  // }
+
+  return {
+    mockReturnValue: (value: any) => {},
+    mockRestore: () => {
+      // window.dispatchEvent(new Event(value ? "offline" : "online"))
+      window.dispatchEvent(new Event("online"))
+      // onlineManager.setOnline(true)
+      // mocks.forEach((mock) => { mock.mockRestore(); })
+    }
+  }
 }
 
 export function mockVisibilityState(

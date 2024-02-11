@@ -99,7 +99,6 @@ describe("useQuery", () => {
               queryFn: triggerSubject
             })
 
-            console.log(result)
             return (
               <>
                 {printQuery(result, [

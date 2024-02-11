@@ -5,7 +5,6 @@ import {
   merge,
   map,
   delay,
-  filter,
   tap,
   ignoreElements,
   endWith,
@@ -20,7 +19,7 @@ import { getDefaultState } from "./getDefaultState"
 import { delayWhenVisibilityChange } from "./delayWhenVisibilityChange"
 import { focusManager } from "../../focusManager"
 import { type QueryOptions } from "../types"
-import { delayWhenNetworkOnline } from "./delayWhenNetworkOnline"
+import { delayOnNetworkMode } from "./delayOnNetworkMode"
 import { onlineManager } from "../../onlineManager"
 
 export const executeQuery = <
@@ -69,7 +68,7 @@ export const executeQuery = <
       })
     ),
     delayWhenVisibilityChange(focusManager),
-    delayWhenNetworkOnline(),
+    delayOnNetworkMode(options),
     retryOnError<Result, TError>({
       retry: options.retry,
       retryDelay: options.retryDelay,
@@ -89,7 +88,7 @@ export const executeQuery = <
         } as Result)
     }),
     switchMap((state) => {
-      if (state.fetchFailureReason ?? state.error) return of(state)
+      if (!("data" in state)) return of(state)
 
       return of({
         ...state,
@@ -133,22 +132,16 @@ export const executeQuery = <
     endWith({ fetchStatus: "idle" } satisfies Result)
   )
 
-  const offline$ = onlineManager.online$.pipe(
-    filter((isOnline) => !isOnline),
-    map(
-      () =>
-        ({
-          fetchStatus: "paused"
-        }) satisfies Result
-    )
-  )
-
   const initialResult$ = of({
     status: "pending",
-    fetchStatus: "fetching",
+    fetchStatus: onlineManager.isOnline() ? "fetching" : "paused",
     data: defaultState.data,
     error: defaultState.error
   } satisfies Result)
 
-  return merge(initialResult$, offline$, execution$, emitOnComplete$)
+  return merge(
+    initialResult$,
+    execution$,
+    emitOnComplete$
+  )
 }
