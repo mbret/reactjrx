@@ -12,8 +12,6 @@ import {
   last,
   BehaviorSubject,
   startWith,
-  catchError,
-  EMPTY,
   distinctUntilChanged
 } from "rxjs"
 import { isServer } from "../../../../utils/isServer"
@@ -95,7 +93,9 @@ export class Query<
     this.gcTime = this.updateGcTime(this.options.gcTime)
 
     this.state$ = merge(
+      this.resetSubject.pipe(map(() => this.#initialState)),
       this.invalidatedSubject.pipe(
+        filter(() => !this.state.isInvalidated),
         map(
           () =>
             ({
@@ -103,7 +103,6 @@ export class Query<
             }) satisfies Partial<QueryState<TData, TError>>
         )
       ),
-      this.resetSubject.pipe(map(() => this.#initialState)),
       this.cancelSubject.pipe(
         filter(
           () => this.state.status !== "success" && this.state.status !== "error"
@@ -123,10 +122,19 @@ export class Query<
             filter((options) => options?.cancelRefetch !== false)
           )
 
-          return executeQuery({
+          const functionExecution$ = executeQuery({
             ...this.options,
             queryKey: this.queryKey
-          }).pipe(takeUntil(merge(this.cancelSubject, cancelFromNewRefetch$)))
+          })
+
+          return functionExecution$.pipe(
+            map((result) =>
+              result.status === "success"
+                ? { ...result, isInvalidated: false }
+                : result
+            ),
+            takeUntil(merge(this.cancelSubject, cancelFromNewRefetch$))
+          )
         }),
         takeUntil(this.resetSubject)
       ),
@@ -145,9 +153,6 @@ export class Query<
       )
     ).pipe(
       startWith(this.#initialState),
-      tap((state) => {
-        // console.log("Query result", state)
-      }),
       mergeResults({
         initialState: this.state,
         getOptions: () => this.options,
@@ -157,14 +162,9 @@ export class Query<
       tap((state) => {
         this.state = state
       }),
-      tap((state) => {
-        // console.log("Query state", state)
-      }),
-      catchError((error) => {
-        console.error(error)
-
-        return EMPTY
-      }),
+      // tap((state) => {
+      //   console.log("Query state", state)
+      // }),
       takeUntil(this.destroySubject),
       shareReplay({ bufferSize: 1, refCount: false })
     )
@@ -190,6 +190,11 @@ export class Query<
     return this.options.meta
   }
 
+  /**
+   * QueryObserver should use observe() and not directly
+   * subscribe to the state since some behavior is checking whether
+   * the current query is being actively observed.
+   */
   observe() {
     return this.observedState$
   }
@@ -209,11 +214,11 @@ export class Query<
     return this.gcTime
   }
 
-  isActive(): boolean {
-    // return this.#observers.some(
-    //   (observer) => observer.options.enabled !== false
-    // )
-    return false
+  isActive() {
+    // @important
+    // @todo need to make sure the observers are options.enabled
+    // this means that an observer should not be observing if its not enabled
+    return !!this.getObserversCount()
   }
 
   isDisabled(): boolean {
@@ -302,9 +307,7 @@ export class Query<
   }
 
   invalidate(): void {
-    if (!this.state.isInvalidated) {
-      this.invalidatedSubject.next()
-    }
+    this.invalidatedSubject.next()
   }
 
   async cancel(options?: CancelOptions): Promise<void> {

@@ -14,7 +14,7 @@ import {
   type SetDataOptions,
   type RefetchOptions
 } from "./queries/types"
-import { type RefetchQueryFilters, type DefaultError } from "./types"
+import { type RefetchQueryFilters, type DefaultError, type InvalidateOptions, type InvalidateQueryFilters } from "./types"
 import { type QueryKey } from "./keys/types"
 import {
   type DefaultedQueryObserverOptions,
@@ -322,6 +322,26 @@ export class QueryClient {
     queryCache.findAll(filters).forEach((query) => {
       queryCache.remove(query)
     })
+  }
+
+  async invalidateQueries(
+    filters: InvalidateQueryFilters = {},
+    options: InvalidateOptions = {}
+  ): Promise<void> {
+    this.#queryCache.findAll(filters).forEach((query) => {
+      query.invalidate()
+    })
+
+    if (filters.refetchType === "none") {
+      await Promise.resolve(); return;
+    }
+
+    const refetchFilters: RefetchQueryFilters = {
+      ...filters,
+      type: filters.refetchType ?? filters.type ?? "active"
+    }
+
+    await this.refetchQueries(refetchFilters, options);
   }
 
   async resumePausedMutations() {

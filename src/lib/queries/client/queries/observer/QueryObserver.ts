@@ -1,17 +1,18 @@
 import {
-  BehaviorSubject,
+  NEVER,
   Subject,
   distinctUntilChanged,
   filter,
-  finalize,
   ignoreElements,
   map,
   merge,
   noop,
+  of,
   pairwise,
   share,
   startWith,
   switchMap,
+  takeWhile,
   tap,
   timer
 } from "rxjs"
@@ -209,13 +210,6 @@ export class QueryObserver<
         fetchStatus = "fetching"
       }
     }
-
-    // console.log({
-    //   mounted,
-    //   fetchOnMount,
-    //   fetchOptionally,
-    //   diff: prevQuery === query
-    // })
 
     const isLoading = isPending && fetchStatus === "fetching"
     const data = state.data
@@ -416,6 +410,26 @@ export class QueryObserver<
       startWith(this.currentQuery)
     )
 
+    const enabled$ = this.queryUpdateSubject.pipe(
+      map(() => this.options.enabled ?? true),
+      startWith(this.options.enabled ?? true),
+      distinctUntilChanged()
+    )
+
+    const queryIsStale$ = query$.pipe(
+      switchMap((query) =>
+        query.state$.pipe(
+          filter((state) => state.status === "success"),
+          switchMap((state) =>
+            this.options.staleTime === Infinity
+              ? NEVER
+              : timer(this.options.staleTime ?? 1).pipe(map(() => state))
+          )
+        )
+      ),
+      share()
+    )
+
     const result$ = merge(
       this.queryUpdateSubject.pipe(
         startWith({
@@ -444,15 +458,6 @@ export class QueryObserver<
       query$.pipe(
         switchMap((query) => {
           const options = this.options
-
-          const observed$ = query.observe().pipe(share())
-
-          const queryIsStale$ = observed$.pipe(
-            filter((state) => state.status === "success"),
-            switchMap((state) =>
-              timer(this.options.staleTime ?? 1).pipe(map(() => state))
-            )
-          )
 
           // @todo move into its own operator
           const comparisonFunction = (
@@ -488,22 +493,45 @@ export class QueryObserver<
             return reducedFunction(objA, objB)
           }
 
-          return merge(observed$, queryIsStale$).pipe(
-            map(() => {
-              const result = this.getObserverResultFromQuery({
-                query,
-                options
-              })
+          const observedState$ = enabled$.pipe(
+            switchMap((enabled) =>
+              enabled
+                ? query.observe()
+                : /**
+                   * If the query is enabled we sill return the first observed
+                   * result but not observe more than that
+                   */
+                  of(query.state)
+            )
+          )
 
-              this.updateObservedResult({ query, ...result })
+          const updateResult = () => {
+            const result = this.getObserverResultFromQuery({
+              query,
+              options
+            })
 
-              return result.result
-            }),
+            this.updateObservedResult({ query, ...result })
+
+            return result.result
+          }
+
+          const stateUpdate$ = merge(
+            observedState$.pipe(map(updateResult)),
+            queryIsStale$.pipe(
+              map(updateResult),
+              takeWhile(() => this.options.enabled ?? true)
+            )
+          )
+
+          const observedResult$ = stateUpdate$.pipe(
             // This one ensure we don't re-trigger same state
             distinctUntilChanged(shallowEqual),
             // This one make sure we dispatch based on user preference
             distinctUntilChanged(comparisonFunction)
           )
+
+          return observedResult$
         })
       )
     ).pipe(trackSubscriptions((count) => (this.observers = count)))

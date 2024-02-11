@@ -1,7 +1,7 @@
 import { type Observable } from "rxjs"
 import { type QueryKey } from "./keys/types"
 import { type QueryStore } from "./oldqueries/store/createQueryStore"
-import { type QueryFilters } from "./queries/types"
+import { type QueryTypeFilter, type QueryFilters } from "./queries/types"
 
 export interface QueryResult<T> {
   data: { result: T } | undefined
@@ -89,3 +89,17 @@ export interface DeprecatedQueryOptions<T = unknown, TError = DefaultError> {
 }
 
 export interface RefetchQueryFilters extends QueryFilters {}
+
+export interface ResultOptions {
+  throwOnError?: boolean
+}
+
+export interface RefetchOptions extends ResultOptions {
+  cancelRefetch?: boolean
+}
+
+export interface InvalidateQueryFilters extends QueryFilters {
+  refetchType?: QueryTypeFilter | 'none'
+}
+
+export interface InvalidateOptions extends RefetchOptions {}

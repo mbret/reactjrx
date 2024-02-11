@@ -950,51 +950,51 @@ describe("useQuery", () => {
     expect(states[1]).toMatchObject({ data: "test" })
   })
 
-  // it('should be able to remove a query', async () => {
-  //   const key = queryKey()
-  //   const states: Array<UseQueryResult<number>> = []
-  //   let count = 0
+  it("should be able to remove a query", async () => {
+    const key = queryKey()
+    const states: Array<UseQueryResult<number>> = []
+    let count = 0
 
-  //   function Page() {
-  //     const [, rerender] = React.useState({})
-  //     const state = useQuery({
-  //       queryKey: key,
-  //       queryFn: () => ++count,
-  //       notifyOnChangeProps: 'all',
-  //     })
+    function Page() {
+      const [, rerender] = React.useState({})
+      const state = useQuery({
+        queryKey: key,
+        queryFn: () => ++count,
+        notifyOnChangeProps: "all"
+      })
 
-  //     states.push(state)
+      states.push(state)
 
-  //     return (
-  //       <div>
-  //         <button onClick={() => queryClient.removeQueries({ queryKey: key })}>
-  //           remove
-  //         </button>
-  //         <button onClick={() => rerender({})}>rerender</button>
-  //         data: {state.data ?? 'null'}
-  //       </div>
-  //     )
-  //   }
+      return (
+        <div>
+          <button onClick={() => queryClient.removeQueries({ queryKey: key })}>
+            remove
+          </button>
+          <button onClick={() => rerender({})}>rerender</button>
+          data: {state.data ?? "null"}
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() => rendered.getByText('data: 1'))
-  //   fireEvent.click(rendered.getByRole('button', { name: /remove/i }))
+    await waitFor(() => rendered.getByText("data: 1"))
+    fireEvent.click(rendered.getByRole("button", { name: /remove/i }))
 
-  //   await sleep(20)
-  //   fireEvent.click(rendered.getByRole('button', { name: /rerender/i }))
-  //   await waitFor(() => rendered.getByText('data: 2'))
+    await sleep(20)
+    fireEvent.click(rendered.getByRole("button", { name: /rerender/i }))
+    await waitFor(() => rendered.getByText("data: 2"))
 
-  //   expect(states.length).toBe(4)
-  //   // Initial
-  //   expect(states[0]).toMatchObject({ status: 'pending', data: undefined })
-  //   // Fetched
-  //   expect(states[1]).toMatchObject({ status: 'success', data: 1 })
-  //   // Remove + Hook state update, batched
-  //   expect(states[2]).toMatchObject({ status: 'pending', data: undefined })
-  //   // Fetched
-  //   expect(states[3]).toMatchObject({ status: 'success', data: 2 })
-  // })
+    expect(states.length).toBe(4)
+    // Initial
+    expect(states[0]).toMatchObject({ status: "pending", data: undefined })
+    // Fetched
+    expect(states[1]).toMatchObject({ status: "success", data: 1 })
+    // Remove + Hook state update, batched
+    expect(states[2]).toMatchObject({ status: "pending", data: undefined })
+    // Fetched
+    expect(states[3]).toMatchObject({ status: "success", data: 2 })
+  })
 
   it("should create a new query when refetching a removed query", async () => {
     const key = queryKey()
@@ -1114,162 +1114,165 @@ describe("useQuery", () => {
     return null
   })
 
-  // it('should use query function from hook when the existing query does not have a query function', async () => {
-  //   const key = queryKey()
+  it("should use query function from hook when the existing query does not have a query function", async () => {
+    const key = queryKey()
 
-  //   queryClient.setQueryData(key, 'set')
+    queryClient.setQueryData(key, "set")
 
-  //   function Page() {
-  //     const result = useQuery({
-  //       queryKey: key,
-  //       queryFn: async () => {
-  //         await sleep(10)
-  //         return 'fetched'
-  //       },
+    function Page() {
+      const result = useQuery({
+        queryKey: key,
+        queryFn: async () => {
+          await sleep(10)
+          return "fetched"
+        },
 
-  //       initialData: 'initial',
-  //       staleTime: Infinity,
-  //     })
+        initialData: "initial",
+        staleTime: Infinity
+      })
 
-  //     return (
-  //       <div>
-  //         <div>isFetching: {result.isFetching}</div>
-  //         <button onClick={() => queryClient.refetchQueries({ queryKey: key })}>
-  //           refetch
-  //         </button>
-  //         data: {result.data}
-  //       </div>
-  //     )
-  //   }
+      return (
+        <div>
+          <div>isFetching: {result.isFetching}</div>
+          <button onClick={() => queryClient.refetchQueries({ queryKey: key })}>
+            refetch
+          </button>
+          data: {result.data}
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() => rendered.getByText('data: set'))
-  //   fireEvent.click(rendered.getByRole('button', { name: /refetch/i }))
-  //   await waitFor(() => rendered.getByText('data: fetched'))
-  // })
+    await waitFor(() => rendered.getByText("data: set"))
+    fireEvent.click(rendered.getByRole("button", { name: /refetch/i }))
+    await waitFor(() => rendered.getByText("data: fetched"))
+  })
 
-  // it('should update query stale state and refetch when invalidated with invalidateQueries', async () => {
-  //   const key = queryKey()
-  //   let count = 0
+  it("should update query stale state and refetch when invalidated with invalidateQueries", async () => {
+    const key = queryKey()
+    let count = 0
 
-  //   function Page() {
-  //     const state = useQuery({
-  //       queryKey: key,
-  //       queryFn: async () => {
-  //         await sleep(10)
-  //         count++
-  //         return count
-  //       },
-  //       staleTime: Infinity,
-  //     })
+    function Page() {
+      const state = useQuery({
+        queryKey: key,
+        queryFn: async () => {
+          await sleep(10)
+          count++
+          return count
+        },
+        staleTime: Infinity
+      })
 
-  //     return (
-  //       <div>
-  //         <button
-  //           onClick={() => queryClient.invalidateQueries({ queryKey: key })}
-  //         >
-  //           invalidate
-  //         </button>
-  //         data: {state.data}, isStale: {String(state.isStale)}, isFetching:{' '}
-  //         {String(state.isFetching)}
-  //       </div>
-  //     )
-  //   }
+      console.log({ state })
+      return (
+        <div>
+          <button
+            onClick={() => queryClient.invalidateQueries({ queryKey: key })}
+          >
+            invalidate
+          </button>
+          data: {state.data}, isStale: {String(state.isStale)}, isFetching:{" "}
+          {String(state.isFetching)}
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() =>
-  //     rendered.getByText('data: 1, isStale: false, isFetching: false'),
-  //   )
-  //   fireEvent.click(rendered.getByRole('button', { name: /invalidate/i }))
-  //   await waitFor(() =>
-  //     rendered.getByText('data: 1, isStale: true, isFetching: true'),
-  //   )
-  //   await waitFor(() =>
-  //     rendered.getByText('data: 2, isStale: false, isFetching: false'),
-  //   )
-  // })
+    await waitFor(() =>
+      rendered.getByText("data: 1, isStale: false, isFetching: false")
+    )
+    fireEvent.click(rendered.getByRole("button", { name: /invalidate/i }))
+    await waitFor(() =>
+      rendered.getByText("data: 1, isStale: true, isFetching: true")
+    )
+    await waitFor(() =>
+      rendered.getByText("data: 2, isStale: false, isFetching: false")
+    )
+  })
 
-  // it('should not update disabled query when refetching with refetchQueries', async () => {
-  //   const key = queryKey()
-  //   const states: Array<UseQueryResult<number>> = []
-  //   let count = 0
+  it("should not update disabled query when refetching with refetchQueries", async () => {
+    const key = queryKey()
+    const states: Array<UseQueryResult<number>> = []
+    let count = 0
 
-  //   function Page() {
-  //     const state = useQuery({
-  //       queryKey: key,
-  //       queryFn: async () => {
-  //         await sleep(10)
-  //         count++
-  //         return count
-  //       },
-  //       enabled: false,
-  //     })
+    function Page() {
+      const state = useQuery({
+        queryKey: key,
+        queryFn: async () => {
+          await sleep(10)
+          count++
+          return count
+        },
+        enabled: false
+      })
 
-  //     states.push(state)
+      states.push(state)
 
-  //     React.useEffect(() => {
-  //       setActTimeout(() => {
-  //         queryClient.refetchQueries({ queryKey: key })
-  //       }, 20)
-  //     }, [])
+      React.useEffect(() => {
+        setActTimeout(() => {
+          queryClient.refetchQueries({ queryKey: key })
+        }, 20)
+      }, [])
 
-  //     return null
-  //   }
+      return null
+    }
 
-  //   renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, <Page />)
 
-  //   await sleep(50)
+    await sleep(50)
 
-  //   expect(states.length).toBe(1)
-  //   expect(states[0]).toMatchObject({
-  //     data: undefined,
-  //     isFetching: false,
-  //     isSuccess: false,
-  //     isStale: true,
-  //   })
-  // })
+    expect(states.length).toBe(1)
 
-  // it('should not refetch disabled query when invalidated with invalidateQueries', async () => {
-  //   const key = queryKey()
-  //   const states: Array<UseQueryResult<number>> = []
-  //   let count = 0
+    console.log({ states })
+    expect(states[0]).toMatchObject({
+      data: undefined,
+      isFetching: false,
+      isSuccess: false,
+      isStale: true
+    })
+  })
 
-  //   function Page() {
-  //     const state = useQuery({
-  //       queryKey: key,
-  //       queryFn: async () => {
-  //         await sleep(10)
-  //         count++
-  //         return count
-  //       },
-  //       enabled: false,
-  //     })
+  it("should not refetch disabled query when invalidated with invalidateQueries", async () => {
+    const key = queryKey()
+    const states: Array<UseQueryResult<number>> = []
+    let count = 0
 
-  //     states.push(state)
+    function Page() {
+      const state = useQuery({
+        queryKey: key,
+        queryFn: async () => {
+          await sleep(10)
+          count++
+          return count
+        },
+        enabled: false
+      })
 
-  //     React.useEffect(() => {
-  //       setActTimeout(() => {
-  //         queryClient.invalidateQueries({ queryKey: key })
-  //       }, 20)
-  //     }, [])
+      states.push(state)
 
-  //     return null
-  //   }
+      React.useEffect(() => {
+        setActTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: key })
+        }, 20)
+      }, [])
 
-  //   renderWithClient(queryClient, <Page />)
+      return null
+    }
 
-  //   await sleep(100)
+    renderWithClient(queryClient, <Page />)
 
-  //   expect(states.length).toBe(1)
-  //   expect(states[0]).toMatchObject({
-  //     data: undefined,
-  //     isFetching: false,
-  //     isSuccess: false,
-  //     isStale: true,
-  //   })
-  // })
+    await sleep(100)
+
+    expect(states.length).toBe(1)
+    expect(states[0]).toMatchObject({
+      data: undefined,
+      isFetching: false,
+      isSuccess: false,
+      isStale: true
+    })
+  })
 
   it("should not fetch when switching to a disabled query", async () => {
     const key = queryKey()
