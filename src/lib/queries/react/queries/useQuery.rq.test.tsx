@@ -5766,28 +5766,28 @@ describe("useQuery", () => {
     )
 
     const onlineMock = mockOnlineManagerIsOnline(false)
-    // window.dispatchEvent(new Event("offline"))
-    // fireEvent.click(rendered.getByRole("button", { name: /invalidate/i }))
 
-    // await waitFor(() =>
-    //   rendered.getByText("status: success, fetchStatus: paused")
-    // )
+    fireEvent.click(rendered.getByRole("button", { name: /invalidate/i }))
 
-    // fireEvent.click(rendered.getByRole("button", { name: /hide/i }))
+    await waitFor(() =>
+      rendered.getByText("status: success, fetchStatus: paused")
+    )
 
-    // await sleep(15)
+    fireEvent.click(rendered.getByRole("button", { name: /hide/i }))
 
-    // onlineMock.mockReturnValue(true)
+    await sleep(15)
+
+    onlineMock.mockReturnValue(true)
     window.dispatchEvent(new Event("online"))
 
-    // await sleep(15)
+    await sleep(15)
 
-    // expect(queryClient.getQueryState(key)).toMatchObject({
-    //   fetchStatus: "idle",
-    //   status: "success"
-    // })
+    expect(queryClient.getQueryState(key)).toMatchObject({
+      fetchStatus: "idle",
+      status: "success"
+    })
 
-    // expect(count).toBe(1)
+    expect(count).toBe(1)
 
     onlineMock.mockRestore()
   })
@@ -5896,7 +5896,6 @@ describe("useQuery", () => {
         const state = useQuery<unknown, Error>({
           queryKey: key,
           queryFn: async (): Promise<unknown> => {
-            console.log("RUN")
             count++
             await sleep(10)
             throw new Error("failed" + count)

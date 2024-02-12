@@ -8,12 +8,13 @@ import {
   tap,
   ignoreElements,
   endWith,
-  share
+  share,
+  type OperatorFunction
 } from "rxjs"
 import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
 import { makeObservable } from "../../utils/functionAsObservable"
-import { type QueryState } from "./types"
+import { type QueryFunctionContext, type QueryState } from "./types"
 import { retryOnError } from "../../operators"
 import { getDefaultState } from "./getDefaultState"
 import { delayWhenVisibilityChange } from "./delayWhenVisibilityChange"
@@ -30,6 +31,8 @@ export const executeQuery = <
 >(
   options: QueryOptions<TQueryFnData, TError, TData, TQueryKey> & {
     queryKey: TQueryKey
+    onNetworkRestored: OperatorFunction<Partial<QueryState<TData, TError>>, any>
+    onSignalConsumed: () => void
   }
 ): Observable<Partial<QueryState<TData, TError>>> => {
   type Result = Partial<QueryState<TData, TError>>
@@ -41,15 +44,31 @@ export const executeQuery = <
   const queryFn = options.queryFn ?? defaultFn
   const abortController = new AbortController()
 
+  const queryFnContext: Omit<QueryFunctionContext<TQueryKey>, "signal"> = {
+    meta: options.meta,
+    queryKey: options.queryKey
+  }
+
+  // Adds an enumerable signal property to the object that
+  // which sets abortSignalConsumed to true when the signal
+  // is read.
+  const addSignalProperty = (object: unknown) => {
+    Object.defineProperty(object, "signal", {
+      enumerable: true,
+      get: () => {
+        options.onSignalConsumed()
+        return abortController.signal
+      }
+    })
+  }
+
+  addSignalProperty(queryFnContext)
+
   const fn$ =
     typeof queryFn === "function"
       ? // eslint-disable-next-line @typescript-eslint/promise-function-async
         makeObservable(() =>
-          queryFn({
-            meta: options.meta,
-            queryKey: options.queryKey,
-            signal: abortController.signal
-          })
+          queryFn(queryFnContext as QueryFunctionContext<TQueryKey>)
         )
       : queryFn
 
@@ -139,9 +158,5 @@ export const executeQuery = <
     error: defaultState.error
   } satisfies Result)
 
-  return merge(
-    initialResult$,
-    execution$,
-    emitOnComplete$
-  )
+  return merge(initialResult$, execution$, emitOnComplete$)
 }

@@ -6,15 +6,14 @@ import {
   fromEvent,
   map,
   merge,
+  tap
 } from "rxjs"
 import { emitToSubject } from "../../utils/operators/emitToSubject"
 
 export class OnlineManager {
   protected isOnlineSubject = new BehaviorSubject(true)
 
-  public readonly online$ = this.isOnlineSubject
-    .asObservable()
-    .pipe(distinctUntilChanged())
+  public readonly online$ = this.isOnlineSubject.pipe(distinctUntilChanged())
 
   public readonly backToOnline$ = this.online$.pipe(
     filter((isOnline) => isOnline),

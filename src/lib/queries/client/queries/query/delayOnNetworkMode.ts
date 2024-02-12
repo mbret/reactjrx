@@ -1,17 +1,26 @@
-import { type Observable, merge, mergeMap, defer, of } from "rxjs"
+import {
+  type Observable,
+  merge,
+  mergeMap,
+  defer,
+  of,
+  type MonoTypeOperatorFunction
+} from "rxjs"
 import { onlineManager } from "../../onlineManager"
 import { type QueryOptions } from "../types"
 import { type QueryState } from "./types"
 
 export const delayOnNetworkMode = <T>(
-  options: Pick<QueryOptions, "networkMode">
+  options: Pick<QueryOptions, "networkMode"> & {
+    onNetworkRestored: MonoTypeOperatorFunction<T>
+  }
 ) => {
   type Result = Partial<QueryState>
   let attempts = 0
 
   return (source: Observable<T>) => {
     const runWhenOnline$ = onlineManager.backToOnline$.pipe(
-      mergeMap(() => source)
+      mergeMap(() => source.pipe(options.onNetworkRestored))
     )
 
     return defer(() => {

@@ -60,7 +60,7 @@ export function useBaseQuery<
 
   useObserve(
     () =>
-      result$.current.result$.pipe(
+      result$.current.pipe(
         /**
          * By the time this observer runs the result may have changed (eg: synchronous setData).
          * It's important to not skip the first result (even tho most of the time they are equal).

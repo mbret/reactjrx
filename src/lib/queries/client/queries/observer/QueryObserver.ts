@@ -384,7 +384,7 @@ export class QueryObserver<
   subscribe(listener: () => void) {
     void listener
 
-    const sub = this.observe().result$.subscribe()
+    const sub = this.observe().subscribe()
 
     return () => {
       sub.unsubscribe()
@@ -394,19 +394,10 @@ export class QueryObserver<
   observe() {
     const observedQuery = this.currentQuery
 
-    // needs to be before the return of the first result.
-    // whether the consumer subscribe or not
-    // the function needs to run at least in the next tick (or its result)
-    // to have a proper flow (see isFetchedAfterMount). We get inconsistencies
-    // otherwise
-    if (shouldFetchOnMount(observedQuery, this.options)) {
-      this.fetch().catch(noop)
-    }
-
     const query$ = this.queryUpdateSubject.pipe(
       map(({ query }) => query),
-      distinctUntilChanged(),
-      startWith(this.currentQuery)
+      startWith(this.currentQuery),
+      distinctUntilChanged()
     )
 
     const enabled$ = this.queryUpdateSubject.pipe(
@@ -429,31 +420,30 @@ export class QueryObserver<
       share()
     )
 
-    const result$ = merge(
-      this.queryUpdateSubject.pipe(
-        startWith({
-          query: this.currentQuery,
-          options: this.options
-        }),
-        pairwise(),
-        tap(
-          ([
-            { options: prevOptions, query: prevQuery },
-            { options, query }
-          ]) => {
-            /**
-             * @important
-             * We monitor here the changes of options and query to eventually trigger
-             * an automatic refetch. This is used after options have changed for example.
-             * This is only valid if there is a subscriber
-             */
-            if (shouldFetchOptionally(query, prevQuery, options, prevOptions)) {
-              this.fetch().catch(noop)
-            }
+    const watchForRefetch$ = this.queryUpdateSubject.pipe(
+      startWith({
+        query: this.currentQuery,
+        options: this.options
+      }),
+      pairwise(),
+      tap(
+        ([{ options: prevOptions, query: prevQuery }, { options, query }]) => {
+          /**
+           * @important
+           * We monitor here the changes of options and query to eventually trigger
+           * an automatic refetch. This is used after options have changed for example.
+           * This is only valid if there is a subscriber
+           */
+          if (shouldFetchOptionally(query, prevQuery, options, prevOptions)) {
+            this.fetch().catch(noop)
           }
-        ),
-        ignoreElements()
+        }
       ),
+      ignoreElements()
+    )
+
+    const result$ = merge(
+      watchForRefetch$,
       query$.pipe(
         switchMap((query) => {
           const options = this.options
@@ -533,9 +523,23 @@ export class QueryObserver<
           return observedResult$
         })
       )
-    ).pipe(trackSubscriptions((count) => (this.observers = count)))
+    ).pipe(
+      trackSubscriptions((count) => (this.observers = count)),
+      tap({
+        subscribe: () => {
+          // needs to be before the return of the first result.
+          // whether the consumer subscribe or not
+          // the function needs to run at least in the next tick (or its result)
+          // to have a proper flow (see isFetchedAfterMount). We get inconsistencies
+          // otherwise
+          if (shouldFetchOnMount(observedQuery, this.options)) {
+            this.fetch().catch(noop)
+          }
+        }
+      })
+    )
 
-    return { result$ }
+    return result$
   }
 
   destroy(): void {}

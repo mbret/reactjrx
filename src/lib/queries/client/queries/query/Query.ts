@@ -12,7 +12,9 @@ import {
   last,
   BehaviorSubject,
   startWith,
-  distinctUntilChanged
+  distinctUntilChanged,
+  of,
+  defer
 } from "rxjs"
 import { isServer } from "../../../../utils/isServer"
 import { type QueryKey } from "../../keys/types"
@@ -76,16 +78,13 @@ export class Query<
   protected destroySubject = new Subject<void>()
   protected observerCount = new BehaviorSubject(0)
   protected observedState$: Observable<typeof this.state>
-
+  protected abortSignalConsumed = false
   public observerCount$ = this.observerCount.asObservable()
   public state$: Observable<typeof this.state>
 
   constructor(config: QueryConfig<TQueryFnData, TError, TData, TQueryKey>) {
-    // this.#abortSignalConsumed = false
     this.#defaultOptions = config.defaultOptions
     this.options = this.setOptions(config.options)
-    // this.#observers = []
-    // this.#cache = config.cache
     this.queryKey = config.queryKey
     this.queryHash = config.queryHash
     this.#initialState = config.state ?? getDefaultState(this.options)
@@ -124,16 +123,31 @@ export class Query<
 
           const functionExecution$ = executeQuery({
             ...this.options,
-            queryKey: this.queryKey
+            queryKey: this.queryKey,
+            onNetworkRestored: (source) => {
+              return defer(() => {
+                return !this.observerCount.getValue() &&
+                  this.abortSignalConsumed
+                  ? of({ fetchStatus: "idle" } satisfies Partial<
+                      QueryState<TData, TError>
+                    >)
+                  : source
+              })
+            },
+            onSignalConsumed: () => {
+              this.abortSignalConsumed = true
+            }
           })
 
-          return functionExecution$.pipe(
-            map((result) =>
-              result.status === "success"
-                ? { ...result, isInvalidated: false }
-                : result
-            ),
-            takeUntil(merge(this.cancelSubject, cancelFromNewRefetch$))
+          return merge(
+            functionExecution$.pipe(
+              map((result) =>
+                result.status === "success"
+                  ? { ...result, isInvalidated: false }
+                  : result
+              ),
+              takeUntil(merge(this.cancelSubject, cancelFromNewRefetch$))
+            )
           )
         }),
         takeUntil(this.resetSubject)
@@ -162,9 +176,9 @@ export class Query<
       tap((state) => {
         this.state = state
       }),
-      // tap((state) => {
-      //   console.log("Query state", state)
-      // }),
+      tap((state) => {
+        // console.log("Query state", state)
+      }),
       takeUntil(this.destroySubject),
       shareReplay({ bufferSize: 1, refCount: false })
     )
