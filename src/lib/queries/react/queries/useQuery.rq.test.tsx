@@ -1772,7 +1772,7 @@ describe("useQuery", () => {
     })
   })
 
-  it("foobar should keep the previous data on disabled query when placeholderData is set", async () => {
+  it("should keep the previous data on disabled query when placeholderData is set", async () => {
     const key = queryKey()
     const states: Array<UseQueryResult<number>> = []
 
@@ -1874,89 +1874,89 @@ describe("useQuery", () => {
     })
   })
 
-  // it('should keep the previous data on disabled query when placeholderData is set and switching query key multiple times', async () => {
-  //   const key = queryKey()
-  //   const states: Array<UseQueryResult<number>> = []
+  it('should keep the previous data on disabled query when placeholderData is set and switching query key multiple times', async () => {
+    const key = queryKey()
+    const states: Array<UseQueryResult<number>> = []
 
-  //   queryClient.setQueryData([key, 10], 10)
+    queryClient.setQueryData([key, 10], 10)
 
-  //   await sleep(10)
+    await sleep(10)
 
-  //   function Page() {
-  //     const [count, setCount] = React.useState(10)
+    function Page() {
+      const [count, setCount] = React.useState(10)
 
-  //     const state = useQuery({
-  //       queryKey: [key, count],
-  //       queryFn: async () => {
-  //         await sleep(10)
-  //         return count
-  //       },
-  //       enabled: false,
-  //       placeholderData: keepPreviousData,
-  //       notifyOnChangeProps: 'all',
-  //     })
+      const state = useQuery({
+        queryKey: [key, count],
+        queryFn: async () => {
+          await sleep(10)
+          return count
+        },
+        enabled: false,
+        placeholderData: keepPreviousData,
+        notifyOnChangeProps: 'all',
+      })
 
-  //     states.push(state)
+      states.push(state)
 
-  //     const { refetch } = state
+      const { refetch } = state
 
-  //     React.useEffect(() => {
-  //       setActTimeout(() => {
-  //         setCount(11)
-  //       }, 20)
-  //       setActTimeout(() => {
-  //         setCount(12)
-  //       }, 30)
-  //       setActTimeout(() => {
-  //         refetch()
-  //       }, 40)
-  //     }, [refetch])
+      React.useEffect(() => {
+        setActTimeout(() => {
+          setCount(11)
+        }, 20)
+        setActTimeout(() => {
+          setCount(12)
+        }, 30)
+        setActTimeout(() => {
+          refetch()
+        }, 40)
+      }, [refetch])
 
-  //     return null
-  //   }
+      return null
+    }
 
-  //   renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, <Page />)
 
-  //   await sleep(100)
+    await sleep(100)
 
-  //   expect(states.length).toBe(5)
+    expect(states.length).toBe(5)
 
-  //   // Disabled query
-  //   expect(states[0]).toMatchObject({
-  //     data: 10,
-  //     isFetching: false,
-  //     isSuccess: true,
-  //     isPlaceholderData: false,
-  //   })
-  //   // Set state
-  //   expect(states[1]).toMatchObject({
-  //     data: 10,
-  //     isFetching: false,
-  //     isSuccess: true,
-  //     isPlaceholderData: true,
-  //   })
-  //   // State update
-  //   expect(states[2]).toMatchObject({
-  //     data: 10,
-  //     isFetching: false,
-  //     isSuccess: true,
-  //     isPlaceholderData: true,
-  //   })
-  //   // Refetch
-  //   expect(states[3]).toMatchObject({
-  //     data: 10,
-  //     isFetching: true,
-  //     isSuccess: true,
-  //     isPlaceholderData: true,
-  //   })
-  //   // Refetch done
-  //   expect(states[4]).toMatchObject({
-  //     data: 12,
-  //     isFetching: false,
-  //     isSuccess: true,
-  //     isPlaceholderData: false,
-  //   })
-  // })
+    // Disabled query
+    expect(states[0]).toMatchObject({
+      data: 10,
+      isFetching: false,
+      isSuccess: true,
+      isPlaceholderData: false,
+    })
+    // Set state
+    expect(states[1]).toMatchObject({
+      data: 10,
+      isFetching: false,
+      isSuccess: true,
+      isPlaceholderData: true,
+    })
+    // State update
+    expect(states[2]).toMatchObject({
+      data: 10,
+      isFetching: false,
+      isSuccess: true,
+      isPlaceholderData: true,
+    })
+    // Refetch
+    expect(states[3]).toMatchObject({
+      data: 10,
+      isFetching: true,
+      isSuccess: true,
+      isPlaceholderData: true,
+    })
+    // Refetch done
+    expect(states[4]).toMatchObject({
+      data: 12,
+      isFetching: false,
+      isSuccess: true,
+      isPlaceholderData: false,
+    })
+  })
 
   it("should use the correct query function when components use different configurations", async () => {
     const key = queryKey()
@@ -2407,175 +2407,175 @@ describe("useQuery", () => {
     })
   })
 
-  // // See https://github.com/tannerlinsley/react-query/issues/137
-  // it('should not override initial data in dependent queries', async () => {
-  //   const key1 = queryKey()
-  //   const key2 = queryKey()
+  // See https://github.com/tannerlinsley/react-query/issues/137
+  it('should not override initial data in dependent queries', async () => {
+    const key1 = queryKey()
+    const key2 = queryKey()
 
-  //   function Page() {
-  //     const first = useQuery({
-  //       queryKey: key1,
-  //       queryFn: () => 'data',
-  //       enabled: false,
-  //       initialData: 'init',
-  //     })
+    function Page() {
+      const first = useQuery({
+        queryKey: key1,
+        queryFn: () => 'data',
+        enabled: false,
+        initialData: 'init',
+      })
 
-  //     const second = useQuery({
-  //       queryKey: key2,
-  //       queryFn: () => 'data',
-  //       enabled: false,
-  //       initialData: 'init',
-  //     })
+      const second = useQuery({
+        queryKey: key2,
+        queryFn: () => 'data',
+        enabled: false,
+        initialData: 'init',
+      })
 
-  //     return (
-  //       <div>
-  //         <h2>First Data: {first.data}</h2>
-  //         <h2>Second Data: {second.data}</h2>
-  //         <div>First Status: {first.status}</div>
-  //         <div>Second Status: {second.status}</div>
-  //       </div>
-  //     )
-  //   }
+      return (
+        <div>
+          <h2>First Data: {first.data}</h2>
+          <h2>Second Data: {second.data}</h2>
+          <div>First Status: {first.status}</div>
+          <div>Second Status: {second.status}</div>
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   rendered.getByText('First Data: init')
-  //   rendered.getByText('Second Data: init')
-  //   rendered.getByText('First Status: success')
-  //   rendered.getByText('Second Status: success')
-  // })
+    rendered.getByText('First Data: init')
+    rendered.getByText('Second Data: init')
+    rendered.getByText('First Status: success')
+    rendered.getByText('Second Status: success')
+  })
 
-  // it('should not override query configuration on render', async () => {
-  //   const key = queryKey()
+  it('should not override query configuration on render', async () => {
+    const key = queryKey()
 
-  //   const queryFn1 = async () => {
-  //     await sleep(10)
-  //     return 'data1'
-  //   }
+    const queryFn1 = async () => {
+      await sleep(10)
+      return 'data1'
+    }
 
-  //   const queryFn2 = async () => {
-  //     await sleep(10)
-  //     return 'data2'
-  //   }
+    const queryFn2 = async () => {
+      await sleep(10)
+      return 'data2'
+    }
 
-  //   function Page() {
-  //     useQuery({ queryKey: key, queryFn: queryFn1 })
-  //     useQuery({ queryKey: key, queryFn: queryFn2 })
-  //     return null
-  //   }
+    function Page() {
+      useQuery({ queryKey: key, queryFn: queryFn1 })
+      useQuery({ queryKey: key, queryFn: queryFn2 })
+      return null
+    }
 
-  //   renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, <Page />)
 
-  //   expect(queryCache.find({ queryKey: key })!.options.queryFn).toBe(queryFn1)
-  // })
+    expect(queryCache.find({ queryKey: key })!.options.queryFn).toBe(queryFn1)
+  })
 
-  // it('should batch re-renders', async () => {
-  //   const key = queryKey()
+  it('should batch re-renders', async () => {
+    const key = queryKey()
 
-  //   let renders = 0
+    let renders = 0
 
-  //   const queryFn = async () => {
-  //     await sleep(15)
-  //     return 'data'
-  //   }
+    const queryFn = async () => {
+      await sleep(15)
+      return 'data'
+    }
 
-  //   function Page() {
-  //     const query1 = useQuery({ queryKey: key, queryFn })
-  //     const query2 = useQuery({ queryKey: key, queryFn })
-  //     renders++
+    function Page() {
+      const query1 = useQuery({ queryKey: key, queryFn })
+      const query2 = useQuery({ queryKey: key, queryFn })
+      renders++
 
-  //     return (
-  //       <div>
-  //         {query1.data} {query2.data}
-  //       </div>
-  //     )
-  //   }
+      return (
+        <div>
+          {query1.data} {query2.data}
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() => {
-  //     rendered.getByText('data data')
-  //   })
+    await waitFor(() => {
+      rendered.getByText('data data')
+    })
 
-  //   // Should be 2 instead of 3
-  //   expect(renders).toBe(2)
-  // })
+    // Should be 2 instead of 3
+    expect(renders).toBe(2)
+  })
 
-  // it('should render latest data even if react has discarded certain renders', async () => {
-  //   const key = queryKey()
+  it('should render latest data even if react has discarded certain renders', async () => {
+    const key = queryKey()
 
-  //   function Page() {
-  //     const [, setNewState] = React.useState('state')
-  //     const state = useQuery({ queryKey: key, queryFn: () => 'data' })
-  //     React.useEffect(() => {
-  //       setActTimeout(() => {
-  //         queryClient.setQueryData(key, 'new')
-  //         // Update with same state to make react discard the next render
-  //         setNewState('state')
-  //       }, 10)
-  //     }, [])
-  //     return <div>{state.data}</div>
-  //   }
+    function Page() {
+      const [, setNewState] = React.useState('state')
+      const state = useQuery({ queryKey: key, queryFn: () => 'data' })
+      React.useEffect(() => {
+        setActTimeout(() => {
+          queryClient.setQueryData(key, 'new')
+          // Update with same state to make react discard the next render
+          setNewState('state')
+        }, 10)
+      }, [])
+      return <div>{state.data}</div>
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() => rendered.getByText('new'))
-  // })
+    await waitFor(() => rendered.getByText('new'))
+  })
 
-  // // See https://github.com/tannerlinsley/react-query/issues/170
-  // it('should start with status pending, fetchStatus idle if enabled is false', async () => {
-  //   const key1 = queryKey()
-  //   const key2 = queryKey()
+  // See https://github.com/tannerlinsley/react-query/issues/170
+  it('should start with status pending, fetchStatus idle if enabled is false', async () => {
+    const key1 = queryKey()
+    const key2 = queryKey()
 
-  //   function Page() {
-  //     const first = useQuery({
-  //       queryKey: key1,
-  //       queryFn: () => 'data',
-  //       enabled: false,
-  //     })
-  //     const second = useQuery({ queryKey: key2, queryFn: () => 'data' })
+    function Page() {
+      const first = useQuery({
+        queryKey: key1,
+        queryFn: () => 'data',
+        enabled: false,
+      })
+      const second = useQuery({ queryKey: key2, queryFn: () => 'data' })
 
-  //     return (
-  //       <div>
-  //         <div>
-  //           First Status: {first.status}, {first.fetchStatus}
-  //         </div>
-  //         <div>
-  //           Second Status: {second.status}, {second.fetchStatus}
-  //         </div>
-  //       </div>
-  //     )
-  //   }
+      return (
+        <div>
+          <div>
+            First Status: {first.status}, {first.fetchStatus}
+          </div>
+          <div>
+            Second Status: {second.status}, {second.fetchStatus}
+          </div>
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   // use "act" to wait for state update and prevent console warning
+    // use "act" to wait for state update and prevent console warning
 
-  //   rendered.getByText('First Status: pending, idle')
-  //   await waitFor(() => rendered.getByText('Second Status: pending, fetching'))
-  //   await waitFor(() => rendered.getByText('Second Status: success, idle'))
-  // })
+    rendered.getByText('First Status: pending, idle')
+    await waitFor(() => rendered.getByText('Second Status: pending, fetching'))
+    await waitFor(() => rendered.getByText('Second Status: success, idle'))
+  })
 
-  // // See https://github.com/tannerlinsley/react-query/issues/144
-  // it('should be in "pending" state by default', async () => {
-  //   const key = queryKey()
+  // See https://github.com/tannerlinsley/react-query/issues/144
+  it('should be in "pending" state by default', async () => {
+    const key = queryKey()
 
-  //   function Page() {
-  //     const { status } = useQuery({
-  //       queryKey: key,
-  //       queryFn: async () => {
-  //         await sleep(10)
-  //         return 'test'
-  //       },
-  //     })
+    function Page() {
+      const { status } = useQuery({
+        queryKey: key,
+        queryFn: async () => {
+          await sleep(10)
+          return 'test'
+        },
+      })
 
-  //     return <div>status: {status}</div>
-  //   }
+      return <div>status: {status}</div>
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   rendered.getByText('status: pending')
-  // })
+    rendered.getByText('status: pending')
+  })
 
   // it('should not refetch query on focus when `enabled` is set to `false`', async () => {
   //   const key = queryKey()

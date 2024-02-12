@@ -175,7 +175,7 @@ export class Query<
         this.state = state
       }),
       tap((state) => {
-        console.log("Query state", state)
+        // console.log("Query state", state)
       }),
       takeUntil(this.destroySubject),
       shareReplay({ bufferSize: 1, refCount: false })

@@ -637,11 +637,7 @@ export class QueryObserver<
     ).pipe(
       trackSubscriptions((count) => (this.observers = count)),
       tap({
-        unsubscribe: () => {
-          // console.log("QueryObserver.observe unsubscribe")
-        },
         subscribe: () => {
-          console.log("QueryObserver.observe subscribe")
           // needs to be before the return of the first result.
           // whether the consumer subscribe or not
           // the function needs to run at least in the next tick (or its result)
