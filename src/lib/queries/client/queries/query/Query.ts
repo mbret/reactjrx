@@ -5,7 +5,6 @@ import {
   shareReplay,
   map,
   filter,
-  takeWhile,
   tap,
   takeUntil,
   merge,
@@ -27,7 +26,7 @@ import { type QueryMeta, type FetchOptions, type QueryState } from "./types"
 import { executeQuery } from "./executeQuery"
 import { type CancelOptions } from "../retryer/types"
 import { CancelledError } from "../retryer/CancelledError"
-import { mergeResults } from "./operators"
+import { mergeResults, takeUntilFinished } from "./operators"
 import { trackSubscriptions } from "../../../../utils/operators/trackSubscriptions"
 import { shallowEqual } from "../../../../utils/shallowEqual"
 
@@ -67,7 +66,7 @@ export class Query<
 
   // @todo to share with mutation
   protected executeSubject = new Subject<FetchOptions | undefined>()
-  protected cancelSubject = new Subject<void>()
+  protected cancelSubject = new Subject<CancelOptions | undefined>()
   protected setDataSubject = new Subject<{
     data: TData
     options?: SetDataOptions & { manual: boolean }
@@ -107,11 +106,10 @@ export class Query<
           () => this.state.status !== "success" && this.state.status !== "error"
         ),
         map(
-          () =>
+          (options) =>
             ({
-              status: "error",
               fetchStatus: "idle",
-              error: new CancelledError() as TError
+              error: new CancelledError(options) as TError
             }) satisfies Partial<typeof this.state>
         )
       ),
@@ -177,7 +175,7 @@ export class Query<
         this.state = state
       }),
       tap((state) => {
-        // console.log("Query state", state)
+        console.log("Query state", state)
       }),
       takeUntil(this.destroySubject),
       shareReplay({ bufferSize: 1, refCount: false })
@@ -257,37 +255,25 @@ export class Query<
     )
   }
 
+  async getFetchResultAsPromise() {
+    return await new Promise<TData>((resolve, reject) => {
+      this.state$.pipe(takeUntilFinished, last()).subscribe({
+        error: reject,
+        next: (data) => {
+          if (data.error) {
+            reject(data.error)
+          } else {
+            resolve(data.data as TData)
+          }
+        }
+      })
+    })
+  }
+
   async fetch(
     options?: QueryOptions<TQueryFnData, TError, TData, TQueryKey>,
     fetchOptions?: FetchOptions
   ): Promise<TData> {
-    const createPromise = async () =>
-      await new Promise<TData>((resolve, reject) => {
-        this.state$
-          .pipe(
-            takeWhile((result) => {
-              const isSuccessOrError =
-                result.status === "error" || result.status === "success"
-              const isFetchingOrPaused = result.fetchStatus !== "idle"
-
-              void isSuccessOrError
-
-              return isFetchingOrPaused
-            }, true),
-            last()
-          )
-          .subscribe({
-            error: reject,
-            next: (data) => {
-              if (data.error) {
-                reject(data.error)
-              } else {
-                resolve(data.data as TData)
-              }
-            }
-          })
-      })
-
     const { cancelRefetch = true } = fetchOptions ?? {}
 
     if (this.state.fetchStatus !== "idle") {
@@ -295,7 +281,7 @@ export class Query<
 
       if (!shouldCancelRequest) {
         // Return current promise if we are already fetching
-        return await createPromise()
+        return await this.getFetchResultAsPromise()
       }
     }
 
@@ -306,7 +292,7 @@ export class Query<
 
     this.executeSubject.next(fetchOptions)
 
-    return await createPromise()
+    return await this.getFetchResultAsPromise()
   }
 
   setData(
@@ -325,7 +311,7 @@ export class Query<
   }
 
   async cancel(options?: CancelOptions): Promise<void> {
-    this.cancelSubject.next()
+    this.cancelSubject.next(options)
   }
 
   // @todo merge with mutation

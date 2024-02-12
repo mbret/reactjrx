@@ -1,4 +1,6 @@
+import { onlineManager } from "../../onlineManager"
 import { type Query } from "../query/Query"
+import { type NetworkMode } from "../types"
 import { type QueryObserverOptions } from "./types"
 
 export function isStale(
@@ -58,4 +60,10 @@ function shouldFetchOn(
     return value === "always" || (value !== false && isStale(query, options))
   }
   return false
+}
+
+export function canFetch(networkMode: NetworkMode | undefined): boolean {
+  return (networkMode ?? "online") === "online"
+    ? onlineManager.isOnline()
+    : true
 }

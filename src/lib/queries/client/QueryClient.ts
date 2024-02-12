@@ -28,6 +28,7 @@ import {
 import { functionalUpdate, hashQueryKeyByOptions } from "./queries/utils"
 import { type NoInfer } from "../../utils/types"
 import { type QueryState } from "./queries/query/types"
+import { type CancelOptions } from "./queries/retryer/types"
 
 export interface DefaultOptions<TError = DefaultError> {
   queries?: Omit<QueryObserverOptions<unknown, TError>, "suspense">
@@ -334,6 +335,19 @@ export class QueryClient {
     queryCache.findAll(filters).forEach((query) => {
       queryCache.remove(query)
     })
+  }
+
+  async cancelQueries(
+    filters: QueryFilters = {},
+    cancelOptions: CancelOptions = {}
+  ): Promise<void> {
+    const defaultedCancelOptions = { revert: true, ...cancelOptions }
+
+    const promises = this.#queryCache.findAll(filters).map(async (query) => {
+      await query.cancel(defaultedCancelOptions)
+    })
+
+    await Promise.all(promises).then(noop).catch(noop)
   }
 
   async invalidateQueries(

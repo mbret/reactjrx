@@ -10,17 +10,23 @@ import { onlineManager } from "../../onlineManager"
 import { type QueryOptions } from "../types"
 import { type QueryState } from "./types"
 
-export const delayOnNetworkMode = <T>(
+type Result<TData, TError> = Partial<QueryState<TData, TError>>
+
+export const delayOnNetworkMode = <TData, TError>(
   options: Pick<QueryOptions, "networkMode"> & {
-    onNetworkRestored: MonoTypeOperatorFunction<T>
+    onNetworkRestored: MonoTypeOperatorFunction<Result<TData, TError>>
   }
 ) => {
-  type Result = Partial<QueryState>
   let attempts = 0
 
-  return (source: Observable<T>) => {
+  return (source: Observable<Result<TData, TError>>): Observable<Result<TData, TError>> => {
     const runWhenOnline$ = onlineManager.backToOnline$.pipe(
-      mergeMap(() => source.pipe(options.onNetworkRestored))
+      mergeMap(() =>
+        merge(
+          of({ fetchStatus: "fetching" } satisfies Partial<QueryState>),
+          source
+        ).pipe(options.onNetworkRestored)
+      )
     )
 
     return defer(() => {
@@ -32,7 +38,7 @@ export const delayOnNetworkMode = <T>(
         attempts > 1
       ) {
         return merge(
-          of({ fetchStatus: "paused" } satisfies Result),
+          of({ fetchStatus: "paused" } satisfies Result<TData, TError>),
           runWhenOnline$
         )
       }
@@ -43,7 +49,7 @@ export const delayOnNetworkMode = <T>(
         options.networkMode !== "offlineFirst"
       ) {
         return merge(
-          of({ fetchStatus: "paused" } satisfies Result),
+          of({ fetchStatus: "paused" } satisfies Result<TData, TError>),
           runWhenOnline$
         )
       }

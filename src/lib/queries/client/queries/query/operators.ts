@@ -1,6 +1,6 @@
 import { type QueryState } from "@tanstack/react-query"
 import { type DefaultError } from "../../types"
-import { type Observable, scan, map } from "rxjs"
+import { type Observable, scan, map, takeWhile } from "rxjs"
 import { type QueryOptions } from "../types"
 import { replaceData } from "../utils"
 
@@ -40,6 +40,7 @@ export const mergeResults =
             current.fetchStatus === "idle" && acc.fetchStatus !== "idle"
               ? acc.dataUpdateCount + 1
               : acc.dataUpdateCount,
+          // status: current.status ?? acc.status
           status:
             (current.status === "pending" &&
             (acc.status === "error" || acc.status === "success")
@@ -61,4 +62,19 @@ export const isQueryFinished = <
       ({ status, fetchStatus }) =>
         fetchStatus === "idle" && (status === "success" || status === "error")
     )
+  )
+
+export const takeUntilFinished = <
+  TQueryFnData = unknown,
+  TError = DefaultError,
+  TData = TQueryFnData
+>(
+  source: Observable<Partial<QueryState<TData, TError>>>
+) =>
+  source.pipe(
+    takeWhile((result) => {
+      const isFetchingOrPaused = result.fetchStatus !== "idle"
+
+      return isFetchingOrPaused
+    }, true),
   )

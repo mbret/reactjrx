@@ -21,13 +21,14 @@ import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
 import { type Query } from "../query/Query"
 import { type FetchOptions } from "../query/types"
-import { type RefetchOptions } from "../types"
+import { type PlaceholderDataFunction, type RefetchOptions } from "../types"
 import {
   type QueryObserverResult,
   type QueryObserverOptions,
   type DefaultedQueryObserverOptions
 } from "./types"
 import {
+  canFetch,
   isStale,
   shouldFetchOnMount,
   shouldFetchOptionally
@@ -35,6 +36,8 @@ import {
 import { shallowEqual } from "../../../../utils/shallowEqual"
 import { filterObjectByKey } from "../../../../utils/filterObjectByKey"
 import { trackSubscriptions } from "../../../../utils/operators/trackSubscriptions"
+import { replaceData } from "../utils"
+import { takeUntilFinished } from "../query/operators"
 
 export interface ObserverFetchOptions extends FetchOptions {
   throwOnError?: boolean
@@ -60,6 +63,8 @@ export class QueryObserver<
     TQueryData,
     TQueryKey
   >
+
+  protected fetchSubject = new Subject<ObserverFetchOptions>()
 
   /**
    * Used to subscribe to changes in either query or options (or both).
@@ -94,8 +99,24 @@ export class QueryObserver<
   protected lastResult: {
     state: Query<TQueryFnData, TError, TQueryData, TQueryKey>["state"]
     result: QueryObserverResult<TData, TError>
+    options: QueryObserverOptions<
+      TQueryFnData,
+      TError,
+      TData,
+      TQueryData,
+      TQueryKey
+    >
     selectError?: null | TError
   }
+
+  // This property keeps track of the last query with defined data.
+  // It will be used to pass the previous data and query to the placeholder function between renders.
+  protected lastQueryWithDefinedData?: Query<
+    TQueryFnData,
+    TError,
+    TQueryData,
+    TQueryKey
+  >
 
   protected observers = 0
 
@@ -117,9 +138,14 @@ export class QueryObserver<
     this.queryInitialState = query.state
     this.lastResult = {
       state: query.state,
+      options,
       result: this.getObserverResultFromQuery({
         query,
-        options: this.options
+        options: this.options,
+        prevResult: {
+          options: this.options,
+          state: query.state
+        }
       }).result
     }
   }
@@ -177,7 +203,12 @@ export class QueryObserver<
   protected getObserverResultFromQuery = ({
     options,
     query,
-    optimisticResult
+    optimisticResult,
+    prevResult: {
+      result: prevResult,
+      options: prevResultOptions,
+      state: prevResultState
+    }
   }: {
     query: Query<TQueryFnData, TError, TQueryData, TQueryKey>
     options: QueryObserverOptions<
@@ -188,13 +219,23 @@ export class QueryObserver<
       TQueryKey
     >
     optimisticResult?: boolean
+    prevResult: {
+      state: Query<TQueryFnData, TError, TQueryData, TQueryKey>["state"]
+      result?: QueryObserverResult<TData, TError>
+      options: QueryObserverOptions<
+        TQueryFnData,
+        TError,
+        TData,
+        TQueryData,
+        TQueryKey
+      >
+    }
   }): { result: QueryObserverResult<TData, TError>; selectError?: TError } => {
     const state = query.state
     const isPending = query.state.status === "pending"
     const isError = query.state.status === "error"
     const prevQuery = this.currentQuery
     const prevOptions = this.options
-    const lastObservedResult = this.lastResult
 
     let fetchStatus = query.state.fetchStatus
 
@@ -207,12 +248,14 @@ export class QueryObserver<
         mounted && shouldFetchOptionally(query, prevQuery, options, prevOptions)
 
       if (fetchOnMount || fetchOptionally) {
-        fetchStatus = "fetching"
+        fetchStatus = canFetch(query.options.networkMode)
+          ? "fetching"
+          : "paused"
       }
     }
 
     const isLoading = isPending && fetchStatus === "fetching"
-    const data = state.data
+    let data = state.data as TData | undefined
 
     const getSelectedValue = (): {
       data?: TData
@@ -222,21 +265,21 @@ export class QueryObserver<
       try {
         const selectFn = options.select
 
-        if (selectFn && typeof data !== "undefined") {
-          const lastObservedResultSelectedData = lastObservedResult.result?.data
+        if (selectFn && typeof state.data !== "undefined") {
+          const lastObservedResultSelectedData = prevResult?.data
 
           if (
-            lastObservedResult.state.data === data &&
+            prevResultState.data === data &&
             lastObservedResultSelectedData !== undefined
           ) {
-            if (lastObservedResult.selectError) {
-              return { error: lastObservedResult.selectError }
+            if (this.lastResult.selectError) {
+              return { error: this.lastResult.selectError }
             }
 
             return { data: lastObservedResultSelectedData, isSelected: true }
           }
 
-          return { data: selectFn(data), isSelected: true }
+          return { data: selectFn(state.data), isSelected: true }
         }
 
         return { data: data as TData }
@@ -251,11 +294,64 @@ export class QueryObserver<
       isSelected
     } = getSelectedValue()
 
+    let status = selectError
+      ? "error"
+      : fetchStatus !== "idle" && !state.dataUpdatedAt
+        ? "pending"
+        : state.status
+
+    let isPlaceholderData = false
+
+    // Show placeholder data if needed
+    if (
+      typeof options.placeholderData !== "undefined" &&
+      typeof data === "undefined" &&
+      status === "pending"
+    ) {
+      let placeholderData
+
+      // Memoize placeholder data
+      if (
+        prevResult?.isPlaceholderData &&
+        options.placeholderData === prevResultOptions?.placeholderData
+      ) {
+        placeholderData = prevResult.data
+      } else {
+        placeholderData =
+          typeof options.placeholderData === "function"
+            ? (
+                options.placeholderData as unknown as PlaceholderDataFunction<TQueryData>
+              )(
+                this.lastQueryWithDefinedData?.state.data,
+                this.lastQueryWithDefinedData as Query<any, any, any, any>
+              )
+            : options.placeholderData
+        if (options.select && typeof placeholderData !== "undefined") {
+          try {
+            placeholderData = options.select(placeholderData)
+            // this.#selectError = null
+          } catch (selectError) {
+            // this.#selectError = selectError as TError
+          }
+        }
+      }
+
+      if (typeof placeholderData !== "undefined") {
+        status = "success"
+        data = replaceData(
+          prevResult?.data,
+          placeholderData as unknown,
+          options
+        ) as TData
+        isPlaceholderData = true
+      }
+    }
+
     const result = {
-      status: selectError ? "error" : query.state.status,
+      status,
       fetchStatus,
       isPending,
-      isSuccess: query.state.status === "success",
+      isSuccess: status === "success",
       isError,
       isInitialLoading: isLoading,
       isLoading,
@@ -274,8 +370,8 @@ export class QueryObserver<
       isFetching: fetchStatus === "fetching",
       isRefetching: false,
       isLoadingError: isError && state.dataUpdatedAt === 0,
-      isPaused: false,
-      isPlaceholderData: false,
+      isPaused: fetchStatus === "paused",
+      isPlaceholderData,
       isRefetchError: false,
       isStale: isStale(query, options),
       refetch: this.refetch
@@ -305,7 +401,8 @@ export class QueryObserver<
     const observedResult = this.getObserverResultFromQuery({
       query,
       options,
-      optimisticResult: true
+      optimisticResult: true,
+      prevResult: this.lastResult
     })
 
     // if (shouldAssignObserverCurrentProperties(this, observedResult.result)) {
@@ -324,13 +421,13 @@ export class QueryObserver<
     // an observer reads an optimistic value.
     // When keeping the previous data, the result doesn't change until new
     // data arrives.
-    this.updateObservedResult({ query, ...observedResult })
+    this.updateResult({ query, ...observedResult })
     // }
 
     return observedResult.result
   }
 
-  protected updateObservedResult({
+  protected updateResult({
     query,
     result,
     selectError
@@ -342,6 +439,11 @@ export class QueryObserver<
     this.lastResult.state = query.state
     this.lastResult.result = result
     this.lastResult.selectError = selectError
+    this.lastResult.options = this.options
+
+    if (query.state.data !== undefined) {
+      this.lastQueryWithDefinedData = query
+    }
   }
 
   async refetch({ ...options }: RefetchOptions = {}): Promise<
@@ -355,6 +457,7 @@ export class QueryObserver<
   protected async fetch(
     fetchOptions?: ObserverFetchOptions
   ): Promise<QueryObserverResult<TData, TError>> {
+    console.log("QueryObserver.fetch")
     // Make sure we reference the latest query as the current one might have been removed
     const query = this.buildQuery(this.options)
 
@@ -366,16 +469,17 @@ export class QueryObserver<
       })
     }
 
-    /**
-     * @important
-     * we should fetch after we changed the query subject so current observer
-     * still get a chance to retrieve the new query prefetch state
-     */
-    await query.fetch(this.options, fetchOptions)
+    this.currentQuery.fetch(this.options, fetchOptions).catch(noop)
 
+    this.fetchSubject.next(fetchOptions ?? {})
+
+    await query.getFetchResultAsPromise()
+
+    // @todo we can optimize here and get current result if it exist
     const { result } = this.getObserverResultFromQuery({
       query,
-      options: this.options
+      options: this.options,
+      prevResult: this.lastResult
     })
 
     return result
@@ -420,7 +524,7 @@ export class QueryObserver<
       share()
     )
 
-    const watchForRefetch$ = this.queryUpdateSubject.pipe(
+    const watchForImplicitRefetch$ = this.queryUpdateSubject.pipe(
       startWith({
         query: this.currentQuery,
         options: this.options
@@ -443,7 +547,8 @@ export class QueryObserver<
     )
 
     const result$ = merge(
-      watchForRefetch$,
+      watchForImplicitRefetch$,
+      // watchForExplicitRefetch$,
       query$.pipe(
         switchMap((query) => {
           const options = this.options
@@ -482,25 +587,31 @@ export class QueryObserver<
             return reducedFunction(objA, objB)
           }
 
+          const queryInternallyFetchedUpdate$ = this.fetchSubject.pipe(
+            switchMap(() => query.state$),
+            takeUntilFinished
+          )
+
           const observedState$ = enabled$.pipe(
             switchMap((enabled) =>
               enabled
                 ? query.observe()
                 : /**
-                   * If the query is enabled we sill return the first observed
-                   * result but not observe more than that
+                   * We still observe internal fetch for this query
+                   * if not enabled. But we don't register as observer
                    */
-                  of(query.state)
+                  merge(of(query.state), queryInternallyFetchedUpdate$)
             )
           )
 
           const updateResult = () => {
             const result = this.getObserverResultFromQuery({
               query,
-              options
+              options,
+              prevResult: this.lastResult
             })
 
-            this.updateObservedResult({ query, ...result })
+            this.updateResult({ query, ...result })
 
             return result.result
           }
@@ -526,7 +637,11 @@ export class QueryObserver<
     ).pipe(
       trackSubscriptions((count) => (this.observers = count)),
       tap({
+        unsubscribe: () => {
+          // console.log("QueryObserver.observe unsubscribe")
+        },
         subscribe: () => {
+          console.log("QueryObserver.observe subscribe")
           // needs to be before the return of the first result.
           // whether the consumer subscribe or not
           // the function needs to run at least in the next tick (or its result)

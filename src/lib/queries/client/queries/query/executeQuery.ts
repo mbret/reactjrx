@@ -17,11 +17,11 @@ import { makeObservable } from "../../utils/functionAsObservable"
 import { type QueryFunctionContext, type QueryState } from "./types"
 import { retryOnError } from "../../operators"
 import { getDefaultState } from "./getDefaultState"
-import { delayWhenVisibilityChange } from "./delayWhenVisibilityChange"
-import { focusManager } from "../../focusManager"
 import { type QueryOptions } from "../types"
 import { delayOnNetworkMode } from "./delayOnNetworkMode"
 import { onlineManager } from "../../onlineManager"
+import { delayWhenVisibilityChange } from "./delayWhenVisibilityChange"
+import { focusManager } from "../../focusManager"
 
 export const executeQuery = <
   TQueryFnData = unknown,
@@ -82,12 +82,12 @@ export const executeQuery = <
     }),
     map(
       (data): Result => ({
-        data: data as any,
+        data: data as TData,
         error: null
       })
     ),
     delayWhenVisibilityChange(focusManager),
-    delayOnNetworkMode(options),
+    delayOnNetworkMode<TData, TError>(options),
     retryOnError<Result, TError>({
       retry: options.retry,
       retryDelay: options.retryDelay,
