@@ -2577,127 +2577,127 @@ describe("useQuery", () => {
     rendered.getByText('status: pending')
   })
 
-  // it('should not refetch query on focus when `enabled` is set to `false`', async () => {
-  //   const key = queryKey()
-  //   const queryFn = vi.fn<Array<unknown>, string>().mockReturnValue('data')
+  it('should not refetch query on focus when `enabled` is set to `false`', async () => {
+    const key = queryKey()
+    const queryFn = vi.fn<unknown[], string>().mockReturnValue('data')
 
-  //   function Page() {
-  //     const { data = 'default' } = useQuery({
-  //       queryKey: key,
-  //       queryFn,
-  //       enabled: false,
-  //     })
+    function Page() {
+      const { data = 'default' } = useQuery({
+        queryKey: key,
+        queryFn,
+        enabled: false,
+      })
 
-  //     return (
-  //       <div>
-  //         <h1>{data}</h1>
-  //       </div>
-  //     )
-  //   }
+      return (
+        <div>
+          <h1>{data}</h1>
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() => rendered.getByText('default'))
+    await waitFor(() => rendered.getByText('default'))
 
-  //   act(() => {
-  //     window.dispatchEvent(new Event('visibilitychange'))
-  //   })
+    act(() => {
+      window.dispatchEvent(new Event('visibilitychange'))
+    })
 
-  //   expect(queryFn).not.toHaveBeenCalled()
-  // })
+    expect(queryFn).not.toHaveBeenCalled()
+  })
 
-  // it('should not refetch stale query on focus when `refetchOnWindowFocus` is set to `false`', async () => {
-  //   const key = queryKey()
-  //   const states: Array<UseQueryResult<number>> = []
-  //   let count = 0
+  it('should not refetch stale query on focus when `refetchOnWindowFocus` is set to `false`', async () => {
+    const key = queryKey()
+    const states: Array<UseQueryResult<number>> = []
+    let count = 0
 
-  //   function Page() {
-  //     const state = useQuery({
-  //       queryKey: key,
-  //       queryFn: () => count++,
-  //       staleTime: 0,
-  //       refetchOnWindowFocus: false,
-  //     })
-  //     states.push(state)
-  //     return null
-  //   }
+    function Page() {
+      const state = useQuery({
+        queryKey: key,
+        queryFn: () => count++,
+        staleTime: 0,
+        refetchOnWindowFocus: false,
+      })
+      states.push(state)
+      return null
+    }
 
-  //   renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, <Page />)
 
-  //   await sleep(10)
+    await sleep(10)
 
-  //   act(() => {
-  //     window.dispatchEvent(new Event('visibilitychange'))
-  //   })
+    act(() => {
+      window.dispatchEvent(new Event('visibilitychange'))
+    })
 
-  //   await sleep(10)
+    await sleep(10)
 
-  //   expect(states.length).toBe(2)
-  //   expect(states[0]).toMatchObject({ data: undefined, isFetching: true })
-  //   expect(states[1]).toMatchObject({ data: 0, isFetching: false })
-  // })
+    expect(states.length).toBe(2)
+    expect(states[0]).toMatchObject({ data: undefined, isFetching: true })
+    expect(states[1]).toMatchObject({ data: 0, isFetching: false })
+  })
 
-  // it('should not refetch stale query on focus when `refetchOnWindowFocus` is set to a function that returns `false`', async () => {
-  //   const key = queryKey()
-  //   const states: Array<UseQueryResult<number>> = []
-  //   let count = 0
+  it('should not refetch stale query on focus when `refetchOnWindowFocus` is set to a function that returns `false`', async () => {
+    const key = queryKey()
+    const states: Array<UseQueryResult<number>> = []
+    let count = 0
 
-  //   function Page() {
-  //     const state = useQuery({
-  //       queryKey: key,
-  //       queryFn: () => count++,
-  //       staleTime: 0,
-  //       refetchOnWindowFocus: () => false,
-  //     })
-  //     states.push(state)
-  //     return null
-  //   }
+    function Page() {
+      const state = useQuery({
+        queryKey: key,
+        queryFn: () => count++,
+        staleTime: 0,
+        refetchOnWindowFocus: () => false,
+      })
+      states.push(state)
+      return null
+    }
 
-  //   renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, <Page />)
 
-  //   await sleep(10)
+    await sleep(10)
 
-  //   act(() => {
-  //     window.dispatchEvent(new Event('visibilitychange'))
-  //   })
+    act(() => {
+      window.dispatchEvent(new Event('visibilitychange'))
+    })
 
-  //   await sleep(10)
+    await sleep(10)
 
-  //   expect(states.length).toBe(2)
-  //   expect(states[0]).toMatchObject({ data: undefined, isFetching: true })
-  //   expect(states[1]).toMatchObject({ data: 0, isFetching: false })
-  // })
+    expect(states.length).toBe(2)
+    expect(states[0]).toMatchObject({ data: undefined, isFetching: true })
+    expect(states[1]).toMatchObject({ data: 0, isFetching: false })
+  })
 
-  // it('should not refetch fresh query on focus when `refetchOnWindowFocus` is set to `true`', async () => {
-  //   const key = queryKey()
-  //   const states: Array<UseQueryResult<number>> = []
-  //   let count = 0
+  it('should not refetch fresh query on focus when `refetchOnWindowFocus` is set to `true`', async () => {
+    const key = queryKey()
+    const states: Array<UseQueryResult<number>> = []
+    let count = 0
 
-  //   function Page() {
-  //     const state = useQuery({
-  //       queryKey: key,
-  //       queryFn: () => count++,
-  //       staleTime: Infinity,
-  //       refetchOnWindowFocus: true,
-  //     })
-  //     states.push(state)
-  //     return null
-  //   }
+    function Page() {
+      const state = useQuery({
+        queryKey: key,
+        queryFn: () => count++,
+        staleTime: Infinity,
+        refetchOnWindowFocus: true,
+      })
+      states.push(state)
+      return null
+    }
 
-  //   renderWithClient(queryClient, <Page />)
+    renderWithClient(queryClient, <Page />)
 
-  //   await sleep(10)
+    await sleep(10)
 
-  //   act(() => {
-  //     window.dispatchEvent(new Event('visibilitychange'))
-  //   })
+    act(() => {
+      window.dispatchEvent(new Event('visibilitychange'))
+    })
 
-  //   await sleep(10)
+    await sleep(10)
 
-  //   expect(states.length).toBe(2)
-  //   expect(states[0]).toMatchObject({ data: undefined, isFetching: true })
-  //   expect(states[1]).toMatchObject({ data: 0, isFetching: false })
-  // })
+    expect(states.length).toBe(2)
+    expect(states[0]).toMatchObject({ data: undefined, isFetching: true })
+    expect(states[1]).toMatchObject({ data: 0, isFetching: false })
+  })
 
   // it('should refetch fresh query on focus when `refetchOnWindowFocus` is set to `always`', async () => {
   //   const key = queryKey()
