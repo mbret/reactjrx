@@ -5020,117 +5020,117 @@ describe("useQuery", () => {
     expect(queryFn).toBeCalledTimes(2)
   })
 
-  // it('should refetch when query key changed when previous status is error', async () => {
-  //   function Page({ id }: { id: number }) {
-  //     const { error, isPending } = useQuery({
-  //       queryKey: [id],
-  //       queryFn: async () => {
-  //         await sleep(10)
-  //         if (id % 2 === 1) {
-  //           return Promise.reject(new Error('Error'))
-  //         } else {
-  //           return 'data'
-  //         }
-  //       },
-  //       retry: false,
-  //       retryOnMount: false,
-  //       refetchOnMount: false,
-  //       refetchOnWindowFocus: false,
-  //     })
+  it('should refetch when query key changed when previous status is error', async () => {
+    function Page({ id }: { id: number }) {
+      const { error, isPending } = useQuery({
+        queryKey: [id],
+        queryFn: async () => {
+          await sleep(10)
+          if (id % 2 === 1) {
+            return Promise.reject(new Error('Error'))
+          } else {
+            return 'data'
+          }
+        },
+        retry: false,
+        retryOnMount: false,
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
+      })
 
-  //     if (isPending) {
-  //       return <div>status: pending</div>
-  //     }
-  //     if (error instanceof Error) {
-  //       return <div>error</div>
-  //     }
-  //     return <div>rendered</div>
-  //   }
+      if (isPending) {
+        return <div>status: pending</div>
+      }
+      if (error instanceof Error) {
+        return <div>error</div>
+      }
+      return <div>rendered</div>
+    }
 
-  //   function App() {
-  //     const [id, changeId] = React.useReducer((x) => x + 1, 1)
+    function App() {
+      const [id, changeId] = React.useReducer((x) => x + 1, 1)
 
-  //     return (
-  //       <div>
-  //         <Page id={id} />
-  //         <button aria-label="change" onClick={changeId}>
-  //           change {id}
-  //         </button>
-  //       </div>
-  //     )
-  //   }
+      return (
+        <div>
+          <Page id={id} />
+          <button aria-label="change" onClick={changeId}>
+            change {id}
+          </button>
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <App />)
+    const rendered = renderWithClient(queryClient, <App />)
 
-  //   // initial state check
-  //   rendered.getByText('status: pending')
+    // initial state check
+    rendered.getByText('status: pending')
 
-  //   // render error state component
-  //   await waitFor(() => rendered.getByText('error'))
+    // render error state component
+    await waitFor(() => rendered.getByText('error'))
 
-  //   // change to unmount query
-  //   fireEvent.click(rendered.getByLabelText('change'))
-  //   await waitFor(() => rendered.getByText('rendered'))
+    // change to unmount query
+    fireEvent.click(rendered.getByLabelText('change'))
+    await waitFor(() => rendered.getByText('rendered'))
 
-  //   // change to mount new query
-  //   fireEvent.click(rendered.getByLabelText('change'))
-  //   await waitFor(() => rendered.getByText('error'))
-  // })
+    // change to mount new query
+    fireEvent.click(rendered.getByLabelText('change'))
+    await waitFor(() => rendered.getByText('error'))
+  })
 
-  // it('should refetch when query key changed when switching between erroneous queries', async () => {
-  //   function Page({ id }: { id: boolean }) {
-  //     const { error, isFetching } = useQuery({
-  //       queryKey: [id],
-  //       queryFn: async () => {
-  //         await sleep(10)
-  //         return Promise.reject<unknown>(new Error('Error'))
-  //       },
-  //       retry: false,
-  //       retryOnMount: false,
-  //       refetchOnMount: false,
-  //       refetchOnWindowFocus: false,
-  //     })
+  it('should refetch when query key changed when switching between erroneous queries', async () => {
+    function Page({ id }: { id: boolean }) {
+      const { error, isFetching } = useQuery({
+        queryKey: [id],
+        queryFn: async () => {
+          await sleep(10)
+          return Promise.reject<unknown>(new Error('Error'))
+        },
+        retry: false,
+        retryOnMount: false,
+        refetchOnMount: false,
+        refetchOnWindowFocus: false,
+      })
 
-  //     if (isFetching) {
-  //       return <div>status: fetching</div>
-  //     }
-  //     if (error instanceof Error) {
-  //       return <div>error</div>
-  //     }
-  //     return <div>rendered</div>
-  //   }
+      if (isFetching) {
+        return <div>status: fetching</div>
+      }
+      if (error instanceof Error) {
+        return <div>error</div>
+      }
+      return <div>rendered</div>
+    }
 
-  //   function App() {
-  //     const [value, toggle] = React.useReducer((x) => !x, true)
+    function App() {
+      const [value, toggle] = React.useReducer((x) => !x, true)
 
-  //     return (
-  //       <div>
-  //         <Page id={value} />
-  //         <button aria-label="change" onClick={toggle}>
-  //           change {value}
-  //         </button>
-  //       </div>
-  //     )
-  //   }
+      return (
+        <div>
+          <Page id={value} />
+          <button aria-label="change" onClick={toggle}>
+            change {value}
+          </button>
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <App />)
+    const rendered = renderWithClient(queryClient, <App />)
 
-  //   // initial state check
-  //   rendered.getByText('status: fetching')
+    // initial state check
+    rendered.getByText('status: fetching')
 
-  //   // render error state component
-  //   await waitFor(() => rendered.getByText('error'))
+    // render error state component
+    await waitFor(() => rendered.getByText('error'))
 
-  //   // change to mount second query
-  //   fireEvent.click(rendered.getByLabelText('change'))
-  //   await waitFor(() => rendered.getByText('status: fetching'))
-  //   await waitFor(() => rendered.getByText('error'))
+    // change to mount second query
+    fireEvent.click(rendered.getByLabelText('change'))
+    await waitFor(() => rendered.getByText('status: fetching'))
+    await waitFor(() => rendered.getByText('error'))
 
-  //   // change to mount first query again
-  //   fireEvent.click(rendered.getByLabelText('change'))
-  //   await waitFor(() => rendered.getByText('status: fetching'))
-  //   await waitFor(() => rendered.getByText('error'))
-  // })
+    // change to mount first query again
+    fireEvent.click(rendered.getByLabelText('change'))
+    await waitFor(() => rendered.getByText('status: fetching'))
+    await waitFor(() => rendered.getByText('error'))
+  })
 
   it("should have no error in pending state when refetching after error occurred", async () => {
     const key = queryKey()
@@ -6171,69 +6171,69 @@ describe("useQuery", () => {
     await waitFor(() => rendered.getByText("Rendered Id: 2"))
     expect(spy).toHaveBeenCalledTimes(1)
   })
-  // it('should reuse same data object reference when queryKey changes and placeholderData is present', async () => {
-  //   const key = queryKey()
-  //   const spy = vi.fn()
+  it('should reuse same data object reference when queryKey changes and placeholderData is present', async () => {
+    const key = queryKey()
+    const spy = vi.fn()
 
-  //   async function fetchNumber(id: number) {
-  //     await sleep(5)
-  //     return { numbers: { current: { id } } }
-  //   }
-  //   function Test() {
-  //     const [id, setId] = React.useState(1)
+    async function fetchNumber(id: number) {
+      await sleep(5)
+      return { numbers: { current: { id } } }
+    }
+    function Test() {
+      const [id, setId] = React.useState(1)
 
-  //     const { data } = useQuery({
-  //       select: selector,
-  //       queryKey: [key, 'user', id],
-  //       queryFn: () => fetchNumber(id),
-  //       placeholderData: { numbers: { current: { id: 99 } } },
-  //     })
+      const { data } = useQuery({
+        select: selector,
+        queryKey: [key, 'user', id],
+        queryFn: () => fetchNumber(id),
+        placeholderData: { numbers: { current: { id: 99 } } },
+      })
 
-  //     React.useEffect(() => {
-  //       spy(data)
-  //     }, [data])
+      React.useEffect(() => {
+        spy(data)
+      }, [data])
 
-  //     return (
-  //       <div>
-  //         <button name="1" onClick={() => setId(1)}>
-  //           1
-  //         </button>
-  //         <button name="2" onClick={() => setId(2)}>
-  //           2
-  //         </button>
-  //         <span>Rendered Id: {data?.id}</span>
-  //       </div>
-  //     )
-  //   }
+      return (
+        <div>
+          <button name="1" onClick={() => setId(1)}>
+            1
+          </button>
+          <button name="2" onClick={() => setId(2)}>
+            2
+          </button>
+          <span>Rendered Id: {data?.id}</span>
+        </div>
+      )
+    }
 
-  //   function selector(data: any) {
-  //     return data.numbers.current
-  //   }
+    function selector(data: any) {
+      return data.numbers.current
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Test />)
-  //   expect(spy).toHaveBeenCalledTimes(1)
+    const rendered = renderWithClient(queryClient, <Test />)
+    expect(spy).toHaveBeenCalledTimes(1)
 
-  //   spy.mockClear()
-  //   await waitFor(() => rendered.getByText('Rendered Id: 99'))
-  //   await waitFor(() => rendered.getByText('Rendered Id: 1'))
-  //   expect(spy).toHaveBeenCalledTimes(1)
+    spy.mockClear()
+    await waitFor(() => rendered.getByText('Rendered Id: 99'))
+    await waitFor(() => rendered.getByText('Rendered Id: 1'))
+    expect(spy).toHaveBeenCalledTimes(1)
 
-  //   spy.mockClear()
-  //   fireEvent.click(rendered.getByRole('button', { name: /2/ }))
-  //   await waitFor(() => rendered.getByText('Rendered Id: 99'))
-  //   await waitFor(() => rendered.getByText('Rendered Id: 2'))
-  //   expect(spy).toHaveBeenCalledTimes(2) // called with undefined because id changed
+    spy.mockClear()
+    fireEvent.click(rendered.getByRole('button', { name: /2/ }))
+    await waitFor(() => rendered.getByText('Rendered Id: 99'))
+    await waitFor(() => rendered.getByText('Rendered Id: 2'))
+    expect(spy).toHaveBeenCalledTimes(2) // called with undefined because id changed
 
-  //   spy.mockClear()
-  //   fireEvent.click(rendered.getByRole('button', { name: /1/ }))
-  //   await waitFor(() => rendered.getByText('Rendered Id: 1'))
-  //   expect(spy).toHaveBeenCalledTimes(1)
+    spy.mockClear()
+    fireEvent.click(rendered.getByRole('button', { name: /1/ }))
+    await waitFor(() => rendered.getByText('Rendered Id: 1'))
+    expect(spy).toHaveBeenCalledTimes(1)
 
-  //   spy.mockClear()
-  //   fireEvent.click(rendered.getByRole('button', { name: /2/ }))
-  //   await waitFor(() => rendered.getByText('Rendered Id: 2'))
-  //   expect(spy).toHaveBeenCalledTimes(1)
-  // })
+    spy.mockClear()
+    fireEvent.click(rendered.getByRole('button', { name: /2/ }))
+    await waitFor(() => rendered.getByText('Rendered Id: 2'))
+    expect(spy).toHaveBeenCalledTimes(1)
+  })
   it("should not cause an infinite render loop when using unstable callback ref", async () => {
     const key = queryKey()
 
@@ -6351,24 +6351,24 @@ describe("useQuery", () => {
   //   })
   // })
 
-  // // For Project without TS, when migrating from v4 to v5, make sure invalid calls due to bad parameters are tracked.
-  // it('should throw in case of bad arguments to enhance DevX', async () => {
-  //   // Mock console error to avoid noise when test is run
-  //   const consoleMock = vi
-  //     .spyOn(console, 'error')
-  //     .mockImplementation(() => undefined)
+  // For Project without TS, when migrating from v4 to v5, make sure invalid calls due to bad parameters are tracked.
+  it('should throw in case of bad arguments to enhance DevX', async () => {
+    // Mock console error to avoid noise when test is run
+    const consoleMock = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
 
-  //   const key = queryKey()
-  //   const queryFn = () => 'data'
+    const key = queryKey()
+    const queryFn = () => 'data'
 
-  //   function Page() {
-  //     // Invalid call on purpose
-  //     // @ts-expect-error
-  //     useQuery(key, { queryFn })
-  //     return <div>Does not matter</div>
-  //   }
+    function Page() {
+      // Invalid call on purpose
+      // @ts-expect-error
+      useQuery(key, { queryFn })
+      return <div>Does not matter</div>
+    }
 
-  //   expect(() => render(<Page />)).toThrow('Bad argument type')
-  //   consoleMock.mockRestore()
-  // })
+    expect(() => render(<Page />)).toThrow('Bad argument type')
+    consoleMock.mockRestore()
+  })
 })
