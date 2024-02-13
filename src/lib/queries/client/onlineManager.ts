@@ -6,7 +6,6 @@ import {
   fromEvent,
   map,
   merge,
-  tap
 } from "rxjs"
 import { emitToSubject } from "../../utils/operators/emitToSubject"
 

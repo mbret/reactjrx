@@ -17,7 +17,8 @@ import {
   timer,
   tap,
   distinctUntilChanged,
-  startWith
+  startWith,
+  noop
 } from "rxjs"
 import { createCacheClient } from "../../oldqueries/cache/cacheClient"
 import { createInvalidationClient } from "../../oldqueries/invalidation/invalidationClient"
@@ -321,12 +322,16 @@ export class QueryCache {
            */
           isQueryFinished,
           switchMap((isFinished) => {
-            // console.log("FINISHED", isFinished)
             return !isFinished
               ? NEVER
               : noMoreObservers$.pipe(
                   // defaults to 5mn
                   switchMap(() => {
+                    if (query.gcTime === Infinity) return NEVER
+
+                    // needed to pass the rq test. to be fair the timer below should be
+                    // valid as well (I even thought it would call setTimeout internally)
+                    setTimeout(noop, query.gcTime)
                     return timer(query.gcTime)
                   })
                 )

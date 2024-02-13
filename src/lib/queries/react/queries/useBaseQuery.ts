@@ -13,6 +13,8 @@ import { shallowEqual } from "../../../utils/shallowEqual"
 import { useLiveRef } from "../../../utils/useLiveRef"
 import { useConstant } from "../../../utils/useConstant"
 import { useQueryClient } from "../useQueryClient"
+import { useQueryErrorResetBoundary } from "./QueryErrorResetBoundary"
+import { getHasError } from "./errorBoundaryUtils"
 
 export function useBaseQuery<
   TQueryFnData,
@@ -33,6 +35,7 @@ export function useBaseQuery<
 ): QueryObserverResult<TData, TError> {
   const client = useQueryClient(queryClient)
   const isRestoring = useIsRestoring()
+  const errorResetBoundary = useQueryErrorResetBoundary()
   const defaultedOptions = client.defaultQueryOptions(options)
 
   // Make sure results are optimistically set in fetching state before subscribing or updating options
@@ -58,6 +61,8 @@ export function useBaseQuery<
     observer.getOptimisticResult(defaultedOptions)
   )
 
+  const result = optimisticResult.current
+
   useObserve(
     () =>
       result$.current.pipe(
@@ -74,6 +79,26 @@ export function useBaseQuery<
   useEffect(() => {
     observer.setOptions(defaultedOptions, { listeners: false })
   }, [defaultedOptions, observer])
+
+  // Handle error boundary
+  const error = result.error
+
+  if (
+    error &&
+    getHasError({
+      result,
+      errorResetBoundary,
+      throwOnError: defaultedOptions.throwOnError,
+      query: client
+        .getQueryCache()
+        .get<TQueryFnData, TError, TQueryData, TQueryKey>(
+          defaultedOptions.queryHash
+        )
+    })
+  ) {
+    // eslint-disable-next-line @typescript-eslint/no-throw-literal
+    throw error
+  }
 
   return optimisticResult.current
 }

@@ -3,6 +3,7 @@ import { QueryClient } from "../lib/queries/client/QueryClient"
 import { QueryClientProvider } from "../lib/queries/react/Provider"
 import { MutationCache } from "../lib/queries/client/mutations/cache/MutationCache"
 import { type QueryCache } from "../lib/queries/client/queries/cache/QueryCache"
+import React from "react"
 
 export const waitForTimeout = async (timeout: number) =>
   await new Promise((resolve) => setTimeout(resolve, timeout))
@@ -64,4 +65,24 @@ export const doNotExecute = (_func: () => void) => true
  */
 export function expectTypeNotAny<T>(_: 0 extends 1 & T ? never : T): void {
   return undefined
+}
+
+export const Blink = ({
+  duration,
+  children,
+}: {
+  duration: number
+  children: React.ReactNode
+}) => {
+  const [shouldShow, setShouldShow] = React.useState<boolean>(true)
+
+  React.useEffect(() => {
+    setShouldShow(true)
+    const timeout = setActTimeout(() => { setShouldShow(false); }, duration)
+    return () => {
+      clearTimeout(timeout)
+    }
+  }, [duration, children])
+
+  return shouldShow ? <>{children}</> : <>off</>
 }

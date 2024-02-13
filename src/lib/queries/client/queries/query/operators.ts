@@ -17,8 +17,6 @@ export const mergeResults =
   (source: Observable<Partial<QueryState<TData, TError>>>) =>
     source.pipe(
       scan((acc, current) => {
-        // console.log("mergeResults", { acc, current })
-
         const currentData = current.data
 
         const newData =
@@ -40,7 +38,6 @@ export const mergeResults =
             current.fetchStatus === "idle" && acc.fetchStatus !== "idle"
               ? acc.dataUpdateCount + 1
               : acc.dataUpdateCount,
-          // status: current.status ?? acc.status
           status:
             (current.status === "pending" &&
             (acc.status === "error" || acc.status === "success")
@@ -76,5 +73,5 @@ export const takeUntilFinished = <
       const isFetchingOrPaused = result.fetchStatus !== "idle"
 
       return isFetchingOrPaused
-    }, true),
+    }, true)
   )

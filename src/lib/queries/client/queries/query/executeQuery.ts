@@ -113,6 +113,8 @@ export const executeQuery = <
         ...state,
         status: "success",
         fetchStatus: "idle",
+        fetchFailureCount: 0,
+        fetchFailureReason: null,
         dataUpdatedAt: new Date().getTime()
       } satisfies Result).pipe(
         /**

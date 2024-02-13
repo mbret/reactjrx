@@ -102,6 +102,7 @@ export const executeMutation = <
         ),
         waitForNetworkOnError,
         retryOnError<QueryState>({
+          retry: 0,
           ...options,
           caughtError: (attempt, error) =>
             // eslint-disable-next-line @typescript-eslint/consistent-type-assertions

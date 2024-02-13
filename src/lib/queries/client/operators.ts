@@ -22,7 +22,7 @@ export const retryOnError = <T, TError>({
         }
       : {
           maxRetries:
-            retry === false ? 0 : retry === true ? Infinity : retry ?? 0
+            retry === false ? 0 : retry === true ? Infinity : retry ?? undefined
         }),
     ...rest
   })
