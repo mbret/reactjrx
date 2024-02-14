@@ -17,7 +17,7 @@ import {
 import { getDefaultMutationState } from "../defaultMutationState"
 import { type DefaultError } from "../../types"
 import { type MutationCache } from "../cache/MutationCache"
-import { makeObservable } from "../../utils/functionAsObservable"
+import { makeObservable } from "../../utils/makeObservable"
 import {
   type MutationState,
   type MutationMeta,
@@ -68,7 +68,7 @@ export class Mutation<
     )
     const execution$ = this.executeSubject.pipe(
       switchMap((variables) =>
-        executeMutation({
+        executeMutation<TData, TError, TVariables, TContext>({
           options: {
             ...this.options,
             onMutate: (variables) => {
@@ -80,14 +80,18 @@ export class Mutation<
                   )
               ) as Observable<TContext>
 
-              const onOptionMutate$ = makeObservable(
-                // eslint-disable-next-line @typescript-eslint/promise-function-async
-                () => {
-                  return this.options.onMutate?.(variables) ?? undefined
-                }
+              // eslint-disable-next-line @typescript-eslint/promise-function-async
+              const optionsOnMutate = () => {
+                return this.options.onMutate?.(variables)
+              }
+
+              const onOptionMutate$ = makeObservable(optionsOnMutate)
+
+              const context$ = onCacheMutate$.pipe(
+                mergeMap(() => onOptionMutate$)
               )
 
-              return onCacheMutate$.pipe(mergeMap(() => onOptionMutate$))
+              return context$
             },
             onError: (error, variables, context) => {
               const onCacheError$ = makeObservable(

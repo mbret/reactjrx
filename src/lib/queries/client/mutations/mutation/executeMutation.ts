@@ -13,7 +13,7 @@ import {
   shareReplay
 } from "rxjs"
 import { type MutationOptions, type MutationState } from "./types"
-import { makeObservable } from "../../utils/functionAsObservable"
+import { makeObservable } from "../../utils/makeObservable"
 import { retryOnError } from "../../operators"
 import { type DefaultError } from "../../types"
 import { getDefaultMutationState } from "../defaultMutationState"
@@ -101,7 +101,7 @@ export const executeMutation = <
           })
         ),
         waitForNetworkOnError,
-        retryOnError<QueryState>({
+        retryOnError({
           retry: 0,
           ...options,
           caughtError: (attempt, error) =>

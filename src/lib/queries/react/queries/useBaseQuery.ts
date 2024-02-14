@@ -88,7 +88,7 @@ export function useBaseQuery<
   )
 
   useEffect(() => {
-    observer.setOptions(defaultedOptions, { listeners: false })
+    observer.setOptions(defaultedOptions)
   }, [defaultedOptions, observer])
 
   // Handle error boundary

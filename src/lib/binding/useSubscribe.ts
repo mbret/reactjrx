@@ -1,6 +1,6 @@
 import { type DependencyList, useEffect } from "react"
 import { useLiveRef } from "../utils/useLiveRef"
-import { makeObservable } from "../queries/client/utils/functionAsObservable"
+import { makeObservable } from "../queries/client/utils/makeObservable"
 import { type SubscribeSource } from "./types"
 
 export function useSubscribe<T>(

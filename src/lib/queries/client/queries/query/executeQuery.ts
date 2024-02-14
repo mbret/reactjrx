@@ -13,7 +13,7 @@ import {
 } from "rxjs"
 import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
-import { makeObservable } from "../../utils/functionAsObservable"
+import { makeObservable } from "../../utils/makeObservable"
 import { type QueryFunctionContext, type QueryState } from "./types"
 import { retryOnError } from "../../operators"
 import { getDefaultState } from "./getDefaultState"
@@ -67,9 +67,11 @@ export const executeQuery = <
   const fn$ =
     typeof queryFn === "function"
       ? // eslint-disable-next-line @typescript-eslint/promise-function-async
-        makeObservable(() =>
-          queryFn(queryFnContext as QueryFunctionContext<TQueryKey>)
-        )
+        makeObservable(() => {
+          const s = queryFn(queryFnContext as QueryFunctionContext<TQueryKey>)
+
+          return s
+        })
       : queryFn
 
   const defaultState = getDefaultState(options)
@@ -82,7 +84,7 @@ export const executeQuery = <
     }),
     map(
       (data): Result => ({
-        data: data as TData,
+        data: data as unknown as TData,
         error: null
       })
     ),

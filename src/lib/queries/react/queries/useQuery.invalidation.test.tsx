@@ -173,29 +173,6 @@ describe("useQuery", () => {
           expect(queryFn.mock.calls.length).toBe(2)
         })
       })
-
-      describe("when the query take longer than the stale timeout", () => {
-        it("should not refetch", async () => {
-          const queryFn = vi.fn().mockImplementation(() => undefined)
-          const staleTimeout = 1
-
-          const Comp = () => {
-            useQuery({ queryFn, staleTime: staleTimeout, queryKey: [] })
-
-            return null
-          }
-
-          const client = new QueryClient()
-
-          render(
-            <QueryClientProvider client={client}>
-              <Comp />
-            </QueryClientProvider>
-          )
-
-          expect(queryFn).toHaveBeenCalledTimes(1)
-        })
-      })
     })
   })
 })

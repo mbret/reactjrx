@@ -2,7 +2,7 @@ import { type DependencyList, useCallback } from "react"
 import { catchError, identity, retry } from "rxjs"
 import { useSubscribe } from "./useSubscribe"
 import { useLiveRef } from "../utils/useLiveRef"
-import { makeObservable } from "../queries/client/utils/functionAsObservable"
+import { makeObservable } from "../queries/client/utils/makeObservable"
 import { type SubscribeSource } from "./types"
 
 interface Option {

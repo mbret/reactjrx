@@ -12,7 +12,8 @@ import {
   type FetchQueryOptions,
   type QueryFilters,
   type SetDataOptions,
-  type RefetchOptions
+  type RefetchOptions,
+  type QueryOptions
 } from "./queries/types"
 import {
   type RefetchQueryFilters,
@@ -138,7 +139,7 @@ export class QueryClient {
     if (!defaultedOptions.queryHash) {
       defaultedOptions.queryHash = hashQueryKeyByOptions(
         defaultedOptions.queryKey,
-        defaultedOptions
+        defaultedOptions as QueryOptions<any, any, any, any, never>
       )
     }
 

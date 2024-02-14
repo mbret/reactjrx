@@ -1,17 +1,19 @@
 import { type Observable, defer, from, isObservable, of } from "rxjs"
 import { isPromiseLike } from "../../../utils/isPromiseLike"
 
-export function makeObservable<Data>(fn: () => Promise<Data>): Observable<Data>
 export function makeObservable<Data>(
-  fn: () => Observable<Data>
+  fn: () => Observable<Data> | Data | Promise<Data>
 ): Observable<Data>
 export function makeObservable<Data>(
   fn: () => Data
-): Observable<Data extends Promise<infer ThenData> ? ThenData : Data>
+): Data extends Observable<infer ObservedData>
+  ? Observable<ObservedData>
+  : Data extends Promise<infer ThenData>
+    ? Observable<ThenData>
+    : Observable<Data>
 export function makeObservable<Data>(fn: Data): Observable<Data>
 export function makeObservable<Data>(fn: Promise<Data>): Observable<Data>
 export function makeObservable<Data>(fn: Observable<Data>): Observable<Data>
-
 export function makeObservable<Data>(
   something:
     | (() => Observable<Data>)

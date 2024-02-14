@@ -174,6 +174,8 @@ export class Query<
       tap((state) => {
         this.state = state
       }),
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-expect-error
       tap((state) => {
         // console.log("Query state", state)
       }),

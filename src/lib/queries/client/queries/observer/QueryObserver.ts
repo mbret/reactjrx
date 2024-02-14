@@ -162,7 +162,6 @@ export class QueryObserver<
       TQueryData,
       TQueryKey
     >,
-    notifyOptions?: NotifyOptions
   ) {
     const newOptions = this.#client.defaultQueryOptions(options)
 

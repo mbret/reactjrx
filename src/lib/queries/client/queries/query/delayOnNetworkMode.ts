@@ -14,7 +14,7 @@ type Result<TData, TError> = Partial<QueryState<TData, TError>>
 
 export const delayOnNetworkMode = <TData, TError>(
   options: Pick<QueryOptions, "networkMode"> & {
-    onNetworkRestored: MonoTypeOperatorFunction<Result<TData, TError>>
+    onNetworkRestored: MonoTypeOperatorFunction<Omit<Result<TData, TError>, "data">>
   }
 ) => {
   let attempts = 0

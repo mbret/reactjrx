@@ -242,7 +242,7 @@ export class QueryCache {
 
   observeIsFetching(filters?: QueryFilters) {
     const value$ = this.store.stateChange$.pipe(
-      tap((value) => {
+      tap(() => {
         // console.log("STATE CHANGE", value)
       }),
       // we force a first result
@@ -303,7 +303,7 @@ export class QueryCache {
       this.store.add(query)
 
       const noMoreObservers$ = query.observerCount$.pipe(
-        tap((count) => {
+        tap(() => {
           // console.log("observerCount", count)
         }),
         filter((count) => count < 1),
