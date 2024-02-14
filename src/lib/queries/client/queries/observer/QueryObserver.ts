@@ -347,6 +347,9 @@ export class QueryObserver<
       }
     }
 
+    const finalData = isSelected ? selectData : (data as TData)
+
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const result = {
       status,
       fetchStatus,
@@ -355,7 +358,7 @@ export class QueryObserver<
       isError,
       isInitialLoading: isLoading,
       isLoading,
-      data: isSelected ? selectData : (data as TData),
+      data: finalData,
       dataUpdatedAt: query.state.dataUpdatedAt,
       error: selectError ?? query.state.error,
       errorUpdatedAt: 0,
@@ -375,7 +378,7 @@ export class QueryObserver<
       isRefetchError: false,
       isStale: isStale(query, options),
       refetch: this.refetch
-    }
+    } as QueryObserverResult<TData, TError>
 
     return {
       result,

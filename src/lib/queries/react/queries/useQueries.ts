@@ -8,7 +8,6 @@ import type {
   UseQueryOptions,
   UseQueryResult
 } from "./types"
-import { useQueryClient } from "../Provider"
 import { type DefaultError } from "../../client/types"
 import { type QueryKey } from "../../client/keys/types"
 import { type QueryClient } from "../../client/QueryClient"
@@ -21,6 +20,7 @@ import {
   QueriesObserver,
   type QueriesObserverOptions
 } from "../../client/queries/observer/QueriesObserver"
+import { useQueryClient } from "../useQueryClient"
 
 // This defines the `UseQueryOptions` that are accepted in `QueriesOptions` & `GetOptions`.
 // `placeholderData` function always gets undefined passed

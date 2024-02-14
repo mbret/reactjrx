@@ -180,7 +180,7 @@ describe("useQuery", () => {
           const staleTimeout = 1
 
           const Comp = () => {
-            useQuery({ queryFn, staleTime: staleTimeout })
+            useQuery({ queryFn, staleTime: staleTimeout, queryKey: [] })
 
             return null
           }
