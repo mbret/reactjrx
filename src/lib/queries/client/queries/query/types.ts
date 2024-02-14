@@ -1,9 +1,10 @@
+import { type Observable } from "rxjs"
 import { type QueryKey } from "../../keys/types"
 import { type DefaultError, type Register } from "../../types"
 import { type FetchStatus, type QueryStatus, type QueryOptions } from "../types"
 import { type Query } from "./Query"
 
-export type FetchDirection = 'forward' | 'backward'
+export type FetchDirection = "forward" | "backward"
 
 export interface QueryState<TData = unknown, TError = DefaultError> {
   data: TData | undefined
@@ -21,12 +22,12 @@ export interface QueryState<TData = unknown, TError = DefaultError> {
 }
 
 export type QueryMeta = Register extends {
-    queryMeta: infer TQueryMeta
-  }
-    ? TQueryMeta extends Record<string, unknown>
-      ? TQueryMeta
-      : Record<string, unknown>
+  queryMeta: infer TQueryMeta
+}
+  ? TQueryMeta extends Record<string, unknown>
+    ? TQueryMeta
     : Record<string, unknown>
+  : Record<string, unknown>
 
 export type QueryFunctionContext<
   TQueryKey extends QueryKey = QueryKey,
@@ -49,7 +50,11 @@ export type QueryFunction<
   T = unknown,
   TQueryKey extends QueryKey = QueryKey,
   TPageParam = never
-> = (context: QueryFunctionContext<TQueryKey, TPageParam>) => T | Promise<T>
+> =
+  | ((
+      context: QueryFunctionContext<TQueryKey, TPageParam>
+    ) => T | Promise<T> | Observable<T>)
+  | Observable<T>
 
 export interface FetchMeta {
   fetchMore?: { direction: FetchDirection }
@@ -64,7 +69,7 @@ export interface FetchContext<
   TQueryFnData,
   TError,
   TData,
-  TQueryKey extends QueryKey = QueryKey,
+  TQueryKey extends QueryKey = QueryKey
 > {
   fetchFn: () => unknown | Promise<unknown>
   fetchOptions?: FetchOptions
@@ -78,11 +83,10 @@ export interface QueryBehavior<
   TQueryFnData = unknown,
   TError = DefaultError,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
+  TQueryKey extends QueryKey = QueryKey
 > {
   onFetch: (
     context: FetchContext<TQueryFnData, TError, TData, TQueryKey>,
-    query: Query,
+    query: Query
   ) => void
 }
-

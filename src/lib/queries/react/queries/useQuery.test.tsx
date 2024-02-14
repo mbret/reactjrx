@@ -13,64 +13,64 @@ afterEach(() => {
 })
 
 describe("useQuery", () => {
-  // describe("Given a query that returns an interval stream", () => {
-  //   it("should return consecutive results", async () => {
-  //     const Comp = () => {
-  //       const [values, setValues] = useState<Array<number | undefined>>([])
+  describe("Given a query that returns an interval stream", () => {
+    it("should return consecutive results", async () => {
+      const Comp = () => {
+        const [values, setValues] = useState<Array<number | undefined>>([])
 
-  //       const { data } = useQuery({ queryKey: [], queryFn: () => interval(1) })
+        const { data } = useQuery({ queryKey: [], queryFn: () => interval(1) })
 
-  //       useEffect(() => {
-  //         data && setValues((v) => [...v, data])
-  //       }, [data])
+        useEffect(() => {
+          data && setValues((v) => [...v, data])
+        }, [data])
 
-  //       return <>{JSON.stringify(values)}</>
-  //     }
+        return <>{JSON.stringify(values)}</>
+      }
 
-  //     const client = new QueryClient()
+      const client = new QueryClient()
 
-  //     const { findByText } = render(
-  //       <React.StrictMode>
-  //         <QueryClientProvider client={client}>
-  //           <Comp />
-  //         </QueryClientProvider>
-  //       </React.StrictMode>
-  //     )
+      const { findByText } = render(
+        <React.StrictMode>
+          <QueryClientProvider client={client}>
+            <Comp />
+          </QueryClientProvider>
+        </React.StrictMode>
+      )
 
-  //     expect(await findByText(JSON.stringify([1, 2, 3]))).toBeDefined()
-  //   })
-  // })
+      expect(await findByText(JSON.stringify([1, 2, 3]))).toBeDefined()
+    })
+  })
 
-  // it("should return consecutive results", async () => {
-  //   // interval big enough so react does not skip some render
-  //   const source = interval(10)
+  it("should return consecutive results", async () => {
+    // interval big enough so react does not skip some render
+    const source = interval(10)
 
-  //   const Comp = () => {
-  //     const [values, setValues] = useState<Array<number | undefined>>([])
+    const Comp = () => {
+      const [values, setValues] = useState<Array<number | undefined>>([])
 
-  //     const queryResult = useQuery({ queryKey: [], queryFn: source })
+      const queryResult = useQuery({ queryKey: [], queryFn: source })
 
-  //     const { data } = queryResult
+      const { data } = queryResult
 
-  //     useEffect(() => {
-  //       data && setValues((v) => [...v, data])
-  //     }, [data])
+      useEffect(() => {
+        data && setValues((v) => [...v, data])
+      }, [data])
 
-  //     return <>{values.join(",")}</>
-  //   }
+      return <>{values.join(",")}</>
+    }
 
-  //   const client = new QueryClient()
+    const client = new QueryClient()
 
-  //   const { findByText } = render(
-  //     <React.StrictMode>
-  //       <QueryClientProvider client={client}>
-  //         <Comp />
-  //       </QueryClientProvider>
-  //     </React.StrictMode>
-  //   )
+    const { findByText } = render(
+      <React.StrictMode>
+        <QueryClientProvider client={client}>
+          <Comp />
+        </QueryClientProvider>
+      </React.StrictMode>
+    )
 
-  //   expect(await findByText("1,2,3")).toBeDefined()
-  // })
+    expect(await findByText("1,2,3")).toBeDefined()
+  })
 
   it("should return consecutive results", async () => {
     const source = new Subject<number>()
@@ -112,139 +112,82 @@ describe("useQuery", () => {
     expect(await findByText(JSON.stringify([3, 2, 1]))).toBeDefined()
   })
 
-  // describe("Given a new source every render", () => {
-  //   it("should infinite render and throw", async () => {
-  //     const Comp = () => {
-  //       const renderCount = useRef(0)
+  describe("Given a query that change every render and a stable key", () => {
+    describe("when user refetch said query", () => {
+      it("should return result of latest query instance", async () => {
+        const changeQueryTrigger = new Subject<void>()
 
-  //       useQuery({ queryFn: of(renderCount.current) })
+        const Comp = () => {
+          const [query, setQuery] = useState(() => async () => 1)
 
-  //       useEffect(() => {
-  //         renderCount.current++
+          const result = useQuery({
+            queryFn: query,
+            queryKey: ["foo"]
+          })
 
-  //         if (renderCount.current > 20) {
-  //           throw new Error("too many render")
-  //         }
-  //       })
+          const { refetch } = result
 
-  //       return null
-  //     }
+          useSubscribe(
+            changeQueryTrigger.pipe(
+              tap(() => {
+                setQuery(() => async () => 2)
+              })
+            )
+          )
 
-  //     const client = new QueryClient()
+          useEffect(() => {
+            refetch().catch(noop)
+          }, [query, refetch])
 
-  //     expect(() =>
-  //       render(
-  //         <React.StrictMode>
-  //           <QueryClientProvider client={client}>
-  //             <Comp />
-  //           </QueryClientProvider>
-  //         </React.StrictMode>
-  //       )
-  //     ).to.toThrowError("too many render")
-  //   })
+          return (
+            <>
+              {printQuery(result, [
+                "data",
+                "error",
+                "fetchStatus",
+                "isLoading",
+                "status"
+              ])}
+            </>
+          )
+        }
 
-  //   it("should disable query once render count reach 10 and therefore return 10", async () => {
-  //     const Comp = memo(() => {
-  //       const renderCount = useRef(0)
+        const client = new QueryClient()
 
-  //       const result = useQuery({
-  //         queryKey: [],
-  //         queryFn: of(renderCount.current),
-  //         enabled: renderCount.current < 11
-  //       })
+        const { findByText } = render(
+          <React.StrictMode>
+            <QueryClientProvider client={client}>
+              <Comp />
+            </QueryClientProvider>
+          </React.StrictMode>
+        )
 
-  //       useEffect(() => {
-  //         renderCount.current++
+        expect(
+          await findByText(
+            printQuery({
+              data: 1,
+              error: null,
+              fetchStatus: "idle",
+              isLoading: false,
+              status: "success"
+            })
+          )
+        ).toBeDefined()
 
-  //         // we use a margin because of strict mode / concurrency
-  //         if (renderCount.current > 20) {
-  //           throw new Error("too many render")
-  //         }
-  //       })
+        changeQueryTrigger.next()
 
-  //       return <>{result.data}</>
-  //     })
-
-  //     const client = new QueryClient()
-
-  //     const { findByText } = render(
-  //       <React.StrictMode>
-  //         <QueryClientProvider client={client}>
-  //           <Comp />
-  //         </QueryClientProvider>
-  //       </React.StrictMode>
-  //     )
-
-  //     expect(await findByText("10")).toBeDefined()
-  //   })
-  // })
-
-  // describe("Given a query that change every render and a stable key", () => {
-  //   describe("when user refetch said query", () => {
-  //     it("should return result of latest query instance", async () => {
-  //       const changeQueryTrigger = new Subject<void>()
-
-  //       const Comp = () => {
-  //         const [query, setQuery] = useState(() => async () => 1)
-
-  //         const result = useQuery({
-  //           queryFn: query,
-  //           queryKey: ["foo"]
-  //         })
-
-  //         const { refetch } = result
-
-  //         useSubscribe(
-  //           changeQueryTrigger.pipe(
-  //             tap(() => {
-  //               setQuery(() => async () => 2)
-  //             })
-  //           )
-  //         )
-
-  //         useEffect(() => {
-  //           refetch().catch(noop)
-  //         }, [query, refetch])
-
-  //         return <>{printQuery(result)}</>
-  //       }
-
-  //       const client = new QueryClient()
-
-  //       const { findByText } = render(
-  //         <React.StrictMode>
-  //           <QueryClientProvider client={client}>
-  //             <Comp />
-  //           </QueryClientProvider>
-  //         </React.StrictMode>
-  //       )
-
-  //       expect(
-  //         await findByText(
-  //           printQuery({
-  //             data: 1,
-  //             error: undefined,
-  //             fetchStatus: "idle",
-  //             isLoading: false,
-  //             status: "success"
-  //           })
-  //         )
-  //       ).toBeDefined()
-
-  //       changeQueryTrigger.next()
-
-  //       expect(
-  //         await findByText(
-  //           printQuery({
-  //             data: 2,
-  //             error: undefined,
-  //             fetchStatus: "idle",
-  //             isLoading: false,
-  //             status: "success"
-  //           })
-  //         )
-  //       ).toBeDefined()
-  //     })
-  //   })
-  // })
+        expect(
+          await findByText(
+            printQuery({
+              data: 2,
+              error: null,
+              fetchStatus: "idle",
+              isLoading: false,
+              status: "success"
+            })
+          )
+        ).toBeDefined()
+      })
+    })
+  })
 })
