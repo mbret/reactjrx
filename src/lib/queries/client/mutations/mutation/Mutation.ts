@@ -39,19 +39,18 @@ export class Mutation<
   TVariables = void,
   TContext = unknown
 > {
-  protected mutationCache: MutationCache
-  protected observerCount = new BehaviorSubject(0)
-  protected destroySubject = new Subject<void>()
-  protected resetSubject = new Subject<void>()
-  protected executeSubject = new Subject<TVariables>()
+  readonly #observerCount = new BehaviorSubject(0)
+  readonly #destroySubject = new Subject<void>()
+  readonly #resetSubject = new Subject<void>()
+  readonly #executeSubject = new Subject<TVariables>()
 
   public state: MutationState<TData, TError, TVariables, TContext> =
     getDefaultMutationState<TData, TError, TVariables, TContext>()
 
   public state$: Observable<typeof this.state>
   public options: MutationOptions<TData, TError, TVariables, TContext>
-  public observerCount$ = this.observerCount.asObservable()
-  public destroyed$ = this.destroySubject.asObservable()
+  public observerCount$ = this.#observerCount.asObservable()
+  public destroyed$ = this.#destroySubject.asObservable()
 
   constructor({
     options,
@@ -59,14 +58,13 @@ export class Mutation<
     state
   }: MutationConfig<TData, TError, TVariables, TContext>) {
     this.options = options
-    this.mutationCache = mutationCache
     this.state = state ?? this.state
 
     const initialState$ = of(this.state)
-    const resetState$ = this.resetSubject.pipe(
+    const resetState$ = this.#resetSubject.pipe(
       map(() => getDefaultMutationState<TData, TError, TVariables, TContext>())
     )
-    const execution$ = this.executeSubject.pipe(
+    const execution$ = this.#executeSubject.pipe(
       switchMap((variables) =>
         executeMutation<TData, TError, TVariables, TContext>({
           options: {
@@ -156,7 +154,7 @@ export class Mutation<
       tap((value) => {
         this.state = { ...this.state, ...value }
       }),
-      takeUntil(this.destroySubject),
+      takeUntil(this.#destroySubject),
       /**
        * refCount as true somewhat make NEVER complete when there are
        * no more observers. I thought I should have to complete manually (which is
@@ -164,7 +162,7 @@ export class Mutation<
        */
       shareReplay({ bufferSize: 1, refCount: false }),
       trackSubscriptions((count) => {
-        this.observerCount.next(count)
+        this.#observerCount.next(count)
       })
     )
   }
@@ -194,8 +192,8 @@ export class Mutation<
    * is over, unlike the state which can be re-subscribed later.
    */
   execute(variables: TVariables) {
-    this.executeSubject.next(variables)
-    this.executeSubject.complete()
+    this.#executeSubject.next(variables)
+    this.#executeSubject.complete()
 
     return this.observeTillFinished()
   }
@@ -206,15 +204,15 @@ export class Mutation<
 
   // @todo merge with query
   destroy() {
-    this.destroySubject.next()
-    this.destroySubject.complete()
-    this.executeSubject.complete()
+    this.#destroySubject.next()
+    this.#destroySubject.complete()
+    this.#executeSubject.complete()
   }
 
   // @todo merge with query
   reset() {
-    this.resetSubject.next()
-    this.resetSubject.complete()
+    this.#resetSubject.next()
+    this.#resetSubject.complete()
     this.destroy()
   }
 }

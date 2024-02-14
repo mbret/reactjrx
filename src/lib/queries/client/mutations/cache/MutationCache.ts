@@ -25,7 +25,7 @@ import { type MutationOptions, type MutationState } from "../mutation/types"
 import { Store } from "../../store"
 
 export class MutationCache {
-  protected readonly store = new Store<Mutation<any, any, any, any>>()
+  readonly #store = new Store<Mutation<any, any, any, any>>()
 
   constructor(public config: MutationCacheConfig = {}) {}
 
@@ -75,7 +75,7 @@ export class MutationCache {
         }
       })
 
-    this.store.add(mutation)
+    this.#store.add(mutation)
 
     return mutation
   }
@@ -85,13 +85,13 @@ export class MutationCache {
   }
 
   remove(mutationToRemove: Mutation<any, any, any, any>): void {
-    const toRemove = this.store.getValues().find((mutation) => {
+    const toRemove = this.#store.getValues().find((mutation) => {
       return mutation === mutationToRemove
     })
 
     toRemove?.destroy()
 
-    this.store.remove(mutationToRemove)
+    this.#store.remove(mutationToRemove)
   }
 
   find<
@@ -106,7 +106,7 @@ export class MutationCache {
 
     const predicate = createPredicateForFilters(defaultedFilters)
 
-    return this.store.getValues().find((mutation) => predicate(mutation))
+    return this.#store.getValues().find((mutation) => predicate(mutation))
   }
 
   findAll(filters: MutationFilters = {}): Array<Mutation<any, any, any, any>> {
@@ -114,7 +114,7 @@ export class MutationCache {
 
     const predicate = createPredicateForFilters(defaultedFilters)
 
-    return this.store
+    return this.#store
       .getValues()
       .filter((mutation) => predicate(mutation))
       .map((mutation) => mutation)
@@ -140,7 +140,7 @@ export class MutationCache {
       .filter(predicate)
       .map((mutation) => finalSelect(mutation))
 
-    const value$ = this.store.stateChange$.pipe(
+    const value$ = this.#store.stateChange$.pipe(
       startWith(),
       map(() => {
         const filteredMutations = this.getAll().filter(predicate)
@@ -159,7 +159,7 @@ export class MutationCache {
    */
   subscribe(listener: (event: MutationCacheNotifyEvent) => void) {
     const sub = merge(
-      this.store.added$.pipe(
+      this.#store.added$.pipe(
         tap((mutation) => {
           listener({
             type: "added",
@@ -167,7 +167,7 @@ export class MutationCache {
           })
         })
       ),
-      this.store.removed$.pipe(
+      this.#store.removed$.pipe(
         tap((mutation) => {
           listener({
             type: "removed",
@@ -175,7 +175,7 @@ export class MutationCache {
           })
         })
       ),
-      this.store.stateChange$.pipe(
+      this.#store.stateChange$.pipe(
         tap((mutation) => {
           listener({
             type: "updated",

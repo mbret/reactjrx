@@ -35,7 +35,7 @@ export interface QueryStore {
 export class QueryCache {
   // readonly #queries: QueryStore = new Map<string, Query>()
 
-  protected readonly store = new Store<Query>()
+  readonly #store = new Store<Query>()
 
   // protected mountSubscriptions: Subscription[]
 
@@ -49,7 +49,7 @@ export class QueryCache {
   }
 
   observeIsFetching(filters?: QueryFilters) {
-    const value$ = this.store.stateChange$.pipe(
+    const value$ = this.#store.stateChange$.pipe(
       tap(() => {
         // console.log("STATE CHANGE", value)
       }),
@@ -70,7 +70,7 @@ export class QueryCache {
   }
 
   getAll(): Query[] {
-    return [...this.store.getValues()]
+    return [...this.#store.getValues()]
   }
 
   findAll(filters: QueryFilters = {}): Query[] {
@@ -107,8 +107,8 @@ export class QueryCache {
   }
 
   add(query: Query<any, any, any, any>): void {
-    if (!this.store.find((entity) => entity.queryHash === query.queryHash)) {
-      this.store.add(query)
+    if (!this.#store.find((entity) => entity.queryHash === query.queryHash)) {
+      this.#store.add(query)
 
       const noMoreObservers$ = query.observerCount$.pipe(
         tap(() => {
@@ -168,7 +168,7 @@ export class QueryCache {
   >(
     queryHash: string
   ): Query<TQueryFnData, TError, TData, TQueryKey> | undefined {
-    return this.store.find((query) => query.queryHash === queryHash) as
+    return this.#store.find((query) => query.queryHash === queryHash) as
       | Query<TQueryFnData, TError, TData, TQueryKey>
       | undefined
   }
@@ -184,13 +184,13 @@ export class QueryCache {
   }
 
   remove(query: Query<any, any, any, any>): void {
-    const queryInMap = this.store.find((entity) => entity === query)
+    const queryInMap = this.#store.find((entity) => entity === query)
 
     if (queryInMap) {
       query.destroy()
 
       if (queryInMap === query) {
-        this.store.remove(query)
+        this.#store.remove(query)
       }
     }
   }

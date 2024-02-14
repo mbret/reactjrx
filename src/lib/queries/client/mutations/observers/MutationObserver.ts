@@ -35,8 +35,7 @@ export class MutationObserver<
   TVariables = void,
   TContext = unknown
 > {
-  protected numberOfObservers = 0
-  protected mutationRunner: MutationRunner<any, any, any, TContext>
+  readonly #mutationRunner: MutationRunner<any, any, any, TContext>
 
   readonly #currentMutationSubject = new BehaviorSubject<
     | {
@@ -71,7 +70,7 @@ export class MutationObserver<
   ) {
     this.options.mutationKey = this.options?.mutationKey ?? [nanoid()]
 
-    this.mutationRunner =
+    this.#mutationRunner =
       mutationRunner ??
       new MutationRunner<TData, TError, TVariables, TContext>(this.options)
 
@@ -79,7 +78,7 @@ export class MutationObserver<
     this.mutate = this.mutate.bind(this)
     this.reset = this.reset.bind(this)
 
-    this.result$ = this.mutationRunner.state$.pipe(
+    this.result$ = this.#mutationRunner.state$.pipe(
       map((state) => ({
         state: this.getObserverResultFromState(state),
         options: {} as any
@@ -96,7 +95,7 @@ export class MutationObserver<
       .pipe(
         filter(isDefined),
         mergeMap((mutation) =>
-          this.mutationRunner.state$.pipe(
+          this.#mutationRunner.state$.pipe(
             takeUntil(mutation.mutation.observeTillFinished().pipe(last()))
           )
         )
@@ -231,7 +230,7 @@ export class MutationObserver<
 
     this.#currentMutationSubject.next({ mutation, options })
 
-    this.mutationRunner.trigger({
+    this.#mutationRunner.trigger({
       args: variables,
       options: this.options,
       mutation

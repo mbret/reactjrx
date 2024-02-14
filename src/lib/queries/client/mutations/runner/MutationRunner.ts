@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import {
   BehaviorSubject,
-  type ObservedValueOf,
   Subject,
   concatMap,
   defer,
@@ -27,17 +26,26 @@ import { getDefaultMutationState } from "../defaultMutationState"
 import { trackSubscriptions } from "../../../../utils/operators/trackSubscriptions"
 import { type MutationOptions, type MutationState } from "../mutation/types"
 
+interface TriggerSubject<
+  TData,
+  TError = DefaultError,
+  TVariables = void,
+  TContext = unknown
+> {
+  args: TVariables
+  options: MutationOptions<TData, TError, TVariables, TContext>
+  mutation: Mutation<TData, TError, TVariables, TContext>
+}
+
 export class MutationRunner<
   TData,
   TError = DefaultError,
   TVariables = void,
   TContext = unknown
 > {
-  protected trigger$ = new Subject<{
-    args: TVariables
-    options: MutationOptions<TData, TError, TVariables, TContext>
-    mutation: Mutation<TData, TError, TVariables, TContext>
-  }>()
+  readonly #trigger$ = new Subject<
+    TriggerSubject<TData, TError, TVariables, TContext>
+  >()
 
   public state$: Observable<MutationState<TData, TError, TVariables, TContext>>
 
@@ -50,15 +58,15 @@ export class MutationRunner<
       filter((value) => value === 0)
     )
 
-    this.state$ = this.trigger$.pipe(
+    this.state$ = this.#trigger$.pipe(
       concatMap(({ args, mutation, options }) => {
         const mapOperator = options.mapOperator ?? "merge"
 
-        const mergeTrigger$ = this.trigger$.pipe(
+        const mergeTrigger$ = this.#trigger$.pipe(
           filter(() => mapOperator === "merge")
         )
 
-        const switchTrigger$ = this.trigger$.pipe(
+        const switchTrigger$ = this.#trigger$.pipe(
           filter(() => mapOperator === "switch"),
           tap(() => {
             mutation.reset()
@@ -74,7 +82,7 @@ export class MutationRunner<
         const resetState$ = mutation.observeTillFinished().pipe(
           last(),
           mergeMap(() => mutation.state$),
-          takeUntil(this.trigger$)
+          takeUntil(this.#trigger$)
         )
 
         const stateUntilFinished$ = mutation.observeTillFinished().pipe(skip(1))
@@ -110,7 +118,11 @@ export class MutationRunner<
     )
   }
 
-  trigger({ args, options, mutation }: ObservedValueOf<typeof this.trigger$>) {
-    this.trigger$.next({ args, options, mutation })
+  trigger({
+    args,
+    options,
+    mutation
+  }: TriggerSubject<TData, TError, TVariables, TContext>) {
+    this.#trigger$.next({ args, options, mutation })
   }
 }
