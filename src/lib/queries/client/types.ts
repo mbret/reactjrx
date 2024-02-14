@@ -1,6 +1,5 @@
 import { type Observable } from "rxjs"
 import { type QueryKey } from "./keys/types"
-import { type QueryStore } from "./oldqueries/store/createQueryStore"
 import { type QueryTypeFilter, type QueryFilters } from "./queries/types"
 
 export interface QueryResult<T> {
@@ -33,13 +32,6 @@ export type QueryFn<T> =
   | (() => Promise<T>)
   | (() => Observable<T>)
   | Observable<T>
-
-export interface QueryPipelineParams<R> {
-  queryStore: QueryStore
-  serializedKey: string
-  key: QueryKey
-  options$: Observable<DeprecatedQueryOptions<R>>
-}
 
 /**
  * Events that trigger stream chain of query.

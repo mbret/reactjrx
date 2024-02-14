@@ -49,7 +49,7 @@ export class QueryClient {
   readonly #queryDefaults = new Map()
   readonly #defaultOptions: DefaultOptions
 
-  #destroy = () => {}
+  // #destroy = () => {}
 
   constructor({
     mutationCache,
@@ -62,11 +62,11 @@ export class QueryClient {
   }
 
   mount() {
-    this.#destroy = this.#queryCache.client.start()
+    // this.#destroy = this.#queryCache.client.start()
   }
 
   unmount() {
-    this.#destroy()
+    // this.#destroy()
   }
 
   getMutationCache() {

@@ -1,5 +1,3 @@
-"use client"
-
 import { type QueryClient } from "../../client/QueryClient"
 import { type QueryFilters } from "../../client/queries/types"
 import { useObserve } from "../../../binding/useObserve"

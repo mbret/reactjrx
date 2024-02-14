@@ -2,13 +2,6 @@
 /* eslint-disable new-cap */
 import { StrictMode, memo, useState } from "react"
 import ReactDOM from "react-dom/client"
-import {
-  MutationCache,
-  QueryClient,
-  QueryClientProvider,
-  SIGNAL_RESET,
-  signal
-} from "."
 import { useMutation } from "./lib/queries/react/mutations/useMutation"
 import {
   QueryClient as rc_QueryClient,
@@ -17,6 +10,11 @@ import {
 } from "@tanstack/react-query"
 import { sleep } from "./tests/utils"
 import { useIsMutating } from "./lib/queries/react/mutations/useIsMutating"
+import { QueryClient } from "./lib/queries/client/QueryClient"
+import { MutationCache } from "./lib/queries/client/mutations/cache/MutationCache"
+import { signal } from "./lib/state/signal"
+import { QueryClientProvider } from "./lib/queries/react/Provider"
+import { SIGNAL_RESET } from "./lib/state/constants"
 
 const rcClient = new rc_QueryClient()
 const mutationCache = new MutationCache()

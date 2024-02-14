@@ -1,4 +1,3 @@
-"use client"
 import { type QueryClient } from "../../client/QueryClient"
 import { type QueryKey } from "../../client/keys/types"
 import { QueryObserver } from "../../client/queries/observer/QueryObserver"

@@ -1,5 +1,3 @@
-"use client"
-
 import type { UseBaseQueryOptions } from "./types"
 import { useIsRestoring } from "./isRestoring"
 import { type QueryObserver } from "../../client/queries/observer/QueryObserver"
