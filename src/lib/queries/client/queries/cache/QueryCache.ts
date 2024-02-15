@@ -148,6 +148,7 @@ export class QueryCache {
         )
         .subscribe({
           complete: () => {
+            console.log("remove")
             /**
              * Will remove the mutation in all cases
              * - mutation cancelled (complete)

@@ -29,7 +29,7 @@ import {
   type UseQueryOptions,
   type DefinedUseQueryResult
 } from "./types"
-import React from "react"
+import React, { useEffect } from "react"
 import { noop } from "rxjs"
 import { keepPreviousData } from "../../client/utils/keepPreviousData"
 import { ErrorBoundary } from "react-error-boundary"
@@ -3843,6 +3843,7 @@ describe("useQuery", () => {
     await waitFor(() => rendered.getByText("data: serverData"))
 
     expect(results.length).toBe(2)
+
     expect(results[0]).toMatchObject({ data: "initialData", isFetching: true })
     expect(results[1]).toMatchObject({ data: "serverData", isFetching: false })
   })
@@ -4857,81 +4858,82 @@ describe("useQuery", () => {
   //   })
   // })
 
-  // it('should update query state and not refetch when resetting a disabled query with resetQueries', async () => {
-  //   const key = queryKey()
-  //   const states: Array<UseQueryResult<number>> = []
-  //   let count = 0
+  it("should update query state and not refetch when resetting a disabled query with resetQueries", async () => {
+    const key = queryKey()
+    const states: Array<UseQueryResult<number>> = []
+    let count = 0
 
-  //   function Page() {
-  //     const state = useQuery({
-  //       queryKey: key,
-  //       queryFn: async () => {
-  //         await sleep(10)
-  //         count++
-  //         return count
-  //       },
-  //       staleTime: Infinity,
-  //       enabled: false,
-  //       notifyOnChangeProps: 'all',
-  //     })
+    function Page() {
+      const state = useQuery({
+        queryKey: key,
+        queryFn: async () => {
+          await sleep(10)
+          count++
+          return count
+        },
+        staleTime: Infinity,
+        enabled: false,
+        notifyOnChangeProps: "all"
+      })
 
-  //     states.push(state)
+      states.push(state)
 
-  //     const { refetch } = state
+      const { refetch } = state
 
-  //     return (
-  //       <div>
-  //         <button onClick={() => refetch()}>refetch</button>
-  //         <button onClick={() => queryClient.resetQueries({ queryKey: key })}>
-  //           reset
-  //         </button>
-  //         <div>data: {state.data ?? 'null'}</div>
-  //       </div>
-  //     )
-  //   }
+      return (
+        <div>
+          <button onClick={() => refetch()}>refetch</button>
+          <button onClick={() => queryClient.resetQueries({ queryKey: key })}>
+            reset
+          </button>
+          <div>data: {state.data ?? "null"}</div>
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() => rendered.getByText('data: null'))
-  //   fireEvent.click(rendered.getByRole('button', { name: /refetch/i }))
+    await waitFor(() => rendered.getByText("data: null"))
+    fireEvent.click(rendered.getByRole("button", { name: /refetch/i }))
 
-  //   await waitFor(() => rendered.getByText('data: 1'))
-  //   fireEvent.click(rendered.getByRole('button', { name: /reset/i }))
+    await waitFor(() => rendered.getByText("data: 1"))
 
-  //   await waitFor(() => rendered.getByText('data: null'))
-  //   await waitFor(() => expect(states.length).toBe(4))
+    fireEvent.click(rendered.getByRole("button", { name: /reset/i }))
 
-  //   expect(count).toBe(1)
+    await waitFor(() => rendered.getByText("data: null"))
+    await waitFor(() => expect(states.length).toBe(4))
 
-  //   expect(states[0]).toMatchObject({
-  //     data: undefined,
-  //     isPending: true,
-  //     isFetching: false,
-  //     isSuccess: false,
-  //     isStale: true,
-  //   })
-  //   expect(states[1]).toMatchObject({
-  //     data: undefined,
-  //     isPending: true,
-  //     isFetching: true,
-  //     isSuccess: false,
-  //     isStale: true,
-  //   })
-  //   expect(states[2]).toMatchObject({
-  //     data: 1,
-  //     isPending: false,
-  //     isFetching: false,
-  //     isSuccess: true,
-  //     isStale: false,
-  //   })
-  //   expect(states[3]).toMatchObject({
-  //     data: undefined,
-  //     isPending: true,
-  //     isFetching: false,
-  //     isSuccess: false,
-  //     isStale: true,
-  //   })
-  // })
+    expect(count).toBe(1)
+
+    expect(states[0]).toMatchObject({
+      data: undefined,
+      isPending: true,
+      isFetching: false,
+      isSuccess: false,
+      isStale: true
+    })
+    expect(states[1]).toMatchObject({
+      data: undefined,
+      isPending: true,
+      isFetching: true,
+      isSuccess: false,
+      isStale: true
+    })
+    expect(states[2]).toMatchObject({
+      data: 1,
+      isPending: false,
+      isFetching: false,
+      isSuccess: true,
+      isStale: false
+    })
+    expect(states[3]).toMatchObject({
+      data: undefined,
+      isPending: true,
+      isFetching: false,
+      isSuccess: false,
+      isStale: true
+    })
+  })
 
   it("should only call the query hash function once each render", async () => {
     const key = queryKey()
@@ -5005,7 +5007,7 @@ describe("useQuery", () => {
     // initial state check
     rendered.getByText("status: pending")
 
-    // // render error state component
+    // render error state component
     await waitFor(() => rendered.getByText("error"))
     expect(queryFn).toBeCalledTimes(1)
 
@@ -5014,7 +5016,7 @@ describe("useQuery", () => {
     await waitFor(() => rendered.getByText("error"))
     expect(queryFn).toBeCalledTimes(1)
 
-    // // change to enabled to true
+    // change to enabled to true
     fireEvent.click(rendered.getByLabelText("retry"))
     expect(queryFn).toBeCalledTimes(2)
   })
@@ -6255,100 +6257,100 @@ describe("useQuery", () => {
     await waitFor(() => rendered.getByText("Works"))
   })
 
-  // it('should keep the previous data when placeholderData is set and cache is used', async () => {
-  //   const key = queryKey()
-  //   const states: Array<UseQueryResult<number | undefined>> = []
-  //   const steps = [0, 1, 0, 2]
+  it("should keep the previous data when placeholderData is set and cache is used", async () => {
+    const key = queryKey()
+    const states: Array<UseQueryResult<number | undefined>> = []
+    const steps = [0, 1, 0, 2]
 
-  //   function Page() {
-  //     const [count, setCount] = React.useState(0)
+    function Page() {
+      const [count, setCount] = React.useState(0)
 
-  //     const state = useQuery({
-  //       staleTime: Infinity,
-  //       queryKey: [key, steps[count]],
-  //       queryFn: async () => {
-  //         await sleep(10)
-  //         return steps[count]
-  //       },
-  //       placeholderData: keepPreviousData,
-  //     })
+      const state = useQuery({
+        staleTime: Infinity,
+        queryKey: [key, steps[count]],
+        queryFn: async () => {
+          await sleep(10)
+          return steps[count]
+        },
+        placeholderData: keepPreviousData
+      })
 
-  //     states.push(state)
+      states.push(state)
 
-  //     return (
-  //       <div>
-  //         <div>data: {state.data}</div>
-  //         <button onClick={() => setCount((c) => c + 1)}>setCount</button>
-  //       </div>
-  //     )
-  //   }
+      return (
+        <div>
+          <div>data: {state.data}</div>
+          <button onClick={() => setCount((c) => c + 1)}>setCount</button>
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() => rendered.getByText('data: 0'))
+    await waitFor(() => rendered.getByText("data: 0"))
 
-  //   fireEvent.click(rendered.getByRole('button', { name: 'setCount' }))
+    fireEvent.click(rendered.getByRole("button", { name: "setCount" }))
 
-  //   await waitFor(() => rendered.getByText('data: 1'))
+    await waitFor(() => rendered.getByText("data: 1"))
 
-  //   fireEvent.click(rendered.getByRole('button', { name: 'setCount' }))
+    fireEvent.click(rendered.getByRole("button", { name: "setCount" }))
 
-  //   await waitFor(() => rendered.getByText('data: 0'))
+    await waitFor(() => rendered.getByText("data: 0"))
 
-  //   fireEvent.click(rendered.getByRole('button', { name: 'setCount' }))
+    fireEvent.click(rendered.getByRole("button", { name: "setCount" }))
 
-  //   await waitFor(() => rendered.getByText('data: 2'))
+    await waitFor(() => rendered.getByText("data: 2"))
 
-  //   // Initial
-  //   expect(states[0]).toMatchObject({
-  //     data: undefined,
-  //     isFetching: true,
-  //     isSuccess: false,
-  //     isPlaceholderData: false,
-  //   })
-  //   // Fetched
-  //   expect(states[1]).toMatchObject({
-  //     data: 0,
-  //     isFetching: false,
-  //     isSuccess: true,
-  //     isPlaceholderData: false,
-  //   })
-  //   // Set state
-  //   expect(states[2]).toMatchObject({
-  //     data: 0,
-  //     isFetching: true,
-  //     isSuccess: true,
-  //     isPlaceholderData: true,
-  //   })
-  //   // New data
-  //   expect(states[3]).toMatchObject({
-  //     data: 1,
-  //     isFetching: false,
-  //     isSuccess: true,
-  //     isPlaceholderData: false,
-  //   })
-  //   // Set state with existing data
-  //   expect(states[4]).toMatchObject({
-  //     data: 0,
-  //     isFetching: false,
-  //     isSuccess: true,
-  //     isPlaceholderData: false,
-  //   })
-  //   // Set state where the placeholder value should come from cache request
-  //   expect(states[5]).toMatchObject({
-  //     data: 0,
-  //     isFetching: true,
-  //     isSuccess: true,
-  //     isPlaceholderData: true,
-  //   })
-  //   // New data
-  //   expect(states[6]).toMatchObject({
-  //     data: 2,
-  //     isFetching: false,
-  //     isSuccess: true,
-  //     isPlaceholderData: false,
-  //   })
-  // })
+    // Initial
+    expect(states[0]).toMatchObject({
+      data: undefined,
+      isFetching: true,
+      isSuccess: false,
+      isPlaceholderData: false
+    })
+    // Fetched
+    expect(states[1]).toMatchObject({
+      data: 0,
+      isFetching: false,
+      isSuccess: true,
+      isPlaceholderData: false
+    })
+    // Set state
+    expect(states[2]).toMatchObject({
+      data: 0,
+      isFetching: true,
+      isSuccess: true,
+      isPlaceholderData: true
+    })
+    // New data
+    expect(states[3]).toMatchObject({
+      data: 1,
+      isFetching: false,
+      isSuccess: true,
+      isPlaceholderData: false
+    })
+    // Set state with existing data
+    expect(states[4]).toMatchObject({
+      data: 0,
+      isFetching: false,
+      isSuccess: true,
+      isPlaceholderData: false
+    })
+    // Set state where the placeholder value should come from cache request
+    expect(states[5]).toMatchObject({
+      data: 0,
+      isFetching: true,
+      isSuccess: true,
+      isPlaceholderData: true
+    })
+    // New data
+    expect(states[6]).toMatchObject({
+      data: 2,
+      isFetching: false,
+      isSuccess: true,
+      isPlaceholderData: false
+    })
+  })
 
   // For Project without TS, when migrating from v4 to v5, make sure invalid calls due to bad parameters are tracked.
   it("should throw in case of bad arguments to enhance DevX", async () => {

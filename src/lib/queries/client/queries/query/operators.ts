@@ -4,7 +4,7 @@ import { type Observable, scan, map, takeWhile } from "rxjs"
 import { type QueryOptions } from "../types"
 import { replaceData } from "../utils"
 
-export const mergeResults =
+export const reduceState =
   <TQueryFnData = unknown, TError = DefaultError, TData = TQueryFnData>({
     getOptions,
     getState,
@@ -14,35 +14,86 @@ export const mergeResults =
     getState: () => QueryState<TData, TError>
     getOptions: () => QueryOptions<TQueryFnData, TError, TData, any>
   }) =>
-  (source: Observable<Partial<QueryState<TData, TError>>>) =>
+  (
+    source: Observable<{
+      command: "invalidate" | "cancel" | "reset" | "setData" | "execute"
+      state: Partial<QueryState<TData, TError>>
+    }>
+  ) =>
     source.pipe(
-      scan((acc, current) => {
+      scan((acc, { command, state: current }) => {
+        if (command === "reset") return { ...acc, ...current }
+
+        if (command === "cancel") {
+          const status =
+            acc.status === "pending" ? "pending" : current.status ?? acc.status
+
+          return { ...acc, ...current, status }
+        }
+
         const currentData = current.data
 
-        const newData =
+        const weHaveNewData =
           currentData !== undefined && currentData !== acc.data
-            ? replaceData(getState().data, currentData, getOptions())
+        const weHaveDataKeyInCurrent = "data" in current
+
+        const newSuccessStatus = current.status === "success"
+
+        const hasData = acc.data !== undefined
+        const hasError = acc.error !== undefined || acc.error !== null
+        const status = current.status ?? acc.status
+
+        const newData = weHaveNewData
+          ? replaceData(getState().data, currentData, getOptions())
+          : weHaveDataKeyInCurrent
+            ? current.data
             : acc.data
+
+        const previousStatusIsSuccessOrError =
+          acc.status === "error" || acc.status === "success"
+
+        const errorUpdateCount =
+          current.status === "error" &&
+          ((acc.status === "error" && acc.fetchStatus === "fetching") ||
+            acc.status !== "error")
+            ? acc.errorUpdateCount + 1
+            : acc.errorUpdateCount
+
+        const dataUpdateCount = weHaveNewData
+          ? acc.dataUpdateCount + 1
+          : current.dataUpdateCount ?? acc.dataUpdateCount
+
+        const newPendingStatusOnHold =
+          current.status === "pending" &&
+          previousStatusIsSuccessOrError &&
+          // (dataUpdateCount !== 0 || errorUpdateCount !== 0)
+          (hasData || hasError)
+
+        const error = status === "pending" ? null : current.error ?? acc.error
+
+        console.log("mergeResults", {
+          weHaveNewData,
+          weHaveDataKeyInCurrent,
+          previousStatusIsSuccessOrError,
+          newPendingStatusOnHold,
+          dataUpdateCount,
+          error
+        })
 
         return {
           ...acc,
           ...current,
-          errorUpdateCount:
-            current.status === "error" &&
-            ((acc.status === "error" && acc.fetchStatus === "fetching") ||
-              acc.status !== "error")
-              ? acc.errorUpdateCount + 1
-              : acc.errorUpdateCount,
+          status,
+          error,
+          errorUpdateCount,
+          ...(newSuccessStatus && {
+            isInvalidated: false
+          }),
           data: newData,
-          dataUpdateCount:
-            current.fetchStatus === "idle" && acc.fetchStatus !== "idle"
-              ? acc.dataUpdateCount + 1
-              : acc.dataUpdateCount,
-          status:
-            (current.status === "pending" &&
-            (acc.status === "error" || acc.status === "success")
-              ? acc.status
-              : current.status) ?? acc.status
+          dataUpdateCount,
+          ...(newPendingStatusOnHold && {
+            status: acc.status
+          })
         }
       }, initialState)
     )

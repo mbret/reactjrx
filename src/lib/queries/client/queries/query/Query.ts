@@ -13,7 +13,8 @@ import {
   startWith,
   distinctUntilChanged,
   of,
-  defer
+  defer,
+  catchError
 } from "rxjs"
 import { isServer } from "../../../../utils/isServer"
 import { type QueryKey } from "../../keys/types"
@@ -26,9 +27,9 @@ import { type QueryMeta, type FetchOptions, type QueryState } from "./types"
 import { executeQuery } from "./executeQuery"
 import { type CancelOptions } from "../retryer/types"
 import { CancelledError } from "../retryer/CancelledError"
-import { mergeResults, takeUntilFinished } from "./operators"
-import { trackSubscriptions } from "../../../../utils/operators/trackSubscriptions"
+import { reduceState, takeUntilFinished } from "./operators"
 import { shallowEqual } from "../../../../utils/shallowEqual"
+import { type QueryObserver } from "../observer/QueryObserver"
 
 interface QueryConfig<
   TQueryFnData,
@@ -75,10 +76,13 @@ export class Query<
   protected invalidatedSubject = new Subject<void>()
   protected resetSubject = new Subject<void>()
   protected destroySubject = new Subject<void>()
-  protected observerCount = new BehaviorSubject(0)
-  protected observedState$: Observable<typeof this.state>
+  protected observersSubject = new BehaviorSubject<QueryObserver[]>([])
+
   protected abortSignalConsumed = false
-  public observerCount$ = this.observerCount.asObservable()
+  public observerCount$ = this.observersSubject
+    .asObservable()
+    .pipe(map((observers) => observers.length))
+
   public state$: Observable<typeof this.state>
 
   constructor(config: QueryConfig<TQueryFnData, TError, TData, TQueryKey>) {
@@ -91,27 +95,33 @@ export class Query<
     this.gcTime = this.updateGcTime(this.options.gcTime)
 
     this.state$ = merge(
-      this.resetSubject.pipe(map(() => this.#initialState)),
+      this.resetSubject.pipe(
+        map(() => ({ command: "reset" as const, state: this.#initialState })),
+        tap((s) => {
+          console.log("RESET", s)
+        })
+      ),
       this.invalidatedSubject.pipe(
         filter(() => !this.state.isInvalidated),
-        map(
-          () =>
-            ({
-              isInvalidated: true
-            }) satisfies Partial<QueryState<TData, TError>>
-        )
+        map(() => ({
+          command: "invalidate" as const,
+          state: {
+            isInvalidated: true
+          } satisfies Partial<typeof this.state>
+        }))
       ),
       this.cancelSubject.pipe(
         filter(
           () => this.state.status !== "success" && this.state.status !== "error"
         ),
-        map(
-          (options) =>
-            ({
-              fetchStatus: "idle",
-              error: new CancelledError(options) as TError
-            }) satisfies Partial<typeof this.state>
-        )
+        map((options) => ({
+          command: "cancel" as const,
+          state: {
+            status: "error",
+            fetchStatus: "idle",
+            error: new CancelledError(options) as TError
+          } satisfies Partial<typeof this.state>
+        }))
       ),
       this.executeSubject.pipe(
         mergeMap(() => {
@@ -124,8 +134,7 @@ export class Query<
             queryKey: this.queryKey,
             onNetworkRestored: (source) => {
               return defer(() => {
-                return !this.observerCount.getValue() &&
-                  this.abortSignalConsumed
+                return !this.getObserversCount() && this.abortSignalConsumed
                   ? of({ fetchStatus: "idle" } satisfies Partial<
                       QueryState<TData, TError>
                     >)
@@ -137,55 +146,49 @@ export class Query<
             }
           })
 
-          return merge(
-            functionExecution$.pipe(
-              map((result) =>
-                result.status === "success"
-                  ? { ...result, isInvalidated: false }
-                  : result
-              ),
-              takeUntil(merge(this.cancelSubject, cancelFromNewRefetch$))
-            )
+          return functionExecution$.pipe(
+            takeUntil(merge(this.cancelSubject, cancelFromNewRefetch$))
           )
         }),
+        map((state) => ({
+          command: "execute" as const,
+          state
+        })),
         takeUntil(this.resetSubject)
       ),
       this.setDataSubject.pipe(
-        map(
-          ({ data, options }) =>
-            ({
-              status: "success",
-              data,
-              dataUpdatedAt:
-                options?.updatedAt !== undefined
-                  ? options.updatedAt
-                  : new Date().getTime()
-            }) satisfies Partial<QueryState<TData, TError>>
-        )
+        map(({ data, options }) => ({
+          command: "setData" as const,
+          state: {
+            status: "success" as const,
+            data,
+            dataUpdatedAt:
+              options?.updatedAt !== undefined
+                ? options.updatedAt
+                : new Date().getTime()
+          } satisfies Partial<QueryState<TData, TError>>
+        }))
       )
     ).pipe(
-      startWith(this.#initialState),
-      mergeResults({
+      reduceState({
         initialState: this.state,
         getOptions: () => this.options,
         getState: () => this.state
       }),
+      startWith(this.#initialState),
       distinctUntilChanged(shallowEqual),
       tap((state) => {
         this.state = state
       }),
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-expect-error
       tap((state) => {
         // console.log("Query state", state)
       }),
       takeUntil(this.destroySubject),
-      shareReplay({ bufferSize: 1, refCount: false })
-    )
+      shareReplay({ bufferSize: 1, refCount: false }),
+      catchError((e) => {
+        console.error(e)
 
-    this.observedState$ = this.state$.pipe(
-      trackSubscriptions((count) => {
-        this.observerCount.next(count)
+        throw e
       })
     )
   }
@@ -204,17 +207,30 @@ export class Query<
     return this.options.meta
   }
 
-  /**
-   * QueryObserver should use observe() and not directly
-   * subscribe to the state since some behavior is checking whether
-   * the current query is being actively observed.
-   */
-  observe() {
-    return this.observedState$
+  observe(observer: QueryObserver<any, any, any, any, any>) {
+    const state$ = this.state$.pipe(
+      tap({
+        subscribe: () => {
+          console.log("Query.observe.subscribe")
+          this.observersSubject.next([
+            observer,
+            ...this.observersSubject.getValue()
+          ])
+        },
+        unsubscribe: () => {
+          console.log("Query.observe.unsubscribe")
+          this.observersSubject.next(
+            this.observersSubject.getValue().filter((item) => item !== observer)
+          )
+        }
+      })
+    )
+
+    return state$
   }
 
   getObserversCount() {
-    return this.observerCount.getValue()
+    return this.observersSubject.getValue().length
   }
 
   // @todo this can be shared with mutation
@@ -229,15 +245,13 @@ export class Query<
   }
 
   isActive() {
-    // @important
-    // @todo need to make sure the observers are options.enabled
-    // this means that an observer should not be observing if its not enabled
-    return !!this.getObserversCount()
+    return this.observersSubject
+      .getValue()
+      .some((observer) => observer.options.enabled !== false)
   }
 
   isDisabled(): boolean {
-    // return this.getObserversCount() > 0 && !this.isActive()
-    return false
+    return this.getObserversCount() > 0 && !this.isActive()
   }
 
   isStale(): boolean {
@@ -276,6 +290,7 @@ export class Query<
     options?: QueryOptions<TQueryFnData, TError, TData, TQueryKey>,
     fetchOptions?: FetchOptions
   ): Promise<TData> {
+    console.log("Query.fetch")
     const { cancelRefetch = true } = fetchOptions ?? {}
 
     if (this.state.fetchStatus !== "idle") {
@@ -313,6 +328,7 @@ export class Query<
   }
 
   async cancel(options?: CancelOptions): Promise<void> {
+    console.log("Query.cancel")
     this.cancelSubject.next(options)
   }
 

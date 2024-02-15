@@ -67,11 +67,9 @@ export const executeQuery = <
   const fn$ =
     typeof queryFn === "function"
       ? // eslint-disable-next-line @typescript-eslint/promise-function-async
-        makeObservable(() => {
-          const s = queryFn(queryFnContext as QueryFunctionContext<TQueryKey>)
-
-          return s
-        })
+        makeObservable(() =>
+          queryFn(queryFnContext as QueryFunctionContext<TQueryKey>)
+        )
       : queryFn
 
   const defaultState = getDefaultState(options)
@@ -158,8 +156,8 @@ export const executeQuery = <
   const initialResult$ = of({
     status: "pending",
     fetchStatus: onlineManager.isOnline() ? "fetching" : "paused",
-    data: defaultState.data,
-    error: defaultState.error
+    // data: defaultState.data,
+    // error: defaultState.error
   } satisfies Result)
 
   return merge(initialResult$, execution$, emitOnComplete$)

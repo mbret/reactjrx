@@ -1,15 +1,15 @@
 import {
   NEVER,
   Subject,
+  delay,
   distinctUntilChanged,
   filter,
   ignoreElements,
   map,
   merge,
   noop,
-  of,
   pairwise,
-  share,
+  shareReplay,
   startWith,
   switchMap,
   takeWhile,
@@ -56,15 +56,11 @@ export class QueryObserver<
 > {
   readonly #client: QueryClient
   #currentQuery: Query<TQueryFnData, TError, TQueryData, TQueryKey>
-  #options: QueryObserverOptions<
-    TQueryFnData,
-    TError,
-    TData,
-    TQueryData,
-    TQueryKey
-  >
 
-  readonly #fetchSubject = new Subject<ObserverFetchOptions>()
+  readonly #fetchSubject = new Subject<{
+    query: Query<TQueryFnData, TError, TQueryData, TQueryKey>
+    options: ObserverFetchOptions
+  }>()
 
   /**
    * Used to subscribe to changes in either query or options (or both).
@@ -85,7 +81,7 @@ export class QueryObserver<
   /**
    * Mostly used to compare the state before and after mount
    */
-  #queryInitialState: Query<
+  #currentQueryInitialState: Query<
     TQueryFnData,
     TError,
     TQueryData,
@@ -117,7 +113,7 @@ export class QueryObserver<
 
   constructor(
     client: QueryClient,
-    options: QueryObserverOptions<
+    public options: QueryObserverOptions<
       TQueryFnData,
       TError,
       TData,
@@ -125,20 +121,21 @@ export class QueryObserver<
       TQueryKey
     >
   ) {
+    console.log("QueryObserver.new")
     this.#client = client
     this.bindMethods()
-    this.#options = this.#client.defaultQueryOptions(options)
-    this.#currentQuery = this.buildQuery(this.#options)
+    this.options = this.#client.defaultQueryOptions(options)
+    this.#currentQuery = this.buildQuery(this.options)
     const query = this.#currentQuery
-    this.#queryInitialState = query.state
+    this.#currentQueryInitialState = query.state
     this.#lastResult = {
       state: query.state,
       options,
       result: this.getObserverResultFromQuery({
         query,
-        options: this.#options,
+        options: this.options,
         prevResult: {
-          options: this.#options,
+          options: this.options,
           state: query.state
         }
       }).result
@@ -160,11 +157,11 @@ export class QueryObserver<
   ) {
     const newOptions = this.#client.defaultQueryOptions(options)
 
-    this.#options = newOptions
-    const query = this.buildQuery(this.#options)
+    this.options = newOptions
+    const query = this.buildQuery(this.options)
 
     if (query !== this.#currentQuery) {
-      this.#queryInitialState = query.state
+      this.#currentQueryInitialState = query.state
       this.#currentQuery = query
     }
 
@@ -187,7 +184,7 @@ export class QueryObserver<
 
     // Use the options from the first observer with a query function if no function is found.
     // This can happen when the query is hydrated or created with setQueryData.
-    if (!query.options.queryFn && this.#options.queryFn) {
+    if (!query.options.queryFn && this.options.queryFn) {
       query.setOptions(options)
     }
 
@@ -229,7 +226,11 @@ export class QueryObserver<
     const isPending = query.state.status === "pending"
     const isError = query.state.status === "error"
     const prevQuery = this.#currentQuery
-    const prevOptions = this.#options
+    const prevOptions = this.options
+    const queryChange = query !== prevQuery
+    const queryInitialState = queryChange
+      ? query.state
+      : this.#currentQueryInitialState
 
     let fetchStatus = query.state.fetchStatus
 
@@ -343,6 +344,14 @@ export class QueryObserver<
 
     const finalData = isSelected ? selectData : (data as TData)
 
+    const isFetching = fetchStatus === "fetching"
+
+    console.log(
+      "queryObserver.getResult",
+      state.dataUpdateCount,
+      queryInitialState.dataUpdateCount
+    )
+
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const result = {
       status,
@@ -362,17 +371,19 @@ export class QueryObserver<
       isFetched:
         query.state.dataUpdateCount > 0 || query.state.errorUpdateCount > 0,
       isFetchedAfterMount:
-        state.dataUpdateCount > this.#queryInitialState.dataUpdateCount ||
-        state.errorUpdateCount > this.#queryInitialState.errorUpdateCount,
-      isFetching: fetchStatus === "fetching",
-      isRefetching: false,
+        state.dataUpdateCount > queryInitialState.dataUpdateCount ||
+        state.errorUpdateCount > queryInitialState.errorUpdateCount,
+      isFetching,
+      isRefetching: isFetching && !isPending,
       isLoadingError: isError && state.dataUpdatedAt === 0,
       isPaused: fetchStatus === "paused",
       isPlaceholderData,
-      isRefetchError: false,
+      isRefetchError: isError && state.dataUpdatedAt !== 0,
       isStale: isStale(query, options),
       refetch: this.refetch
     } as QueryObserverResult<TData, TError>
+
+    // console.log("QueryObserver.result", { result })
 
     return {
       result,
@@ -393,6 +404,7 @@ export class QueryObserver<
       TQueryKey
     >
   ): QueryObserverResult<TData, TError> {
+    console.log("QueryObserver.getOptimisticResult")
     const query = this.buildQuery(options)
 
     const observedResult = this.getObserverResultFromQuery({
@@ -402,24 +414,24 @@ export class QueryObserver<
       prevResult: this.#lastResult
     })
 
-    // if (shouldAssignObserverCurrentProperties(this, observedResult.result)) {
-    // this assigns the optimistic result to the current Observer
-    // because if the query function changes, useQuery will be performing
-    // an effect where it would fetch again.
-    // When the fetch finishes, we perform a deep data cloning in order
-    // to reuse objects references. This deep data clone is performed against
-    // the `observer.currentResult.data` property
-    // When QueryKey changes, we refresh the query and get new `optimistic`
-    // result, while we leave the `observer.currentResult`, so when new data
-    // arrives, it finds the old `observer.currentResult` which is related
-    // to the old QueryKey. Which means that currentResult and selectData are
-    // out of sync already.
-    // To solve this, we move the cursor of the currentResult every time
-    // an observer reads an optimistic value.
-    // When keeping the previous data, the result doesn't change until new
-    // data arrives.
-    this.updateResult({ query, ...observedResult })
-    // }
+    if (shouldAssignObserverCurrentProperties(this, observedResult.result)) {
+      // this assigns the optimistic result to the current Observer
+      // because if the query function changes, useQuery will be performing
+      // an effect where it would fetch again.
+      // When the fetch finishes, we perform a deep data cloning in order
+      // to reuse objects references. This deep data clone is performed against
+      // the `observer.currentResult.data` property
+      // When QueryKey changes, we refresh the query and get new `optimistic`
+      // result, while we leave the `observer.currentResult`, so when new data
+      // arrives, it finds the old `observer.currentResult` which is related
+      // to the old QueryKey. Which means that currentResult and selectData are
+      // out of sync already.
+      // To solve this, we move the cursor of the currentResult every time
+      // an observer reads an optimistic value.
+      // When keeping the previous data, the result doesn't change until new
+      // data arrives.
+      this.updateResult({ query, ...observedResult })
+    }
 
     return observedResult.result
   }
@@ -436,7 +448,7 @@ export class QueryObserver<
     this.#lastResult.state = query.state
     this.#lastResult.result = result
     this.#lastResult.selectError = selectError
-    this.#lastResult.options = this.#options
+    this.#lastResult.options = this.options
 
     if (query.state.data !== undefined) {
       this.#lastQueryWithDefinedData = query
@@ -454,28 +466,29 @@ export class QueryObserver<
   protected async fetch(
     fetchOptions?: ObserverFetchOptions
   ): Promise<QueryObserverResult<TData, TError>> {
-    console.log("QueryObserver.fetch")
+    console.log("fetch")
     // Make sure we reference the latest query as the current one might have been removed
-    const query = this.buildQuery(this.#options)
+    const query = this.buildQuery(this.options)
 
     if (query !== this.#currentQuery) {
       this.#currentQuery = query
+      this.#currentQueryInitialState = query.state
       this.queryUpdateSubject.next({
-        options: this.#options,
+        options: this.options,
         query
       })
     }
 
-    this.#currentQuery.fetch(this.#options, fetchOptions).catch(noop)
+    this.#currentQuery.fetch(this.options, fetchOptions).catch(noop)
 
-    this.#fetchSubject.next(fetchOptions ?? {})
+    this.#fetchSubject.next({ query, options: fetchOptions ?? {} })
 
     await query.getFetchResultAsPromise()
 
     // @todo we can optimize here and get current result if it exist
     const { result } = this.getObserverResultFromQuery({
       query,
-      options: this.#options,
+      options: this.options,
       prevResult: this.#lastResult
     })
 
@@ -495,36 +508,16 @@ export class QueryObserver<
   observe() {
     const observedQuery = this.#currentQuery
 
-    const query$ = this.queryUpdateSubject.pipe(
+    const currentQuery$ = this.queryUpdateSubject.pipe(
       map(({ query }) => query),
       startWith(this.#currentQuery),
       distinctUntilChanged()
     )
 
-    const enabled$ = this.queryUpdateSubject.pipe(
-      map(() => this.#options.enabled ?? true),
-      startWith(this.#options.enabled ?? true),
-      distinctUntilChanged()
-    )
-
-    const queryIsStale$ = query$.pipe(
-      switchMap((query) =>
-        query.state$.pipe(
-          filter((state) => state.status === "success"),
-          switchMap((state) =>
-            this.#options.staleTime === Infinity
-              ? NEVER
-              : timer(this.#options.staleTime ?? 1).pipe(map(() => state))
-          )
-        )
-      ),
-      share()
-    )
-
     const watchForImplicitRefetch$ = this.queryUpdateSubject.pipe(
       startWith({
         query: this.#currentQuery,
-        options: this.#options
+        options: this.options
       }),
       pairwise(),
       tap(
@@ -546,9 +539,31 @@ export class QueryObserver<
     const result$ = merge(
       watchForImplicitRefetch$,
       // watchForExplicitRefetch$,
-      query$.pipe(
+      currentQuery$.pipe(
         switchMap((query) => {
-          const options = this.#options
+          console.log("new query")
+          const options = this.options
+          const options$ = this.queryUpdateSubject.pipe(
+            startWith({ query, options }),
+            filter((update) => update.query === query),
+            map((update) => update.options),
+            distinctUntilChanged(),
+            shareReplay(1)
+          )
+
+          const queryFetch$ = this.#fetchSubject.pipe(
+            filter((update) => update.query === query),
+            // delay(100)
+          )
+
+          const currentQueryIsStale$ = query.state$.pipe(
+            filter((state) => state.status === "success"),
+            switchMap((state) =>
+              this.options.staleTime === Infinity
+                ? NEVER
+                : timer(this.options.staleTime ?? 1).pipe(map(() => state))
+            )
+          )
 
           // @todo move into its own operator
           const comparisonFunction = (
@@ -584,24 +599,30 @@ export class QueryObserver<
             return reducedFunction(objA, objB)
           }
 
-          const queryInternallyFetchedUpdate$ = this.#fetchSubject.pipe(
+          const queryInternallyFetchedUpdate$ = queryFetch$.pipe(
             switchMap(() => query.state$),
             takeUntilFinished
           )
 
-          const observedState$ = enabled$.pipe(
-            switchMap((enabled) =>
-              enabled
-                ? query.observe()
-                : /**
-                   * We still observe internal fetch for this query
-                   * if not enabled. But we don't register as observer
-                   */
-                  merge(of(query.state), queryInternallyFetchedUpdate$)
-            )
+          const isMaybeEnabled$ = options$.pipe(
+            map(({ enabled }) => enabled ?? true),
+            distinctUntilChanged(),
+            tap((value) => {})
+          )
+
+          const disabled$ = isMaybeEnabled$.pipe(
+            filter((enabled) => !enabled),
+            map(() => query.state)
+          )
+
+          const observedState$ = query.observe(this)
+
+          const stateObservedOnDisabled$ = disabled$.pipe(
+            map(() => query.state)
           )
 
           const updateResult = () => {
+            console.log("update result")
             const result = this.getObserverResultFromQuery({
               query,
               options,
@@ -613,11 +634,22 @@ export class QueryObserver<
             return result.result
           }
 
+          const allObservedState$ = merge(
+            stateObservedOnDisabled$,
+            queryInternallyFetchedUpdate$,
+            observedState$
+          ).pipe(
+            map(updateResult),
+            tap((r) => {
+              // console.log("QueryObserver.observe.result", r)
+            })
+          )
+
           const stateUpdate$ = merge(
-            observedState$.pipe(map(updateResult)),
-            queryIsStale$.pipe(
+            allObservedState$,
+            currentQueryIsStale$.pipe(
               map(updateResult),
-              takeWhile(() => this.#options.enabled ?? true)
+              takeWhile(() => this.options.enabled ?? true)
             )
           )
 
@@ -634,13 +666,16 @@ export class QueryObserver<
     ).pipe(
       trackSubscriptions((count) => (this.#observers = count)),
       tap({
+        unsubscribe: () => {
+          console.log("QueryObserver.observe.unsubscribe")
+        },
         subscribe: () => {
           // needs to be before the return of the first result.
           // whether the consumer subscribe or not
           // the function needs to run at least in the next tick (or its result)
           // to have a proper flow (see isFetchedAfterMount). We get inconsistencies
           // otherwise
-          if (shouldFetchOnMount(observedQuery, this.#options)) {
+          if (shouldFetchOnMount(observedQuery, this.options)) {
             this.fetch().catch(noop)
           }
         }
@@ -655,22 +690,22 @@ export class QueryObserver<
 
 // this function would decide if we will update the observer's 'current'
 // properties after an optimistic reading via getOptimisticResult
-// function shouldAssignObserverCurrentProperties<
-//   TQueryFnData = unknown,
-//   TError = unknown,
-//   TData = TQueryFnData,
-//   TQueryData = TQueryFnData,
-//   TQueryKey extends QueryKey = QueryKey
-// >(
-//   observer: QueryObserver<TQueryFnData, TError, TData, TQueryData, TQueryKey>,
-//   optimisticResult: QueryObserverResult<TData, TError>
-// ) {
-//   // if the newly created result isn't what the observer is holding as current,
-//   // then we'll need to update the properties as well
-//   if (!shallowEqual(observer.getCurrentResult(), optimisticResult)) {
-//     return true
-//   }
+function shouldAssignObserverCurrentProperties<
+  TQueryFnData = unknown,
+  TError = unknown,
+  TData = TQueryFnData,
+  TQueryData = TQueryFnData,
+  TQueryKey extends QueryKey = QueryKey
+>(
+  observer: QueryObserver<TQueryFnData, TError, TData, TQueryData, TQueryKey>,
+  optimisticResult: QueryObserverResult<TData, TError>
+) {
+  // if the newly created result isn't what the observer is holding as current,
+  // then we'll need to update the properties as well
+  if (!shallowEqual(observer.getCurrentResult(), optimisticResult)) {
+    return true
+  }
 
-//   // basically, just keep previous properties if nothing changed
-//   return false
-// }
+  // basically, just keep previous properties if nothing changed
+  return false
+}

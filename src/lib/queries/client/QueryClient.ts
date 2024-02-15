@@ -208,6 +208,24 @@ export class QueryClient {
     await this.fetchQuery(options).then(noop).catch(noop)
   }
 
+  async resetQueries(
+    filters?: QueryFilters,
+    options?: ResetOptions
+  ): Promise<void> {
+    const queryCache = this.#queryCache
+
+    const refetchFilters: RefetchQueryFilters = {
+      type: "active",
+      ...filters
+    }
+
+    queryCache.findAll(filters).forEach((query) => {
+      query.reset()
+    })
+
+    await this.refetchQueries(refetchFilters, options)
+  }
+
   async refetchQueries(
     filters: RefetchQueryFilters = {},
     options?: RefetchOptions
@@ -216,6 +234,8 @@ export class QueryClient {
       ...options,
       cancelRefetch: options?.cancelRefetch ?? true
     }
+
+    console.log("QueryClient.refetchQueries", { fetchOptions })
 
     const promises = this.#queryCache
       .findAll(filters)
@@ -355,6 +375,7 @@ export class QueryClient {
     filters: InvalidateQueryFilters = {},
     options: InvalidateOptions = {}
   ): Promise<void> {
+    console.log("QueryClient.invalidateQueries")
     this.#queryCache.findAll(filters).forEach((query) => {
       query.invalidate()
     })
