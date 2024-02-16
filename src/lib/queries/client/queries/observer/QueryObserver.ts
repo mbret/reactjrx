@@ -1,6 +1,7 @@
 import {
   NEVER,
   Subject,
+  catchError,
   delay,
   distinctUntilChanged,
   filter,
@@ -346,11 +347,11 @@ export class QueryObserver<
 
     const isFetching = fetchStatus === "fetching"
 
-    console.log(
-      "queryObserver.getResult",
-      state.dataUpdateCount,
-      queryInitialState.dataUpdateCount
-    )
+    // console.log(
+    //   "queryObserver.getResult",
+    //   state.dataUpdateCount,
+    //   queryInitialState.dataUpdateCount
+    // )
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const result = {
@@ -536,150 +537,169 @@ export class QueryObserver<
       ignoreElements()
     )
 
+    const observedQuery$ = currentQuery$.pipe(
+      switchMap((query) => query.observe(this)),
+      ignoreElements()
+    )
+
     const result$ = merge(
+      observedQuery$,
       watchForImplicitRefetch$,
-      // watchForExplicitRefetch$,
-      currentQuery$.pipe(
-        switchMap((query) => {
-          console.log("new query")
-          const options = this.options
-          const options$ = this.queryUpdateSubject.pipe(
-            startWith({ query, options }),
-            filter((update) => update.query === query),
-            map((update) => update.options),
-            distinctUntilChanged(),
-            shareReplay(1)
-          )
-
-          const queryFetch$ = this.#fetchSubject.pipe(
-            filter((update) => update.query === query),
-            // delay(100)
-          )
-
-          const currentQueryIsStale$ = query.state$.pipe(
-            filter((state) => state.status === "success"),
-            switchMap((state) =>
-              this.options.staleTime === Infinity
-                ? NEVER
-                : timer(this.options.staleTime ?? 1).pipe(map(() => state))
+      currentQuery$
+        .pipe(
+          switchMap((query) => {
+            const options = this.options
+            const options$ = this.queryUpdateSubject.pipe(
+              startWith({ query, options }),
+              filter((update) => update.query === query),
+              map((update) => update.options),
+              distinctUntilChanged(),
+              shareReplay(1)
             )
-          )
 
-          // @todo move into its own operator
-          const comparisonFunction = (
-            objA: QueryObserverResult<TData, TError>,
-            objB: QueryObserverResult<TData, TError>
-          ) => {
-            const notifyOnChangeProps = options.notifyOnChangeProps
-            const notifyOnChangePropsValue =
-              typeof notifyOnChangeProps === "function"
-                ? notifyOnChangeProps()
-                : notifyOnChangeProps
-
-            const reducedFunction = Array.isArray(notifyOnChangePropsValue)
-              ? notifyOnChangePropsValue.length === 0
-                ? () => true
-                : (
-                    objA: QueryObserverResult<TData, TError>,
-                    objB: QueryObserverResult<TData, TError>
-                  ) => {
-                    const reducedObjA = filterObjectByKey(
-                      objA,
-                      notifyOnChangePropsValue as any
-                    )
-                    const reducedObjB = filterObjectByKey(
-                      objB,
-                      notifyOnChangePropsValue as any
-                    )
-
-                    return shallowEqual(reducedObjA, reducedObjB)
-                  }
-              : shallowEqual
-
-            return reducedFunction(objA, objB)
-          }
-
-          const queryInternallyFetchedUpdate$ = queryFetch$.pipe(
-            switchMap(() => query.state$),
-            takeUntilFinished
-          )
-
-          const isMaybeEnabled$ = options$.pipe(
-            map(({ enabled }) => enabled ?? true),
-            distinctUntilChanged(),
-            tap((value) => {})
-          )
-
-          const disabled$ = isMaybeEnabled$.pipe(
-            filter((enabled) => !enabled),
-            map(() => query.state)
-          )
-
-          const observedState$ = query.observe(this)
-
-          const stateObservedOnDisabled$ = disabled$.pipe(
-            map(() => query.state)
-          )
-
-          const updateResult = () => {
-            console.log("update result")
-            const result = this.getObserverResultFromQuery({
-              query,
-              options,
-              prevResult: this.#lastResult
-            })
-
-            this.updateResult({ query, ...result })
-
-            return result.result
-          }
-
-          const allObservedState$ = merge(
-            stateObservedOnDisabled$,
-            queryInternallyFetchedUpdate$,
-            observedState$
-          ).pipe(
-            map(updateResult),
-            tap((r) => {
-              // console.log("QueryObserver.observe.result", r)
-            })
-          )
-
-          const stateUpdate$ = merge(
-            allObservedState$,
-            currentQueryIsStale$.pipe(
-              map(updateResult),
-              takeWhile(() => this.options.enabled ?? true)
+            const queryFetch$ = this.#fetchSubject.pipe(
+              filter((update) => update.query === query)
+              // delay(100)
             )
-          )
 
-          const observedResult$ = stateUpdate$.pipe(
-            // This one ensure we don't re-trigger same state
-            distinctUntilChanged(shallowEqual),
-            // This one make sure we dispatch based on user preference
-            distinctUntilChanged(comparisonFunction)
-          )
+            const currentQueryIsStale$ = query.state$.pipe(
+              filter((state) => state.status === "success"),
+              switchMap((state) =>
+                this.options.staleTime === Infinity
+                  ? NEVER
+                  : timer(this.options.staleTime ?? 1).pipe(map(() => state))
+              )
+            )
 
-          return observedResult$
-        })
-      )
-    ).pipe(
-      trackSubscriptions((count) => (this.#observers = count)),
-      tap({
-        unsubscribe: () => {
-          console.log("QueryObserver.observe.unsubscribe")
-        },
-        subscribe: () => {
-          // needs to be before the return of the first result.
-          // whether the consumer subscribe or not
-          // the function needs to run at least in the next tick (or its result)
-          // to have a proper flow (see isFetchedAfterMount). We get inconsistencies
-          // otherwise
-          if (shouldFetchOnMount(observedQuery, this.options)) {
-            this.fetch().catch(noop)
-          }
-        }
-      })
+            // @todo move into its own operator
+            const comparisonFunction = (
+              objA: QueryObserverResult<TData, TError>,
+              objB: QueryObserverResult<TData, TError>
+            ) => {
+              const notifyOnChangeProps = options.notifyOnChangeProps
+              const notifyOnChangePropsValue =
+                typeof notifyOnChangeProps === "function"
+                  ? notifyOnChangeProps()
+                  : notifyOnChangeProps
+
+              const reducedFunction = Array.isArray(notifyOnChangePropsValue)
+                ? notifyOnChangePropsValue.length === 0
+                  ? () => true
+                  : (
+                      objA: QueryObserverResult<TData, TError>,
+                      objB: QueryObserverResult<TData, TError>
+                    ) => {
+                      const reducedObjA = filterObjectByKey(
+                        objA,
+                        notifyOnChangePropsValue as any
+                      )
+                      const reducedObjB = filterObjectByKey(
+                        objB,
+                        notifyOnChangePropsValue as any
+                      )
+
+                      return shallowEqual(reducedObjA, reducedObjB)
+                    }
+                : shallowEqual
+
+              return reducedFunction(objA, objB)
+            }
+
+            const queryInternallyFetchedUpdate$ = queryFetch$.pipe(
+              switchMap(() => query.state$),
+              takeUntilFinished
+            )
+
+            const isMaybeEnabled$ = options$.pipe(
+              map(({ enabled }) => enabled ?? true),
+              distinctUntilChanged(),
+              tap((value) => {})
+            )
+
+            const disabled$ = isMaybeEnabled$.pipe(
+              filter((enabled) => !enabled),
+              map(() => query.state)
+            )
+
+            const observedState$ = query.state$.pipe(
+              tap({
+                subscribe: () => {
+                  console.log("QueryObserver.observe.observedState$.subscribe")
+                },
+                unsubscribe: () => {
+                  console.log(
+                    "QueryObserver.observe.observedState$.unsubscribe"
+                  )
+                }
+              })
+            )
+
+            const stateObservedOnDisabled$ = disabled$.pipe(
+              map(() => query.state)
+            )
+
+            const updateResult = () => {
+              console.log("update result")
+              const result = this.getObserverResultFromQuery({
+                query,
+                options,
+                prevResult: this.#lastResult
+              })
+
+              this.updateResult({ query, ...result })
+
+              return result.result
+            }
+
+            const allObservedState$ = merge(
+              stateObservedOnDisabled$,
+              queryInternallyFetchedUpdate$,
+              observedState$
+            ).pipe(map(updateResult))
+
+            const stateUpdate$ = merge(
+              allObservedState$,
+              currentQueryIsStale$.pipe(
+                map(updateResult),
+                takeWhile(() => this.options.enabled ?? true)
+              )
+            )
+
+            const observedResult$ = stateUpdate$.pipe(
+              // This one ensure we don't re-trigger same state
+              distinctUntilChanged(shallowEqual),
+              // This one make sure we dispatch based on user preference
+              distinctUntilChanged(comparisonFunction)
+            )
+
+            return observedResult$.pipe(
+              tap({
+                unsubscribe: () => {
+                  console.log("QueryObserver.observedResult$.unsubscribe")
+                }
+              })
+            )
+          })
+        )
+        .pipe(
+          trackSubscriptions((count) => (this.#observers = count)),
+          tap({
+            unsubscribe: () => {
+              console.log("QueryObserver.observe.unsubscribe")
+            },
+            subscribe: () => {
+              console.log("QueryObserver.observe.subscribe")
+              // needs to be before the return of the first result.
+              // whether the consumer subscribe or not
+              // the function needs to run at least in the next tick (or its result)
+              // to have a proper flow (see isFetchedAfterMount). We get inconsistencies
+              // otherwise
+              if (shouldFetchOnMount(observedQuery, this.options)) {
+                this.fetch().catch(noop)
+              }
+            }
+          })
+        )
     )
 
     return result$

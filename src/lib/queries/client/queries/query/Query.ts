@@ -12,9 +12,10 @@ import {
   BehaviorSubject,
   startWith,
   distinctUntilChanged,
-  of,
-  defer,
-  catchError
+  catchError,
+  finalize,
+  first,
+  ignoreElements
 } from "rxjs"
 import { isServer } from "../../../../utils/isServer"
 import { type QueryKey } from "../../keys/types"
@@ -30,6 +31,7 @@ import { CancelledError } from "../retryer/CancelledError"
 import { reduceState, takeUntilFinished } from "./operators"
 import { shallowEqual } from "../../../../utils/shallowEqual"
 import { type QueryObserver } from "../observer/QueryObserver"
+import { trackSubscriptions } from "../../../../utils/operators/trackSubscriptions"
 
 interface QueryConfig<
   TQueryFnData,
@@ -94,12 +96,12 @@ export class Query<
     this.state = this.#initialState
     this.gcTime = this.updateGcTime(this.options.gcTime)
 
+    type State = typeof this.state
+    type PartialState = Partial<State>
+
     this.state$ = merge(
       this.resetSubject.pipe(
-        map(() => ({ command: "reset" as const, state: this.#initialState })),
-        tap((s) => {
-          console.log("RESET", s)
-        })
+        map(() => ({ command: "reset" as const, state: this.#initialState }))
       ),
       this.invalidatedSubject.pipe(
         filter(() => !this.state.isInvalidated),
@@ -107,54 +109,68 @@ export class Query<
           command: "invalidate" as const,
           state: {
             isInvalidated: true
-          } satisfies Partial<typeof this.state>
+          } satisfies PartialState
         }))
       ),
       this.cancelSubject.pipe(
-        filter(
-          () => this.state.status !== "success" && this.state.status !== "error"
-        ),
+        filter(() => {
+          const isQueryOnError =
+            this.state.error && this.state.status === "error"
+
+          return !isQueryOnError
+        }),
         map((options) => ({
           command: "cancel" as const,
           state: {
-            status: "error",
+            status: options?.revert ? this.state.status : "error",
             fetchStatus: "idle",
             error: new CancelledError(options) as TError
-          } satisfies Partial<typeof this.state>
+          } satisfies PartialState
         }))
       ),
       this.executeSubject.pipe(
         mergeMap(() => {
+          console.log("Query.executeSubject.next")
+
+          // @todo improve with a switchMap ?
           const cancelFromNewRefetch$ = this.executeSubject.pipe(
             filter((options) => options?.cancelRefetch !== false)
+          )
+
+          const executionAborted$ = this.observerCount$.pipe(
+            filter((count) => count === 0 && this.abortSignalConsumed),
+            tap(() => {
+              this.cancelSubject.next({ revert: true })
+            })
           )
 
           const functionExecution$ = executeQuery({
             ...this.options,
             queryKey: this.queryKey,
-            onNetworkRestored: (source) => {
-              return defer(() => {
-                return !this.getObserversCount() && this.abortSignalConsumed
-                  ? of({ fetchStatus: "idle" } satisfies Partial<
-                      QueryState<TData, TError>
-                    >)
-                  : source
-              })
-            },
             onSignalConsumed: () => {
               this.abortSignalConsumed = true
             }
           })
 
           return functionExecution$.pipe(
-            takeUntil(merge(this.cancelSubject, cancelFromNewRefetch$))
+            map((state) => ({
+              command: "execute" as const,
+              state
+            })),
+            takeUntil(
+              merge(
+                this.cancelSubject,
+                cancelFromNewRefetch$,
+                this.resetSubject,
+                executionAborted$
+              )
+            )
           )
         }),
-        map((state) => ({
-          command: "execute" as const,
-          state
-        })),
-        takeUntil(this.resetSubject)
+        finalize(() => {
+          console.log("Query.state$.executeSubject.complete")
+        })
+        // takeUntil(this.resetSubject)
       ),
       this.setDataSubject.pipe(
         map(({ data, options }) => ({
@@ -166,7 +182,7 @@ export class Query<
               options?.updatedAt !== undefined
                 ? options.updatedAt
                 : new Date().getTime()
-          } satisfies Partial<QueryState<TData, TError>>
+          } satisfies PartialState
         }))
       )
     ).pipe(
@@ -179,11 +195,18 @@ export class Query<
       distinctUntilChanged(shallowEqual),
       tap((state) => {
         this.state = state
-      }),
-      tap((state) => {
-        // console.log("Query state", state)
+
+        console.log("Query state", state)
       }),
       takeUntil(this.destroySubject),
+      finalize(() => {
+        console.log("Query.state$.complete", {
+          observers: this.getObserversCount()
+        })
+      }),
+      trackSubscriptions((count) => {
+        console.log("Query.state$.trackSubscriptions", count)
+      }),
       shareReplay({ bufferSize: 1, refCount: false }),
       catchError((e) => {
         console.error(e)
@@ -307,6 +330,8 @@ export class Query<
       this.setOptions(options)
     }
 
+    console.log("Query.fetch.execute", { observers: this.getObserversCount() })
+
     this.executeSubject.next(fetchOptions)
 
     return await this.getFetchResultAsPromise()
@@ -328,7 +353,6 @@ export class Query<
   }
 
   async cancel(options?: CancelOptions): Promise<void> {
-    console.log("Query.cancel")
     this.cancelSubject.next(options)
   }
 
@@ -342,7 +366,5 @@ export class Query<
   // @todo merge with mutation
   reset() {
     this.resetSubject.next()
-    this.resetSubject.complete()
-    this.destroy()
   }
 }

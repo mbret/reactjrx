@@ -8,13 +8,13 @@ export function trackSubscriptions(
   return function refCountOperatorFunction<T>(source: Observable<T>) {
     return new Observable<T>((observer) => {
       count++
-      onCountUpdate(count)
       const sub = source.subscribe(observer)
+      onCountUpdate(count)
 
       return () => {
         count--
-        onCountUpdate(count)
         sub.unsubscribe()
+        onCountUpdate(count)
       }
     })
   }

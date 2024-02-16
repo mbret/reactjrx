@@ -22,6 +22,7 @@ export const reduceState =
   ) =>
     source.pipe(
       scan((acc, { command, state: current }) => {
+        console.log("reduceState", { command })
         if (command === "reset") return { ...acc, ...current }
 
         if (command === "cancel") {
@@ -71,14 +72,14 @@ export const reduceState =
 
         const error = status === "pending" ? null : current.error ?? acc.error
 
-        console.log("mergeResults", {
-          weHaveNewData,
-          weHaveDataKeyInCurrent,
-          previousStatusIsSuccessOrError,
-          newPendingStatusOnHold,
-          dataUpdateCount,
-          error
-        })
+        // console.log("mergeResults", {
+        //   weHaveNewData,
+        //   weHaveDataKeyInCurrent,
+        //   previousStatusIsSuccessOrError,
+        //   newPendingStatusOnHold,
+        //   dataUpdateCount,
+        //   error
+        // })
 
         return {
           ...acc,

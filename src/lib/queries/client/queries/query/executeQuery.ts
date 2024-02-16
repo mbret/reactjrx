@@ -16,7 +16,6 @@ import { type DefaultError } from "../../types"
 import { makeObservable } from "../../utils/makeObservable"
 import { type QueryFunctionContext, type QueryState } from "./types"
 import { retryOnError } from "../../operators"
-import { getDefaultState } from "./getDefaultState"
 import { type QueryOptions } from "../types"
 import { delayOnNetworkMode } from "./delayOnNetworkMode"
 import { onlineManager } from "../../onlineManager"
@@ -71,8 +70,6 @@ export const executeQuery = <
           queryFn(queryFnContext as QueryFunctionContext<TQueryKey>)
         )
       : queryFn
-
-  const defaultState = getDefaultState(options)
 
   const execution$ = fn$.pipe(
     tap({
@@ -155,7 +152,7 @@ export const executeQuery = <
 
   const initialResult$ = of({
     status: "pending",
-    fetchStatus: onlineManager.isOnline() ? "fetching" : "paused",
+    fetchStatus: onlineManager.isOnline() ? "fetching" : "paused"
     // data: defaultState.data,
     // error: defaultState.error
   } satisfies Result)
