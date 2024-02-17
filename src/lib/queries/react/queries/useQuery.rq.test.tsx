@@ -4116,101 +4116,101 @@ describe("useQuery", () => {
     expect(memoFn).toHaveBeenCalledTimes(2)
   })
 
-  // it('should update data upon interval changes', async () => {
-  //   const key = queryKey()
-  //   let count = 0
+  it('should update data upon interval changes', async () => {
+    const key = queryKey()
+    let count = 0
 
-  //   function Page() {
-  //     const [int, setInt] = React.useState(200)
-  //     const { data } = useQuery({
-  //       queryKey: key,
-  //       queryFn: () => count++,
-  //       refetchInterval: int,
-  //     })
+    function Page() {
+      const [int, setInt] = React.useState(200)
+      const { data } = useQuery({
+        queryKey: key,
+        queryFn: () => count++,
+        refetchInterval: int,
+      })
 
-  //     React.useEffect(() => {
-  //       if (data === 2) {
-  //         setInt(0)
-  //       }
-  //     }, [data])
+      React.useEffect(() => {
+        if (data === 2) {
+          setInt(0)
+        }
+      }, [data])
 
-  //     return <div>count: {data}</div>
-  //   }
+      return <div>count: {data}</div>
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   // mount
-  //   await waitFor(() => rendered.getByText('count: 0'))
-  //   await waitFor(() => rendered.getByText('count: 1'))
-  //   await waitFor(() => rendered.getByText('count: 2'))
-  // })
+    // mount
+    await waitFor(() => rendered.getByText('count: 0'))
+    await waitFor(() => rendered.getByText('count: 1'))
+    await waitFor(() => rendered.getByText('count: 2'))
+  })
 
-  // it('should refetch in an interval depending on function result', async () => {
-  //   const key = queryKey()
-  //   let count = 0
-  //   const states: Array<UseQueryResult<number>> = []
+  it('should refetch in an interval depending on function result', async () => {
+    const key = queryKey()
+    let count = 0
+    const states: Array<UseQueryResult<number>> = []
 
-  //   function Page() {
-  //     const queryInfo = useQuery({
-  //       queryKey: key,
-  //       queryFn: async () => {
-  //         await sleep(10)
-  //         return count++
-  //       },
-  //       refetchInterval: ({ state: { data = 0 } }) => (data < 2 ? 10 : false),
-  //     })
+    function Page() {
+      const queryInfo = useQuery({
+        queryKey: key,
+        queryFn: async () => {
+          await sleep(10)
+          return count++
+        },
+        refetchInterval: ({ state: { data = 0 } }) => (data < 2 ? 10 : false),
+      })
 
-  //     states.push(queryInfo)
+      states.push(queryInfo)
 
-  //     return (
-  //       <div>
-  //         <h1>count: {queryInfo.data}</h1>
-  //         <h2>status: {queryInfo.status}</h2>
-  //         <h2>data: {queryInfo.data}</h2>
-  //         <h2>refetch: {queryInfo.isRefetching}</h2>
-  //       </div>
-  //     )
-  //   }
+      return (
+        <div>
+          <h1>count: {queryInfo.data}</h1>
+          <h2>status: {queryInfo.status}</h2>
+          <h2>data: {queryInfo.data}</h2>
+          <h2>refetch: {queryInfo.isRefetching}</h2>
+        </div>
+      )
+    }
 
-  //   const rendered = renderWithClient(queryClient, <Page />)
+    const rendered = renderWithClient(queryClient, <Page />)
 
-  //   await waitFor(() => rendered.getByText('count: 2'))
+    await waitFor(() => rendered.getByText('count: 2'))
 
-  //   expect(states.length).toEqual(6)
+    expect(states.length).toEqual(6)
 
-  //   expect(states).toMatchObject([
-  //     {
-  //       status: 'pending',
-  //       isFetching: true,
-  //       data: undefined,
-  //     },
-  //     {
-  //       status: 'success',
-  //       isFetching: false,
-  //       data: 0,
-  //     },
-  //     {
-  //       status: 'success',
-  //       isFetching: true,
-  //       data: 0,
-  //     },
-  //     {
-  //       status: 'success',
-  //       isFetching: false,
-  //       data: 1,
-  //     },
-  //     {
-  //       status: 'success',
-  //       isFetching: true,
-  //       data: 1,
-  //     },
-  //     {
-  //       status: 'success',
-  //       isFetching: false,
-  //       data: 2,
-  //     },
-  //   ])
-  // })
+    expect(states).toMatchObject([
+      {
+        status: 'pending',
+        isFetching: true,
+        data: undefined,
+      },
+      {
+        status: 'success',
+        isFetching: false,
+        data: 0,
+      },
+      {
+        status: 'success',
+        isFetching: true,
+        data: 0,
+      },
+      {
+        status: 'success',
+        isFetching: false,
+        data: 1,
+      },
+      {
+        status: 'success',
+        isFetching: true,
+        data: 1,
+      },
+      {
+        status: 'success',
+        isFetching: false,
+        data: 2,
+      },
+    ])
+  })
 
   // it('should not interval fetch with a refetchInterval of 0', async () => {
   //   const key = queryKey()

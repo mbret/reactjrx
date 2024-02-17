@@ -6,8 +6,10 @@ import {
   distinctUntilChanged,
   filter,
   ignoreElements,
+  interval,
   map,
   merge,
+  mergeMap,
   noop,
   pairwise,
   shareReplay,
@@ -39,6 +41,7 @@ import { filterObjectByKey } from "../../../../utils/filterObjectByKey"
 import { trackSubscriptions } from "../../../../utils/operators/trackSubscriptions"
 import { replaceData } from "../utils"
 import { takeUntilFinished } from "../query/operators"
+import { focusManager } from "../../focusManager"
 
 export interface ObserverFetchOptions extends FetchOptions {
   throwOnError?: boolean
@@ -60,7 +63,7 @@ export class QueryObserver<
 
   readonly #fetchSubject = new Subject<{
     query: Query<TQueryFnData, TError, TQueryData, TQueryKey>
-    options: ObserverFetchOptions
+    fetchOptions: ObserverFetchOptions
   }>()
 
   /**
@@ -405,7 +408,7 @@ export class QueryObserver<
       TQueryKey
     >
   ): QueryObserverResult<TData, TError> {
-    console.log("QueryObserver.getOptimisticResult")
+    // console.log("QueryObserver.getOptimisticResult")
     const query = this.buildQuery(options)
 
     const observedResult = this.getObserverResultFromQuery({
@@ -480,9 +483,19 @@ export class QueryObserver<
       })
     }
 
-    this.#currentQuery.fetch(this.options, fetchOptions).catch(noop)
+    const finalFetchOptions = {
+      ...fetchOptions,
+      cancelRefetch: fetchOptions?.cancelRefetch ?? true
+    }
 
-    this.#fetchSubject.next({ query, options: fetchOptions ?? {} })
+    this.#currentQuery.fetch(this.options, finalFetchOptions).catch(noop)
+
+    // we should listen to query fetch event instead of this one, because
+    // a fetch does not necessarily result in an actual fetch
+    this.#fetchSubject.next({
+      query,
+      fetchOptions: finalFetchOptions
+    })
 
     await query.getFetchResultAsPromise()
 
@@ -543,6 +556,10 @@ export class QueryObserver<
     )
 
     const result$ = merge(
+      /**
+       * It's important to observe the query before we subscribe to its result
+       * later in the chain of merge to get the first result right after fetch
+       */
       observedQuery$,
       watchForImplicitRefetch$,
       currentQuery$
@@ -559,7 +576,6 @@ export class QueryObserver<
 
             const queryFetch$ = this.#fetchSubject.pipe(
               filter((update) => update.query === query)
-              // delay(100)
             )
 
             const currentQueryIsStale$ = query.state$.pipe(
@@ -610,10 +626,35 @@ export class QueryObserver<
               takeUntilFinished
             )
 
+            const refetchInterval$ = options$.pipe(
+              switchMap(() => {
+                const { refetchInterval, refetchIntervalInBackground } =
+                  this.options
+                const computedRefetchInterval =
+                  (typeof refetchInterval === "function"
+                    ? refetchInterval(this.#currentQuery)
+                    : refetchInterval) ?? false
+
+                return !computedRefetchInterval
+                  ? NEVER
+                  : interval(computedRefetchInterval).pipe(
+                      tap(() => {
+                        if (
+                          // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+                          refetchIntervalInBackground ||
+                          focusManager.isFocused()
+                        ) {
+                          this.fetch({ cancelRefetch: false }).catch(noop)
+                        }
+                      })
+                    )
+              }),
+              ignoreElements()
+            )
+
             const isMaybeEnabled$ = options$.pipe(
               map(({ enabled }) => enabled ?? true),
-              distinctUntilChanged(),
-              tap((value) => {})
+              distinctUntilChanged()
             )
 
             const disabled$ = isMaybeEnabled$.pipe(
@@ -624,12 +665,12 @@ export class QueryObserver<
             const observedState$ = query.state$.pipe(
               tap({
                 subscribe: () => {
-                  console.log("QueryObserver.observe.observedState$.subscribe")
+                  // console.log("QueryObserver.observe.observedState$.subscribe")
                 },
                 unsubscribe: () => {
-                  console.log(
-                    "QueryObserver.observe.observedState$.unsubscribe"
-                  )
+                  // console.log(
+                  //   "QueryObserver.observe.observedState$.unsubscribe"
+                  // )
                 }
               })
             )
@@ -672,7 +713,7 @@ export class QueryObserver<
               distinctUntilChanged(comparisonFunction)
             )
 
-            return observedResult$.pipe(
+            return merge(refetchInterval$, observedResult$).pipe(
               tap({
                 unsubscribe: () => {
                   console.log("QueryObserver.observedResult$.unsubscribe")

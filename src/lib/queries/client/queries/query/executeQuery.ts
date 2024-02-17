@@ -9,7 +9,6 @@ import {
   ignoreElements,
   endWith,
   share,
-  type OperatorFunction
 } from "rxjs"
 import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
@@ -30,7 +29,6 @@ export const executeQuery = <
 >(
   options: QueryOptions<TQueryFnData, TError, TData, TQueryKey> & {
     queryKey: TQueryKey
-    onNetworkRestored: OperatorFunction<Partial<QueryState<TData, TError>>, any>
     onSignalConsumed: () => void
   }
 ): Observable<Partial<QueryState<TData, TError>>> => {

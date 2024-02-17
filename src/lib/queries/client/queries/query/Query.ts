@@ -134,6 +134,8 @@ export class Query<
 
           // @todo improve with a switchMap ?
           const cancelFromNewRefetch$ = this.executeSubject.pipe(
+            // should not be needed since the fetch return current promise
+            // in case we don't cancel
             filter((options) => options?.cancelRefetch !== false)
           )
 
@@ -205,7 +207,7 @@ export class Query<
         })
       }),
       trackSubscriptions((count) => {
-        console.log("Query.state$.trackSubscriptions", count)
+        // console.log("Query.state$.trackSubscriptions", count)
       }),
       shareReplay({ bufferSize: 1, refCount: false }),
       catchError((e) => {
@@ -234,14 +236,14 @@ export class Query<
     const state$ = this.state$.pipe(
       tap({
         subscribe: () => {
-          console.log("Query.observe.subscribe")
+          // console.log("Query.observe.subscribe")
           this.observersSubject.next([
             observer,
             ...this.observersSubject.getValue()
           ])
         },
         unsubscribe: () => {
-          console.log("Query.observe.unsubscribe")
+          // console.log("Query.observe.unsubscribe")
           this.observersSubject.next(
             this.observersSubject.getValue().filter((item) => item !== observer)
           )
@@ -313,11 +315,12 @@ export class Query<
     options?: QueryOptions<TQueryFnData, TError, TData, TQueryKey>,
     fetchOptions?: FetchOptions
   ): Promise<TData> {
-    console.log("Query.fetch")
-    const { cancelRefetch = true } = fetchOptions ?? {}
+    const { cancelRefetch } = fetchOptions ?? {}
 
     if (this.state.fetchStatus !== "idle") {
-      const shouldCancelRequest = cancelRefetch && this.state.dataUpdatedAt
+      const shouldCancelRequest = !!this.state.dataUpdatedAt && cancelRefetch
+
+      console.log(`Query.fetch`, { shouldCancelRequest })
 
       if (!shouldCancelRequest) {
         // Return current promise if we are already fetching
@@ -330,7 +333,10 @@ export class Query<
       this.setOptions(options)
     }
 
-    console.log("Query.fetch.execute", { observers: this.getObserversCount() })
+    console.log("Query.fetch", {
+      observers: this.getObserversCount(),
+      fetchOptions
+    })
 
     this.executeSubject.next(fetchOptions)
 

@@ -22,7 +22,7 @@ export const reduceState =
   ) =>
     source.pipe(
       scan((acc, { command, state: current }) => {
-        console.log("reduceState", { command })
+        console.log("reduceState", { command, current })
         if (command === "reset") return { ...acc, ...current }
 
         if (command === "cancel") {
