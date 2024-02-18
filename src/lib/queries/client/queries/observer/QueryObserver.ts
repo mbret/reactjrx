@@ -32,7 +32,9 @@ import {
 import {
   canFetch,
   isStale,
+  shouldFetchOn,
   shouldFetchOnMount,
+  shouldFetchOnWindowFocus,
   shouldFetchOptionally
 } from "./queryStateHelpers"
 import { shallowEqual } from "../../../../utils/shallowEqual"
@@ -50,7 +52,13 @@ export interface NotifyOptions {
   listeners?: boolean
 }
 
-interface LastResult<TQueryFnData, TError, TData, TQueryData, TQueryKey> {
+interface LastResult<
+  TQueryFnData,
+  TError,
+  TData,
+  TQueryData,
+  TQueryKey extends QueryKey = QueryKey
+> {
   state: Query<TQueryFnData, TError, TQueryData, TQueryKey>["state"]
   result: QueryObserverResult<TData, TError>
   options: QueryObserverOptions<
@@ -598,9 +606,6 @@ export class QueryObserver<
               filter((update) => update.query === query),
               map((update) => update.options),
               distinctUntilChanged(),
-              tap(() => {
-                console.log("NEW OPTIONS")
-              }),
               shareReplay(1)
             )
 
@@ -683,21 +688,6 @@ export class QueryObserver<
               ignoreElements()
             )
 
-            const onFocusRegain$ = focusManager.focusRegained$.pipe(
-              tap({
-                next: () => {
-                  console.log("onFocusRegain$")
-                  this.fetch({ cancelRefetch: false }).catch(noop)
-                },
-                subscribe: () => {
-                  console.log("onFocusRegain$ subscribe")
-                },
-                unsubscribe: () => {
-                  console.log("onFocusRegain$ unsubscribe")
-                }
-              })
-            )
-
             const isMaybeEnabled$ = options$.pipe(
               map(({ enabled }) => enabled ?? true),
               distinctUntilChanged()
@@ -706,6 +696,18 @@ export class QueryObserver<
             const disabled$ = isMaybeEnabled$.pipe(
               filter((enabled) => !enabled),
               map(() => query.state)
+            )
+
+            const onFocusRegain$ = isMaybeEnabled$.pipe(
+              filter((enabled) => enabled),
+              switchMap(() => focusManager.focusRegained$),
+              withLatestFrom(options$),
+              tap(([, options]) => {
+                if (shouldFetchOnWindowFocus(query, options)) {
+                  this.fetch({ cancelRefetch: false }).catch(noop)
+                }
+              }),
+              ignoreElements()
             )
 
             const stateObservedOnDisabled$ = disabled$.pipe(
@@ -747,17 +749,7 @@ export class QueryObserver<
               distinctUntilChanged(comparisonFunction)
             )
 
-            return merge(
-              refetchInterval$,
-              onFocusRegain$,
-              observedResult$
-            ).pipe(
-              tap({
-                unsubscribe: () => {
-                  console.log("QueryObserver.observedResult$.unsubscribe")
-                }
-              })
-            )
+            return merge(refetchInterval$, onFocusRegain$, observedResult$)
           })
         )
         .pipe(

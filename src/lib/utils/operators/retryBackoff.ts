@@ -1,4 +1,12 @@
-import { defer, type Observable, throwError, timer, merge, of } from "rxjs"
+import {
+  defer,
+  type Observable,
+  throwError,
+  timer,
+  merge,
+  of,
+  EMPTY
+} from "rxjs"
 import {
   catchError,
   concatMap,
@@ -17,8 +25,11 @@ export interface RetryBackoffConfig<T, TError> {
   // When set to `true` every successful emission will reset the delay and the
   // error count.
   resetOnSuccess?: boolean
-  retry?: (attempt: number, error: TError) => Observable<boolean>
-  retryDelay?: number | ((failureCount: number, error: TError) => number)
+  retry?: (attempt: number, error: TError) => boolean
+  // Can be used to delay the retry (outside of backoff process)
+  // for example if you want to pause retry due to connectivity issue
+  retryAfter?: () => Observable<boolean>
+  retryDelay?: number | ((attempt: number, error: TError) => number)
   // Conditional retry.
   // shouldRetry?: (attempt: number, error: any) => Observable<boolean>
   backoffDelay?: (iteration: number, initialInterval: number) => number
@@ -48,7 +59,7 @@ export function exponentialBackoffDelay(
  * shouldRetry returns false.
  */
 export function retryBackoff<T, TError>(config: RetryBackoffConfig<T, TError>) {
-  const { retry, retryDelay } = config
+  const { retry, retryDelay, retryAfter = () => of(true) } = config
 
   const maxRetries =
     typeof retry !== "function"
@@ -63,7 +74,7 @@ export function retryBackoff<T, TError>(config: RetryBackoffConfig<T, TError>) {
     typeof retry === "function"
       ? // ? (attempt: number, error: TError) => of(retry(attempt, error))
         retry
-      : () => of(true)
+      : () => true
 
   const initialInterval = typeof retryDelay === "number" ? retryDelay : 100
 
@@ -83,32 +94,25 @@ export function retryBackoff<T, TError>(config: RetryBackoffConfig<T, TError>) {
       let caughtErrors = 0
 
       const shouldRetryFn = (attempt: number, error: TError) =>
-        attempt < maxRetries ? shouldRetry(attempt, error) : of(false)
+        attempt < maxRetries ? shouldRetry(attempt, error) : false
 
       return source.pipe(
         catchError<T, Observable<T>>((error) => {
           caughtErrors++
 
-          return shouldRetryFn(caughtErrors - 1, error).pipe(
-            switchMap((shouldRetry) => {
-              if (!shouldRetry) throw error
+          if (!shouldRetryFn(caughtErrors - 1, error)) throw error
 
-              const caughtErrorResult$ = config.caughtError?.(
-                caughtErrors,
-                error
+          const caughtErrorResult$ = config.caughtError?.(caughtErrors, error)
+
+          if (!caughtErrorResult$) throw error
+
+          return caughtErrorResult$.pipe(
+            mergeMap((source) =>
+              merge(
+                of(source) as unknown as Observable<T>,
+                throwError(() => error)
               )
-
-              if (!caughtErrorResult$) throw error
-
-              return caughtErrorResult$.pipe(
-                mergeMap((source) =>
-                  merge(
-                    of(source) as unknown as Observable<T>,
-                    throwError(() => error)
-                  )
-                )
-              )
-            })
+            )
           )
         }),
         retryWhen<T>((errors) => {
@@ -117,12 +121,10 @@ export function retryBackoff<T, TError>(config: RetryBackoffConfig<T, TError>) {
               const attempt = caughtErrors - 1
 
               return defer(() => {
-                const shouldRetry$ = shouldRetryFn(attempt, error)
-
-                return shouldRetry$.pipe(
+                return retryAfter().pipe(
                   first(),
-                  mergeMap((shouldRetry) =>
-                    shouldRetry
+                  mergeMap(() =>
+                    shouldRetryFn(attempt, error)
                       ? timer(
                           getDelay(
                             backoffDelay(attempt, initialInterval),

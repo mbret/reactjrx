@@ -90,8 +90,9 @@ export const executeQuery = <
           return attempt < retry
         }
 
-        return of(shouldRetry()).pipe(delayUntilFocus)
+        return shouldRetry()
       },
+      retryAfter: () => of(true).pipe(delayUntilFocus),
       retryDelay: options.retryDelay,
       catchError: (attempt, error) =>
         of({

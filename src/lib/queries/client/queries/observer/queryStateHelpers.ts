@@ -47,7 +47,14 @@ export function shouldFetchOptionally(
   )
 }
 
-function shouldFetchOn(
+export function shouldFetchOnWindowFocus(
+  query: Query<any, any, any, any>,
+  options: QueryObserverOptions<any, any, any, any, any>
+): boolean {
+  return shouldFetchOn(query, options, options.refetchOnWindowFocus)
+}
+
+export function shouldFetchOn(
   query: Query<any, any, any, any>,
   options: QueryObserverOptions<any, any, any, any, any>,
   field: (typeof options)["refetchOnMount"] &

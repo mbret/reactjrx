@@ -2643,6 +2643,7 @@ describe("useQuery", () => {
 
     await sleep(10)
 
+    console.log({states})
     expect(states.length).toBe(2)
     expect(states[0]).toMatchObject({ data: undefined, isFetching: true })
     expect(states[1]).toMatchObject({ data: 0, isFetching: false })

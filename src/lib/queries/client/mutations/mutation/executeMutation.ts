@@ -105,10 +105,10 @@ export const executeMutation = <
           ...options,
           retry: (attempt, error) => {
             const retry = options.retry ?? 0
-            if (typeof retry === "function") return of(retry(attempt, error))
-            if (typeof retry === "boolean") return of(retry)
+            if (typeof retry === "function") return retry(attempt, error)
+            if (typeof retry === "boolean") return retry
 
-            return attempt < retry ? of(true) : of(false)
+            return attempt < retry
           },
           caughtError: (attempt, error) =>
             // eslint-disable-next-line @typescript-eslint/consistent-type-assertions

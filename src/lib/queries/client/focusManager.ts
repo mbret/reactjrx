@@ -1,49 +1,57 @@
 import {
-  type Observable,
   filter,
   fromEvent,
   map,
   merge,
-  shareReplay,
   skip,
-  startWith,
   tap,
-  distinctUntilChanged,
+  BehaviorSubject,
 } from "rxjs"
 
 export class FocusManager {
-  public readonly visibility$ = merge(
+  readonly #visibility$ = merge(
     fromEvent(document, "visibilitychange"),
-    // does not exist on window but rq wrongly use it in their tests and code
     fromEvent(window, "visibilitychange")
-  ).pipe(
-    map(() => document.visibilityState),
-    startWith(document.visibilityState),
-    distinctUntilChanged(),
-    shareReplay(1)
+  ).pipe(map(() => document.visibilityState))
+
+  readonly #focusedSubject = new BehaviorSubject(
+    document.visibilityState === "visible"
   )
 
-  public readonly focusRegained$: Observable<DocumentVisibilityState>
-
-  #visibility = document.visibilityState
+  // public readonly focused$ = this.#focusedSubject.pipe(distinctUntilChanged())
+  public readonly focused$ = this.#focusedSubject
+  public readonly focusRegained$ = this.focused$.pipe(
+    skip(1),
+    filter((visibility) => visibility)
+  )
 
   constructor() {
-    this.focusRegained$ = this.visibility$.pipe(
-      skip(1),
-      filter((visibility) => visibility === "visible")
-    )
-
-    this.visibility$
+    this.#visibility$
       .pipe(
         tap((value) => {
-          this.#visibility = value
+          this.#focusedSubject.next(value === "visible")
         })
       )
       .subscribe()
   }
 
   isFocused() {
-    return this.#visibility === "visible"
+    return this.#focusedSubject.getValue()
+  }
+
+  setFocused(focused?: boolean): void {
+    const changed = this.#focusedSubject.getValue() !== (focused ?? true)
+    if (changed) {
+      this.#focusedSubject.next(focused ?? true)
+    }
+  }
+
+  subscribe(fn: () => void) {
+    const sub = this.focused$.subscribe(fn)
+
+    return () => {
+      sub.unsubscribe()
+    }
   }
 
   /**

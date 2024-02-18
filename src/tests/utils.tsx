@@ -1,9 +1,11 @@
+/* eslint-disable no-import-assign */
 import { act, render } from "@testing-library/react"
 import { QueryClient } from "../lib/queries/client/QueryClient"
 import { QueryClientProvider } from "../lib/queries/react/Provider"
 import { MutationCache } from "../lib/queries/client/mutations/cache/MutationCache"
 import { type QueryCache } from "../lib/queries/client/queries/cache/QueryCache"
 import React from "react"
+import * as utils from "../lib/utils"
 
 export const waitForTimeout = async (timeout: number) =>
   await new Promise((resolve) => setTimeout(resolve, timeout))
@@ -69,7 +71,7 @@ export function expectTypeNotAny<T>(_: 0 extends 1 & T ? never : T): void {
 
 export const Blink = ({
   duration,
-  children,
+  children
 }: {
   duration: number
   children: React.ReactNode
@@ -78,11 +80,28 @@ export const Blink = ({
 
   React.useEffect(() => {
     setShouldShow(true)
-    const timeout = setActTimeout(() => { setShouldShow(false); }, duration)
+    const timeout = setActTimeout(() => {
+      setShouldShow(false)
+    }, duration)
     return () => {
       clearTimeout(timeout)
     }
   }, [duration, children])
 
   return shouldShow ? <>{children}</> : <>off</>
+}
+
+// This monkey-patches the isServer-value from utils,
+// so that we can pretend to be in a server environment
+export function setIsServer(isServer: boolean) {
+  const original = utils.isServer
+  Object.defineProperty(utils, "isServer", {
+    get: () => isServer
+  })
+
+  return () => {
+    Object.defineProperty(utils, "isServer", {
+      get: () => original
+    })
+  }
 }

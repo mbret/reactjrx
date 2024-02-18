@@ -81,8 +81,8 @@ export function useBaseQuery<
          * We only skip if they are the same.
          */
         filter((result) => !shallowEqual(result, optimisticResult.current)),
-        tap(() => {
-          console.log("RE_RENDER")
+        tap((s) => {
+          console.log("RE_RENDER", s)
         })
       ),
     []
