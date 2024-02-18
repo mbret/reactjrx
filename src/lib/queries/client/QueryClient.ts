@@ -18,7 +18,8 @@ import {
   type RefetchQueryFilters,
   type DefaultError,
   type InvalidateOptions,
-  type InvalidateQueryFilters
+  type InvalidateQueryFilters,
+  type ResetOptions
 } from "./types"
 import { type QueryKey } from "./keys/types"
 import {

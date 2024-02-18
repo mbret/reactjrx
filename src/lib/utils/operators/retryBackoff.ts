@@ -5,7 +5,6 @@ import {
   timer,
   merge,
   of,
-  EMPTY
 } from "rxjs"
 import {
   catchError,
@@ -13,7 +12,6 @@ import {
   first,
   mergeMap,
   retryWhen,
-  switchMap,
   tap
 } from "rxjs/operators"
 

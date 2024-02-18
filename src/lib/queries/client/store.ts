@@ -1,7 +1,6 @@
 import {
   BehaviorSubject,
   type Observable,
-  distinctUntilChanged,
   filter,
   from,
   map,
@@ -12,7 +11,6 @@ import {
   merge,
   first
 } from "rxjs"
-import { arrayEqual } from "../../utils/arrayEqual"
 
 export class Store<Entity extends { state$: Observable<any> }> {
   /**
@@ -31,10 +29,7 @@ export class Store<Entity extends { state$: Observable<any> }> {
     )
   >()
 
-  public readonly entries$ = this.entriesSubject.pipe(
-    // distinctUntilChanged(arrayEqual),
-    share()
-  )
+  public readonly entries$ = this.entriesSubject.pipe(share())
 
   public readonly added$ = this.changeSubject.pipe(
     filter(({ type }) => type === "added"),

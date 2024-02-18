@@ -12,6 +12,8 @@ export interface QueryResult<T> {
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface Register {}
 
+export interface ResetOptions extends RefetchOptions {}
+
 export type DefaultError = Register extends {
   defaultError: infer TError
 }
