@@ -1,17 +1,4 @@
-import { hashKey } from "./hashKey"
 import { type QueryKey } from "./types"
-
-export const compareKeys = (
-  keyA: QueryKey,
-  keyB: QueryKey,
-  { exact = false }: { exact?: boolean } = {}
-) => {
-  if (exact) {
-    return hashKey(keyA) === hashKey(keyB)
-  }
-
-  return partialMatchKey(keyA, keyB)
-}
 
 /**
  * Checks if key `b` partially matches with key `a`.

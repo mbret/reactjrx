@@ -1,4 +1,4 @@
-import { compareKeys } from "../keys/compareKeys"
+import { matchKey } from "../keys/matchKey"
 import { type DefaultError } from "../types"
 import { type MutationFilters } from "./types"
 
@@ -23,7 +23,7 @@ export const createPredicateForFilters = <
       exact &&
       mutationKey !== undefined &&
       mutation.options.mutationKey !== undefined &&
-      !compareKeys(mutation.options.mutationKey, mutationKey, { exact })
+      !matchKey(mutation.options.mutationKey, mutationKey, { exact })
     ) {
       return false
     }
@@ -32,7 +32,7 @@ export const createPredicateForFilters = <
       !exact &&
       mutationKey !== undefined &&
       mutation.options.mutationKey !== undefined &&
-      !compareKeys(mutation.options.mutationKey, mutationKey, { exact })
+      !matchKey(mutation.options.mutationKey, mutationKey, { exact })
     ) {
       return false
     }

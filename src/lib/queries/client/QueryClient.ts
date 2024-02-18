@@ -1,9 +1,8 @@
 import { lastValueFrom, noop } from "rxjs"
-import { hashKey, hashKey } from "./keys/hashKey"
 import { type MutationKey } from "./mutations/types"
 import { MutationCache } from "./mutations/cache/MutationCache"
 import { type MutationObserverOptions } from "./mutations/observers/types"
-import { compareKeys, partialMatchKey } from "./keys/compareKeys"
+import { matchKey } from "./keys/matchKey"
 import { type MutationOptions } from "./mutations/mutation/types"
 import { QueryCache } from "./queries/cache/QueryCache"
 import {
@@ -30,6 +29,8 @@ import { functionalUpdate, hashQueryKeyByOptions } from "./queries/utils"
 import { type NoInfer } from "../../utils/types"
 import { type QueryState } from "./queries/query/types"
 import { type CancelOptions } from "./queries/retryer/types"
+import { hashKey } from "./keys/hashKey"
+import { partialMatchKey } from "./keys/partialMatchKey"
 
 export interface DefaultOptions<TError = DefaultError> {
   queries?: Omit<QueryObserverOptions<unknown, TError>, "suspense">
@@ -298,7 +299,7 @@ export class QueryClient {
     let result: MutationObserverOptions<any, any, any, any> = {}
 
     defaults.forEach((queryDefault) => {
-      if (compareKeys(mutationKey, queryDefault.mutationKey)) {
+      if (matchKey(mutationKey, queryDefault.mutationKey)) {
         result = { ...result, ...queryDefault.defaultOptions }
       }
     })

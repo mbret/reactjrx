@@ -1,6 +1,6 @@
 import { replaceEqualDeep } from "../../../utils/replaceEqualDeep"
-import { partialMatchKey } from "../keys/compareKeys"
 import { hashKey } from "../keys/hashKey"
+import { partialMatchKey } from "../keys/partialMatchKey"
 import { type QueryKey } from "../keys/types"
 import { type Query } from "./query/Query"
 import { type QueryOptions, type QueryFilters, type Updater } from "./types"

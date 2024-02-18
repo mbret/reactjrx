@@ -26,7 +26,7 @@ import {
 import { MutationRunner } from "../runner/MutationRunner"
 import { type MutationState } from "../mutation/types"
 import { isDefined } from "../../../../utils/isDefined"
-import { compareKeys } from "../../keys/compareKeys"
+import { matchKey } from "../../keys/matchKey"
 import { observeUntilFinished } from "../mutation/observeUntilFinished"
 
 /**
@@ -177,7 +177,7 @@ export class MutationObserver<
     if (
       this.options.mutationKey &&
       prevOptions.mutationKey &&
-      !compareKeys(this.options.mutationKey, prevOptions.mutationKey, {
+      !matchKey(this.options.mutationKey, prevOptions.mutationKey, {
         exact: true
       })
     ) {
