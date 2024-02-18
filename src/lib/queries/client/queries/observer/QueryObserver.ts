@@ -27,7 +27,8 @@ import { type PlaceholderDataFunction, type RefetchOptions } from "../types"
 import {
   type QueryObserverResult,
   type QueryObserverOptions,
-  type DefaultedQueryObserverOptions
+  type DefaultedQueryObserverOptions,
+  type QueryObserverListener
 } from "./types"
 import {
   canFetch,
@@ -151,8 +152,7 @@ export class QueryObserver<
   ) {
     this.#client = client
     this.bindMethods()
-    this.options = this.#client.defaultQueryOptions(options)
-    this.#currentQuery = this.buildQuery(this.options)
+    this.#currentQuery = this.setOptions(options)
     const query = this.#currentQuery
     this.#currentQueryInitialState = query.state
     const { result, select } = this.getObserverResultFromQuery({
@@ -195,6 +195,14 @@ export class QueryObserver<
       })
     }
 
+    // feature parity RQ
+    if (
+      typeof this.options.enabled !== 'undefined' &&
+      typeof this.options.enabled !== 'boolean'
+    ) {
+      throw new Error('Expected enabled to be a boolean')
+    }
+
     const query = this.buildQuery(this.options)
 
     if (query !== this.#currentQuery) {
@@ -206,6 +214,8 @@ export class QueryObserver<
       options: this.options,
       query
     })
+
+    return query
   }
 
   protected buildQuery(
@@ -371,22 +381,7 @@ export class QueryObserver<
       }
     }
 
-    // const finalData = isSelected ? selectData : (data as TData)
-
     const isFetching = fetchStatus === "fetching"
-
-    // console.log("queryObserver.getResult", {
-    //   selectFn,
-    //   selectError,
-    //   select: options.select && typeof state.data !== "undefined",
-    //   stateData: state.data,
-    //   prevResultStateData: prevResultState?.data,
-    //   sameSelect: options.select === prevSelect,
-    //   usePreviousData:
-    //     prevResult &&
-    //     state.data === prevResultState?.data &&
-    //     options.select === prevSelect
-    // })
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const result = {
@@ -431,6 +426,10 @@ export class QueryObserver<
 
   getCurrentResult(): QueryObserverResult<TData, TError> {
     return this.#lastResult.result
+  }
+
+  getCurrentQuery() {
+    return this.#currentQuery
   }
 
   getOptimisticResult(
@@ -556,10 +555,13 @@ export class QueryObserver<
     return result
   }
 
-  subscribe(listener: () => void) {
+  /**
+   * feature parity with rq, not used internally
+   */
+  subscribe(listener: QueryObserverListener<TData, TError>) {
     void listener
 
-    const sub = this.observe().subscribe()
+    const sub = this.observe().subscribe(listener)
 
     return () => {
       sub.unsubscribe()

@@ -382,3 +382,7 @@ export type InfiniteQueryObserverResult<
   | InfiniteQueryObserverLoadingErrorResult<TData, TError>
   | InfiniteQueryObserverLoadingResult<TData, TError>
   | InfiniteQueryObserverPendingResult<TData, TError>
+
+export type QueryObserverListener<TData, TError> = (
+  result: QueryObserverResult<TData, TError>
+) => void
