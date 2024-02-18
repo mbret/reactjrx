@@ -1,7 +1,7 @@
 import { useLiveRef } from "../../../utils/useLiveRef"
 import { useObserve } from "../../../binding/useObserve"
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { serializeKey } from "../../client/keys/serializeKey"
+import { hashKey } from "../../client/keys/hashKey"
 import { nanoid } from "../../client/keys/nanoid"
 import { useConstant } from "../../../utils/useConstant"
 import { type QueryClient } from "../../client/QueryClient"
@@ -28,7 +28,7 @@ export function useMutation<
   const defaultQueryClient = useQueryClient(queryClient)
   const optionsRef = useLiveRef(options)
   const defaultKey = useConstant(() => [nanoid()])
-  const serializedKey = serializeKey(options.mutationKey ?? defaultKey.current)
+  const serializedKey = hashKey(options.mutationKey ?? defaultKey.current)
 
   const [mutationObserver] = useState(
     () =>

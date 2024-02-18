@@ -4,6 +4,10 @@ import { type DefaultError, type Register } from "../../types"
 import { type FetchStatus, type QueryStatus, type QueryOptions } from "../types"
 import { type Query } from "./Query"
 
+export interface SetStateOptions {
+  meta?: any
+}
+
 export type FetchDirection = "forward" | "backward"
 
 export interface QueryState<TData = unknown, TError = DefaultError> {
@@ -90,3 +94,54 @@ export interface QueryBehavior<
     query: Query
   ) => void
 }
+
+interface FailedAction<TError> {
+  type: "failed"
+  failureCount: number
+  error: TError
+}
+
+interface FetchAction {
+  type: "fetch"
+  meta?: FetchMeta
+}
+
+interface SuccessAction<TData> {
+  data: TData | undefined
+  type: "success"
+  dataUpdatedAt?: number
+  manual?: boolean
+}
+
+interface ErrorAction<TError> {
+  type: "error"
+  error: TError
+}
+
+interface InvalidateAction {
+  type: "invalidate"
+}
+
+interface PauseAction {
+  type: "pause"
+}
+
+interface ContinueAction {
+  type: "continue"
+}
+
+interface SetStateAction<TData, TError> {
+  type: "setState"
+  state: Partial<QueryState<TData, TError>>
+  setStateOptions?: SetStateOptions
+}
+
+export type Action<TData, TError> =
+  | ContinueAction
+  | ErrorAction<TError>
+  | FailedAction<TError>
+  | FetchAction
+  | InvalidateAction
+  | PauseAction
+  | SetStateAction<TData, TError>
+  | SuccessAction<TData>

@@ -8,11 +8,11 @@ import {
   tap,
   distinctUntilChanged,
   startWith,
-  noop
+  noop,
+  Subject,
+  merge
 } from "rxjs"
-import {
-  type DefaultError
-} from "../../types"
+import { type DefaultError } from "../../types"
 import { type QueryKey } from "../../keys/types"
 import { Query } from "../query/Query"
 import { type QueryOptions, type QueryFilters } from "../types"
@@ -23,6 +23,7 @@ import { nanoid } from "../../keys/nanoid"
 import { type WithRequired } from "../../../../utils/types"
 import { isQueryFinished } from "../query/operators"
 import { Store } from "../../store"
+import { type QueryCacheConfig, type QueryCacheListener } from "./types"
 
 export interface QueryStore {
   has: (queryHash: string) => boolean
@@ -35,9 +36,12 @@ export interface QueryStore {
 export class QueryCache {
   // readonly #queries: QueryStore = new Map<string, Query>()
 
+  readonly #notifySubject = new Subject<Parameters<QueryCacheListener>[0]>()
   readonly #store = new Store<Query>()
 
   // protected mountSubscriptions: Subscription[]
+
+  constructor(public config: QueryCacheConfig = {}) {}
 
   mount() {
     // this.mountSubscriptions
@@ -46,6 +50,10 @@ export class QueryCache {
   unmount() {
     // this.mountSubscriptions.forEach((sub) => sub.unsubscribe)
     // this.mountSubscriptions = []
+  }
+
+  notify(event: Parameters<QueryCacheListener>[0]) {
+    this.#notifySubject.next(event)
   }
 
   observeIsFetching(filters?: QueryFilters) {
@@ -111,12 +119,25 @@ export class QueryCache {
       this.#store.add(query)
 
       const noMoreObservers$ = query.observerCount$.pipe(
-        tap(() => {
-          // console.log("observerCount", count)
-        }),
         filter((count) => count < 1),
         take(1)
       )
+
+      query.success$.subscribe(() => {
+        this.config.onSuccess?.(query.state.data, query as Query<any, any, any>)
+      })
+
+      query.error$.subscribe(() => {
+        this.config.onError?.(query.state.error, query as Query<any, any, any>)
+      })
+
+      query.settled$.subscribe(() => {
+        this.config.onSettled?.(
+          query.state.data,
+          query.state.error,
+          query as Query<any, any, any>
+        )
+      })
 
       /**
        * @important
@@ -148,7 +169,6 @@ export class QueryCache {
         )
         .subscribe({
           complete: () => {
-            console.log("remove")
             /**
              * Will remove the mutation in all cases
              * - mutation cancelled (complete)
@@ -182,6 +202,40 @@ export class QueryCache {
     return this.getAll().find((query) =>
       matchQuery(defaultedFilters, query)
     ) as Query<TQueryFnData, TError, TData> | undefined
+  }
+
+  subscribe(fn: QueryCacheListener) {
+    const sub = merge(
+      this.#notifySubject.pipe(tap(fn)),
+      // this.#store.added$.pipe(
+      //   mergeMap((query) => {
+      //     fn({
+      //       query,
+      //       type: "added"
+      //     })
+
+      //     return query.observers$.pipe(
+      //       tap((observer) => {
+      //         fn({
+      //           type: "observerAdded",
+      //           observer: observer as unknown as QueryObserver<
+      //             any,
+      //             any,
+      //             any,
+      //             any,
+      //             any
+      //           >,
+      //           query
+      //         })
+      //       })
+      //     )
+      //   })
+      // )
+    ).subscribe()
+
+    return () => {
+      sub.unsubscribe()
+    }
   }
 
   remove(query: Query<any, any, any, any>): void {

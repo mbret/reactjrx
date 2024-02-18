@@ -1,4 +1,4 @@
-import { serializeKey, serializeObject } from "./serializeKey"
+import { hashKey } from "./hashKey"
 import { type QueryKey } from "./types"
 
 export const compareKeys = (
@@ -7,24 +7,28 @@ export const compareKeys = (
   { exact = false }: { exact?: boolean } = {}
 ) => {
   if (exact) {
-    return serializeKey(keyA) === serializeKey(keyB)
+    return hashKey(keyA) === hashKey(keyB)
   }
 
-  return keyA.reduce((acc: boolean, value, index) => {
-    if (!acc) return false
-
-    if (value === undefined) {
-      const hasNextItemInLineNotUndefined = keyA
-        .slice(index, keyA.length - 1)
-        .some((item) => item !== undefined)
-      if (!hasNextItemInLineNotUndefined) {
-        return true
-      }
-    }
-
-    return serializeObject(value) === serializeObject(keyB[index])
-  }, true)
+  return partialMatchKey(keyA, keyB)
 }
 
-export const partialMatchKey = (keyA: QueryKey, keyB: QueryKey) =>
-  compareKeys(keyA, keyB, { exact: false })
+/**
+ * Checks if key `b` partially matches with key `a`.
+ */
+export function partialMatchKey(a: QueryKey, b: QueryKey): boolean
+export function partialMatchKey(a: any, b: any): boolean {
+  if (a === b) {
+    return true
+  }
+
+  if (typeof a !== typeof b) {
+    return false
+  }
+
+  if (a && b && typeof a === "object" && typeof b === "object") {
+    return !Object.keys(b).some((key) => !partialMatchKey(a[key], b[key]))
+  }
+
+  return false
+}

@@ -1,6 +1,6 @@
 import { replaceEqualDeep } from "../../../utils/replaceEqualDeep"
-import { compareKeys } from "../keys/compareKeys"
-import { hashKey } from "../keys/serializeKey"
+import { partialMatchKey } from "../keys/compareKeys"
+import { hashKey } from "../keys/hashKey"
 import { type QueryKey } from "../keys/types"
 import { type Query } from "./query/Query"
 import { type QueryOptions, type QueryFilters, type Updater } from "./types"
@@ -31,7 +31,7 @@ export function matchQuery(
       if (query.queryHash !== hashQueryKeyByOptions(queryKey, query.options)) {
         return false
       }
-    } else if (!compareKeys(query.queryKey, queryKey, { exact: false })) {
+    } else if (!partialMatchKey(query.queryKey, queryKey)) {
       return false
     }
   }

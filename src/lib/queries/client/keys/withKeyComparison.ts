@@ -1,6 +1,6 @@
 import { filter, map, pairwise, startWith } from "rxjs"
 import type { Observable } from "rxjs"
-import { serializeKey } from "./serializeKey"
+import { hashKey } from "./hashKey"
 import { isDefined } from "../../../utils/isDefined"
 
 export const withKeyComparison = <T extends { key: any[] }>(
@@ -19,8 +19,8 @@ export const withKeyComparison = <T extends { key: any[] }>(
           }
         }
 
-        const serializedKey = serializeKey(current.key)
-        const serializedPreviousKey = serializeKey(previous.key)
+        const serializedKey = hashKey(current.key)
+        const serializedPreviousKey = hashKey(previous.key)
 
         return {
           ...current,

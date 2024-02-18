@@ -32,7 +32,6 @@ import {
 import {
   canFetch,
   isStale,
-  shouldFetchOn,
   shouldFetchOnMount,
   shouldFetchOnWindowFocus,
   shouldFetchOptionally
@@ -185,9 +184,17 @@ export class QueryObserver<
       TQueryKey
     >
   ) {
-    const newOptions = this.#client.defaultQueryOptions(options)
+    const prevOptions = this.options
+    this.options = this.#client.defaultQueryOptions(options)
 
-    this.options = newOptions
+    if (!shallowEqual(this.options, prevOptions)) {
+      this.#client.getQueryCache().notify({
+        type: "observerOptionsUpdated",
+        query: this.#currentQuery,
+        observer: this
+      })
+    }
+
     const query = this.buildQuery(this.options)
 
     if (query !== this.#currentQuery) {
@@ -196,7 +203,7 @@ export class QueryObserver<
     }
 
     this.queryUpdateSubject.next({
-      options: newOptions,
+      options: this.options,
       query
     })
   }
@@ -493,6 +500,11 @@ export class QueryObserver<
     if (query.state.data !== undefined) {
       this.#lastQueryWithDefinedData = query
     }
+
+    this.#client.getQueryCache().notify({
+      query: this.#currentQuery,
+      type: 'observerResultsUpdated',
+    })
   }
 
   async refetch({ ...options }: RefetchOptions = {}): Promise<

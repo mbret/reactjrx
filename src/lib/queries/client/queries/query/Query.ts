@@ -13,9 +13,7 @@ import {
   startWith,
   distinctUntilChanged,
   catchError,
-  finalize,
-  first,
-  ignoreElements
+  finalize
 } from "rxjs"
 import { isServer } from "../../../../utils/isServer"
 import { type QueryKey } from "../../keys/types"
@@ -31,7 +29,6 @@ import { CancelledError } from "../retryer/CancelledError"
 import { reduceState, takeUntilFinished } from "./operators"
 import { shallowEqual } from "../../../../utils/shallowEqual"
 import { type QueryObserver } from "../observer/QueryObserver"
-import { trackSubscriptions } from "../../../../utils/operators/trackSubscriptions"
 
 interface QueryConfig<
   TQueryFnData,
@@ -85,6 +82,7 @@ export class Query<
     .asObservable()
     .pipe(map((observers) => observers.length))
 
+  public observers$ = this.observersSubject.asObservable()
   public state$: Observable<typeof this.state>
 
   constructor(config: QueryConfig<TQueryFnData, TError, TData, TQueryKey>) {
@@ -174,11 +172,7 @@ export class Query<
             })),
             takeUntil(cancelExecution$)
           )
-        }),
-        finalize(() => {
-          console.log("Query.state$.executeSubject.complete")
         })
-        // takeUntil(this.resetSubject)
       ),
       this.setDataSubject.pipe(
         map(({ data, options }) => ({
@@ -203,17 +197,12 @@ export class Query<
       distinctUntilChanged(shallowEqual),
       tap((state) => {
         this.state = state
-
-        // console.log("Query state", state)
       }),
       takeUntil(this.destroySubject),
       finalize(() => {
         console.log("Query.state$.complete", {
           observers: this.getObserversCount()
         })
-      }),
-      trackSubscriptions((count) => {
-        // console.log("Query.state$.trackSubscriptions", count)
       }),
       shareReplay({ bufferSize: 1, refCount: false }),
       catchError((e) => {
@@ -238,18 +227,40 @@ export class Query<
     return this.options.meta
   }
 
+  get success$() {
+    return this.state$.pipe(
+      map(({ data, status }) => ({ data, status })),
+      distinctUntilChanged(shallowEqual),
+      filter(({ status }) => status === "success")
+    )
+  }
+
+  get error$() {
+    return this.state$.pipe(
+      map(({ error, status }) => ({ error, status })),
+      distinctUntilChanged(shallowEqual),
+      filter(({ status }) => status === "error")
+    )
+  }
+
+  get settled$() {
+    return this.state$.pipe(
+      map(({ status }) => ({ status })),
+      distinctUntilChanged(shallowEqual),
+      filter(({ status }) => status === "success" || status === "error")
+    )
+  }
+
   observe(observer: QueryObserver<any, any, any, any, any>) {
     const state$ = this.state$.pipe(
       tap({
         subscribe: () => {
-          // console.log("Query.observe.subscribe")
           this.observersSubject.next([
             observer,
             ...this.observersSubject.getValue()
           ])
         },
         unsubscribe: () => {
-          // console.log("Query.observe.unsubscribe")
           this.observersSubject.next(
             this.observersSubject.getValue().filter((item) => item !== observer)
           )

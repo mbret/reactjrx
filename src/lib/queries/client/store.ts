@@ -32,7 +32,7 @@ export class Store<Entity extends { state$: Observable<any> }> {
   >()
 
   public readonly entries$ = this.entriesSubject.pipe(
-    distinctUntilChanged(arrayEqual),
+    // distinctUntilChanged(arrayEqual),
     share()
   )
 

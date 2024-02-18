@@ -4,7 +4,7 @@ import { type MutationFilters } from "../../client/mutations/types"
 import { useLiveRef } from "../../../utils/useLiveRef"
 import { type Mutation } from "../../client/mutations/mutation/Mutation"
 import { skip } from "rxjs"
-import { serializeKey } from "../../client/keys/serializeKey"
+import { hashKey } from "../../client/keys/hashKey"
 import { createPredicateForFilters } from "../../client/mutations/filters"
 import { type QueryClient } from "../../client/QueryClient"
 import { type MutationState } from "../../client/mutations/mutation/types"
@@ -22,7 +22,7 @@ export const useMutationState = <TData, TResult = MutationState>(
   const finalQueryClient = useQueryClient(queryClient)
   const { mutationKey, status } = filters ?? {}
   const filtersRef = useLiveRef(filters)
-  const serializedKey = mutationKey ? serializeKey(mutationKey) : undefined
+  const serializedKey = mutationKey ? hashKey(mutationKey) : undefined
   const selectRef = useLiveRef(select)
 
   const { value$, lastValue } = useMemo(() => {
