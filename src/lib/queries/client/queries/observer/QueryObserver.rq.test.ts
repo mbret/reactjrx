@@ -764,181 +764,181 @@ import { focusManager } from '../../focusManager'
     //   expect(observer.getCurrentResult().isPlaceholderData).toBe(false)
     // })
   
-    // test('should pass the correct previous queryKey (from prevQuery) to placeholderData function params with select', async () => {
-    //   const results: Array<QueryObserverResult> = []
-    //   const keys: Array<ReadonlyArray<unknown> | null> = []
+    test('should pass the correct previous queryKey (from prevQuery) to placeholderData function params with select', async () => {
+      const results: Array<QueryObserverResult> = []
+      const keys: Array<ReadonlyArray<unknown> | null> = []
   
-    //   const key1 = queryKey()
-    //   const key2 = queryKey()
+      const key1 = queryKey()
+      const key2 = queryKey()
   
-    //   const data1 = { value: 'data1' }
-    //   const data2 = { value: 'data2' }
+      const data1 = { value: 'data1' }
+      const data2 = { value: 'data2' }
   
-    //   const observer = new QueryObserver(queryClient, {
-    //     queryKey: key1,
-    //     queryFn: () => data1,
-    //     placeholderData: (prev, prevQuery) => {
-    //       keys.push(prevQuery?.queryKey || null)
-    //       return prev
-    //     },
-    //     select: (data) => data.value,
-    //   })
+      const observer = new QueryObserver(queryClient, {
+        queryKey: key1,
+        queryFn: () => data1,
+        placeholderData: (prev, prevQuery) => {
+          keys.push(prevQuery?.queryKey || null)
+          return prev
+        },
+        select: (data) => data.value,
+      })
   
-    //   const unsubscribe = observer.subscribe((result) => {
-    //     results.push(result)
-    //   })
+      const unsubscribe = observer.subscribe((result) => {
+        results.push(result)
+      })
   
-    //   await sleep(1)
+      await sleep(1)
   
-    //   observer.setOptions({
-    //     queryKey: key2,
-    //     queryFn: () => data2,
-    //     placeholderData: (prev, prevQuery) => {
-    //       keys.push(prevQuery?.queryKey || null)
-    //       return prev
-    //     },
-    //     select: (data) => data.value,
-    //   })
+      observer.setOptions({
+        queryKey: key2,
+        queryFn: () => data2,
+        placeholderData: (prev, prevQuery) => {
+          keys.push(prevQuery?.queryKey || null)
+          return prev
+        },
+        select: (data) => data.value,
+      })
   
-    //   await sleep(1)
-    //   unsubscribe()
-    //   expect(results.length).toBe(4)
-    //   expect(keys.length).toBe(3)
-    //   expect(keys[0]).toBe(null) // First Query - status: 'pending', fetchStatus: 'idle'
-    //   expect(keys[1]).toBe(null) // First Query - status: 'pending', fetchStatus: 'fetching'
-    //   expect(keys[2]).toBe(key1) // Second Query - status: 'pending', fetchStatus: 'fetching'
+      await sleep(1)
+      unsubscribe()
+      expect(results.length).toBe(4)
+      expect(keys.length).toBe(3)
+      expect(keys[0]).toBe(null) // First Query - status: 'pending', fetchStatus: 'idle'
+      expect(keys[1]).toBe(null) // First Query - status: 'pending', fetchStatus: 'fetching'
+      expect(keys[2]).toBe(key1) // Second Query - status: 'pending', fetchStatus: 'fetching'
   
-    //   expect(results[0]).toMatchObject({
-    //     data: undefined,
-    //     status: 'pending',
-    //     fetchStatus: 'fetching',
-    //   }) // Initial fetch
-    //   expect(results[1]).toMatchObject({
-    //     data: 'data1',
-    //     status: 'success',
-    //     fetchStatus: 'idle',
-    //   }) // Successful fetch
-    //   expect(results[2]).toMatchObject({
-    //     data: 'data1',
-    //     status: 'success',
-    //     fetchStatus: 'fetching',
-    //   }) // Fetch for new key, but using previous data as placeholder
-    //   expect(results[3]).toMatchObject({
-    //     data: 'data2',
-    //     status: 'success',
-    //     fetchStatus: 'idle',
-    //   }) // Successful fetch for new key
-    // })
+      expect(results[0]).toMatchObject({
+        data: undefined,
+        status: 'pending',
+        fetchStatus: 'fetching',
+      }) // Initial fetch
+      expect(results[1]).toMatchObject({
+        data: 'data1',
+        status: 'success',
+        fetchStatus: 'idle',
+      }) // Successful fetch
+      expect(results[2]).toMatchObject({
+        data: 'data1',
+        status: 'success',
+        fetchStatus: 'fetching',
+      }) // Fetch for new key, but using previous data as placeholder
+      expect(results[3]).toMatchObject({
+        data: 'data2',
+        status: 'success',
+        fetchStatus: 'idle',
+      }) // Successful fetch for new key
+    })
   
-    // test('should pass the correct previous data to placeholderData function params when select function is used in conjunction', async () => {
-    //   const results: Array<QueryObserverResult> = []
+    test('should pass the correct previous data to placeholderData function params when select function is used in conjunction', async () => {
+      const results: Array<QueryObserverResult> = []
   
-    //   const key1 = queryKey()
-    //   const key2 = queryKey()
+      const key1 = queryKey()
+      const key2 = queryKey()
   
-    //   const data1 = { value: 'data1' }
-    //   const data2 = { value: 'data2' }
+      const data1 = { value: 'data1' }
+      const data2 = { value: 'data2' }
   
-    //   const observer = new QueryObserver(queryClient, {
-    //     queryKey: key1,
-    //     queryFn: () => data1,
-    //     placeholderData: (prev) => prev,
-    //     select: (data) => data.value,
-    //   })
+      const observer = new QueryObserver(queryClient, {
+        queryKey: key1,
+        queryFn: () => data1,
+        placeholderData: (prev) => prev,
+        select: (data) => data.value,
+      })
   
-    //   const unsubscribe = observer.subscribe((result) => {
-    //     results.push(result)
-    //   })
+      const unsubscribe = observer.subscribe((result) => {
+        results.push(result)
+      })
   
-    //   await sleep(1)
+      await sleep(1)
   
-    //   observer.setOptions({
-    //     queryKey: key2,
-    //     queryFn: () => data2,
-    //     placeholderData: (prev) => prev,
-    //     select: (data) => data.value,
-    //   })
+      observer.setOptions({
+        queryKey: key2,
+        queryFn: () => data2,
+        placeholderData: (prev) => prev,
+        select: (data) => data.value,
+      })
   
-    //   await sleep(1)
-    //   unsubscribe()
+      await sleep(1)
+      unsubscribe()
   
-    //   expect(results.length).toBe(4)
-    //   expect(results[0]).toMatchObject({
-    //     data: undefined,
-    //     status: 'pending',
-    //     fetchStatus: 'fetching',
-    //   }) // Initial fetch
-    //   expect(results[1]).toMatchObject({
-    //     data: 'data1',
-    //     status: 'success',
-    //     fetchStatus: 'idle',
-    //   }) // Successful fetch
-    //   expect(results[2]).toMatchObject({
-    //     data: 'data1',
-    //     status: 'success',
-    //     fetchStatus: 'fetching',
-    //   }) // Fetch for new key, but using previous data as placeholder
-    //   expect(results[3]).toMatchObject({
-    //     data: 'data2',
-    //     status: 'success',
-    //     fetchStatus: 'idle',
-    //   }) // Successful fetch for new key
-    // })
+      expect(results.length).toBe(4)
+      expect(results[0]).toMatchObject({
+        data: undefined,
+        status: 'pending',
+        fetchStatus: 'fetching',
+      }) // Initial fetch
+      expect(results[1]).toMatchObject({
+        data: 'data1',
+        status: 'success',
+        fetchStatus: 'idle',
+      }) // Successful fetch
+      expect(results[2]).toMatchObject({
+        data: 'data1',
+        status: 'success',
+        fetchStatus: 'fetching',
+      }) // Fetch for new key, but using previous data as placeholder
+      expect(results[3]).toMatchObject({
+        data: 'data2',
+        status: 'success',
+        fetchStatus: 'idle',
+      }) // Successful fetch for new key
+    })
   
-    // test('setOptions should notify cache listeners', async () => {
-    //   const key = queryKey()
+    test('setOptions should notify cache listeners', async () => {
+      const key = queryKey()
   
-    //   const observer = new QueryObserver(queryClient, {
-    //     queryKey: key,
-    //   })
+      const observer = new QueryObserver(queryClient, {
+        queryKey: key,
+      })
   
-    //   const spy = vi.fn()
-    //   const unsubscribe = queryClient.getQueryCache().subscribe(spy)
-    //   observer.setOptions({ queryKey: key, enabled: false })
+      const spy = vi.fn()
+      const unsubscribe = queryClient.getQueryCache().subscribe(spy)
+      observer.setOptions({ queryKey: key, enabled: false })
   
-    //   expect(spy).toHaveBeenCalledTimes(1)
-    //   expect(spy).toHaveBeenCalledWith(
-    //     expect.objectContaining({ type: 'observerOptionsUpdated' }),
-    //   )
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(spy).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'observerOptionsUpdated' }),
+      )
   
-    //   unsubscribe()
-    // })
+      unsubscribe()
+    })
   
-    // test('should be inferred as a correct result type', async () => {
-    //   const key = queryKey()
-    //   const data = { value: 'data' }
-    //   const observer = new QueryObserver(queryClient, {
-    //     queryKey: key,
-    //     queryFn: async () => await Promise.resolve(data),
-    //   })
+    test('should be inferred as a correct result type', async () => {
+      const key = queryKey()
+      const data = { value: 'data' }
+      const observer = new QueryObserver(queryClient, {
+        queryKey: key,
+        queryFn: async () => await Promise.resolve(data),
+      })
   
-    //   const result = observer.getCurrentResult()
+      const result = observer.getCurrentResult()
   
-    //   result.isPending &&
-    //     expectTypeOf<undefined>(result.data) &&
-    //     expectTypeOf<null>(result.error) &&
-    //     expectTypeOf<boolean>(result.isLoading) &&
-    //     expectTypeOf<'pending'>(result.status)
+      result.isPending &&
+        expectTypeOf<undefined>(result.data) &&
+        expectTypeOf<null>(result.error) &&
+        expectTypeOf<boolean>(result.isLoading) &&
+        expectTypeOf<'pending'>(result.status)
   
-    //   result.isLoading &&
-    //     expectTypeOf<undefined>(result.data) &&
-    //     expectTypeOf<null>(result.error) &&
-    //     expectTypeOf<true>(result.isPending) &&
-    //     expectTypeOf<'pending'>(result.status)
+      result.isLoading &&
+        expectTypeOf<undefined>(result.data) &&
+        expectTypeOf<null>(result.error) &&
+        expectTypeOf<true>(result.isPending) &&
+        expectTypeOf<'pending'>(result.status)
   
-    //   result.isLoadingError &&
-    //     expectTypeOf<undefined>(result.data) &&
-    //     expectTypeOf<Error>(result.error) &&
-    //     expectTypeOf<'error'>(result.status)
+      result.isLoadingError &&
+        expectTypeOf<undefined>(result.data) &&
+        expectTypeOf<Error>(result.error) &&
+        expectTypeOf<'error'>(result.status)
   
-    //   result.isRefetchError &&
-    //     expectTypeOf<{ value: string }>(result.data) &&
-    //     expectTypeOf<Error>(result.error) &&
-    //     expectTypeOf<'error'>(result.status)
+      result.isRefetchError &&
+        expectTypeOf<{ value: string }>(result.data) &&
+        expectTypeOf<Error>(result.error) &&
+        expectTypeOf<'error'>(result.status)
   
-    //   result.isSuccess &&
-    //     expectTypeOf<{ value: string }>(result.data) &&
-    //     expectTypeOf<null>(result.error) &&
-    //     expectTypeOf<'success'>(result.status)
-    // })
+      result.isSuccess &&
+        expectTypeOf<{ value: string }>(result.data) &&
+        expectTypeOf<null>(result.error) &&
+        expectTypeOf<'success'>(result.status)
+    })
   })
