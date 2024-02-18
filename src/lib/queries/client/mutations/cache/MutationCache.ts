@@ -89,7 +89,7 @@ export class MutationCache {
       return mutation === mutationToRemove
     })
 
-    toRemove?.destroy()
+    toRemove?.cancel()
 
     this.#store.remove(mutationToRemove)
   }

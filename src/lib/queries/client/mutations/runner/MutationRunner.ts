@@ -25,6 +25,7 @@ import { shallowEqual } from "../../../../utils/shallowEqual"
 import { getDefaultMutationState } from "../defaultMutationState"
 import { trackSubscriptions } from "../../../../utils/operators/trackSubscriptions"
 import { type MutationOptions, type MutationState } from "../mutation/types"
+import { observeUntilFinished } from "../mutation/observeUntilFinished"
 
 interface TriggerSubject<
   TData,
@@ -69,27 +70,46 @@ export class MutationRunner<
         const switchTrigger$ = this.#trigger$.pipe(
           filter(() => mapOperator === "switch"),
           tap(() => {
-            mutation.reset()
+            mutation.cancel()
           })
         )
 
-        const execute$ = defer(() => {
+        const deferExecution$ = defer(() => {
           mutation.execute(args)
 
           return EMPTY
         })
 
-        const resetState$ = mutation.observeTillFinished().pipe(
+        const resetState$ = mutation.state$.pipe(
+          observeUntilFinished,
           last(),
           mergeMap(() => mutation.state$),
           takeUntil(this.#trigger$)
         )
 
-        const stateUntilFinished$ = mutation.observeTillFinished().pipe(skip(1))
+        const stateUntilFinished$ = mutation.state$.pipe(
+          observeUntilFinished,
+          skip(1)
+        )
 
-        return merge(stateUntilFinished$, resetState$, execute$).pipe(
+        const observeUntil$ = merge(
+          noMoreObservers$,
+          mergeTrigger$,
+          switchTrigger$,
+          mutation.cancelled$
+        )
+
+        return merge(
+          stateUntilFinished$,
+          resetState$,
+          /**
+           * We defer execution so that we return at least
+           * the current state first (same mechanism is used for query)
+           */
+          deferExecution$
+        ).pipe(
           (__queryFinalizeHook as typeof identity) ?? identity,
-          takeUntil(merge(noMoreObservers$, mergeTrigger$, switchTrigger$))
+          takeUntil(observeUntil$)
         )
       }),
       scan((acc, current) => {

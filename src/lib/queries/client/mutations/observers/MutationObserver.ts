@@ -8,7 +8,10 @@ import {
   merge,
   takeUntil,
   last,
-  filter
+  filter,
+  finalize,
+  tap,
+  ignoreElements
 } from "rxjs"
 import { type MutateOptions } from "../types"
 import { getDefaultMutationState } from "../defaultMutationState"
@@ -24,6 +27,7 @@ import { MutationRunner } from "../runner/MutationRunner"
 import { type MutationState } from "../mutation/types"
 import { isDefined } from "../../../../utils/isDefined"
 import { compareKeys } from "../../keys/compareKeys"
+import { observeUntilFinished } from "../mutation/observeUntilFinished"
 
 /**
  * Provide API to observe mutations results globally.
@@ -53,10 +57,10 @@ export class MutationObserver<
    */
   readonly observed$: Observable<never>
 
-  readonly result$: Observable<{
-    state: MutationObserverResult<TData, TError, TVariables, TContext>
-    options: MutateOptions<TData, TError, TVariables, TContext> | undefined
-  }>
+  // readonly result$: Observable<{
+  //   state: MutationObserverResult<TData, TError, TVariables, TContext>
+  //   options: MutateOptions<TData, TError, TVariables, TContext> | undefined
+  // }>
 
   constructor(
     protected client: QueryClient,
@@ -78,12 +82,12 @@ export class MutationObserver<
     this.mutate = this.mutate.bind(this)
     this.reset = this.reset.bind(this)
 
-    this.result$ = this.#mutationRunner.state$.pipe(
-      map((state) => ({
-        state: this.getObserverResultFromState(state),
-        options: {} as any
-      }))
-    )
+    // this.result$ = this.#mutationRunner.state$.pipe(
+    //   map((state) => ({
+    //     state: this.getObserverResultFromState(state),
+    //     options: {} as any
+    //   }))
+    // )
 
     /**
      * @important
@@ -96,24 +100,28 @@ export class MutationObserver<
         filter(isDefined),
         mergeMap((mutation) =>
           this.#mutationRunner.state$.pipe(
-            takeUntil(mutation.mutation.observeTillFinished().pipe(last()))
+            takeUntil(
+              mutation.mutation.state$.pipe(observeUntilFinished, last())
+            )
           )
         )
       )
       .subscribe()
 
     this.observed$ = this.#currentMutationSubject.pipe(
-      switchMap(
-        (maybeMutation) =>
-          maybeMutation?.mutation.observeTillFinished().pipe(
-            last(),
+      switchMap((maybeMutation) => {
+        // return maybeMutation?.mutation.observeTillFinished().pipe(
+        return (
+          maybeMutation?.mutation.state$.pipe(
+            // last(),
             map((state) => ({
               state,
               options: maybeMutation.options
             }))
           ) ?? EMPTY
-      ),
-      mergeMap(({ state, options }) => {
+        )
+      }),
+      tap(({ state, options }) => {
         if (state.status === "error") {
           options?.onError &&
             options?.onError(
@@ -145,8 +153,13 @@ export class MutationObserver<
             )
         }
 
-        return EMPTY
-      })
+        console.log("complete")
+        // return NEVER
+      }),
+      finalize(() => {
+        console.log("mutationobserver.observed$ finalize")
+      }),
+      ignoreElements()
     )
   }
 
@@ -159,7 +172,7 @@ export class MutationObserver<
       ...options
     })
 
-    this.#currentMutationSubject.getValue()?.mutation.setOptions(this.options)
+    const currentMutation = this.#currentMutationSubject.getValue()?.mutation
 
     if (
       this.options.mutationKey &&
@@ -169,6 +182,8 @@ export class MutationObserver<
       })
     ) {
       this.reset()
+    } else {
+      currentMutation?.setOptions(this.options)
     }
   }
 
@@ -194,9 +209,24 @@ export class MutationObserver<
         getDefaultMutationState()
     )
 
+    const mutationResult$ = this.#mutationRunner.state$.pipe(
+      map((state) => this.getObserverResultFromState(state))
+    )
+
+    const currentMutationCancelled$ = this.#currentMutationSubject.pipe(
+      filter(isDefined),
+      switchMap((mutation) => mutation.mutation.cancelled$),
+      map(() => this.getObserverResultFromState(getDefaultMutationState()))
+    )
+
     const result$ = merge(
       this.observed$,
-      this.result$.pipe(map(({ state }) => state))
+      mutationResult$,
+      currentMutationCancelled$
+    ).pipe(
+      finalize(() => {
+        console.log("mutationobserver.observe.finalize")
+      })
     )
 
     return { result$, lastValue }
@@ -237,21 +267,18 @@ export class MutationObserver<
     })
 
     return await new Promise<TData>((resolve, reject) => {
-      mutation
-        .observeTillFinished()
-        .pipe(last())
-        .subscribe({
-          error: (error) => {
-            reject(error)
-          },
-          next: (data) => {
-            if (data.error) {
-              reject(data.error)
-            } else {
-              resolve(data.data as TData)
-            }
+      mutation.state$.pipe(observeUntilFinished, last()).subscribe({
+        error: (error) => {
+          reject(error)
+        },
+        next: (data) => {
+          if (data.error) {
+            reject(data.error)
+          } else {
+            resolve(data.data as TData)
           }
-        })
+        }
+      })
     })
   }
 
@@ -271,6 +298,9 @@ export class MutationObserver<
   }
 
   reset() {
-    this.#currentMutationSubject.getValue()?.mutation.reset()
+    console.log("observer reset")
+    const { mutation } = this.#currentMutationSubject.getValue() ?? {}
+    this.#currentMutationSubject.next(undefined)
+    mutation?.cancel()
   }
 }
