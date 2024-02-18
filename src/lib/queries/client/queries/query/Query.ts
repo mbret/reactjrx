@@ -139,14 +139,7 @@ export class Query<
             filter((options) => options?.cancelRefetch !== false)
           )
 
-          const executionAborted$ = this.observerCount$.pipe(
-            filter((count) => count === 0 && this.abortSignalConsumed),
-            tap(() => {
-              this.cancelSubject.next({ revert: true })
-            })
-          )
-
-          const functionExecution$ = executeQuery({
+          const { state$: functionExecution$, abortController } = executeQuery({
             ...this.options,
             queryKey: this.queryKey,
             onSignalConsumed: () => {
@@ -154,19 +147,32 @@ export class Query<
             }
           })
 
+          const executionAborted$ = this.observerCount$.pipe(
+            filter((count) => count === 0 && this.abortSignalConsumed),
+            tap(() => {
+              this.cancelSubject.next({ revert: true })
+            })
+          )
+
+          const cancelExecution$ = merge(
+            this.cancelSubject,
+            cancelFromNewRefetch$,
+            this.resetSubject,
+            executionAborted$
+          ).pipe(
+            tap(() => {
+              if (this.abortSignalConsumed) {
+                abortController.abort()
+              }
+            })
+          )
+
           return functionExecution$.pipe(
             map((state) => ({
               command: "execute" as const,
               state
             })),
-            takeUntil(
-              merge(
-                this.cancelSubject,
-                cancelFromNewRefetch$,
-                this.resetSubject,
-                executionAborted$
-              )
-            )
+            takeUntil(cancelExecution$)
           )
         }),
         finalize(() => {
@@ -198,7 +204,7 @@ export class Query<
       tap((state) => {
         this.state = state
 
-        console.log("Query state", state)
+        // console.log("Query state", state)
       }),
       takeUntil(this.destroySubject),
       finalize(() => {
@@ -280,12 +286,13 @@ export class Query<
   }
 
   isStale(): boolean {
-    // return (
-    //   this.state.isInvalidated ||
-    //   !this.state.dataUpdatedAt ||
-    //   this.#observers.some((observer) => observer.getCurrentResult().isStale)
-    // )
-    return false
+    return (
+      this.state.isInvalidated ||
+      !this.state.dataUpdatedAt ||
+      this.observersSubject
+        .getValue()
+        .some((observer) => observer.getCurrentResult().isStale)
+    )
   }
 
   isStaleByTime(staleTime = 0): boolean {
@@ -320,7 +327,7 @@ export class Query<
     if (this.state.fetchStatus !== "idle") {
       const shouldCancelRequest = !!this.state.dataUpdatedAt && cancelRefetch
 
-      console.log(`Query.fetch`, { shouldCancelRequest })
+      // console.log(`Query.fetch`, { shouldCancelRequest })
 
       if (!shouldCancelRequest) {
         // Return current promise if we are already fetching
@@ -333,10 +340,10 @@ export class Query<
       this.setOptions(options)
     }
 
-    console.log("Query.fetch", {
-      observers: this.getObserversCount(),
-      fetchOptions
-    })
+    // console.log("Query.fetch", {
+    //   observers: this.getObserversCount(),
+    //   fetchOptions
+    // })
 
     this.executeSubject.next(fetchOptions)
 

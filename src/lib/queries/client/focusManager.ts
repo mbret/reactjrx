@@ -1,4 +1,15 @@
-import { fromEvent, map, merge, shareReplay, startWith, tap } from "rxjs"
+import {
+  type Observable,
+  filter,
+  fromEvent,
+  map,
+  merge,
+  shareReplay,
+  skip,
+  startWith,
+  tap,
+  distinctUntilChanged,
+} from "rxjs"
 
 export class FocusManager {
   public readonly visibility$ = merge(
@@ -8,12 +19,20 @@ export class FocusManager {
   ).pipe(
     map(() => document.visibilityState),
     startWith(document.visibilityState),
+    distinctUntilChanged(),
     shareReplay(1)
   )
+
+  public readonly focusRegained$: Observable<DocumentVisibilityState>
 
   #visibility = document.visibilityState
 
   constructor() {
+    this.focusRegained$ = this.visibility$.pipe(
+      skip(1),
+      filter((visibility) => visibility === "visible")
+    )
+
     this.visibility$
       .pipe(
         tap((value) => {

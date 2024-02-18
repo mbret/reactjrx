@@ -1,15 +1,13 @@
 import {
   NEVER,
+  type Observable,
   Subject,
-  catchError,
-  delay,
   distinctUntilChanged,
   filter,
   ignoreElements,
   interval,
   map,
   merge,
-  mergeMap,
   noop,
   pairwise,
   shareReplay,
@@ -17,7 +15,8 @@ import {
   switchMap,
   takeWhile,
   tap,
-  timer
+  timer,
+  withLatestFrom
 } from "rxjs"
 import { type QueryClient } from "../../QueryClient"
 import { type QueryKey } from "../../keys/types"
@@ -49,6 +48,29 @@ export interface ObserverFetchOptions extends FetchOptions {
 
 export interface NotifyOptions {
   listeners?: boolean
+}
+
+interface LastResult<TQueryFnData, TError, TData, TQueryData, TQueryKey> {
+  state: Query<TQueryFnData, TError, TQueryData, TQueryKey>["state"]
+  result: QueryObserverResult<TData, TError>
+  options: QueryObserverOptions<
+    TQueryFnData,
+    TError,
+    TData,
+    TQueryData,
+    TQueryKey
+  >
+  selectResult?: TData
+  selectError?: null | TError
+  select?:
+    | QueryObserverOptions<
+        TQueryFnData,
+        TError,
+        TData,
+        TQueryData,
+        TQueryKey
+      >["select"]
+    | null
 }
 
 export class QueryObserver<
@@ -96,18 +118,13 @@ export class QueryObserver<
    * Mostly used for internal optimization such as not
    * running selectors twice, etc
    */
-  readonly #lastResult: {
-    state: Query<TQueryFnData, TError, TQueryData, TQueryKey>["state"]
-    result: QueryObserverResult<TData, TError>
-    options: QueryObserverOptions<
-      TQueryFnData,
-      TError,
-      TData,
-      TQueryData,
-      TQueryKey
-    >
-    selectError?: null | TError
-  }
+  readonly #lastResult: LastResult<
+    TQueryFnData,
+    TError,
+    TData,
+    TQueryData,
+    TQueryKey
+  >
 
   // This property keeps track of the last query with defined data.
   // It will be used to pass the previous data and query to the placeholder function between renders.
@@ -125,24 +142,25 @@ export class QueryObserver<
       TQueryKey
     >
   ) {
-    console.log("QueryObserver.new")
     this.#client = client
     this.bindMethods()
     this.options = this.#client.defaultQueryOptions(options)
     this.#currentQuery = this.buildQuery(this.options)
     const query = this.#currentQuery
     this.#currentQueryInitialState = query.state
+    const { result, select } = this.getObserverResultFromQuery({
+      query,
+      options: this.options,
+      prevResult: {
+        options: this.options,
+        state: query.state
+      }
+    })
     this.#lastResult = {
       state: query.state,
       options,
-      result: this.getObserverResultFromQuery({
-        query,
-        options: this.options,
-        prevResult: {
-          options: this.options,
-          state: query.state
-        }
-      }).result
+      result,
+      select
     }
   }
 
@@ -202,7 +220,10 @@ export class QueryObserver<
     prevResult: {
       result: prevResult,
       options: prevResultOptions,
-      state: prevResultState
+      state: prevResultState,
+      select: prevSelect,
+      selectError: prevSelectError,
+      selectResult: prevSelectResult
     }
   }: {
     query: Query<TQueryFnData, TError, TQueryData, TQueryKey>
@@ -214,29 +235,19 @@ export class QueryObserver<
       TQueryKey
     >
     optimisticResult?: boolean
-    prevResult: {
-      state: Query<TQueryFnData, TError, TQueryData, TQueryKey>["state"]
-      result?: QueryObserverResult<TData, TError>
-      options: QueryObserverOptions<
-        TQueryFnData,
-        TError,
-        TData,
-        TQueryData,
-        TQueryKey
-      >
-    }
-  }): { result: QueryObserverResult<TData, TError>; selectError?: TError } => {
+    prevResult: Partial<
+      LastResult<TQueryFnData, TError, TData, TQueryData, TQueryKey>
+    >
+  }) => {
     const state = query.state
     const isPending = query.state.status === "pending"
-    const isError = query.state.status === "error"
     const prevQuery = this.#currentQuery
     const prevOptions = this.options
     const queryChange = query !== prevQuery
     const queryInitialState = queryChange
       ? query.state
       : this.#currentQueryInitialState
-
-    let fetchStatus = query.state.fetchStatus
+    let { errorUpdatedAt, fetchStatus, error } = state
 
     if (optimisticResult) {
       const mounted = !!this.#observers
@@ -254,50 +265,49 @@ export class QueryObserver<
     }
 
     const isLoading = isPending && fetchStatus === "fetching"
-    let data = state.data as TData | undefined
+    let data: TData | undefined
 
-    const getSelectedValue = (): {
-      data?: TData
-      error?: TError
-      isSelected?: boolean
-    } => {
-      try {
-        const selectFn = options.select
+    let selectError = prevSelectError
+    let selectFn = prevSelect ?? null
+    let selectResult = prevSelectResult
 
-        if (selectFn && typeof state.data !== "undefined") {
-          const lastObservedResultSelectedData = prevResult?.data
-
-          if (
-            prevResultState.data === data &&
-            lastObservedResultSelectedData !== undefined
-          ) {
-            if (this.#lastResult.selectError) {
-              return { error: this.#lastResult.selectError }
-            }
-
-            return { data: lastObservedResultSelectedData, isSelected: true }
-          }
-
-          return { data: selectFn(state.data), isSelected: true }
+    // Select data if needed
+    if (options.select && typeof state.data !== "undefined") {
+      // Memoize select result
+      if (
+        prevResult &&
+        state.data === prevResultState?.data &&
+        options.select === prevSelect
+      ) {
+        data = prevSelectResult
+      } else {
+        try {
+          selectFn = options.select
+          data = options.select(state.data)
+          data = replaceData(prevResult?.data, data, options)
+          selectResult = data
+          selectError = null
+        } catch (error) {
+          data = prevSelectResult
+          selectError = error as TError
         }
-
-        return { data: data as TData }
-      } catch (error) {
-        return { error: error as TError }
       }
+    } else {
+      data = state.data as TData | undefined
+      selectError = null
     }
 
-    const {
-      data: selectData,
-      error: selectError,
-      isSelected
-    } = getSelectedValue()
+    let status =
+      fetchStatus !== "idle" && !state.dataUpdatedAt ? "pending" : state.status
 
-    let status = selectError
-      ? "error"
-      : fetchStatus !== "idle" && !state.dataUpdatedAt
-        ? "pending"
-        : state.status
+    if (selectError) {
+      error = selectError
+      data = prevSelectResult
+      errorUpdatedAt = prevResult?.errorUpdatedAt ?? errorUpdatedAt
+      status = "error"
+    }
+
+    const isError = status === "error"
 
     let isPlaceholderData = false
 
@@ -346,15 +356,22 @@ export class QueryObserver<
       }
     }
 
-    const finalData = isSelected ? selectData : (data as TData)
+    // const finalData = isSelected ? selectData : (data as TData)
 
     const isFetching = fetchStatus === "fetching"
 
-    // console.log(
-    //   "queryObserver.getResult",
-    //   state.dataUpdateCount,
-    //   queryInitialState.dataUpdateCount
-    // )
+    // console.log("queryObserver.getResult", {
+    //   selectFn,
+    //   selectError,
+    //   select: options.select && typeof state.data !== "undefined",
+    //   stateData: state.data,
+    //   prevResultStateData: prevResultState?.data,
+    //   sameSelect: options.select === prevSelect,
+    //   usePreviousData:
+    //     prevResult &&
+    //     state.data === prevResultState?.data &&
+    //     options.select === prevSelect
+    // })
 
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     const result = {
@@ -365,15 +382,14 @@ export class QueryObserver<
       isError,
       isInitialLoading: isLoading,
       isLoading,
-      data: finalData,
-      dataUpdatedAt: query.state.dataUpdatedAt,
-      error: selectError ?? query.state.error,
-      errorUpdatedAt: 0,
-      failureCount: query.state.fetchFailureCount,
-      failureReason: query.state.fetchFailureReason,
-      errorUpdateCount: query.state.errorUpdateCount,
-      isFetched:
-        query.state.dataUpdateCount > 0 || query.state.errorUpdateCount > 0,
+      data,
+      dataUpdatedAt: state.dataUpdatedAt,
+      error,
+      errorUpdatedAt,
+      failureCount: state.fetchFailureCount,
+      failureReason: state.fetchFailureReason,
+      errorUpdateCount: state.errorUpdateCount,
+      isFetched: state.dataUpdateCount > 0 || state.errorUpdateCount > 0,
       isFetchedAfterMount:
         state.dataUpdateCount > queryInitialState.dataUpdateCount ||
         state.errorUpdateCount > queryInitialState.errorUpdateCount,
@@ -387,12 +403,15 @@ export class QueryObserver<
       refetch: this.refetch
     } as QueryObserverResult<TData, TError>
 
-    // console.log("QueryObserver.result", { result })
-
     return {
       result,
-      selectError
-    }
+      selectError,
+      select: selectFn,
+      selectResult
+    } satisfies Pick<
+      LastResult<TQueryFnData, TError, TData, TQueryData, TQueryKey>,
+      "select" | "selectError" | "result" | "selectResult"
+    >
   }
 
   getCurrentResult(): QueryObserverResult<TData, TError> {
@@ -443,15 +462,24 @@ export class QueryObserver<
   protected updateResult({
     query,
     result,
-    selectError
-  }: {
+    selectError,
+    select,
+    selectResult
+  }: Pick<
+    LastResult<TQueryFnData, TError, TData, TQueryData, TQueryKey>,
+    "select" | "selectError" | "result" | "selectResult"
+  > & {
     query: Query<TQueryFnData, TError, TQueryData, TQueryKey>
-    result: QueryObserverResult<TData, TError>
-    selectError?: TError
   }) {
     this.#lastResult.state = query.state
     this.#lastResult.result = result
-    this.#lastResult.selectError = selectError
+    this.#lastResult.selectResult = selectResult
+    if (selectError !== undefined) {
+      this.#lastResult.selectError = selectError
+    }
+    if (select !== undefined) {
+      this.#lastResult.select = select
+    }
     this.#lastResult.options = this.options
 
     if (query.state.data !== undefined) {
@@ -470,7 +498,6 @@ export class QueryObserver<
   protected async fetch(
     fetchOptions?: ObserverFetchOptions
   ): Promise<QueryObserverResult<TData, TError>> {
-    console.log("fetch")
     // Make sure we reference the latest query as the current one might have been removed
     const query = this.buildQuery(this.options)
 
@@ -571,6 +598,9 @@ export class QueryObserver<
               filter((update) => update.query === query),
               map((update) => update.options),
               distinctUntilChanged(),
+              tap(() => {
+                console.log("NEW OPTIONS")
+              }),
               shareReplay(1)
             )
 
@@ -584,7 +614,8 @@ export class QueryObserver<
                 this.options.staleTime === Infinity
                   ? NEVER
                   : timer(this.options.staleTime ?? 1).pipe(map(() => state))
-              )
+              ),
+              takeWhile(() => this.options.enabled ?? true)
             )
 
             // @todo move into its own operator
@@ -652,6 +683,21 @@ export class QueryObserver<
               ignoreElements()
             )
 
+            const onFocusRegain$ = focusManager.focusRegained$.pipe(
+              tap({
+                next: () => {
+                  console.log("onFocusRegain$")
+                  this.fetch({ cancelRefetch: false }).catch(noop)
+                },
+                subscribe: () => {
+                  console.log("onFocusRegain$ subscribe")
+                },
+                unsubscribe: () => {
+                  console.log("onFocusRegain$ unsubscribe")
+                }
+              })
+            )
+
             const isMaybeEnabled$ = options$.pipe(
               map(({ enabled }) => enabled ?? true),
               distinctUntilChanged()
@@ -662,58 +708,50 @@ export class QueryObserver<
               map(() => query.state)
             )
 
-            const observedState$ = query.state$.pipe(
-              tap({
-                subscribe: () => {
-                  // console.log("QueryObserver.observe.observedState$.subscribe")
-                },
-                unsubscribe: () => {
-                  // console.log(
-                  //   "QueryObserver.observe.observedState$.unsubscribe"
-                  // )
-                }
-              })
-            )
-
             const stateObservedOnDisabled$ = disabled$.pipe(
               map(() => query.state)
             )
 
-            const updateResult = () => {
-              console.log("update result")
-              const result = this.getObserverResultFromQuery({
-                query,
-                options,
-                prevResult: this.#lastResult
-              })
+            const updateResult = (
+              source: Observable<any>
+            ): Observable<QueryObserverResult<TData, TError>> => {
+              return source.pipe(
+                withLatestFrom(options$),
+                map(([, currentOptions]) => {
+                  const result = this.getObserverResultFromQuery({
+                    query,
+                    options: currentOptions,
+                    prevResult: this.#lastResult
+                  })
 
-              this.updateResult({ query, ...result })
+                  this.updateResult({ query, ...result })
 
-              return result.result
+                  return result.result
+                })
+              )
             }
 
-            const allObservedState$ = merge(
+            const stateUpdate$ = merge(
               stateObservedOnDisabled$,
               queryInternallyFetchedUpdate$,
-              observedState$
-            ).pipe(map(updateResult))
-
-            const stateUpdate$ = merge(
-              allObservedState$,
-              currentQueryIsStale$.pipe(
-                map(updateResult),
-                takeWhile(() => this.options.enabled ?? true)
-              )
+              query.state$,
+              // options$,
+              currentQueryIsStale$
             )
 
             const observedResult$ = stateUpdate$.pipe(
+              updateResult,
               // This one ensure we don't re-trigger same state
               distinctUntilChanged(shallowEqual),
               // This one make sure we dispatch based on user preference
               distinctUntilChanged(comparisonFunction)
             )
 
-            return merge(refetchInterval$, observedResult$).pipe(
+            return merge(
+              refetchInterval$,
+              onFocusRegain$,
+              observedResult$
+            ).pipe(
               tap({
                 unsubscribe: () => {
                   console.log("QueryObserver.observedResult$.unsubscribe")

@@ -24,32 +24,12 @@ export const executeMutation = async <TVariables>(
 }
 
 export function mockOnlineManagerIsOnline(value: boolean) {
-  // const mocks = [
-  //   vi.spyOn(onlineManager, "isOnline").mockReturnValue(value),
-  //   vi.spyOn(onlineManager, "backToOnline$", "get").mockReturnValue(of(value)),
-  //   vi.spyOn(onlineManager, "online$", "get").mockReturnValue(of(value))
-  // ]
   window.dispatchEvent(new Event(value ? "online" : "offline"))
-  // onlineManager.setOnline(value)
-  // onlineManager.setOnline(value)
-
-  // onlineManager.refresh()
-
-  // const _mockRestore = mock.mockRestore
-
-  // mock.mockRestore = () => {
-  //   _mockRestore()
-  //   onlineManager.setOnline(true)
-  //   // onlineManager.refresh()
-  // }
 
   return {
     mockReturnValue: (_: boolean) => {},
     mockRestore: () => {
-      // window.dispatchEvent(new Event(value ? "offline" : "online"))
       window.dispatchEvent(new Event("online"))
-      // onlineManager.setOnline(true)
-      // mocks.forEach((mock) => { mock.mockRestore(); })
     }
   }
 }
@@ -63,7 +43,7 @@ export function mockVisibilityState(
 
   focusManager.refresh()
 
-  const _mockRestore = mock.mockRestore
+  const _mockRestore = mock.mockRestore.bind(mock)
 
   mock.mockRestore = () => {
     _mockRestore()

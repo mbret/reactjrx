@@ -1,20 +1,26 @@
-import { defer, iif, type Observable, throwError, timer, merge, of } from "rxjs"
-import { catchError, concatMap, mergeMap, retryWhen, tap } from "rxjs/operators"
+import { defer, type Observable, throwError, timer, merge, of } from "rxjs"
+import {
+  catchError,
+  concatMap,
+  first,
+  mergeMap,
+  retryWhen,
+  switchMap,
+  tap
+} from "rxjs/operators"
 
-export interface RetryBackoffConfig<T> {
+export interface RetryBackoffConfig<T, TError> {
   // Initial interval. It will eventually go as high as maxInterval.
-  initialInterval: number
-  // Maximum number of retry attempts.
-  maxRetries?: number
+  initialInterval?: number
   // Maximum delay between retries.
   maxInterval?: number
   // When set to `true` every successful emission will reset the delay and the
   // error count.
   resetOnSuccess?: boolean
+  retry?: (attempt: number, error: TError) => Observable<boolean>
+  retryDelay?: number | ((failureCount: number, error: TError) => number)
   // Conditional retry.
-  // eslint-disable-next-line no-unused-vars
-  shouldRetry?: (attempt: number, error: any) => boolean
-  // eslint-disable-next-line no-unused-vars
+  // shouldRetry?: (attempt: number, error: any) => Observable<boolean>
   backoffDelay?: (iteration: number, initialInterval: number) => number
   caughtError?: (attempt: number, error: any) => void | Observable<T>
   catchError?: (attempt: number, error: any) => Observable<T>
@@ -41,40 +47,68 @@ export function exponentialBackoffDelay(
  * re-subscriptions (if provided). Retrying can be cancelled at any point if
  * shouldRetry returns false.
  */
-export function retryBackoff<T>(config: RetryBackoffConfig<T>) {
+export function retryBackoff<T, TError>(config: RetryBackoffConfig<T, TError>) {
+  const { retry, retryDelay } = config
+
+  const maxRetries =
+    typeof retry !== "function"
+      ? retry === false
+        ? 0
+        : retry === true
+          ? Infinity
+          : retry ?? Infinity
+      : Infinity
+
+  const shouldRetry =
+    typeof retry === "function"
+      ? // ? (attempt: number, error: TError) => of(retry(attempt, error))
+        retry
+      : () => of(true)
+
+  const initialInterval = typeof retryDelay === "number" ? retryDelay : 100
+
+  const normalizedConfig = {
+    shouldRetry,
+    ...config
+  }
+
   const {
-    initialInterval,
-    maxRetries = Infinity,
     maxInterval = Infinity,
-    shouldRetry = () => true,
     resetOnSuccess = false,
     backoffDelay = exponentialBackoffDelay
-  } = config
+  } = normalizedConfig
 
   return <T>(source: Observable<T>) =>
     defer(() => {
       let caughtErrors = 0
 
-      const shouldRetryFn = (attempt: number, error: unknown) =>
-        attempt < maxRetries && shouldRetry(attempt, error)
+      const shouldRetryFn = (attempt: number, error: TError) =>
+        attempt < maxRetries ? shouldRetry(attempt, error) : of(false)
 
       return source.pipe(
         catchError<T, Observable<T>>((error) => {
           caughtErrors++
 
-          if (!shouldRetryFn(caughtErrors - 1, error)) throw error
+          return shouldRetryFn(caughtErrors - 1, error).pipe(
+            switchMap((shouldRetry) => {
+              if (!shouldRetry) throw error
 
-          const caughtErrorResult$ = config.caughtError?.(caughtErrors, error)
-
-          if (!caughtErrorResult$) throw error
-
-          return caughtErrorResult$.pipe(
-            mergeMap((source) =>
-              merge(
-                of(source) as unknown as Observable<T>,
-                throwError(() => error)
+              const caughtErrorResult$ = config.caughtError?.(
+                caughtErrors,
+                error
               )
-            )
+
+              if (!caughtErrorResult$) throw error
+
+              return caughtErrorResult$.pipe(
+                mergeMap((source) =>
+                  merge(
+                    of(source) as unknown as Observable<T>,
+                    throwError(() => error)
+                  )
+                )
+              )
+            })
           )
         }),
         retryWhen<T>((errors) => {
@@ -82,13 +116,23 @@ export function retryBackoff<T>(config: RetryBackoffConfig<T>) {
             concatMap((error) => {
               const attempt = caughtErrors - 1
 
-              return iif(
-                () => shouldRetryFn(attempt, error),
-                timer(
-                  getDelay(backoffDelay(attempt, initialInterval), maxInterval)
-                ),
-                throwError(() => error)
-              )
+              return defer(() => {
+                const shouldRetry$ = shouldRetryFn(attempt, error)
+
+                return shouldRetry$.pipe(
+                  first(),
+                  mergeMap((shouldRetry) =>
+                    shouldRetry
+                      ? timer(
+                          getDelay(
+                            backoffDelay(attempt, initialInterval),
+                            maxInterval
+                          )
+                        )
+                      : throwError(() => error)
+                  )
+                )
+              })
             })
           )
         }),

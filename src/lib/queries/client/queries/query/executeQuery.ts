@@ -1,5 +1,4 @@
 import {
-  type Observable,
   of,
   switchMap,
   merge,
@@ -8,18 +7,17 @@ import {
   tap,
   ignoreElements,
   endWith,
-  share,
+  share
 } from "rxjs"
 import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
 import { makeObservable } from "../../utils/makeObservable"
 import { type QueryFunctionContext, type QueryState } from "./types"
-import { retryOnError } from "../../operators"
 import { type QueryOptions } from "../types"
 import { delayOnNetworkMode } from "./delayOnNetworkMode"
 import { onlineManager } from "../../onlineManager"
-import { delayWhenVisibilityChange } from "./delayWhenVisibilityChange"
-import { focusManager } from "../../focusManager"
+import { delayUntilFocus } from "./delayUntilFocus"
+import { retryBackoff } from "../../../../utils/operators/retryBackoff"
 
 export const executeQuery = <
   TQueryFnData = unknown,
@@ -31,7 +29,7 @@ export const executeQuery = <
     queryKey: TQueryKey
     onSignalConsumed: () => void
   }
-): Observable<Partial<QueryState<TData, TError>>> => {
+) => {
   type Result = Partial<QueryState<TData, TError>>
 
   const defaultFn = async () =>
@@ -81,10 +79,19 @@ export const executeQuery = <
         error: null
       })
     ),
-    delayWhenVisibilityChange(focusManager),
     delayOnNetworkMode<TData, TError>(options),
-    retryOnError<Result, TError>({
-      retry: options.retry,
+    retryBackoff<Result, TError>({
+      retry: (attempt, error) => {
+        const shouldRetry = () => {
+          const retry = options.retry ?? true
+          if (typeof retry === "function") return retry(attempt, error)
+          if (typeof retry === "boolean") return retry
+
+          return attempt < retry
+        }
+
+        return of(shouldRetry()).pipe(delayUntilFocus)
+      },
       retryDelay: options.retryDelay,
       catchError: (attempt, error) =>
         of({
@@ -155,5 +162,8 @@ export const executeQuery = <
     // error: defaultState.error
   } satisfies Result)
 
-  return merge(initialResult$, execution$, emitOnComplete$)
+  return {
+    state$: merge(initialResult$, execution$, emitOnComplete$),
+    abortController
+  }
 }

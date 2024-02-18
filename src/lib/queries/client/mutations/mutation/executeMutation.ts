@@ -14,13 +14,13 @@ import {
 } from "rxjs"
 import { type MutationOptions, type MutationState } from "./types"
 import { makeObservable } from "../../utils/makeObservable"
-import { retryOnError } from "../../operators"
 import { type DefaultError } from "../../types"
 import { getDefaultMutationState } from "../defaultMutationState"
 import { shallowEqual } from "../../../../utils/shallowEqual"
 import { onlineManager } from "../../onlineManager"
 import { waitForNetworkOnError } from "./waitForNetworkOnError"
 import { delayWhenNetworkOnline } from "./delayWhenNetworkOnline"
+import { retryBackoff } from "../../../../utils/operators/retryBackoff"
 
 export const executeMutation = <
   TData = unknown,
@@ -101,9 +101,15 @@ export const executeMutation = <
           })
         ),
         waitForNetworkOnError,
-        retryOnError({
-          retry: 0,
+        retryBackoff({
           ...options,
+          retry: (attempt, error) => {
+            const retry = options.retry ?? 0
+            if (typeof retry === "function") return of(retry(attempt, error))
+            if (typeof retry === "boolean") return of(retry)
+
+            return attempt < retry ? of(true) : of(false)
+          },
           caughtError: (attempt, error) =>
             // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
             of({

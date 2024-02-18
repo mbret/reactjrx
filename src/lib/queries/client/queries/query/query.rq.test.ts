@@ -84,7 +84,7 @@ describe("query", () => {
     await sleep(50)
     expect(result).toBeUndefined()
 
-    // // Reset visibilityState to original value
+    // Reset visibilityState to original value
     visibilityMock.mockRestore()
     window.dispatchEvent(new Event("visibilitychange"))
 

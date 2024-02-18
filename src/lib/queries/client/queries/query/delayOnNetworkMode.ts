@@ -14,13 +14,11 @@ export const delayOnNetworkMode = <TData, TError>(
     source: Observable<Result<TData, TError>>
   ): Observable<Result<TData, TError>> => {
     const runWhenOnline$ = onlineManager.backToOnline$.pipe(
-      mergeMap(
-        () =>
-          merge(
-            of({ fetchStatus: "fetching" } satisfies Partial<QueryState>),
-            source
-          )
-        // .pipe(options.onNetworkRestored)
+      mergeMap(() =>
+        merge(
+          of({ fetchStatus: "fetching" } satisfies Partial<QueryState>),
+          source
+        )
       )
     )
 
