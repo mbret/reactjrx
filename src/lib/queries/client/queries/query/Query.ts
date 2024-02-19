@@ -13,7 +13,8 @@ import {
   startWith,
   distinctUntilChanged,
   catchError,
-  finalize
+  ignoreElements,
+  pairwise
 } from "rxjs"
 import { isServer } from "../../../../utils/isServer"
 import { type QueryKey } from "../../keys/types"
@@ -29,6 +30,7 @@ import { CancelledError } from "../retryer/CancelledError"
 import { reduceState, takeUntilFinished } from "./operators"
 import { shallowEqual } from "../../../../utils/shallowEqual"
 import { type QueryObserver } from "../observer/QueryObserver"
+import { Logger } from "../../../../logger"
 
 interface QueryConfig<
   TQueryFnData,
@@ -130,6 +132,8 @@ export class Query<
         mergeMap(() => {
           console.log("Query.executeSubject.next")
 
+          let noMoreObserversActive = false
+
           // @todo improve with a switchMap ?
           const cancelFromNewRefetch$ = this.executeSubject.pipe(
             // should not be needed since the fetch return current promise
@@ -137,15 +141,39 @@ export class Query<
             filter((options) => options?.cancelRefetch !== false)
           )
 
+          const detectNoMoreObserversActive$ = this.observers$.pipe(
+            pairwise(),
+            tap(([prevObservers, currentObservers]) => {
+              if (currentObservers.length === 0 && prevObservers.length > 0) {
+                noMoreObserversActive = true
+              } else {
+                noMoreObserversActive = false
+              }
+            }),
+            ignoreElements()
+          )
+
           const { state$: functionExecution$, abortController } = executeQuery({
             ...this.options,
             queryKey: this.queryKey,
+            retry: (attempt, error) => {
+              const retry = this.options.retry ?? true
+              if (typeof retry === "function") return retry(attempt, error)
+              if (typeof retry === "boolean") return retry
+
+              return attempt < retry
+            },
+            retryAfterDelay: () => {
+              if (noMoreObserversActive) return false
+
+              return true
+            },
             onSignalConsumed: () => {
               this.abortSignalConsumed = true
             }
           })
 
-          const executionAborted$ = this.observerCount$.pipe(
+          const executionAbortedFromSignal$ = this.observerCount$.pipe(
             filter((count) => count === 0 && this.abortSignalConsumed),
             tap(() => {
               this.cancelSubject.next({ revert: true })
@@ -156,7 +184,7 @@ export class Query<
             this.cancelSubject,
             cancelFromNewRefetch$,
             this.resetSubject,
-            executionAborted$
+            executionAbortedFromSignal$
           ).pipe(
             tap(() => {
               if (this.abortSignalConsumed) {
@@ -165,7 +193,7 @@ export class Query<
             })
           )
 
-          return functionExecution$.pipe(
+          return merge(functionExecution$, detectNoMoreObserversActive$).pipe(
             map((state) => ({
               command: "execute" as const,
               state
@@ -199,14 +227,9 @@ export class Query<
         this.state = state
       }),
       takeUntil(this.destroySubject),
-      finalize(() => {
-        console.log("Query.state$.complete", {
-          observers: this.getObserversCount()
-        })
-      }),
       shareReplay({ bufferSize: 1, refCount: false }),
       catchError((e) => {
-        console.error(e)
+        Logger.error(e)
 
         throw e
       })

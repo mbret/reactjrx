@@ -1,23 +1,23 @@
 import {
   of,
-  switchMap,
   merge,
   map,
   delay,
   tap,
   ignoreElements,
   endWith,
-  share
+  share,
+  mergeMap
 } from "rxjs"
 import { type QueryKey } from "../../keys/types"
 import { type DefaultError } from "../../types"
 import { makeObservable } from "../../utils/makeObservable"
 import { type QueryFunctionContext, type QueryState } from "./types"
 import { type QueryOptions } from "../types"
-import { delayOnNetworkMode } from "./delayOnNetworkMode"
 import { onlineManager } from "../../onlineManager"
 import { delayUntilFocus } from "./delayUntilFocus"
 import { retryBackoff } from "../../../../utils/operators/retryBackoff"
+import { delayOnNetworkMode } from "./delayOnNetworkMode"
 
 export const executeQuery = <
   TQueryFnData = unknown,
@@ -28,6 +28,8 @@ export const executeQuery = <
   options: QueryOptions<TQueryFnData, TError, TData, TQueryKey> & {
     queryKey: TQueryKey
     onSignalConsumed: () => void
+    retry: (attempt: number, error: TError) => boolean
+    retryAfterDelay: (attempt: number, error: TError) => boolean
   }
 ) => {
   type Result = Partial<QueryState<TData, TError>>
@@ -75,25 +77,13 @@ export const executeQuery = <
     }),
     map(
       (data): Result => ({
-        data: data as unknown as TData,
-        error: null
+        data: data as unknown as TData
       })
     ),
     delayOnNetworkMode<TData, TError>(options),
     retryBackoff<Result, TError>({
-      retry: (attempt, error) => {
-        const shouldRetry = () => {
-          const retry = options.retry ?? true
-          if (typeof retry === "function") return retry(attempt, error)
-          if (typeof retry === "boolean") return retry
-
-          return attempt < retry
-        }
-
-        return shouldRetry()
-      },
+      ...options,
       retryAfter: () => of(true).pipe(delayUntilFocus),
-      retryDelay: options.retryDelay,
       catchError: (attempt, error) =>
         of({
           status: "error",
@@ -109,7 +99,7 @@ export const executeQuery = <
           fetchFailureReason: error
         } as Result)
     }),
-    switchMap((state) => {
+    mergeMap((state) => {
       if (!("data" in state)) return of(state)
 
       return of({
@@ -159,8 +149,6 @@ export const executeQuery = <
   const initialResult$ = of({
     status: "pending",
     fetchStatus: onlineManager.isOnline() ? "fetching" : "paused"
-    // data: defaultState.data,
-    // error: defaultState.error
   } satisfies Result)
 
   return {

@@ -24,9 +24,10 @@ export interface RetryBackoffConfig<T, TError> {
   // error count.
   resetOnSuccess?: boolean
   retry?: (attempt: number, error: TError) => boolean
+  retryAfterDelay?: (attempt: number, error: TError) => boolean
   // Can be used to delay the retry (outside of backoff process)
   // for example if you want to pause retry due to connectivity issue
-  retryAfter?: () => Observable<boolean>
+  retryAfter?: () => Observable<any>
   retryDelay?: number | ((attempt: number, error: TError) => number)
   // Conditional retry.
   // shouldRetry?: (attempt: number, error: any) => Observable<boolean>
@@ -57,7 +58,12 @@ export function exponentialBackoffDelay(
  * shouldRetry returns false.
  */
 export function retryBackoff<T, TError>(config: RetryBackoffConfig<T, TError>) {
-  const { retry, retryDelay, retryAfter = () => of(true) } = config
+  const {
+    retry,
+    retryDelay,
+    retryAfterDelay,
+    retryAfter = () => of(true)
+  } = config
 
   const maxRetries =
     typeof retry !== "function"
@@ -118,21 +124,29 @@ export function retryBackoff<T, TError>(config: RetryBackoffConfig<T, TError>) {
             concatMap((error) => {
               const attempt = caughtErrors - 1
 
-              return defer(() => {
-                return retryAfter().pipe(
-                  first(),
-                  mergeMap(() =>
-                    shouldRetryFn(attempt, error)
-                      ? timer(
-                          getDelay(
-                            backoffDelay(attempt, initialInterval),
-                            maxInterval
-                          )
+              return retryAfter().pipe(
+                first(),
+                mergeMap(() =>
+                  shouldRetryFn(attempt, error)
+                    ? timer(
+                        getDelay(
+                          backoffDelay(attempt, initialInterval),
+                          maxInterval
                         )
-                      : throwError(() => error)
-                  )
+                      ).pipe(
+                        mergeMap((timer) => {
+                          if (
+                            retryAfterDelay &&
+                            !retryAfterDelay(attempt, error)
+                          )
+                            return throwError(() => error)
+
+                          return of(timer)
+                        })
+                      )
+                    : throwError(() => error)
                 )
-              })
+              )
             })
           )
         }),

@@ -425,7 +425,14 @@ export class QueryObserver<
   }
 
   getCurrentResult(): QueryObserverResult<TData, TError> {
-    return this.#lastResult.result
+    // return this.#lastResult.result
+    const result = this.getObserverResultFromQuery({
+      options: this.options,
+      prevResult: this.#lastResult,
+      query: this.#currentQuery,
+    })
+
+    return result.result
   }
 
   getCurrentQuery() {

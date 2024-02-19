@@ -507,24 +507,24 @@ import { focusManager } from '../../focusManager'
     //   expect(results2[1]).toMatchObject({ data: 'data' })
     // })
   
-    // test('should stop retry when unsubscribing', async () => {
-    //   const key = queryKey()
-    //   let count = 0
-    //   const observer = new QueryObserver(queryClient, {
-    //     queryKey: key,
-    //     queryFn: async () => {
-    //       count++
-    //       return await Promise.reject<unknown>('reject')
-    //     },
-    //     retry: 10,
-    //     retryDelay: 50,
-    //   })
-    //   const unsubscribe = observer.subscribe(() => undefined)
-    //   await sleep(70)
-    //   unsubscribe()
-    //   await sleep(200)
-    //   expect(count).toBe(2)
-    // })
+    test('should stop retry when unsubscribing', async () => {
+      const key = queryKey()
+      let count = 0
+      const observer = new QueryObserver(queryClient, {
+        queryKey: key,
+        queryFn: async () => {
+          count++
+          return await Promise.reject<unknown>('reject')
+        },
+        retry: 10,
+        retryDelay: 50,
+      })
+      const unsubscribe = observer.subscribe(() => undefined)
+      await sleep(70)
+      unsubscribe()
+      await sleep(200)
+      expect(count).toBe(2)
+    })
   
     test('should clear interval when unsubscribing to a refetchInterval query', async () => {
       const key = queryKey()
@@ -691,78 +691,78 @@ import { focusManager } from '../../focusManager'
       unsubscribe()
     })
   
-    // test('should not use replaceEqualDeep for select value when structuralSharing option is true and placeholderData is defined', () => {
-    //   const key = queryKey()
+    test('should not use replaceEqualDeep for select value when structuralSharing option is true and placeholderData is defined', () => {
+      const key = queryKey()
   
-    //   const data = { value: 'data' }
-    //   const selectedData1 = { value: 'data' }
-    //   const selectedData2 = { value: 'data' }
-    //   const placeholderData1 = { value: 'data' }
-    //   const placeholderData2 = { value: 'data' }
+      const data = { value: 'data' }
+      const selectedData1 = { value: 'data' }
+      const selectedData2 = { value: 'data' }
+      const placeholderData1 = { value: 'data' }
+      const placeholderData2 = { value: 'data' }
   
-    //   const observer = new QueryObserver(queryClient, {
-    //     queryKey: key,
-    //     queryFn: () => data,
-    //     select: () => data,
-    //   })
+      const observer = new QueryObserver(queryClient, {
+        queryKey: key,
+        queryFn: () => data,
+        select: () => data,
+      })
   
-    //   observer.setOptions({
-    //     queryKey: key,
-    //     queryFn: () => data,
-    //     select: () => {
-    //       return selectedData1
-    //     },
-    //     placeholderData: placeholderData1,
-    //   })
+      observer.setOptions({
+        queryKey: key,
+        queryFn: () => data,
+        select: () => {
+          return selectedData1
+        },
+        placeholderData: placeholderData1,
+      })
   
-    //   observer.setOptions({
-    //     queryKey: key,
-    //     queryFn: () => data,
-    //     select: () => {
-    //       return selectedData2
-    //     },
-    //     placeholderData: placeholderData2,
-    //     structuralSharing: false,
-    //   })
+      observer.setOptions({
+        queryKey: key,
+        queryFn: () => data,
+        select: () => {
+          return selectedData2
+        },
+        placeholderData: placeholderData2,
+        structuralSharing: false,
+      })
   
-    //   expect(observer.getCurrentResult().data).toBe(selectedData2)
-    // })
+      expect(observer.getCurrentResult().data).toBe(selectedData2)
+    })
   
-    // test('should not use an undefined value returned by select as placeholderData', () => {
-    //   const key = queryKey()
+    test('should not use an undefined value returned by select as placeholderData', () => {
+      const key = queryKey()
   
-    //   const data = { value: 'data' }
-    //   const selectedData = { value: 'data' }
-    //   const placeholderData1 = { value: 'data' }
-    //   const placeholderData2 = { value: 'data' }
+      const data = { value: 'data' }
+      const selectedData = { value: 'data' }
+      const placeholderData1 = { value: 'data' }
+      const placeholderData2 = { value: 'data' }
   
-    //   const observer = new QueryObserver(queryClient, {
-    //     queryKey: key,
-    //     queryFn: () => data,
-    //     select: () => data,
-    //   })
+      const observer = new QueryObserver(queryClient, {
+        queryKey: key,
+        queryFn: () => data,
+        select: () => data,
+      })
   
-    //   observer.setOptions({
-    //     queryKey: key,
-    //     queryFn: () => data,
-    //     select: () => {
-    //       return selectedData
-    //     },
-    //     placeholderData: placeholderData1,
-    //   })
+      observer.setOptions({
+        queryKey: key,
+        queryFn: () => data,
+        select: () => {
+          return selectedData
+        },
+        placeholderData: placeholderData1,
+      })
   
-    //   expect(observer.getCurrentResult().isPlaceholderData).toBe(true)
+      expect(observer.getCurrentResult().isPlaceholderData).toBe(true)
   
-    //   observer.setOptions({
-    //     queryKey: key,
-    //     queryFn: () => data,
-    //     // @ts-expect-error
-    //     select: () => undefined,
-    //     placeholderData: placeholderData2,
-    //   })
+      observer.setOptions({
+        queryKey: key,
+        queryFn: () => data,
+        // @ts-expect-error
+        select: () => undefined,
+        placeholderData: placeholderData2,
+      })
   
-    //   expect(observer.getCurrentResult().isPlaceholderData).toBe(false)
-    // })
+      expect(observer.getCurrentResult().isPlaceholderData).toBe(false)
+    })
   
     test('should pass the correct previous queryKey (from prevQuery) to placeholderData function params with select', async () => {
       const results: Array<QueryObserverResult> = []
