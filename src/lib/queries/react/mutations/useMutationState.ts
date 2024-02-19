@@ -1,14 +1,13 @@
-import { useMemo } from "react"
 import { useObserve } from "../../../binding/useObserve"
 import { type MutationFilters } from "../../client/mutations/types"
 import { useLiveRef } from "../../../utils/useLiveRef"
 import { type Mutation } from "../../client/mutations/mutation/Mutation"
-import { skip } from "rxjs"
-import { hashKey } from "../../client/keys/hashKey"
-import { createPredicateForFilters } from "../../client/mutations/filters"
+import { distinctUntilChanged, map, skip } from "rxjs"
 import { type QueryClient } from "../../client/QueryClient"
 import { type MutationState } from "../../client/mutations/mutation/types"
 import { useQueryClient } from "../useQueryClient"
+import { useConstant } from "../../../utils/useConstant"
+import { shallowEqual } from "../../../utils/shallowEqual"
 
 export interface MutationStateOptions<TResult, TData> {
   filters?: MutationFilters<TData>
@@ -16,38 +15,46 @@ export interface MutationStateOptions<TResult, TData> {
 }
 
 export const useMutationState = <TData, TResult = MutationState>(
-  { filters, select }: MutationStateOptions<TResult, TData> = {},
+  options: MutationStateOptions<TResult, TData> = {},
   queryClient?: QueryClient
 ): TResult[] => {
   const finalQueryClient = useQueryClient(queryClient)
-  const { mutationKey, status } = filters ?? {}
-  const filtersRef = useLiveRef(filters)
-  const serializedKey = mutationKey ? hashKey(mutationKey) : undefined
-  const selectRef = useLiveRef(select)
+  const mutationCache = finalQueryClient.getMutationCache()
+  const optionsRef = useLiveRef(options)
 
-  const { value$, lastValue } = useMemo(() => {
-    void serializedKey
-    void status
+  const defaultValue = useConstant(() =>
+    mutationCache
+      .findAll(optionsRef.current.filters)
+      .map(
+        (mutation): TResult =>
+          (options.select
+            ? options.select(mutation)
+            : mutation.state) as TResult
+      )
+  )
 
-    const { lastValue, value$ } = finalQueryClient
-      .getMutationCache()
-      .observe<TData, TResult>({
-        filters: {
-          ...filtersRef.current,
-          predicate: (mutation) => {
-            return filtersRef.current?.predicate
-              ? filtersRef.current.predicate(mutation)
-              : createPredicateForFilters(filtersRef.current)(mutation)
-          }
-        },
-        select: (mutation) =>
-          selectRef.current
-            ? selectRef.current(mutation)
-            : (mutation.state as TResult)
-      })
+  const result = useObserve(
+    () => {
+      const value$ = mutationCache.observe()
 
-    return { lastValue, value$: value$.pipe(skip(1)) }
-  }, [finalQueryClient, serializedKey, status, filtersRef, selectRef])
+      return value$.pipe(
+        skip(1),
+        map(() => {
+          return mutationCache
+            .findAll(optionsRef.current.filters)
+            .map(
+              (mutation): TResult =>
+                (options.select
+                  ? options.select(mutation)
+                  : mutation.state) as TResult
+            )
+        }),
+        distinctUntilChanged(shallowEqual),
+      )
+    },
+    { defaultValue: defaultValue.current },
+    []
+  )
 
-  return useObserve(value$) ?? lastValue
+  return result
 }

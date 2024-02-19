@@ -9,7 +9,6 @@ import {
   takeUntil,
   last,
   filter,
-  finalize,
   tap,
   ignoreElements
 } from "rxjs"
@@ -57,11 +56,6 @@ export class MutationObserver<
    */
   readonly observed$: Observable<never>
 
-  // readonly result$: Observable<{
-  //   state: MutationObserverResult<TData, TError, TVariables, TContext>
-  //   options: MutateOptions<TData, TError, TVariables, TContext> | undefined
-  // }>
-
   constructor(
     protected client: QueryClient,
     protected options: MutationObserverOptions<
@@ -81,13 +75,6 @@ export class MutationObserver<
     // allow methods to be destructured
     this.mutate = this.mutate.bind(this)
     this.reset = this.reset.bind(this)
-
-    // this.result$ = this.#mutationRunner.state$.pipe(
-    //   map((state) => ({
-    //     state: this.getObserverResultFromState(state),
-    //     options: {} as any
-    //   }))
-    // )
 
     /**
      * @important
@@ -152,12 +139,6 @@ export class MutationObserver<
               state.context
             )
         }
-
-        console.log("complete")
-        // return NEVER
-      }),
-      finalize(() => {
-        console.log("mutationobserver.observed$ finalize")
       }),
       ignoreElements()
     )
@@ -223,10 +204,6 @@ export class MutationObserver<
       this.observed$,
       mutationResult$,
       currentMutationCancelled$
-    ).pipe(
-      finalize(() => {
-        console.log("mutationobserver.observe.finalize")
-      })
     )
 
     return { result$, lastValue }

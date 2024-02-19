@@ -3,8 +3,6 @@ import { Mutation } from "../mutation/Mutation"
 import { type QueryClient } from "../../QueryClient"
 import { type MutationFilters } from "../types"
 import {
-  distinctUntilChanged,
-  map,
   switchMap,
   timer,
   filter,
@@ -20,7 +18,6 @@ import {
   type MutationCacheConfig,
   type MutationCacheNotifyEvent
 } from "./types"
-import { shallowEqual } from "../../../../utils/shallowEqual"
 import { type MutationOptions, type MutationState } from "../mutation/types"
 import { Store } from "../../store"
 
@@ -109,7 +106,14 @@ export class MutationCache {
     return this.#store.getValues().find((mutation) => predicate(mutation))
   }
 
-  findAll(filters: MutationFilters = {}): Array<Mutation<any, any, any, any>> {
+  findAll<
+    TData = unknown,
+    TError = Error,
+    TVariables = any,
+    TContext = unknown
+  >(
+    filters: MutationFilters<TData, TError, TVariables, TContext> = {}
+  ): Array<Mutation<any, any, any, any>> {
     const defaultedFilters = { exact: true, ...filters }
 
     const predicate = createPredicateForFilters(defaultedFilters)
@@ -120,37 +124,10 @@ export class MutationCache {
       .map((mutation) => mutation)
   }
 
-  observe<TData, MutationStateSelected = MutationState<TData>>({
-    filters,
-    select
-  }: {
-    filters?: MutationFilters<TData>
-    select?: (mutation: Mutation<TData>) => MutationStateSelected
-  } = {}) {
-    const predicate = createPredicateForFilters(filters)
-    const finalSelect =
-      select ?? ((mutation) => mutation.state as MutationStateSelected)
+  observe() {
+    const value$ = this.#store.stateChange$.pipe(startWith())
 
-    const lastValue = this.getAll()
-      .reduce((acc: Array<Mutation<any>>, mutation) => {
-        const result = [...acc, mutation]
-
-        return result
-      }, [])
-      .filter(predicate)
-      .map((mutation) => finalSelect(mutation))
-
-    const value$ = this.#store.stateChange$.pipe(
-      startWith(),
-      map(() => {
-        const filteredMutations = this.getAll().filter(predicate)
-
-        return filteredMutations.map(finalSelect)
-      }),
-      distinctUntilChanged(shallowEqual)
-    )
-
-    return { value$, lastValue }
+    return value$
   }
 
   /**
