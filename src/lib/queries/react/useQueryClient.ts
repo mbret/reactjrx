@@ -3,12 +3,15 @@ import { Context } from "./QueryClientProvider"
 import { type QueryClient } from "../client/QueryClient"
 
 export const useQueryClient = (queryClient?: QueryClient) => {
-    const context = useContext(Context)
-  
-    if (!queryClient && context.client === null) {
-      throw new Error("You forgot to register the provider")
-    }
-  
-    return queryClient ?? context.client
+  const client = useContext(Context)
+
+  if (queryClient) {
+    return queryClient
   }
-  
+
+  if (!client) {
+    throw new Error("No QueryClient set, use QueryClientProvider to set one")
+  }
+
+  return client
+}

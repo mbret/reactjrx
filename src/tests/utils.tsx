@@ -1,9 +1,10 @@
 /* eslint-disable no-import-assign */
 import { act, render } from "@testing-library/react"
-import { QueryClient } from "../lib/queries/client/QueryClient"
+import {
+  QueryClient,
+  type QueryClientConfig
+} from "../lib/queries/client/QueryClient"
 import { QueryClientProvider } from "../lib/queries/react/QueryClientProvider"
-import { MutationCache } from "../lib/queries/client/mutations/cache/MutationCache"
-import { type QueryCache } from "../lib/queries/client/queries/cache/QueryCache"
 import React from "react"
 import * as utils from "../lib/utils"
 
@@ -51,13 +52,8 @@ export function renderWithClient(
 /**
  * @see https://github.com/TanStack/query/blob/main/packages/react-query/src/__tests__/utils.tsx
  */
-export function createQueryClient(
-  params: {
-    mutationCache?: MutationCache
-    queryCache?: QueryCache
-  } = { mutationCache: new MutationCache() }
-): QueryClient {
-  return new QueryClient(params)
+export function createQueryClient(config?: QueryClientConfig): QueryClient {
+  return new QueryClient(config)
 }
 
 export const doNotExecute = (_func: () => void) => true
