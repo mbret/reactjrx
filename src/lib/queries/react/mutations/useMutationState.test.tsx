@@ -67,7 +67,7 @@ describe("useIsMutating", () => {
     })
   })
 
-  it("should filter correctly by mutationKey foobar", async () => {
+  it("should filter correctly by mutationKey", async () => {
     const isMutatingArray: Array<number> = []
     const queryClient = createQueryClient()
 

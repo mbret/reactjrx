@@ -1,8 +1,8 @@
-import { type QueryState } from "@tanstack/react-query"
 import { type DefaultError } from "../../types"
 import { type Observable, scan, map, takeWhile } from "rxjs"
 import { type QueryOptions } from "../types"
 import { replaceData } from "../utils"
+import { type QueryState } from "./types"
 
 export const reduceState =
   <TQueryFnData = unknown, TError = DefaultError, TData = TQueryFnData>({

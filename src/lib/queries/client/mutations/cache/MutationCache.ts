@@ -1,4 +1,3 @@
-import { type DefaultError } from "@tanstack/react-query"
 import { Mutation } from "../mutation/Mutation"
 import { type QueryClient } from "../../QueryClient"
 import { type MutationFilters } from "../types"
@@ -20,6 +19,7 @@ import {
 } from "./types"
 import { type MutationOptions, type MutationState } from "../mutation/types"
 import { Store } from "../../store"
+import { type DefaultError } from "../../types"
 
 export class MutationCache {
   readonly #store = new Store<Mutation<any, any, any, any>>()
