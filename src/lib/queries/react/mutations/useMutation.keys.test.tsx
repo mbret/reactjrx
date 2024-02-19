@@ -69,13 +69,13 @@ describe("useMutation", () => {
         ]
 
         expectedValue.forEach((value, index) => {
-          expect(values.mutation[index]).toContain(value)
+          expect(values.mutation[index]).toMatchObject(value)
         })
 
         expect(values.observedMutation.length).toBeGreaterThanOrEqual(4)
 
         values.observedMutation.forEach((value: any) => {
-          expect(value).toContain({
+          expect(value).toMatchObject({
             data: undefined,
             status: "idle"
           })
