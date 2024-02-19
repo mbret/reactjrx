@@ -254,6 +254,21 @@ export class QueryClient {
     await Promise.all(promises).then(noop)
   }
 
+  getQueryData<
+    TQueryFnData = unknown,
+    TTaggedQueryKey extends QueryKey = QueryKey,
+    TInferredQueryFnData = TTaggedQueryKey extends DataTag<
+      unknown,
+      infer TaggedValue
+    >
+      ? TaggedValue
+      : TQueryFnData
+  >(queryKey: TTaggedQueryKey): TInferredQueryFnData | undefined
+  getQueryData(queryKey: QueryKey) {
+    const options = this.defaultQueryOptions({ queryKey })
+    return this.#queryCache.get(options.queryHash)?.state.data
+  }
+
   setQueryData<
     TQueryFnData = unknown,
     TaggedQueryKey extends QueryKey = QueryKey,
