@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import { render, cleanup } from "@testing-library/react"
 import React, { useEffect } from "react"
 import { useMutation } from "./useMutation"
-import { QueryClientProvider } from "../Provider"
+import { QueryClientProvider } from "../QueryClientProvider"
 import { QueryClient } from "../../client/QueryClient"
 
 afterEach(() => {

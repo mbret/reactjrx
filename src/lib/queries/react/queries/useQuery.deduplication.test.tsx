@@ -3,7 +3,7 @@ import { Subject, interval, tap } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React from "react"
 import { useQuery } from "./useQuery"
-import { QueryClientProvider } from "../Provider"
+import { QueryClientProvider } from "../QueryClientProvider"
 import { QueryClient } from "../../client/QueryClient"
 
 afterEach(() => {

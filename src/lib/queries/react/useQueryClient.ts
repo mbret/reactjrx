@@ -1,5 +1,5 @@
 import { useContext } from "react"
-import { Context } from "./Provider"
+import { Context } from "./QueryClientProvider"
 import { type QueryClient } from "../client/QueryClient"
 
 export const useQueryClient = (queryClient?: QueryClient) => {

@@ -1,7 +1,7 @@
 /* eslint-disable no-import-assign */
 import { act, render } from "@testing-library/react"
 import { QueryClient } from "../lib/queries/client/QueryClient"
-import { QueryClientProvider } from "../lib/queries/react/Provider"
+import { QueryClientProvider } from "../lib/queries/react/QueryClientProvider"
 import { MutationCache } from "../lib/queries/client/mutations/cache/MutationCache"
 import { type QueryCache } from "../lib/queries/client/queries/cache/QueryCache"
 import React from "react"

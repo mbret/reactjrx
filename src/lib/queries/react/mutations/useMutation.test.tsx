@@ -9,7 +9,7 @@ import {
 import { render, cleanup } from "@testing-library/react"
 import React, { useEffect, useState } from "react"
 import { useMutation } from "./useMutation"
-import { QueryClientProvider } from "../Provider"
+import { QueryClientProvider } from "../QueryClientProvider"
 import { QueryClient } from "../../client/QueryClient"
 import { waitForTimeout } from "../../../../tests/utils"
 

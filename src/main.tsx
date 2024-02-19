@@ -13,7 +13,7 @@ import { useIsMutating } from "./lib/queries/react/mutations/useIsMutating"
 import { QueryClient } from "./lib/queries/client/QueryClient"
 import { MutationCache } from "./lib/queries/client/mutations/cache/MutationCache"
 import { signal } from "./lib/state/signal"
-import { QueryClientProvider } from "./lib/queries/react/Provider"
+import { QueryClientProvider } from "./lib/queries/react/QueryClientProvider"
 import { SIGNAL_RESET } from "./lib/state/constants"
 
 const rcClient = new rc_QueryClient()
