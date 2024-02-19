@@ -75,8 +75,6 @@ describe("useIsMutating", () => {
       const isMutating = useIsMutating({ mutationKey: ["mutation1"] })
       isMutatingArray.push(isMutating)
 
-      console.log({ isMutatingArray })
-
       return null
     })
 

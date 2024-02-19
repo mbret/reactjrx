@@ -275,7 +275,6 @@ export class MutationObserver<
   }
 
   reset() {
-    console.log("observer reset")
     const { mutation } = this.#currentMutationSubject.getValue() ?? {}
     this.#currentMutationSubject.next(undefined)
     mutation?.cancel()

@@ -237,8 +237,6 @@ export class QueryClient {
       cancelRefetch: options?.cancelRefetch ?? true
     }
 
-    console.log("QueryClient.refetchQueries", { fetchOptions })
-
     const promises = this.#queryCache
       .findAll(filters)
       .filter((query) => !query.isDisabled())
@@ -392,7 +390,6 @@ export class QueryClient {
     filters: InvalidateQueryFilters = {},
     options: InvalidateOptions = {}
   ): Promise<void> {
-    console.log("QueryClient.invalidateQueries")
     this.#queryCache.findAll(filters).forEach((query) => {
       query.invalidate()
     })

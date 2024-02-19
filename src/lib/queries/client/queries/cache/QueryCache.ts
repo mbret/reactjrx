@@ -58,9 +58,6 @@ export class QueryCache {
 
   observeIsFetching(filters?: QueryFilters) {
     const value$ = this.#store.stateChange$.pipe(
-      tap(() => {
-        // console.log("STATE CHANGE", value)
-      }),
       // we force a first result
       startWith(),
       map(() => {

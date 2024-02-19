@@ -130,8 +130,6 @@ export class Query<
       ),
       this.executeSubject.pipe(
         mergeMap(() => {
-          console.log("Query.executeSubject.next")
-
           let noMoreObserversActive = false
 
           // @todo improve with a switchMap ?
@@ -361,8 +359,6 @@ export class Query<
     if (this.state.fetchStatus !== "idle") {
       const shouldCancelRequest = !!this.state.dataUpdatedAt && cancelRefetch
 
-      // console.log(`Query.fetch`, { shouldCancelRequest })
-
       if (!shouldCancelRequest) {
         // Return current promise if we are already fetching
         return await this.getFetchResultAsPromise()
@@ -373,11 +369,6 @@ export class Query<
     if (options) {
       this.setOptions(options)
     }
-
-    // console.log("Query.fetch", {
-    //   observers: this.getObserversCount(),
-    //   fetchOptions
-    // })
 
     this.executeSubject.next(fetchOptions)
 

@@ -6,7 +6,7 @@ import { type QueryClient } from "../../client/QueryClient"
 import { useEffect, useState } from "react"
 import { useObserve } from "../../../binding/useObserve"
 import { type QueryObserverResult } from "../../client/queries/observer/types"
-import { filter, tap } from "rxjs"
+import { filter } from "rxjs"
 import { shallowEqual } from "../../../utils/shallowEqual"
 import { useLiveRef } from "../../../utils/useLiveRef"
 import { useConstant } from "../../../utils/useConstant"
@@ -81,9 +81,6 @@ export function useBaseQuery<
          * We only skip if they are the same.
          */
         filter((result) => !shallowEqual(result, optimisticResult.current)),
-        tap((s) => {
-          console.log("RE_RENDER", s)
-        })
       ),
     []
   )
