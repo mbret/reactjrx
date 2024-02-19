@@ -410,6 +410,7 @@ export class QueryObserver<
       isPlaceholderData,
       isRefetchError: isError && state.dataUpdatedAt !== 0,
       isStale: isStale(query, options),
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       refetch: this.refetch
     } as QueryObserverResult<TData, TError>
 

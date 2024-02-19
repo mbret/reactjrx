@@ -179,7 +179,9 @@ export class MutationObserver<
       isPending: state.status === "pending",
       isIdle: state.status === "idle",
       isError: state.status === "error",
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       mutate: this.mutate,
+      // eslint-disable-next-line @typescript-eslint/unbound-method
       reset: this.reset
     } as MutationObserverResult<TData, TError, TVariables, TContext>
   }

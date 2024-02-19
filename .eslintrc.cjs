@@ -19,7 +19,7 @@ const config = {
     project: "tsconfig.json"
   },
   plugins: ["react"],
-  ignorePatterns: ["vitest.config.ts", "vite.config.ts"],
+  ignorePatterns: ["vitest.config.ts", "vite.config.ts", "test-setup.ts"],
   rules: {
     'react/jsx-key': ['error', { checkFragmentShorthand: true }],
     'react-hooks/exhaustive-deps': 'error',
@@ -28,7 +28,8 @@ const config = {
     "@typescript-eslint/no-invalid-void-type": 0,
     "react/react-in-jsx-scope": 0,
     "@typescript-eslint/triple-slash-reference": 0,
-    "@typescript-eslint/strict-boolean-expressions": 0
+    "@typescript-eslint/strict-boolean-expressions": 0,
+    "@typescript-eslint/no-unsafe-argument": 0
   }
 }
 
