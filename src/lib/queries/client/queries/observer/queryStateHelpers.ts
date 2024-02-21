@@ -17,8 +17,8 @@ function shouldLoadOnMount(
   return (
     options.enabled !== false &&
     !query.state.dataUpdatedAt &&
-    !(query.state.status === "error" && options.retryOnMount === false) &&
-    query.state.fetchStatus !== "fetching"
+    !(query.state.status === "error" && options.retryOnMount === false)
+    && query.state.fetchStatus !== "fetching"
   )
 }
 

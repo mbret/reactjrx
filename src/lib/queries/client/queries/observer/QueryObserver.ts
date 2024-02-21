@@ -16,7 +16,9 @@ import {
   takeWhile,
   tap,
   timer,
-  withLatestFrom
+  withLatestFrom,
+  of,
+  delay
 } from "rxjs"
 import { type QueryClient } from "../../QueryClient"
 import { type QueryKey } from "../../keys/types"
@@ -35,7 +37,7 @@ import {
   isStale,
   shouldFetchOnMount,
   shouldFetchOnWindowFocus,
-  shouldFetchOptionally,
+  shouldFetchOptionally
 } from "./queryStateHelpers"
 import { shallowEqual } from "../../../../utils/shallowEqual"
 import { filterObjectByKey } from "../../../../utils/filterObjectByKey"
@@ -43,6 +45,7 @@ import { trackSubscriptions } from "../../../../utils/operators/trackSubscriptio
 import { replaceData } from "../utils"
 import { takeUntilFinished } from "../query/operators"
 import { focusManager } from "../../focusManager"
+import { whenNewData } from "../query/state/whenNewData"
 
 export interface ObserverFetchOptions extends FetchOptions {
   throwOnError?: boolean
@@ -635,11 +638,13 @@ export class QueryObserver<
             )
 
             const currentQueryIsStale$ = query.state$.pipe(
-              filter((state) => state.status === "success"),
+              whenNewData,
               switchMap((state) =>
                 this.options.staleTime === Infinity
                   ? NEVER
-                  : timer(this.options.staleTime ?? 1).pipe(map(() => state))
+                  : (this.options.staleTime ?? 0) <= 0
+                    ? of(state).pipe(delay(1))
+                    : timer(this.options.staleTime ?? 1)
               ),
               takeWhile(() => this.options.enabled ?? true)
             )
