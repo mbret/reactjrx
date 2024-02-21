@@ -35,7 +35,7 @@ import {
   isStale,
   shouldFetchOnMount,
   shouldFetchOnWindowFocus,
-  shouldFetchOptionally
+  shouldFetchOptionally,
 } from "./queryStateHelpers"
 import { shallowEqual } from "../../../../utils/shallowEqual"
 import { filterObjectByKey } from "../../../../utils/filterObjectByKey"
@@ -197,10 +197,10 @@ export class QueryObserver<
 
     // feature parity RQ
     if (
-      typeof this.options.enabled !== 'undefined' &&
-      typeof this.options.enabled !== 'boolean'
+      typeof this.options.enabled !== "undefined" &&
+      typeof this.options.enabled !== "boolean"
     ) {
-      throw new Error('Expected enabled to be a boolean')
+      throw new Error("Expected enabled to be a boolean")
     }
 
     const query = this.buildQuery(this.options)
@@ -430,7 +430,7 @@ export class QueryObserver<
     const result = this.getObserverResultFromQuery({
       options: this.options,
       prevResult: this.#lastResult,
-      query: this.#currentQuery,
+      query: this.#currentQuery
     })
 
     return result.result
@@ -509,7 +509,7 @@ export class QueryObserver<
 
     this.#client.getQueryCache().notify({
       query: this.#currentQuery,
-      type: 'observerResultsUpdated',
+      type: "observerResultsUpdated"
     })
   }
 
@@ -684,17 +684,22 @@ export class QueryObserver<
             )
 
             const refetchInterval$ = options$.pipe(
-              switchMap(() => {
-                const { refetchInterval, refetchIntervalInBackground } =
-                  this.options
+              map(({ refetchInterval, refetchIntervalInBackground }) => {
                 const computedRefetchInterval =
                   (typeof refetchInterval === "function"
                     ? refetchInterval(this.#currentQuery)
                     : refetchInterval) ?? false
 
-                return !computedRefetchInterval
+                return {
+                  refetchInterval: computedRefetchInterval,
+                  refetchIntervalInBackground
+                }
+              }),
+              distinctUntilChanged(shallowEqual),
+              switchMap(({ refetchInterval, refetchIntervalInBackground }) => {
+                return !refetchInterval
                   ? NEVER
-                  : interval(computedRefetchInterval).pipe(
+                  : interval(refetchInterval).pipe(
                       tap(() => {
                         if (
                           // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing

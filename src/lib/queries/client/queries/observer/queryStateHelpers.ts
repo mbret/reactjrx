@@ -17,7 +17,8 @@ function shouldLoadOnMount(
   return (
     options.enabled !== false &&
     !query.state.dataUpdatedAt &&
-    !(query.state.status === "error" && options.retryOnMount === false)
+    !(query.state.status === "error" && options.retryOnMount === false) &&
+    query.state.fetchStatus !== "fetching"
   )
 }
 
@@ -63,6 +64,10 @@ export function shouldFetchOn(
 ) {
   if (options.enabled !== false) {
     const value = typeof field === "function" ? field(query) : field
+
+    if (value === "idle") {
+      return query.state.fetchStatus === "idle"
+    }
 
     return value === "always" || (value !== false && isStale(query, options))
   }

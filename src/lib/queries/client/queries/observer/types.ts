@@ -67,6 +67,7 @@ export interface QueryObserverOptions<
    */
   refetchOnWindowFocus?:
     | boolean
+    | "idle"
     | "always"
     | ((
         query: Query<TQueryFnData, TError, TQueryData, TQueryKey>
@@ -80,6 +81,7 @@ export interface QueryObserverOptions<
    */
   refetchOnReconnect?:
     | boolean
+    | "idle"
     | "always"
     | ((
         query: Query<TQueryFnData, TError, TQueryData, TQueryKey>
@@ -88,11 +90,13 @@ export interface QueryObserverOptions<
    * If set to `true`, the query will refetch on mount if the data is stale.
    * If set to `false`, will disable additional instances of a query to trigger background refetches.
    * If set to `'always'`, the query will always refetch on mount.
+   * If set to `'always'`, the query will always refetch on mount if idle.
    * If set to a function, the function will be executed with the latest data and query to compute the value
    * Defaults to `true`.
    */
   refetchOnMount?:
     | boolean
+    | "idle"
     | "always"
     | ((
         query: Query<TQueryFnData, TError, TQueryData, TQueryKey>
