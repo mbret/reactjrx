@@ -4,20 +4,21 @@ import {
   map,
   delay,
   tap,
-  ignoreElements,
   endWith,
   share,
-  mergeMap
+  mergeMap,
+  type Observable
 } from "rxjs"
-import { type QueryKey } from "../../keys/types"
-import { type DefaultError } from "../../types"
-import { makeObservable } from "../../utils/makeObservable"
-import { type QueryFunctionContext, type QueryState } from "./types"
-import { type QueryOptions } from "../types"
-import { onlineManager } from "../../onlineManager"
-import { delayUntilFocus } from "./delayUntilFocus"
-import { retryBackoff } from "../../../../utils/operators/retryBackoff"
-import { delayOnNetworkMode } from "./delayOnNetworkMode"
+import { type QueryKey } from "../../../keys/types"
+import { type DefaultError } from "../../../types"
+import { makeObservable } from "../../../utils/makeObservable"
+import { type QueryFunctionContext, type QueryState } from "../types"
+import { type QueryOptions } from "../../types"
+import { onlineManager } from "../../../onlineManager"
+import { delayUntilFocus } from "../delayUntilFocus"
+import { retryBackoff } from "../../../../../utils/operators/retryBackoff"
+import { delayOnNetworkMode } from "../delayOnNetworkMode"
+import { completeFnIfNotMoreObservers } from "./completeFnIfNotMoreObservers"
 
 export const executeQuery = <
   TQueryFnData = unknown,
@@ -28,6 +29,7 @@ export const executeQuery = <
   options: QueryOptions<TQueryFnData, TError, TData, TQueryKey> & {
     queryKey: TQueryKey
     onSignalConsumed: () => void
+    observers$: Observable<number>
     retry: (attempt: number, error: TError) => boolean
     retryAfterDelay: (attempt: number, error: TError) => boolean
   }
@@ -70,8 +72,10 @@ export const executeQuery = <
       : queryFn
 
   const execution$ = fn$.pipe(
+    completeFnIfNotMoreObservers(options.observers$),
     tap({
       complete: () => {
+        console.log("Query.execution$.complete")
         fnIsComplete = true
       }
     }),
@@ -80,6 +84,7 @@ export const executeQuery = <
         data: data as unknown as TData
       })
     ),
+    // takeUntil(hasDataAndNoObservers$),
     delayOnNetworkMode<TData, TError>(options),
     retryBackoff<Result, TError>({
       ...options,
@@ -133,17 +138,13 @@ export const executeQuery = <
         )
       )
     }),
+    /**
+     * When the fn complete we can release the fetch status, if it was already released
+     * before shallow compare will not update the state, otherwise it's our chance to catch
+     * the end of observable fn.
+     */
+    endWith({ fetchStatus: "idle" } satisfies Result),
     share()
-  )
-
-  /**
-   * When the fn complete we can release the fetch status, if it was already released
-   * before shallow compare will not update the state, otherwise it's our chance to catch
-   * the end of observable fn.
-   */
-  const emitOnComplete$ = execution$.pipe(
-    ignoreElements(),
-    endWith({ fetchStatus: "idle" } satisfies Result)
   )
 
   const initialResult$ = of({
@@ -152,7 +153,11 @@ export const executeQuery = <
   } satisfies Result)
 
   return {
-    state$: merge(initialResult$, execution$, emitOnComplete$),
+    state$: merge(
+      initialResult$,
+      execution$
+      // emitOnComplete$
+    ).pipe(share()),
     abortController
   }
 }

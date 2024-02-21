@@ -24,7 +24,7 @@ import { type SetDataOptions, type QueryOptions } from "../types"
 import { replaceData, timeUntilStale } from "../utils"
 import { getDefaultState } from "./getDefaultState"
 import { type QueryMeta, type FetchOptions, type QueryState } from "./types"
-import { executeQuery } from "./executeQuery"
+import { executeQuery } from "./execution/executeQuery"
 import { type CancelOptions } from "../retryer/types"
 import { CancelledError } from "../retryer/CancelledError"
 import { reduceState, takeUntilFinished } from "./operators"
@@ -153,6 +153,7 @@ export class Query<
 
           const { state$: functionExecution$, abortController } = executeQuery({
             ...this.options,
+            observers$: this.observerCount$,
             queryKey: this.queryKey,
             retry: (attempt, error) => {
               const retry = this.options.retry ?? true

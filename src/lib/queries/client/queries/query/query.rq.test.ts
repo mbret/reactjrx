@@ -3,7 +3,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { afterEach, beforeEach, describe, expect, it, test, vi } from "vitest"
 import { waitFor } from "@testing-library/react"
-import { createQueryClient, sleep } from "../../../../../tests/utils"
+import {
+  createQueryClient,
+  sleep
+} from "../../../../../tests/utils"
 import { type QueryCache } from "../cache/QueryCache"
 import { type QueryClient } from "../../QueryClient"
 import { mockVisibilityState, queryKey } from "../../tests/utils"
@@ -208,119 +211,119 @@ describe("query", () => {
     expect(args.signal).toBeInstanceOf(AbortSignal)
   })
 
-  //   test("should continue if cancellation is not supported and signal is not consumed", async () => {
-  //     const key = queryKey()
+  test("should continue if cancellation is not supported and signal is not consumed", async () => {
+    const key = queryKey()
 
-  //     queryClient.prefetchQuery({
-  //       queryKey: key,
-  //       queryFn: async () => {
-  //         await sleep(100)
-  //         return "data"
-  //       }
-  //     })
+    queryClient.prefetchQuery({
+      queryKey: key,
+      queryFn: async () => {
+        await sleep(100)
+        return "data"
+      }
+    })
 
-  //     await sleep(10)
+    await sleep(10)
 
-  //     // Subscribe and unsubscribe to simulate cancellation because the last observer unsubscribed
-  //     const observer = new QueryObserver(queryClient, {
-  //       queryKey: key,
-  //       enabled: false
-  //     })
-  //     const unsubscribe = observer.subscribe(() => undefined)
-  //     unsubscribe()
+    // Subscribe and unsubscribe to simulate cancellation because the last observer unsubscribed
+    const observer = new QueryObserver(queryClient, {
+      queryKey: key,
+      enabled: false
+    })
+    const unsubscribe = observer.subscribe(() => undefined)
+    unsubscribe()
 
-  //     await sleep(100)
+    await sleep(100)
 
-  //     const query = queryCache.find({ queryKey: key })!
+    const query = queryCache.find({ queryKey: key })!
 
-  //     expect(query.state).toMatchObject({
-  //       data: "data",
-  //       status: "success",
-  //       dataUpdateCount: 1
-  //     })
-  //   })
+    expect(query.state).toMatchObject({
+      data: "data",
+      status: "success",
+      dataUpdateCount: 1
+    })
+  })
 
-  //   test("should not continue when last observer unsubscribed if the signal was consumed", async () => {
-  //     const key = queryKey()
+  test("should not continue when last observer unsubscribed if the signal was consumed", async () => {
+    const key = queryKey()
 
-  //     queryClient.prefetchQuery({
-  //       queryKey: key,
-  //       queryFn: async ({ signal }) => {
-  //         await sleep(100)
-  //         return signal.aborted ? "aborted" : "data"
-  //       }
-  //     })
+    queryClient.prefetchQuery({
+      queryKey: key,
+      queryFn: async ({ signal }) => {
+        await sleep(100)
+        return signal.aborted ? "aborted" : "data"
+      }
+    })
 
-  //     await sleep(10)
+    await sleep(10)
 
-  //     // Subscribe and unsubscribe to simulate cancellation because the last observer unsubscribed
-  //     const observer = new QueryObserver(queryClient, {
-  //       queryKey: key,
-  //       enabled: false
-  //     })
-  //     const unsubscribe = observer.subscribe(() => undefined)
-  //     unsubscribe()
+    // Subscribe and unsubscribe to simulate cancellation because the last observer unsubscribed
+    const observer = new QueryObserver(queryClient, {
+      queryKey: key,
+      enabled: false
+    })
+    const unsubscribe = observer.subscribe(() => undefined)
+    unsubscribe()
 
-  //     await sleep(100)
+    await sleep(100)
 
-  //     const query = queryCache.find({ queryKey: key })!
+    const query = queryCache.find({ queryKey: key })!
 
-  //     expect(query.state).toMatchObject({
-  //       data: undefined,
-  //       status: "pending",
-  //       fetchStatus: "idle"
-  //     })
-  //   })
+    expect(query.state).toMatchObject({
+      data: undefined,
+      status: "pending",
+      fetchStatus: "idle"
+    })
+  })
 
-  //   test("should provide an AbortSignal to the queryFn that provides info about the cancellation state", async () => {
-  //     const key = queryKey()
+  test("should provide an AbortSignal to the queryFn that provides info about the cancellation state", async () => {
+    const key = queryKey()
 
-  //     const queryFn = vi.fn<
-  //       [QueryFunctionContext<ReturnType<typeof queryKey>>],
-  //       Promise<unknown>
-  //     >()
-  //     const onAbort = vi.fn()
-  //     const abortListener = vi.fn()
-  //     let error
+    const queryFn = vi.fn<
+      [QueryFunctionContext<ReturnType<typeof queryKey>>],
+      Promise<unknown>
+    >()
+    const onAbort = vi.fn()
+    const abortListener = vi.fn()
+    let error
 
-  //     queryFn.mockImplementation(async ({ signal }) => {
-  //       signal.onabort = onAbort
-  //       signal.addEventListener("abort", abortListener)
-  //       await sleep(10)
-  //       signal.onabort = null
-  //       signal.removeEventListener("abort", abortListener)
-  //       throw new Error()
-  //     })
+    queryFn.mockImplementation(async ({ signal }) => {
+      signal.onabort = onAbort
+      signal.addEventListener("abort", abortListener)
+      await sleep(10)
+      signal.onabort = null
+      signal.removeEventListener("abort", abortListener)
+      throw new Error()
+    })
 
-  //     const promise = queryClient.fetchQuery({
-  //       queryKey: key,
-  //       queryFn,
-  //       retry: 3,
-  //       retryDelay: 10
-  //     })
+    const promise = queryClient.fetchQuery({
+      queryKey: key,
+      queryFn,
+      retry: 3,
+      retryDelay: 10
+    })
 
-  //     promise.catch((e) => {
-  //       error = e
-  //     })
+    promise.catch((e) => {
+      error = e
+    })
 
-  //     const query = queryCache.find({ queryKey: key })!
+    const query = queryCache.find({ queryKey: key })!
 
-  //     expect(queryFn).toHaveBeenCalledTimes(1)
+    expect(queryFn).toHaveBeenCalledTimes(1)
 
-  //     const signal = queryFn.mock.calls[0]![0].signal
-  //     expect(signal.aborted).toBe(false)
-  //     expect(onAbort).not.toHaveBeenCalled()
-  //     expect(abortListener).not.toHaveBeenCalled()
+    const signal = queryFn.mock.calls[0]![0].signal
+    expect(signal.aborted).toBe(false)
+    expect(onAbort).not.toHaveBeenCalled()
+    expect(abortListener).not.toHaveBeenCalled()
 
-  //     query.cancel()
+    query.cancel()
 
-  //     await sleep(100)
+    await sleep(100)
 
-  //     expect(signal.aborted).toBe(true)
-  //     expect(onAbort).toHaveBeenCalledTimes(1)
-  //     expect(abortListener).toHaveBeenCalledTimes(1)
-  //     expect(isCancelledError(error)).toBe(true)
-  //   })
+    expect(signal.aborted).toBe(true)
+    expect(onAbort).toHaveBeenCalledTimes(1)
+    expect(abortListener).toHaveBeenCalledTimes(1)
+    expect(isCancelledError(error)).toBe(true)
+  })
 
   test("should not continue if explicitly cancelled", async () => {
     const key = queryKey()
@@ -666,24 +669,24 @@ describe("query", () => {
   //   refetchSpy.mockRestore()
   // })
 
-  //   test("should not add an existing observer", async () => {
-  //     const key = queryKey()
+  // test("should not add an existing observer", async () => {
+  //   const key = queryKey()
 
-  //     await queryClient.prefetchQuery({ queryKey: key, queryFn: () => "data" })
-  //     const query = queryCache.find({ queryKey: key })!
-  //     expect(query.getObserversCount()).toEqual(0)
+  //   await queryClient.prefetchQuery({ queryKey: key, queryFn: () => "data" })
+  //   const query = queryCache.find({ queryKey: key })!
+  //   expect(query.getObserversCount()).toEqual(0)
 
-  //     const observer = new QueryObserver(queryClient, {
-  //       queryKey: key
-  //     })
-  //     expect(query.getObserversCount()).toEqual(0)
-
-  //     query.addObserver(observer)
-  //     expect(query.getObserversCount()).toEqual(1)
-
-  //     query.addObserver(observer)
-  //     expect(query.getObserversCount()).toEqual(1)
+  //   const observer = new QueryObserver(queryClient, {
+  //     queryKey: key
   //   })
+  //   expect(query.getObserversCount()).toEqual(0)
+
+  //   query.addObserver(observer)
+  //   expect(query.getObserversCount()).toEqual(1)
+
+  //   query.addObserver(observer)
+  //   expect(query.getObserversCount()).toEqual(1)
+  // })
 
   //   test("should not try to remove an observer that does not exist", async () => {
   //     const key = queryKey()
@@ -718,114 +721,114 @@ describe("query", () => {
     expect(query.state).toBe(previousState)
   })
 
-  //   test('fetch should not dispatch "fetch" query is already fetching', async () => {
-  //     const key = queryKey()
+  // test('fetch should not dispatch "fetch" query is already fetching', async () => {
+  //   const key = queryKey()
 
-  //     const queryFn = async () => {
-  //       await sleep(10)
-  //       return "data"
+  //   const queryFn = async () => {
+  //     await sleep(10)
+  //     return "data"
+  //   }
+
+  //   const updates: string[] = []
+
+  //   await queryClient.prefetchQuery({ queryKey: key, queryFn })
+  //   const query = queryCache.find({ queryKey: key })!
+
+  //   const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+  //     updates.push(event.type)
+  //   })
+
+  //   void query.fetch({
+  //     queryKey: key,
+  //     queryFn
+  //   })
+
+  //   await query.fetch({
+  //     queryKey: key,
+  //     queryFn
+  //   })
+
+  //   expect(updates).toEqual([
+  //     "updated", // type: 'fetch'
+  //     "updated" // type: 'success'
+  //   ])
+
+  //   unsubscribe()
+  // })
+
+  // test("fetch should throw an error if the queryFn is not defined", async () => {
+  //   const key = queryKey()
+
+  //   const observer = new QueryObserver(queryClient, {
+  //     queryKey: key,
+  //     queryFn: undefined,
+  //     retry: false
+  //   })
+
+  //   const unsubscribe = observer.subscribe(() => undefined)
+
+  //   await sleep(10)
+  //   const query = queryCache.find({ queryKey: key })!
+  //   expect(observer.getCurrentResult()).toMatchObject({
+  //     status: "error",
+  //     error: new Error(`Missing queryFn: '${query.queryHash}'`)
+  //   })
+  //   unsubscribe()
+  // })
+
+  // test("fetch should dispatch an error if the queryFn returns undefined", async () => {
+  //   const consoleMock = vi.spyOn(console, "error")
+  //   consoleMock.mockImplementation(() => undefined)
+  //   const key = queryKey()
+
+  //   const observer = new QueryObserver(queryClient, {
+  //     queryKey: key,
+  //     queryFn: () => undefined,
+  //     retry: false
+  //   })
+
+  //   let observerResult: QueryObserverResult<unknown, unknown> | undefined
+
+  //   const unsubscribe = observer.subscribe((result) => {
+  //     observerResult = result
+  //   })
+
+  //   await sleep(10)
+
+  //   const error = new Error(`${JSON.stringify(key)} data is undefined`)
+
+  //   expect(observerResult).toMatchObject({
+  //     isError: true,
+  //     error
+  //   })
+
+  //   expect(consoleMock).toHaveBeenCalledWith(
+  //     `Query data cannot be undefined. Please make sure to return a value other than undefined from your query function. Affected query key: ["${key}"]`
+  //   )
+  //   unsubscribe()
+  //   consoleMock.mockRestore()
+  // })
+
+  // it("should not retry on the server", async () => {
+  //   const resetIsServer = setIsServer(true)
+
+  //   const key = queryKey()
+  //   let count = 0
+
+  //   const observer = new QueryObserver(queryClient, {
+  //     queryKey: key,
+  //     queryFn: async () => {
+  //       count++
+  //       return await Promise.reject(new Error("error"))
   //     }
-
-  //     const updates: string[] = []
-
-  //     await queryClient.prefetchQuery({ queryKey: key, queryFn })
-  //     const query = queryCache.find({ queryKey: key })!
-
-  //     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
-  //       updates.push(event.type)
-  //     })
-
-  //     void query.fetch({
-  //       queryKey: key,
-  //       queryFn
-  //     })
-
-  //     await query.fetch({
-  //       queryKey: key,
-  //       queryFn
-  //     })
-
-  //     expect(updates).toEqual([
-  //       "updated", // type: 'fetch'
-  //       "updated" // type: 'success'
-  //     ])
-
-  //     unsubscribe()
   //   })
 
-  //   test("fetch should throw an error if the queryFn is not defined", async () => {
-  //     const key = queryKey()
+  //   await observer.refetch()
 
-  //     const observer = new QueryObserver(queryClient, {
-  //       queryKey: key,
-  //       queryFn: undefined,
-  //       retry: false
-  //     })
+  //   expect(count).toBe(1)
 
-  //     const unsubscribe = observer.subscribe(() => undefined)
-
-  //     await sleep(10)
-  //     const query = queryCache.find({ queryKey: key })!
-  //     expect(observer.getCurrentResult()).toMatchObject({
-  //       status: "error",
-  //       error: new Error(`Missing queryFn: '${query.queryHash}'`)
-  //     })
-  //     unsubscribe()
-  //   })
-
-  //   test("fetch should dispatch an error if the queryFn returns undefined", async () => {
-  //     const consoleMock = vi.spyOn(console, "error")
-  //     consoleMock.mockImplementation(() => undefined)
-  //     const key = queryKey()
-
-  //     const observer = new QueryObserver(queryClient, {
-  //       queryKey: key,
-  //       queryFn: () => undefined,
-  //       retry: false
-  //     })
-
-  //     let observerResult: QueryObserverResult<unknown, unknown> | undefined
-
-  //     const unsubscribe = observer.subscribe((result) => {
-  //       observerResult = result
-  //     })
-
-  //     await sleep(10)
-
-  //     const error = new Error(`${JSON.stringify(key)} data is undefined`)
-
-  //     expect(observerResult).toMatchObject({
-  //       isError: true,
-  //       error
-  //     })
-
-  //     expect(consoleMock).toHaveBeenCalledWith(
-  //       `Query data cannot be undefined. Please make sure to return a value other than undefined from your query function. Affected query key: ["${key}"]`
-  //     )
-  //     unsubscribe()
-  //     consoleMock.mockRestore()
-  //   })
-
-  //   it("should not retry on the server", async () => {
-  //     const resetIsServer = setIsServer(true)
-
-  //     const key = queryKey()
-  //     let count = 0
-
-  //     const observer = new QueryObserver(queryClient, {
-  //       queryKey: key,
-  //       queryFn: async () => {
-  //         count++
-  //         return await Promise.reject(new Error("error"))
-  //       }
-  //     })
-
-  //     await observer.refetch()
-
-  //     expect(count).toBe(1)
-
-  //     resetIsServer()
-  //   })
+  //   resetIsServer()
+  // })
 
   test("constructor should call initialDataUpdatedAt if defined as a function", async () => {
     const key = queryKey()
@@ -842,79 +845,79 @@ describe("query", () => {
     expect(initialDataUpdatedAtSpy).toHaveBeenCalled()
   })
 
-  //   test("queries should be garbage collected even if they never fetched", async () => {
-  //     const key = queryKey()
+    // test("queries should be garbage collected even if they never fetched", async () => {
+    //   const key = queryKey()
 
-  //     queryClient.setQueryDefaults(key, { gcTime: 10 })
+    //   queryClient.setQueryDefaults(key, { gcTime: 10 })
 
-  //     const fn = vi.fn()
+    //   const fn = vi.fn()
 
-  //     const unsubscribe = queryClient.getQueryCache().subscribe(fn)
+    //   const unsubscribe = queryClient.getQueryCache().subscribe(fn)
 
-  //     queryClient.setQueryData(key, "data")
+    //   queryClient.setQueryData(key, "data")
 
-  //     await waitFor(() =>
-  //       { expect(fn).toHaveBeenCalledWith(
-  //         expect.objectContaining({
-  //           type: "removed"
-  //         })
-  //       ); }
-  //     )
+    //   await waitFor(() =>
+    //     { expect(fn).toHaveBeenCalledWith(
+    //       expect.objectContaining({
+    //         type: "removed"
+    //       })
+    //     ); }
+    //   )
 
-  //     expect(queryClient.getQueryCache().findAll()).toHaveLength(0)
+    //   expect(queryClient.getQueryCache().findAll()).toHaveLength(0)
 
-  //     unsubscribe()
-  //   })
+    //   unsubscribe()
+    // })
 
-  //   test("should always revert to idle state (#5958)", async () => {
-  //     let mockedData = [1]
+    test("should always revert to idle state (#5958)", async () => {
+      let mockedData = [1]
 
-  //     const key = queryKey()
+      const key = queryKey()
 
-  //     const queryFn = vi
-  //       .fn<
-  //         [QueryFunctionContext<ReturnType<typeof queryKey>>],
-  //         Promise<unknown>
-  //       >()
-  //       .mockImplementation(async ({ signal }) => {
-  //         return await new Promise((resolve, reject) => {
-  //           const abortListener = () => {
-  //             clearTimeout(timerId)
-  //             reject(signal.reason)
-  //           }
-  //           signal.addEventListener("abort", abortListener)
+      const queryFn = vi
+        .fn<
+          [QueryFunctionContext<ReturnType<typeof queryKey>>],
+          Promise<unknown>
+        >()
+        .mockImplementation(async ({ signal }) => {
+          return await new Promise((resolve, reject) => {
+            const abortListener = () => {
+              clearTimeout(timerId)
+              reject(signal.reason)
+            }
+            signal.addEventListener("abort", abortListener)
 
-  //           const timerId = setTimeout(() => {
-  //             signal.removeEventListener("abort", abortListener)
-  //             resolve(mockedData.join(" - "))
-  //           }, 50)
-  //         })
-  //       })
+            const timerId = setTimeout(() => {
+              signal.removeEventListener("abort", abortListener)
+              resolve(mockedData.join(" - "))
+            }, 50)
+          })
+        })
 
-  //     const observer = new QueryObserver(queryClient, {
-  //       queryKey: key,
-  //       queryFn
-  //     })
-  //     const unsubscribe = observer.subscribe(() => undefined)
-  //     await sleep(60) // let it resolve
+      const observer = new QueryObserver(queryClient, {
+        queryKey: key,
+        queryFn
+      })
+      const unsubscribe = observer.subscribe(() => undefined)
+      await sleep(60) // let it resolve
 
-  //     mockedData = [1, 2] // update "server" state in the background
+      mockedData = [1, 2] // update "server" state in the background
 
-  //     queryClient.invalidateQueries({ queryKey: key })
-  //     await sleep(1)
-  //     queryClient.invalidateQueries({ queryKey: key })
-  //     await sleep(1)
-  //     unsubscribe() // unsubscribe to simulate unmount
+      queryClient.invalidateQueries({ queryKey: key })
+      await sleep(1)
+      queryClient.invalidateQueries({ queryKey: key })
+      await sleep(1)
+      unsubscribe() // unsubscribe to simulate unmount
 
-  //     // set up a new observer to simulate a mount of new component
-  //     const newObserver = new QueryObserver(queryClient, {
-  //       queryKey: key,
-  //       queryFn
-  //     })
+      // set up a new observer to simulate a mount of new component
+      const newObserver = new QueryObserver(queryClient, {
+        queryKey: key,
+        queryFn
+      })
 
-  //     const spy = vi.fn()
-  //     newObserver.subscribe(({ data }) => spy(data))
-  //     await sleep(60) // let it resolve
-  //     expect(spy).toHaveBeenCalledWith("1 - 2")
-  //   })
+      const spy = vi.fn()
+      newObserver.subscribe(({ data }) => spy(data))
+      await sleep(60) // let it resolve
+      expect(spy).toHaveBeenCalledWith("1 - 2")
+    })
 })
