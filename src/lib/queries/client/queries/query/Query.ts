@@ -225,13 +225,13 @@ export class Query<
       tap((state) => {
         this.state = state
       }),
-      takeUntil(this.destroySubject),
-      shareReplay({ bufferSize: 1, refCount: false }),
       catchError((e) => {
         Logger.error(e)
 
         throw e
-      })
+      }),
+      takeUntil(this.destroySubject),
+      shareReplay({ bufferSize: 1, refCount: false })
     )
   }
 
