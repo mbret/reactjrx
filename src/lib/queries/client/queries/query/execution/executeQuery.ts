@@ -75,7 +75,6 @@ export const executeQuery = <
     completeFnIfNotMoreObservers(options.observers$),
     tap({
       complete: () => {
-        console.log("Query.execution$.complete")
         fnIsComplete = true
       }
     }),
