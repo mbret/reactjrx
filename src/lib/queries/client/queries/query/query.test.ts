@@ -44,6 +44,8 @@ describe("query", () => {
 
     subscription.unsubscribe()
 
+    await sleep(2)
+
     expect(observer.getCurrentResult()).toMatchObject({
       data: 1,
       fetchStatus: "idle"
