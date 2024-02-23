@@ -62,10 +62,8 @@ export const executeMutation = <
   }
 
   const onError = (error: TError, context: TContext, attempt: number) => {
-    console.error(error)
-
-    const onError$ = makeObservable(
-      () => options.onError?.(error, variables, context)
+    const onError$ = makeObservable(() =>
+      options.onError?.(error, variables, context)
     )
 
     return onError$.pipe(
@@ -163,23 +161,21 @@ export const executeMutation = <
 
         const onSuccess$ = error
           ? of(null)
-          : makeObservable(
-              () =>
-                options.onSuccess?.(
-                  mutationData?.data as TData,
-                  variables,
-                  restState.context
-                )
+          : makeObservable(() =>
+              options.onSuccess?.(
+                mutationData?.data as TData,
+                variables,
+                restState.context
+              )
             )
 
-        const onOptionSettled$ = makeObservable(
-          () =>
-            options.onSettled?.(
-              mutationData?.data,
-              error as TError,
-              variables,
-              restState.context
-            )
+        const onOptionSettled$ = makeObservable(() =>
+          options.onSettled?.(
+            mutationData?.data,
+            error as TError,
+            variables,
+            restState.context
+          )
         )
 
         const onSettled$ = onOptionSettled$.pipe(
