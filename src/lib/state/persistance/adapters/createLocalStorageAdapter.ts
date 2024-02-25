@@ -1,9 +1,6 @@
-export const createLocalStorageAdapter = (forage: {
-  getItem: (key: string) => string | null
-  setItem: (key: string, value: string) => void
-}) => ({
+export const createLocalStorageAdapter = () => ({
   getItem: async (key: string) => {
-    const serializedValue = forage.getItem(key)
+    const serializedValue = localStorage.getItem(key)
 
     if (!serializedValue) return undefined
 
@@ -11,6 +8,6 @@ export const createLocalStorageAdapter = (forage: {
   },
 
   setItem: async (key: string, value: unknown) => {
-    forage.setItem(key, JSON.stringify(value))
+    localStorage.setItem(key, JSON.stringify(value))
   }
 })

@@ -72,7 +72,7 @@ const hydrateValueToSignal = ({
 export const usePersistSignals = ({
   entries = [],
   onReady,
-  adapter = createLocalStorageAdapter(localStorage)
+  adapter = createLocalStorageAdapter()
 }: {
   entries?: Array<{ version: number; signal: Signal<any, any, string> }>
   onReady?: () => void

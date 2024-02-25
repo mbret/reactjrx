@@ -18,5 +18,5 @@ export const useObserveCallback = <T = void>() => {
     []
   )
 
-  return [event$, trigger] as const
+  return [event$.current, trigger] as const
 }

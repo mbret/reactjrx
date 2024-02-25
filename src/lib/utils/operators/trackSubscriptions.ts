@@ -13,8 +13,8 @@ export function trackSubscriptions(
 
       return () => {
         count--
-        sub.unsubscribe()
         onCountUpdate(count)
+        sub.unsubscribe()
       }
     })
   }
