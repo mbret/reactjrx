@@ -53,7 +53,6 @@ export function useForeverQuery(
       refetchOnReconnect: false,
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      networkMode: "always",
       ...options
     },
     QueryObserver,
