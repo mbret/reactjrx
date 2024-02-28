@@ -62,7 +62,7 @@ const hydrateValueToSignal = ({
         return of(value)
       }
 
-      signal.setValue((value as any).value)
+      signal.setValue(normalizedValue.value)
 
       return of(value)
     })
