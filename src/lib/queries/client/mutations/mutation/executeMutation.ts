@@ -129,7 +129,11 @@ export const executeMutation = <
         )
       )
 
-      if (onlineManager.isOnline() || options.networkMode === "offlineFirst") {
+      if (
+        onlineManager.isOnline() ||
+        options.networkMode === "offlineFirst" ||
+        options.networkMode === "always"
+      ) {
         return finalFn$
       } else {
         return finalFn$.pipe(delayWhenNetworkOnline())

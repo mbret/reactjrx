@@ -84,6 +84,7 @@ export class QueryClient {
   ): T {
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return {
+      ...this.#defaultOptions.mutations,
       ...(options?.mutationKey &&
         this.getMutationDefaults(options.mutationKey)),
       ...options

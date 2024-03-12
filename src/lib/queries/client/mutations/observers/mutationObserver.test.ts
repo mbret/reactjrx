@@ -4,8 +4,9 @@ import {
   sleep,
   waitForTimeout
 } from "../../../../../tests/utils"
-import { type QueryClient } from "../../QueryClient"
+import { QueryClient } from "../../QueryClient"
 import { MutationObserver } from "./MutationObserver"
+import { noop } from "rxjs"
 
 describe("mutationObserver", () => {
   let queryClient: QueryClient
@@ -42,5 +43,26 @@ describe("mutationObserver", () => {
 
     expect(mutationFn).toBeCalledTimes(2)
     expect(mutationFn.mock.calls).toEqual([["a"], ["b"]])
+  })
+
+  test("should pass default options to the mutations", () => {
+    const newClient = new QueryClient({
+      defaultOptions: {
+        mutations: {
+          networkMode: "always"
+        }
+      }
+    })
+
+    const observer = new MutationObserver(newClient, {
+      mutationKey: ["foo"]
+    })
+
+    observer.mutate().then(noop).catch(noop)
+
+    expect(
+      newClient.getMutationCache().find({ mutationKey: ["foo"] })?.options
+        .networkMode
+    ).toBe("always")
   })
 })

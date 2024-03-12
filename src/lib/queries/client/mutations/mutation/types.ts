@@ -6,6 +6,7 @@ import {
   type Register
 } from "../../types"
 import { type MapOperator, type MutationFn, type MutationKey } from "../types"
+import { type NetworkMode } from "../../queries/types"
 
 export type MutationStatus = "idle" | "pending" | "success" | "error"
 
@@ -40,7 +41,7 @@ export interface MutationOptions<
   TVariables = void,
   TContext = unknown
 > {
-  networkMode?: "offlineFirst"
+  networkMode?: NetworkMode
   enabled?: boolean
   retry?: false | number | ((attempt: number, error: unknown) => boolean)
   retryDelay?: number | ((failureCount: number, error: TError) => number)
