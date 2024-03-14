@@ -79,7 +79,8 @@ const hydrateValueToSignal = ({
 const useInvalidateStorage = ({
   adapter,
   entries,
-  storageKey
+  storageKey,
+  enabled
 }: {
   entries: {
     current: Array<{ version: number; signal: Signal<any, any, string> }>
@@ -88,10 +89,11 @@ const useInvalidateStorage = ({
     current: Adapter
   }
   storageKey?: string
+  enabled: boolean
 }) => {
   useSubscribe(
     () =>
-      !storageKey
+      !storageKey || !enabled
         ? EMPTY
         : merge(
             ...entries.current.map(({ signal, version }) =>
@@ -102,7 +104,7 @@ const useInvalidateStorage = ({
               })
             )
           ),
-    [storageKey]
+    [storageKey, enabled]
   )
 }
 
@@ -184,7 +186,12 @@ export const usePersistSignals = ({
         )
   }, [isHydrated, adapterRef])
 
-  useInvalidateStorage({ adapter: adapterRef, entries: entriesRef, storageKey })
+  useInvalidateStorage({
+    adapter: adapterRef,
+    entries: entriesRef,
+    storageKey,
+    enabled: isHydrated
+  })
 
   return { isHydrated }
 }
