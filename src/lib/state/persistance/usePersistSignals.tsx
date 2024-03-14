@@ -7,6 +7,7 @@ import {
   from,
   map,
   merge,
+  mergeMap,
   of,
   switchMap,
   tap,
@@ -20,7 +21,7 @@ import type { Signal } from "../signal"
 import { getNormalizedPersistanceValue } from "./getNormalizedPersistanceValue"
 import { IDENTIFIER_PERSISTANCE_KEY } from "./constants"
 
-const persistValue = async ({
+const persistValue = ({
   adapter,
   signal,
   version
@@ -37,7 +38,13 @@ const persistValue = async ({
     migrationVersion: version
   } satisfies PersistanceEntry
 
-  await adapter.setItem(signal.config.key, value)
+  return from(adapter.setItem(signal.config.key, value)).pipe(
+    catchError((e) => {
+      console.error(e)
+
+      return of(null)
+    })
+  )
 }
 
 const hydrateValueToSignal = ({
@@ -69,14 +76,50 @@ const hydrateValueToSignal = ({
   )
 }
 
+const useInvalidateStorage = ({
+  adapter,
+  entries,
+  storageKey
+}: {
+  entries: {
+    current: Array<{ version: number; signal: Signal<any, any, string> }>
+  }
+  adapter: {
+    current: Adapter
+  }
+  storageKey?: string
+}) => {
+  useSubscribe(
+    () =>
+      !storageKey
+        ? EMPTY
+        : merge(
+            ...entries.current.map(({ signal, version }) =>
+              persistValue({
+                adapter: adapter.current,
+                signal,
+                version
+              })
+            )
+          ),
+    [storageKey]
+  )
+}
+
 export const usePersistSignals = ({
   entries = [],
   onReady,
-  adapter = createLocalStorageAdapter()
+  adapter = createLocalStorageAdapter(),
+  storageKey
 }: {
   entries?: Array<{ version: number; signal: Signal<any, any, string> }>
   onReady?: () => void
   adapter?: Adapter
+  /**
+   * Can be used to invalidate current storage
+   * resulting on a re-persist of all values.
+   */
+  storageKey?: string
 }) => {
   const entriesRef = useLiveRef(entries)
   const onReadyRef = useLiveRef(onReady)
@@ -95,7 +138,15 @@ export const usePersistSignals = ({
                   adapter: adapterRef.current,
                   signal,
                   version
-                })
+                }).pipe(
+                  mergeMap(() =>
+                    persistValue({
+                      adapter: adapterRef.current,
+                      signal,
+                      version
+                    })
+                  )
+                )
               )
             ).pipe(map(() => true))
 
@@ -123,15 +174,17 @@ export const usePersistSignals = ({
               throttleTime(500, asyncScheduler, {
                 trailing: true
               }),
-              switchMap(() =>
-                from(
+              switchMap(() => {
+                return from(
                   persistValue({ adapter: adapterRef.current, signal, version })
                 )
-              )
+              })
             )
           )
         )
   }, [isHydrated, adapterRef])
+
+  useInvalidateStorage({ adapter: adapterRef, entries: entriesRef, storageKey })
 
   return { isHydrated }
 }
