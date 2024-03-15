@@ -1,7 +1,9 @@
+import { type Adapter } from "../types"
+
 export const createLocalforageAdapter = (forage: {
   getItem: (key: string) => Promise<string | null>
   setItem: (key: string, value: string) => Promise<string>
-}) => ({
+}): Adapter => ({
   getItem: async (key: string) => {
     const serializedValue = await forage.getItem(key)
 
@@ -12,5 +14,9 @@ export const createLocalforageAdapter = (forage: {
 
   setItem: async (key: string, value: unknown) => {
     await forage.setItem(key, JSON.stringify(value))
-  }
+  },
+
+  removeItem: async (_: string) => {},
+
+  clear: async () => {}
 })

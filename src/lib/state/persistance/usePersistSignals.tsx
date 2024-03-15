@@ -4,6 +4,7 @@ import {
   EMPTY,
   asyncScheduler,
   catchError,
+  filter,
   from,
   map,
   merge,
@@ -16,10 +17,11 @@ import {
 } from "rxjs"
 import { useSubscribe } from "../../binding/useSubscribe"
 import type { PersistanceEntry, Adapter } from "./types"
-import { createLocalStorageAdapter } from "./adapters/createLocalStorageAdapter"
 import type { Signal } from "../signal"
 import { getNormalizedPersistanceValue } from "./getNormalizedPersistanceValue"
 import { IDENTIFIER_PERSISTANCE_KEY } from "./constants"
+import { isDefined } from "../../utils/isDefined"
+import { useLiveBehaviorSubject } from "../../binding/useLiveBehaviorSubject"
 
 const persistValue = ({
   adapter,
@@ -76,122 +78,106 @@ const hydrateValueToSignal = ({
   )
 }
 
-const useInvalidateStorage = ({
-  adapter,
-  entries,
-  storageKey,
-  enabled
-}: {
-  entries: {
-    current: Array<{ version: number; signal: Signal<any, any, string> }>
-  }
-  adapter: {
-    current: Adapter
-  }
-  storageKey?: string
-  enabled: boolean
-}) => {
-  useSubscribe(
-    () =>
-      !storageKey || !enabled
-        ? EMPTY
-        : merge(
-            ...entries.current.map(({ signal, version }) =>
-              persistValue({
-                adapter: adapter.current,
-                signal,
-                version
-              })
-            )
-          ),
-    [storageKey, enabled]
-  )
-}
-
 export const usePersistSignals = ({
   entries = [],
   onReady,
-  adapter = createLocalStorageAdapter(),
-  storageKey
+  adapter
 }: {
   entries?: Array<{ version: number; signal: Signal<any, any, string> }>
   onReady?: () => void
-  adapter?: Adapter
   /**
-   * Can be used to invalidate current storage
-   * resulting on a re-persist of all values.
+   * Requires a stable instance otherwise the hydration
+   * process will start again. This is useful when you
+   * need to change adapter during runtime.
    */
-  storageKey?: string
+  adapter?: Adapter
 }) => {
   const entriesRef = useLiveRef(entries)
   const onReadyRef = useLiveRef(onReady)
-  const adapterRef = useLiveRef(adapter)
+  const adapterSubject = useLiveBehaviorSubject(adapter)
 
   const isHydrated = useObserve(
     () => {
       const entries = entriesRef.current
 
-      const stream =
-        entries.length === 0
-          ? of(true)
-          : zip(
-              ...entries.map(({ signal, version }) =>
-                hydrateValueToSignal({
-                  adapter: adapterRef.current,
-                  signal,
-                  version
-                }).pipe(
-                  mergeMap(() =>
-                    persistValue({
-                      adapter: adapterRef.current,
+      return adapterSubject.current.pipe(
+        switchMap((adapterInstance) => {
+          if (!adapterInstance) return of(false)
+
+          const stream =
+            entries.length === 0
+              ? of(true)
+              : zip(
+                  ...entries.map(({ signal, version }) =>
+                    hydrateValueToSignal({
+                      adapter: adapterInstance,
                       signal,
                       version
-                    })
+                    }).pipe(
+                      mergeMap(() =>
+                        persistValue({
+                          adapter: adapterInstance,
+                          signal,
+                          version
+                        })
+                      )
+                    )
                   )
-                )
-              )
-            ).pipe(map(() => true))
+                ).pipe(map(() => true))
 
-      return stream.pipe(
-        tap(() => {
-          if (onReadyRef.current != null) onReadyRef.current()
-        }),
-        catchError((error) => {
-          console.error("Unable to hydrate", error)
+          return merge(of(false), stream).pipe(
+            tap(() => {
+              if (onReadyRef.current != null) onReadyRef.current()
+            }),
+            catchError((error) => {
+              console.error("Unable to hydrate", error)
 
-          return EMPTY
+              return EMPTY
+            })
+          )
         })
       )
     },
     { defaultValue: false },
-    []
+    [adapterSubject, entriesRef]
   )
 
-  useSubscribe(() => {
-    return !isHydrated
-      ? EMPTY
-      : merge(
-          ...entriesRef.current.map(({ signal, version }) =>
-            signal.subject.pipe(
-              throttleTime(500, asyncScheduler, {
-                trailing: true
-              }),
-              switchMap(() => {
-                return from(
-                  persistValue({ adapter: adapterRef.current, signal, version })
-                )
-              })
+  const isHydratedSubject = useLiveBehaviorSubject(isHydrated)
+
+  /**
+   * Start persisting to the current adapter
+   * as soon as signals are hydrated. Will stop
+   * whenever hydration process starts again
+   */
+  useSubscribe(
+    () =>
+      isHydratedSubject.current.pipe(
+        filter((value) => value),
+        switchMap(() => adapterSubject.current),
+        filter(isDefined),
+        switchMap((adapterInstance) =>
+          merge(
+            ...entriesRef.current.map(({ signal, version }) =>
+              signal.subject.pipe(
+                throttleTime(500, asyncScheduler, {
+                  trailing: true
+                }),
+                switchMap(() => {
+                  return from(
+                    persistValue({
+                      adapter: adapterInstance,
+                      signal,
+                      version
+                    })
+                  )
+                })
+              )
             )
           )
         )
-  }, [isHydrated, adapterRef])
-
-  useInvalidateStorage({
-    adapter: adapterRef,
-    entries: entriesRef,
-    storageKey,
-    enabled: isHydrated
-  })
+      ),
+    [isHydratedSubject, adapterSubject]
+  )
 
   return { isHydrated }
 }

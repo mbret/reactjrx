@@ -20,6 +20,18 @@ const createSharedStoreAdapter = ({
   adapter: Adapter
   key: string
 }): Adapter => ({
+  clear: async () => {
+    return await adapter.removeItem(key)
+  },
+
+  removeItem: async (keyToDelete) => {
+    const unsafeStore = await adapter.getItem(key)
+    const { [keyToDelete]: toRemove, ...rest } =
+      normalizeStore(unsafeStore) ?? ({} as any)
+
+    await adapter.setItem(key, rest)
+  },
+
   getItem: async (itemKey: string) => {
     const unsafeStore = await adapter.getItem(key)
     const store = normalizeStore(unsafeStore) ?? {}
@@ -50,7 +62,15 @@ export const createLocalStorageAdapter = ({
   }
 
   return {
-    getItem: async (key: string) => {
+    clear: async () => {
+      localStorage.clear()
+    },
+
+    removeItem: async (key) => {
+      localStorage.removeItem(key)
+    },
+
+    getItem: async (key) => {
       const serializedValue = localStorage.getItem(key)
 
       if (!serializedValue) return undefined
@@ -58,7 +78,7 @@ export const createLocalStorageAdapter = ({
       return JSON.parse(serializedValue)
     },
 
-    setItem: async (key: string, value: unknown) => {
+    setItem: async (key, value) => {
       localStorage.setItem(key, JSON.stringify(value))
     }
   }

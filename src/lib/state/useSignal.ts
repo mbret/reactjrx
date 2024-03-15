@@ -7,8 +7,8 @@ import { useSignalValue } from "./useSignalValue"
  * - you need reactive state
  * - you don't need global state
  */
-export const useSignal = <T>(config: Config<T>) => {
-  const [stateSignal] = useState(signal(config))
+export const useSignal = <T, Key>(config: Config<T, Key>) => {
+  const [stateSignal] = useState(() => signal(config))
 
   const value = useSignalValue(stateSignal)
 

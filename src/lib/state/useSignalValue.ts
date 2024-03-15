@@ -1,24 +1,43 @@
-import { distinctUntilChanged, map } from "rxjs"
+import { type Observable, distinctUntilChanged, map } from "rxjs"
 import { useObserve } from "../binding/useObserve"
-import { type Signal } from "./signal"
+import { type ReadOnlySignal, type Signal } from "./signal"
 
-export function useSignalValue<S, K, L>(
-  signal: Signal<S, S, K>,
-  selector: (value: S) => L
-): L
-export function useSignalValue<S, K>(signal: Signal<S, S, K>): S
-export function useSignalValue<S, K, L>(
-  signal: Signal<S, S, K>,
-  selector?: (value: S) => L
+export function useSignalValue<DefaultValue, Value, Key, SelectValue>(
+  signal: Signal<DefaultValue, Value, Key>,
+  selector: (value: DefaultValue) => SelectValue
+): SelectValue
+export function useSignalValue<DefaultValue, Value, Key>(
+  signal: Signal<DefaultValue, Value, Key>
+): DefaultValue
+// read only
+export function useSignalValue<Value>(signal: ReadOnlySignal<Value>): Value
+// read only select
+export function useSignalValue<Value, SelectValue>(
+  signal: ReadOnlySignal<Value>,
+  selector: (value: Value) => SelectValue
+): SelectValue
+export function useSignalValue<DefaultValue, Value, Key, SelectedValue>(
+  signal: Signal<DefaultValue, Value, Key> | ReadOnlySignal<Value>,
+  selector?: (
+    value: DefaultValue | Value
+  ) => SelectedValue | DefaultValue | Value
 ) {
-  const selectorOrDefault = selector ?? ((v) => v)
+  const defaultSelector = () => signal.getValue()
+  const selectorOrDefault = selector ?? defaultSelector
 
   return useObserve(
-    () =>
-      signal.subject.pipe(
-        map((value) => selectorOrDefault(value)),
+    () => {
+      const observed$ = (signal.subject as Observable<Value>).pipe(
+        map((value) => {
+          const selectedValue = selectorOrDefault(value)
+
+          return selectedValue
+        }),
         distinctUntilChanged()
-      ),
+      )
+
+      return observed$
+    },
     {
       defaultValue: selectorOrDefault(signal.getValue())
     },

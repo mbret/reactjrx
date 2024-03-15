@@ -1,48 +1,67 @@
-import { BehaviorSubject } from "rxjs"
+import { BehaviorSubject, first, skip } from "rxjs"
 import type { Observable } from "rxjs"
 import { SIGNAL_RESET } from "./constants"
-
-type WithOptionalDefault<V> = V extends undefined
-  ? {
-      default?: V
-    }
-  : {
-      default: V
-    }
-
-type WithOptionalKey<V> = V extends undefined
-  ? {
-      key?: V
-    }
-  : {
-      key: V
-    }
-
-export type Config<R = undefined, K = undefined> = WithOptionalKey<K> &
-  WithOptionalDefault<R>
 
 type setValue<S> = (
   stateOrUpdater: typeof SIGNAL_RESET | S | ((prev: S) => S)
 ) => void
 
-export interface Signal<S = undefined, R = undefined, K = undefined> {
-  setValue: setValue<S>
-  getValue: () => R
-  config: Config<S, K>
-  subject: Observable<S>
+type Getter<Value> = (
+  get: <GetSignal extends Signal<any, any, any>>(
+    signal: GetSignal
+  ) => ReturnType<GetSignal["getValue"]>
+) => Value
+
+export interface Config<DefaultValue = undefined, Key = undefined> {
+  default: DefaultValue
+  key: Key
 }
 
-export function signal<T = undefined>(
-  config: Config<T, string>
-): Signal<T, T, string>
-export function signal<T = undefined>(
-  config: Config<T, undefined>
-): Signal<T, T>
-export function signal<T = undefined>(
-  config: Config<T, string | undefined>
-): Signal<T, T, string | undefined> {
-  const { default: defaultValue } = config ?? {}
-  const subject = new BehaviorSubject(defaultValue as T)
+interface ReadOnlySignalConfig<Value> {
+  get: Getter<Value>
+}
+
+export interface ReadOnlySignal<Value> {
+  getValue: () => Value
+  config: ReadOnlySignalConfig<Value>
+  subject: Observable<Value>
+}
+
+export interface Signal<
+  DefaultValue = undefined,
+  Value = undefined,
+  Key = undefined
+> {
+  setValue: setValue<DefaultValue>
+  getValue: () => Value
+  config: Config<DefaultValue, Key>
+  subject: Observable<DefaultValue>
+}
+
+export function signal<T = undefined, V = T>(
+  config?: Omit<Partial<Config<T, string | undefined>>, "key" | "get">
+): Signal<T, V, undefined>
+export function signal<T = undefined, V = T>(
+  config: Omit<Partial<Config<T, string | undefined>>, "get"> & {
+    key: string
+  }
+): Signal<T, V, string>
+export function signal<V = undefined>(
+  config: ReadOnlySignalConfig<V>
+): ReadOnlySignal<V>
+export function signal<
+  T = undefined,
+  V = undefined,
+  Key extends string | undefined = undefined
+>(
+  config: Partial<Config<T, Key>> | ReadOnlySignalConfig<V> = {}
+): Signal<T, V, Key> | ReadOnlySignal<V> {
+  const normalizedConfig: Config<T | undefined, string | undefined> = {
+    default: (config as any).default,
+    key: (config as any).key
+  }
+  const { default: defaultValue } = normalizedConfig ?? {}
+  const subject = new BehaviorSubject(defaultValue as any)
 
   const setValue = <F extends (prev: T) => T>(
     arg: T | F | typeof SIGNAL_RESET
@@ -66,10 +85,35 @@ export function signal<T = undefined>(
 
   const getValue = () => subject.getValue()
 
+  /**
+   * Read Only signals
+   */
+  if ("get" in config) {
+    const getter = (signal: Signal<any, any, any>) => {
+      signal.subject.pipe(skip(1), first()).subscribe(() => {
+        const newValue = config.get?.(getter)
+
+        setValue(newValue as any)
+      })
+
+      return signal.getValue()
+    }
+
+    const defaultValue = config.get(getter)
+
+    setValue(defaultValue as any)
+
+    return {
+      getValue,
+      config,
+      subject
+    }
+  }
+
   return {
     setValue,
     getValue,
-    config,
+    config: normalizedConfig as any,
     subject
   }
 }
@@ -77,3 +121,28 @@ export function signal<T = undefined>(
 export type SignalValue<S extends Signal<any, any, any>> = ReturnType<
   S["getValue"]
 >
+
+const a = signal()
+
+const b = signal({
+  key: "foo"
+})
+const c = signal({
+  default: 5
+})
+const d = signal({
+  default: 5,
+  key: "asd"
+})
+const e = signal<string>({
+  default: "asd",
+  key: "asd"
+})
+
+const f = signal({
+  get: (get) => {
+    const value = get(d)
+
+    return value
+  }
+})
