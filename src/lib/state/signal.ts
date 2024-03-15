@@ -121,28 +121,3 @@ export function signal<
 export type SignalValue<S extends Signal<any, any, any>> = ReturnType<
   S["getValue"]
 >
-
-const a = signal()
-
-const b = signal({
-  key: "foo"
-})
-const c = signal({
-  default: 5
-})
-const d = signal({
-  default: 5,
-  key: "asd"
-})
-const e = signal<string>({
-  default: "asd",
-  key: "asd"
-})
-
-const f = signal({
-  get: (get) => {
-    const value = get(d)
-
-    return value
-  }
-})
