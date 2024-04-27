@@ -1,7 +1,8 @@
-import { act, renderHook } from "@testing-library/react"
+import { renderHook } from "@testing-library/react"
 import { describe, expect, test } from "vitest"
 
 import { useLiveRef } from "./useLiveRef"
+import { act } from "react"
 
 describe("useLiveRef", () => {
   test("should return a ref object with an initial value", () => {

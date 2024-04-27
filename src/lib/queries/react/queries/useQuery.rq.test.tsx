@@ -13,7 +13,7 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/promise-function-async */
 import { type Mock, describe, expect, expectTypeOf, it, test, vi } from "vitest"
-import { act, fireEvent, render, waitFor } from "@testing-library/react"
+import { fireEvent, render, waitFor } from "@testing-library/react"
 import { QueryCache } from "../../client/queries/cache/QueryCache"
 import {
   Blink,
@@ -34,7 +34,7 @@ import {
   type UseQueryOptions,
   type DefinedUseQueryResult
 } from "./types"
-import React from "react"
+import React, { act } from "react"
 import { keepPreviousData } from "../../client/utils/keepPreviousData"
 import { ErrorBoundary } from "react-error-boundary"
 import { noop } from "rxjs"
