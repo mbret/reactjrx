@@ -10,20 +10,15 @@ import {
   distinctUntilChanged,
   catchError,
   EMPTY,
-  type BehaviorSubject,
+  type BehaviorSubject
 } from "rxjs"
 import { useLiveRef } from "../utils/useLiveRef"
 import { primitiveEqual } from "../utils/primitiveEqual"
 
 interface Option<R = undefined> {
   defaultValue: R
-  key?: string
   unsubscribeOnUnmount?: boolean
 }
-
-/**
- * @todo return first value if source is behavior subject
- */
 
 export function useObserve<T>(source: BehaviorSubject<T>): T
 
@@ -44,22 +39,21 @@ export function useObserve<T>(
 
 export function useObserve<T>(
   source$: Observable<T> | (() => Observable<T>),
-  unsafeOptions?: Option<T> | DependencyList,
-  unsafeDeps?: DependencyList
+  optionsOrDeps?: Option<T> | DependencyList,
+  maybeDeps?: DependencyList
 ): T {
   const options =
-    unsafeOptions != null && !Array.isArray(unsafeOptions)
-      ? (unsafeOptions as Option<T>)
+    optionsOrDeps != null && !Array.isArray(optionsOrDeps)
+      ? (optionsOrDeps as Option<T>)
       : ({
           defaultValue: undefined,
-          key: "",
           unsubscribeOnUnmount: true
         } satisfies Option<undefined>)
   const deps =
-    unsafeDeps == null && Array.isArray(unsafeOptions)
-      ? unsafeOptions
+    !maybeDeps && Array.isArray(optionsOrDeps)
+      ? optionsOrDeps
       : typeof source$ === "function"
-        ? unsafeDeps ?? []
+        ? maybeDeps ?? []
         : [source$]
   const valueRef = useRef(
     "getValue" in source$ && typeof source$.getValue === "function"
@@ -85,12 +79,10 @@ export function useObserve<T>(
            */
           distinctUntilChanged(primitiveEqual),
           tap((value) => {
-            valueRef.current = value as any
+            valueRef.current = value
           }),
           catchError((error) => {
             console.error(error)
-
-            valueRef.current = undefined
 
             return EMPTY
           })

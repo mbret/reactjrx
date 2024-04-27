@@ -23,6 +23,7 @@ export * from "./lib/utils/isDefined"
 // query
 export * from "./lib/queries/react/mutations/useMutation"
 export * from "./lib/queries/react/queries/useQuery"
+export * from "./lib/queries/react/useQueryClient"
 export * from "./lib/queries/react/queries/useForeverQuery"
 export * from "./lib/binding/useSubscribeEffect"
 export * from "./lib/queries/client/QueryClient"
