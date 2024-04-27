@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest"
 import { BehaviorSubject, Subject, map, of, timer } from "rxjs"
 import { useObserve } from "./useObserve"
-import { act, render, renderHook, cleanup } from "@testing-library/react"
-import React, { memo, useEffect, useRef } from "react"
+import { render, renderHook, cleanup } from "@testing-library/react"
+import React, { act, memo, useEffect, useRef } from "react"
 import { useBehaviorSubject } from "./useBehaviorSubject"
+import { waitForTimeout } from "../../tests/utils"
 
 afterEach(() => {
   cleanup()
@@ -179,5 +180,40 @@ describe("useObserve", () => {
     )
 
     expect(await findByText("10")).toBeDefined()
+  })
+
+  it(`does not re-render when observer complete`, async () => {
+    const subject = new Subject<number>()
+    let numberOfRenders = 0
+
+    const MyComponent = () => {
+      useObserve(subject)
+
+      numberOfRenders++
+
+      return null
+    }
+
+    render(<MyComponent />)
+
+    expect(numberOfRenders).toBe(1)
+
+    await waitForTimeout(10)
+
+    act(() => {
+      subject.next(10)
+    })
+
+    expect(numberOfRenders).toBe(2)
+
+    await waitForTimeout(10)
+
+    act(() => {
+      subject.complete()
+    })
+
+    await waitForTimeout(10)
+
+    expect(numberOfRenders).toBe(2)
   })
 })

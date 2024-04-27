@@ -10,8 +10,7 @@ import {
   distinctUntilChanged,
   catchError,
   EMPTY,
-  finalize,
-  type BehaviorSubject
+  type BehaviorSubject,
 } from "rxjs"
 import { useLiveRef } from "../utils/useLiveRef"
 import { primitiveEqual } from "../utils/primitiveEqual"
@@ -88,7 +87,6 @@ export function useObserve<T>(
           tap((value) => {
             valueRef.current = value as any
           }),
-          finalize(next),
           catchError((error) => {
             console.error(error)
 
