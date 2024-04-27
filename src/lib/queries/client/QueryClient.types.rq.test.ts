@@ -8,38 +8,38 @@ import { doNotExecute } from "../../../tests/utils"
 import { type Equal, type Expect } from "../../utils/types"
 
 describe("getQueryData", () => {
-  // it("should be typed if key is tagged", () => {
-  //   doNotExecute(() => {
-  //     const queryKey = ["key"] as DataTag<Array<string>, number>
-  //     const queryClient = new QueryClient()
-  //     const data = queryClient.getQueryData(queryKey)
+  it("should be typed if key is tagged", () => {
+    doNotExecute(() => {
+      const queryKey = ["key"] as DataTag<Array<string>, number>
+      const queryClient = new QueryClient()
+      const data = queryClient.getQueryData(queryKey)
 
-  //     const result: Expect<Equal<typeof data, number | undefined>> = true
-  //     return result
-  //   })
-  // })
+      const result: Expect<Equal<typeof data, number | undefined>> = true
+      return result
+    })
+  })
 
-  // it("should infer unknown if key is not tagged", () => {
-  //   doNotExecute(() => {
-  //     const queryKey = ["key"] as const
-  //     const queryClient = new QueryClient()
-  //     const data = queryClient.getQueryData(queryKey)
+  it("should infer unknown if key is not tagged", () => {
+    doNotExecute(() => {
+      const queryKey = ["key"] as const
+      const queryClient = new QueryClient()
+      const data = queryClient.getQueryData(queryKey)
 
-  //     const result: Expect<Equal<typeof data, unknown>> = true
-  //     return result
-  //   })
-  // })
+      const result: Expect<Equal<typeof data, unknown>> = true
+      return result
+    })
+  })
 
-  // it("should infer passed generic if passed", () => {
-  //   doNotExecute(() => {
-  //     const queryKey = ["key"] as const
-  //     const queryClient = new QueryClient()
-  //     const data = queryClient.getQueryData<number>(queryKey)
+  it("should infer passed generic if passed", () => {
+    doNotExecute(() => {
+      const queryKey = ["key"] as const
+      const queryClient = new QueryClient()
+      const data = queryClient.getQueryData<number>(queryKey)
 
-  //     const result: Expect<Equal<typeof data, number | undefined>> = true
-  //     return result
-  //   })
-  // })
+      const result: Expect<Equal<typeof data, number | undefined>> = true
+      return result
+    })
+  })
 
   it("should only allow Arrays to be passed", () => {
     doNotExecute(() => {
