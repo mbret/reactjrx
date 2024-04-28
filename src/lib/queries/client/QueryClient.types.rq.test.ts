@@ -107,38 +107,38 @@ describe("setQueryData", () => {
   })
 })
 
-describe("fetchInfiniteQuery", () => {
-  // it('should allow passing pages', async () => {
-  //   const data = await new QueryClient().fetchInfiniteQuery({
-  //     queryKey: ['key'],
-  //     queryFn: () => Promise.resolve('string'),
-  //     getNextPageParam: () => 1,
-  //     initialPageParam: 1,
-  //     pages: 5,
-  //   })
+// describe("fetchInfiniteQuery", () => {
+// it('should allow passing pages', async () => {
+//   const data = await new QueryClient().fetchInfiniteQuery({
+//     queryKey: ['key'],
+//     queryFn: () => Promise.resolve('string'),
+//     getNextPageParam: () => 1,
+//     initialPageParam: 1,
+//     pages: 5,
+//   })
 
-  //   expectTypeOf(data).toEqualTypeOf<InfiniteData<string, number>>()
-  // })
+//   expectTypeOf(data).toEqualTypeOf<InfiniteData<string, number>>()
+// })
 
-  // it('should not allow passing getNextPageParam without pages', () => {
-  //   new QueryClient().fetchInfiniteQuery({
-  //     queryKey: ['key'],
-  //     queryFn: () => Promise.resolve('string'),
-  //     initialPageParam: 1,
-  //     getNextPageParam: () => 1,
-  //   })
-  // })
+// it('should not allow passing getNextPageParam without pages', () => {
+//   new QueryClient().fetchInfiniteQuery({
+//     queryKey: ['key'],
+//     queryFn: () => Promise.resolve('string'),
+//     initialPageParam: 1,
+//     getNextPageParam: () => 1,
+//   })
+// })
 
-  it("should not allow passing pages without getNextPageParam", () => {
-    // @ts-expect-error Property 'getNextPageParam' is missing
-    return new QueryClient().fetchInfiniteQuery({
-      queryKey: ["key"],
-      queryFn: () => Promise.resolve("string"),
-      initialPageParam: 1,
-      pages: 5
-    })
-  })
-})
+// it("should not allow passing pages without getNextPageParam", () => {
+//   // @ts-expect-error Property 'getNextPageParam' is missing
+//   return new QueryClient().fetchInfiniteQuery({
+//     queryKey: ["key"],
+//     queryFn: () => Promise.resolve("string"),
+//     initialPageParam: 1,
+//     pages: 5
+//   })
+// })
+// })
 
 describe("defaultOptions", () => {
   it("should have a typed QueryFunctionContext", () => {
