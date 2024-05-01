@@ -37,7 +37,9 @@ export const waitForNetworkOnError = <
            * timer needed to be iso RQ, so the state returned by mutation include both previous and next one
            */
           timer(1).pipe(
-            mergeMap(() => throwError(() => error).pipe(delayWhenNetworkOnline<T>()))
+            mergeMap(() =>
+              throwError(() => error).pipe(delayWhenNetworkOnline<T>())
+            )
           )
         )
       } else {

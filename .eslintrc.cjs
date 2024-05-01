@@ -21,8 +21,8 @@ const config = {
   plugins: ["react"],
   ignorePatterns: ["vitest.config.ts", "vite.config.ts", "test-setup.ts"],
   rules: {
-    'react/jsx-key': ['error', { checkFragmentShorthand: true }],
-    'react-hooks/exhaustive-deps': 'error',
+    "react/jsx-key": ["error", { checkFragmentShorthand: true }],
+    "react-hooks/exhaustive-deps": "error",
     "@typescript-eslint/explicit-function-return-type": 0,
     "react/display-name": 0,
     "@typescript-eslint/no-invalid-void-type": 0,

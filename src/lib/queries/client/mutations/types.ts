@@ -1,7 +1,5 @@
 import { type Observable } from "rxjs"
-import {
-  type DefaultError,
-} from "../types"
+import { type DefaultError } from "../types"
 import { type Mutation } from "./mutation/Mutation"
 import { type MutationStatus } from "./mutation/types"
 

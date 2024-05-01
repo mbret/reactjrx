@@ -1,15 +1,14 @@
-import { describe, expect, test , vi } from 'vitest'
-import { render, waitFor } from '@testing-library/react'
-import { createQueryClient, sleep } from '../../../tests/utils'
-import { QueryCache } from '../client/queries/cache/QueryCache'
-import { queryKey } from '../client/tests/utils'
-import { useQuery } from './queries/useQuery'
-import { QueryClientProvider } from './QueryClientProvider'
-import { useQueryClient } from './useQueryClient'
+import { describe, expect, test, vi } from "vitest"
+import { render, waitFor } from "@testing-library/react"
+import { createQueryClient, sleep } from "../../../tests/utils"
+import { QueryCache } from "../client/queries/cache/QueryCache"
+import { queryKey } from "../client/tests/utils"
+import { useQuery } from "./queries/useQuery"
+import { QueryClientProvider } from "./QueryClientProvider"
+import { useQueryClient } from "./useQueryClient"
 
-
-describe('QueryClientProvider', () => {
-  test('sets a specific cache for all queries to use', async () => {
+describe("QueryClientProvider", () => {
+  test("sets a specific cache for all queries to use", async () => {
     const key = queryKey()
 
     const queryCache = new QueryCache()
@@ -20,8 +19,8 @@ describe('QueryClientProvider', () => {
         queryKey: key,
         queryFn: async () => {
           await sleep(10)
-          return 'test'
-        },
+          return "test"
+        }
       })
 
       return (
@@ -34,15 +33,15 @@ describe('QueryClientProvider', () => {
     const rendered = render(
       <QueryClientProvider client={queryClient}>
         <Page />
-      </QueryClientProvider>,
+      </QueryClientProvider>
     )
 
-    await waitFor(() => rendered.getByText('test'))
+    await waitFor(() => rendered.getByText("test"))
 
     expect(queryCache.find({ queryKey: key })).toBeDefined()
   })
 
-  test('allows multiple caches to be partitioned', async () => {
+  test("allows multiple caches to be partitioned", async () => {
     const key1 = queryKey()
     const key2 = queryKey()
 
@@ -57,8 +56,8 @@ describe('QueryClientProvider', () => {
         queryKey: key1,
         queryFn: async () => {
           await sleep(10)
-          return 'test1'
-        },
+          return "test1"
+        }
       })
 
       return (
@@ -72,8 +71,8 @@ describe('QueryClientProvider', () => {
         queryKey: key2,
         queryFn: async () => {
           await sleep(10)
-          return 'test2'
-        },
+          return "test2"
+        }
       })
 
       return (
@@ -91,11 +90,11 @@ describe('QueryClientProvider', () => {
         <QueryClientProvider client={queryClient2}>
           <Page2 />
         </QueryClientProvider>
-      </>,
+      </>
     )
 
-    await waitFor(() => rendered.getByText('test1'))
-    await waitFor(() => rendered.getByText('test2'))
+    await waitFor(() => rendered.getByText("test1"))
+    await waitFor(() => rendered.getByText("test2"))
 
     expect(queryCache1.find({ queryKey: key1 })).toBeDefined()
     expect(queryCache1.find({ queryKey: key2 })).not.toBeDefined()
@@ -111,9 +110,9 @@ describe('QueryClientProvider', () => {
       queryCache,
       defaultOptions: {
         queries: {
-          gcTime: Infinity,
-        },
-      },
+          gcTime: Infinity
+        }
+      }
     })
 
     function Page() {
@@ -121,8 +120,8 @@ describe('QueryClientProvider', () => {
         queryKey: key,
         queryFn: async () => {
           await sleep(10)
-          return 'test'
-        },
+          return "test"
+        }
       })
 
       return (
@@ -135,19 +134,19 @@ describe('QueryClientProvider', () => {
     const rendered = render(
       <QueryClientProvider client={queryClient}>
         <Page />
-      </QueryClientProvider>,
+      </QueryClientProvider>
     )
 
-    await waitFor(() => rendered.getByText('test'))
+    await waitFor(() => rendered.getByText("test"))
 
     expect(queryCache.find({ queryKey: key })).toBeDefined()
     expect(queryCache.find({ queryKey: key })?.options.gcTime).toBe(Infinity)
   })
 
-  describe('useQueryClient', () => {
-    test('should throw an error if no query client has been set', () => {
+  describe("useQueryClient", () => {
+    test("should throw an error if no query client has been set", () => {
       const consoleMock = vi
-        .spyOn(console, 'error')
+        .spyOn(console, "error")
         .mockImplementation(() => undefined)
 
       function Page() {
@@ -156,7 +155,7 @@ describe('QueryClientProvider', () => {
       }
 
       expect(() => render(<Page />)).toThrow(
-        'No QueryClient set, use QueryClientProvider to set one',
+        "No QueryClient set, use QueryClientProvider to set one"
       )
 
       consoleMock.mockRestore()

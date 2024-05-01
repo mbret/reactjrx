@@ -1,14 +1,14 @@
 /* eslint-disable no-new */
-import { describe, it } from 'vitest'
-import { createQueryClient, doNotExecute } from '../../../../../tests/utils'
-import { QueryObserver } from './QueryObserver'
-import { type Equal, type Expect } from '../../../../utils/types'
+import { describe, it } from "vitest"
+import { createQueryClient, doNotExecute } from "../../../../../tests/utils"
+import { QueryObserver } from "./QueryObserver"
+import { type Equal, type Expect } from "../../../../utils/types"
 
-describe('placeholderData', () => {
-  describe('placeholderData function', () => {
-    it('previousQuery should have typed queryKey', () => {
+describe("placeholderData", () => {
+  describe("placeholderData function", () => {
+    it("previousQuery should have typed queryKey", () => {
       doNotExecute(() => {
-        const queryKey = ['SomeQuery', 42, { foo: 'bar' }] as const
+        const queryKey = ["SomeQuery", 42, { foo: "bar" }] as const
         type QueryKey = typeof queryKey
 
         new QueryObserver(createQueryClient(), {
@@ -20,19 +20,19 @@ describe('placeholderData', () => {
               Equal<typeof previousQueryKey, QueryKey | undefined>
             > = true
             return result
-          },
+          }
         })
       })
     })
 
-    it('previousQuery should have typed error', () => {
+    it("previousQuery should have typed error", () => {
       doNotExecute(() => {
         class CustomError extends Error {
-          name = 'CustomError' as const
+          name = "CustomError" as const
         }
 
         new QueryObserver<boolean, CustomError>(createQueryClient(), {
-          queryKey: ['key'],
+          queryKey: ["key"],
           placeholderData: (_, previousQuery) => {
             const error = previousQuery?.state.error
 
@@ -40,18 +40,18 @@ describe('placeholderData', () => {
               Equal<typeof error, CustomError | null | undefined>
             > = true
             return result
-          },
+          }
         })
       })
     })
 
-    it('previousData should have the same type as query data', () => {
+    it("previousData should have the same type as query data", () => {
       doNotExecute(() => {
-        const queryData = { foo: 'bar' } as const
+        const queryData = { foo: "bar" } as const
         type QueryData = typeof queryData
 
         new QueryObserver(createQueryClient(), {
-          queryKey: ['key'],
+          queryKey: ["key"],
           queryFn: () => queryData,
           select: (data) => data.foo,
           placeholderData: (previousData) => {
@@ -59,7 +59,7 @@ describe('placeholderData', () => {
               Equal<typeof previousData, QueryData | undefined>
             > = true
             return result ? previousData : undefined
-          },
+          }
         })
       })
     })

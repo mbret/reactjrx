@@ -49,7 +49,7 @@ export const useMutationState = <TData, TResult = MutationState>(
                   : mutation.state) as TResult
             )
         }),
-        distinctUntilChanged(shallowEqual),
+        distinctUntilChanged(shallowEqual)
       )
     },
     { defaultValue: defaultValue.current },

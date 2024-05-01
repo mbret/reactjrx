@@ -4,25 +4,22 @@ import {
   Subject,
   concatMap,
   defer,
-  distinctUntilChanged,
   filter,
   identity,
   merge,
   mergeMap,
-  scan,
   shareReplay,
   skip,
   takeUntil,
   type Observable,
   last,
   EMPTY,
-  tap
+  tap,
+  map
 } from "rxjs"
 import { type DefaultError } from "../../types"
 import { type MutationObserverOptions } from "../observers/types"
 import { type Mutation } from "../mutation/Mutation"
-import { shallowEqual } from "../../../../utils/shallowEqual"
-import { getDefaultMutationState } from "../defaultMutationState"
 import { trackSubscriptions } from "../../../../utils/operators/trackSubscriptions"
 import { type MutationOptions, type MutationState } from "../mutation/types"
 import { observeUntilFinished } from "../mutation/observeUntilFinished"
@@ -48,7 +45,10 @@ export class MutationRunner<
     TriggerSubject<TData, TError, TVariables, TContext>
   >()
 
-  public state$: Observable<MutationState<TData, TError, TVariables, TContext>>
+  public state$: Observable<{
+    state: MutationState<TData, TError, TVariables, TContext>
+    mutation: Mutation<TData, TError, TVariables, TContext>
+  }>
 
   constructor({
     __queryFinalizeHook
@@ -108,26 +108,11 @@ export class MutationRunner<
            */
           deferExecution$
         ).pipe(
+          map((state) => ({ state, mutation })),
           (__queryFinalizeHook as typeof identity) ?? identity,
           takeUntil(observeUntil$)
         )
       }),
-      scan((acc, current) => {
-        return {
-          ...acc,
-          ...current,
-          ...(current.status === "pending" && {
-            data: current.data ?? acc.data
-          }),
-          ...(current.status === "pending" && {
-            error: current.error ?? acc.error
-          })
-        }
-      }, getDefaultMutationState<TData, TError, TVariables, TContext>()),
-      distinctUntilChanged(
-        ({ data: prevData, ...prev }, { data: currData, ...curr }) =>
-          shallowEqual(prev, curr) && shallowEqual(prevData, currData)
-      ),
       shareReplay({
         refCount: true,
         bufferSize: 1

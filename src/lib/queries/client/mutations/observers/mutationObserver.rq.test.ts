@@ -6,7 +6,7 @@ import { type QueryClient } from "../../QueryClient"
 import { MutationObserver } from "./MutationObserver"
 import { queryKey } from "../../tests/utils"
 
-describe('mutationObserver', () => {
+describe("mutationObserver", () => {
   let queryClient: QueryClient
 
   beforeEach(() => {
@@ -18,12 +18,12 @@ describe('mutationObserver', () => {
     queryClient.clear()
   })
 
-  test('onUnsubscribe should not remove the current mutation observer if there is still a subscription', async () => {
+  test("onUnsubscribe should not remove the current mutation observer if there is still a subscription", async () => {
     const mutation = new MutationObserver(queryClient, {
       mutationFn: async (text: string) => {
         await sleep(20)
         return text
-      },
+      }
     })
 
     const subscription1Handler = vi.fn()
@@ -32,7 +32,7 @@ describe('mutationObserver', () => {
     const unsubscribe1 = mutation.subscribe(subscription1Handler)
     const unsubscribe2 = mutation.subscribe(subscription2Handler)
 
-    mutation.mutate('input')
+    mutation.mutate("input")
 
     unsubscribe1()
 
@@ -47,126 +47,126 @@ describe('mutationObserver', () => {
     unsubscribe2()
   })
 
-  test('unsubscribe should remove observer to trigger GC', async () => {
+  test("unsubscribe should remove observer to trigger GC", async () => {
     const mutation = new MutationObserver(queryClient, {
       mutationFn: async (text: string) => {
         await sleep(5)
         return text
       },
-      gcTime: 10,
+      gcTime: 10
     })
 
     const subscriptionHandler = vi.fn()
 
     const unsubscribe = mutation.subscribe(subscriptionHandler)
 
-    await mutation.mutate('input')
+    await mutation.mutate("input")
 
     expect(queryClient.getMutationCache().findAll()).toHaveLength(1)
 
     unsubscribe()
 
-    await waitFor(() =>
-      { expect(queryClient.getMutationCache().findAll()).toHaveLength(0); },
-    )
+    await waitFor(() => {
+      expect(queryClient.getMutationCache().findAll()).toHaveLength(0)
+    })
   })
 
-  test('reset should remove observer to trigger GC', async () => {
+  test("reset should remove observer to trigger GC", async () => {
     const mutation = new MutationObserver(queryClient, {
       mutationFn: async (text: string) => {
         await sleep(5)
         return text
       },
-      gcTime: 10,
+      gcTime: 10
     })
 
     const subscriptionHandler = vi.fn()
 
     const unsubscribe = mutation.subscribe(subscriptionHandler)
 
-    await mutation.mutate('input')
+    await mutation.mutate("input")
 
     expect(queryClient.getMutationCache().findAll()).toHaveLength(1)
 
     mutation.reset()
 
-    await waitFor(() =>
-      { expect(queryClient.getMutationCache().findAll()).toHaveLength(0); },
-    )
+    await waitFor(() => {
+      expect(queryClient.getMutationCache().findAll()).toHaveLength(0)
+    })
 
     unsubscribe()
   })
 
-  test('changing mutation keys should reset the observer', async () => {
+  test("changing mutation keys should reset the observer", async () => {
     const key = queryKey()
     const mutation = new MutationObserver(queryClient, {
-      mutationKey: [...key, '1'],
+      mutationKey: [...key, "1"],
       mutationFn: async (text: string) => {
         await sleep(5)
         return text
-      },
+      }
     })
 
     const subscriptionHandler = vi.fn()
 
     const unsubscribe = mutation.subscribe(subscriptionHandler)
 
-    await mutation.mutate('input')
+    await mutation.mutate("input")
 
     expect(mutation.getCurrentResult()).toMatchObject({
-      status: 'success',
-      data: 'input',
+      status: "success",
+      data: "input"
     })
 
     mutation.setOptions({
-      mutationKey: [...key, '2'],
+      mutationKey: [...key, "2"]
     })
 
     expect(mutation.getCurrentResult()).toMatchObject({
-      status: 'idle',
+      status: "idle"
     })
 
     unsubscribe()
   })
 
-  test('changing mutation keys should not affect already existing mutations', async () => {
+  test("changing mutation keys should not affect already existing mutations", async () => {
     const key = queryKey()
     const mutationObserver = new MutationObserver(queryClient, {
-      mutationKey: [...key, '1'],
+      mutationKey: [...key, "1"],
       mutationFn: async (text: string) => {
         await sleep(5)
         return text
-      },
+      }
     })
 
     const subscriptionHandler = vi.fn()
 
     const unsubscribe = mutationObserver.subscribe(subscriptionHandler)
 
-    await mutationObserver.mutate('input')
+    await mutationObserver.mutate("input")
 
     expect(
-      queryClient.getMutationCache().find({ mutationKey: [...key, '1'] }),
+      queryClient.getMutationCache().find({ mutationKey: [...key, "1"] })
     ).toMatchObject({
-      options: { mutationKey: [...key, '1'] },
+      options: { mutationKey: [...key, "1"] },
       state: {
-        status: 'success',
-        data: 'input',
-      },
+        status: "success",
+        data: "input"
+      }
     })
 
     mutationObserver.setOptions({
-      mutationKey: [...key, '2'],
+      mutationKey: [...key, "2"]
     })
 
     expect(
-      queryClient.getMutationCache().find({ mutationKey: [...key, '1'] }),
+      queryClient.getMutationCache().find({ mutationKey: [...key, "1"] })
     ).toMatchObject({
-      options: { mutationKey: [...key, '1'] },
+      options: { mutationKey: [...key, "1"] },
       state: {
-        status: 'success',
-        data: 'input',
-      },
+        status: "success",
+        data: "input"
+      }
     })
 
     unsubscribe()

@@ -1,6 +1,6 @@
-import { matchKey } from "../keys/matchKey"
-import { type DefaultError } from "../types"
-import { type MutationFilters } from "./types"
+import { matchKey } from "../../keys/matchKey"
+import { type DefaultError } from "../../types"
+import { type MutationFilters } from "../types"
 
 export const createPredicateForFilters = <
   TData = unknown,

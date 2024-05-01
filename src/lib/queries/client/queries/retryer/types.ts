@@ -1,4 +1,4 @@
 export interface CancelOptions {
-    revert?: boolean
-    silent?: boolean
-  }
+  revert?: boolean
+  silent?: boolean
+}

@@ -1,13 +1,13 @@
-import { type QueryKey } from '../../client/keys/types'
-import { type DataTag } from '../../client/queries/types'
-import { type DefaultError } from '../../client/types'
-import type { UseQueryOptions } from './types'
+import { type QueryKey } from "../../client/keys/types"
+import { type DataTag } from "../../client/queries/types"
+import { type DefaultError } from "../../client/types"
+import type { UseQueryOptions } from "./types"
 
 export type UndefinedInitialDataOptions<
   TQueryFnData = unknown,
   TError = DefaultError,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
+  TQueryKey extends QueryKey = QueryKey
 > = UseQueryOptions<TQueryFnData, TError, TData, TQueryKey> & {
   initialData?: undefined
 }
@@ -18,7 +18,7 @@ export type DefinedInitialDataOptions<
   TQueryFnData = unknown,
   TError = DefaultError,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
+  TQueryKey extends QueryKey = QueryKey
 > = UseQueryOptions<TQueryFnData, TError, TData, TQueryKey> & {
   initialData:
     | NonUndefinedGuard<TQueryFnData>
@@ -29,9 +29,9 @@ export function queryOptions<
   TQueryFnData = unknown,
   TError = DefaultError,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
+  TQueryKey extends QueryKey = QueryKey
 >(
-  options: UndefinedInitialDataOptions<TQueryFnData, TError, TData, TQueryKey>,
+  options: UndefinedInitialDataOptions<TQueryFnData, TError, TData, TQueryKey>
 ): UndefinedInitialDataOptions<TQueryFnData, TError, TData, TQueryKey> & {
   queryKey: DataTag<TQueryKey, TQueryFnData>
 }
@@ -40,9 +40,9 @@ export function queryOptions<
   TQueryFnData = unknown,
   TError = DefaultError,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
+  TQueryKey extends QueryKey = QueryKey
 >(
-  options: DefinedInitialDataOptions<TQueryFnData, TError, TData, TQueryKey>,
+  options: DefinedInitialDataOptions<TQueryFnData, TError, TData, TQueryKey>
 ): DefinedInitialDataOptions<TQueryFnData, TError, TData, TQueryKey> & {
   queryKey: DataTag<TQueryKey, TQueryFnData>
 }

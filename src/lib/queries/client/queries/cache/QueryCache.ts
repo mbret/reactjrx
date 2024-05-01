@@ -203,7 +203,7 @@ export class QueryCache {
 
   subscribe(fn: QueryCacheListener) {
     const sub = merge(
-      this.#notifySubject.pipe(tap(fn)),
+      this.#notifySubject.pipe(tap(fn))
       // this.#store.added$.pipe(
       //   mergeMap((query) => {
       //     fn({

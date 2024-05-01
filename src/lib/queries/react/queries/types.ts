@@ -1,11 +1,15 @@
 import { type WithRequired } from "../../../utils/types"
 import { type QueryKey } from "../../client/keys/types"
-import { type QueryObserverResult, type DefinedQueryObserverResult, type QueryObserverOptions } from "../../client/queries/observer/types"
+import {
+  type QueryObserverResult,
+  type DefinedQueryObserverResult,
+  type QueryObserverOptions
+} from "../../client/queries/observer/types"
 import { type DefaultError } from "../../client/types"
 
 export type DefinedUseQueryResult<
   TData = unknown,
-  TError = DefaultError,
+  TError = DefaultError
 > = DefinedQueryObserverResult<TData, TError>
 
 export interface UseBaseQueryOptions<

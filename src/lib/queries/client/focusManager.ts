@@ -1,12 +1,4 @@
-import {
-  filter,
-  fromEvent,
-  map,
-  merge,
-  skip,
-  tap,
-  BehaviorSubject,
-} from "rxjs"
+import { filter, fromEvent, map, merge, skip, tap, BehaviorSubject } from "rxjs"
 
 export class FocusManager {
   readonly #visibility$ = merge(

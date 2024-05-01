@@ -10,10 +10,12 @@ import {
   concat,
   toArray,
   mergeMap,
-  NEVER,
-  startWith
+  startWith,
+  map,
+  filter,
+  scan
 } from "rxjs"
-import { getDefaultMutationState } from "../defaultMutationState"
+import { getDefaultMutationState } from "../utils/defaultMutationState"
 import { type DefaultError } from "../../types"
 import { type MutationCache } from "../cache/MutationCache"
 import { makeObservable } from "../../utils/makeObservable"
@@ -25,6 +27,7 @@ import {
 import { executeMutation } from "./executeMutation"
 import { trackSubscriptions } from "../../../../utils/operators/trackSubscriptions"
 import { observeUntilFinished } from "./observeUntilFinished"
+import { distinctUntilStateChanged } from "../utils/distinctUntilStateChanged"
 
 interface MutationConfig<TData, TError, TVariables, TContext> {
   mutationCache: MutationCache
@@ -59,18 +62,24 @@ export class Mutation<
     this.options = options
     this.state = state ?? this.state
 
-    const execution$ = this.#executeSubject.pipe(
+    const resetPendingState$ = this.#cancelSubject.pipe(
+      filter(() => this.state.status === "pending"),
+      map(() => ({
+        status: "idle" as const
+      }))
+    )
+
+    const executionState$ = this.#executeSubject.pipe(
       switchMap((variables) =>
         executeMutation<TData, TError, TVariables, TContext>({
           options: {
             ...this.options,
             onMutate: (variables) => {
-              const onCacheMutate$ = makeObservable(
-                () =>
-                  mutationCache.config.onMutate?.(
-                    variables,
-                    this as Mutation<any, any, any, any>
-                  )
+              const onCacheMutate$ = makeObservable(() =>
+                mutationCache.config.onMutate?.(
+                  variables,
+                  this as Mutation<any, any, any, any>
+                )
               ) as Observable<TContext>
 
               // eslint-disable-next-line @typescript-eslint/promise-function-async
@@ -87,53 +96,50 @@ export class Mutation<
               return context$
             },
             onError: (error, variables, context) => {
-              const onCacheError$ = makeObservable(
-                () =>
-                  mutationCache.config.onError?.(
-                    error as any,
-                    variables,
-                    context,
-                    this as Mutation<any, any, any, any>
-                  )
+              const onCacheError$ = makeObservable(() =>
+                mutationCache.config.onError?.(
+                  error as any,
+                  variables,
+                  context,
+                  this as Mutation<any, any, any, any>
+                )
               )
 
-              const onOptionError$ = makeObservable(
-                () => this.options.onError?.(error, variables, context)
+              const onOptionError$ = makeObservable(() =>
+                this.options.onError?.(error, variables, context)
               )
 
               return concat(onCacheError$, onOptionError$).pipe(toArray())
             },
             onSettled: (data, error, variables, context) => {
-              const onCacheSuccess$ = makeObservable(
-                () =>
-                  mutationCache.config.onSettled?.(
-                    data,
-                    error as Error,
-                    variables,
-                    context,
-                    this as Mutation<any, any, any, any>
-                  )
+              const onCacheSuccess$ = makeObservable(() =>
+                mutationCache.config.onSettled?.(
+                  data,
+                  error as Error,
+                  variables,
+                  context,
+                  this as Mutation<any, any, any, any>
+                )
               )
 
-              const onOptionSettled$ = makeObservable(
-                () => this.options.onSettled?.(data, error, variables, context)
+              const onOptionSettled$ = makeObservable(() =>
+                this.options.onSettled?.(data, error, variables, context)
               )
 
               return concat(onCacheSuccess$, onOptionSettled$).pipe(toArray())
             },
             onSuccess: (data, variables, context) => {
-              const onCacheSuccess$ = makeObservable(
-                () =>
-                  mutationCache.config.onSuccess?.(
-                    data,
-                    variables,
-                    context,
-                    this as Mutation<any, any, any, any>
-                  )
+              const onCacheSuccess$ = makeObservable(() =>
+                mutationCache.config.onSuccess?.(
+                  data,
+                  variables,
+                  context,
+                  this as Mutation<any, any, any, any>
+                )
               )
 
-              const onOptionSuccess$ = makeObservable(
-                () => this.options.onSuccess?.(data, variables, context)
+              const onOptionSuccess$ = makeObservable(() =>
+                this.options.onSuccess?.(data, variables, context)
               )
 
               return concat(onCacheSuccess$, onOptionSuccess$).pipe(toArray())
@@ -145,25 +151,27 @@ export class Mutation<
       )
     )
 
-    this.state$ = merge(
-      execution$,
-      /**
-       * We keep state forever since only a explicit destroy
-       * may terminate the mutation
-       */
-      NEVER
-    ).pipe(
+    /**
+     * @important
+     * This observable needs to complete on cancelSubject
+     * otherwise the state will never be freed
+     */
+    const stateChange$ = merge(resetPendingState$, executionState$)
+
+    this.state$ = stateChange$.pipe(
       startWith(this.state),
+      scan(
+        (acc, partialState) => ({
+          ...acc,
+          ...partialState
+        }),
+        this.state
+      ),
+      distinctUntilStateChanged,
       tap((value) => {
-        this.state = { ...this.state, ...value }
+        this.state = value
       }),
-      takeUntil(this.#cancelSubject),
-      /**
-       * refCount as true somewhat make NEVER complete when there are
-       * no more observers. I thought I should have to complete manually (which is
-       * why we still cancel the observable when we remove it from cache)
-       */
-      shareReplay({ bufferSize: 1, refCount: false }),
+      shareReplay(1),
       trackSubscriptions((count) => {
         this.#observerCount.next(count)
       })
@@ -196,7 +204,11 @@ export class Mutation<
     return this.execute(this.state.variables as TVariables)
   }
 
-  // @todo merge with query
+  /**
+   * Cancel if needed and finalize the mutation.
+   * The mutation will be garbage collected automatically
+   * when no more observers are listening
+   */
   cancel() {
     this.#cancelSubject.next()
     this.#cancelSubject.complete()

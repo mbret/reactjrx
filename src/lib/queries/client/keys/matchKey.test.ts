@@ -6,9 +6,7 @@ it("should compare keys", () => {
   expect(matchKey([], [], { exact: true })).toBe(true)
   expect(matchKey([], ["foo"], { exact: false })).toBe(false)
   expect(matchKey(["foo"], [], { exact: false })).toBe(true)
-  expect(
-    matchKey(["foo", "bar"], ["foo"], { exact: false })
-  ).toBe(true)
+  expect(matchKey(["foo", "bar"], ["foo"], { exact: false })).toBe(true)
   expect(matchKey(["foo"], ["foo", "bar"], { exact: true })).toBe(false)
   expect(matchKey(["foo", "bar"], ["foo"], { exact: false })).toBe(true)
   expect(matchKey(["foo"], ["foo", "bar"], { exact: false })).toBe(false)

@@ -1,8 +1,4 @@
-import {
-  type Observable,
-  mergeMap,
-  defer
-} from "rxjs"
+import { type Observable, mergeMap, defer } from "rxjs"
 import { focusManager } from "../../focusManager"
 
 export const delayUntilFocus = <T>(source: Observable<T>): Observable<T> => {

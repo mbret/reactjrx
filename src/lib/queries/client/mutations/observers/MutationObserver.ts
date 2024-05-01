@@ -10,10 +10,12 @@ import {
   last,
   filter,
   tap,
-  ignoreElements
+  ignoreElements,
+  distinctUntilChanged,
+  scan
 } from "rxjs"
 import { type MutateOptions } from "../types"
-import { getDefaultMutationState } from "../defaultMutationState"
+import { getDefaultMutationState } from "../utils/defaultMutationState"
 import { type QueryClient } from "../../QueryClient"
 import { type DefaultError } from "../../types"
 import { type Mutation } from "../mutation/Mutation"
@@ -27,6 +29,8 @@ import { type MutationState } from "../mutation/types"
 import { isDefined } from "../../../../utils/isDefined"
 import { matchKey } from "../../keys/matchKey"
 import { observeUntilFinished } from "../mutation/observeUntilFinished"
+import { shallowEqual } from "../../../../utils/shallowEqual"
+import { distinctUntilStateChanged } from "../utils/distinctUntilStateChanged"
 
 /**
  * Provide API to observe mutations results globally.
@@ -193,10 +197,35 @@ export class MutationObserver<
     )
 
     const mutationResult$ = this.#mutationRunner.state$.pipe(
+      distinctUntilChanged(
+        (
+          { mutation: prevMutation, state: { data: prevData, ...prev } },
+          { mutation: currentMutation, state: { data: currData, ...curr } }
+        ) =>
+          prevMutation === currentMutation &&
+          shallowEqual(prev, curr) &&
+          shallowEqual(prevData, currData)
+      ),
+      map(({ state }) => state),
+      scan<
+        MutationState<TData, TError, TVariables, TContext>,
+        MutationState<TData, TError, TVariables, TContext>
+      >((acc, current) => {
+        return {
+          ...acc,
+          ...current,
+          ...(current.status === "pending" && {
+            data: current.data ?? acc.data
+          }),
+          ...(current.status === "pending" && {
+            error: current.error ?? acc.error
+          })
+        }
+      }),
       map((state) => this.getObserverResultFromState(state))
     )
 
-    const currentMutationCancelled$ = this.#currentMutationSubject.pipe(
+    const defaultStateOnMutationCancel$ = this.#currentMutationSubject.pipe(
       filter(isDefined),
       switchMap((mutation) => mutation.mutation.cancelled$),
       map(() => this.getObserverResultFromState(getDefaultMutationState()))
@@ -205,8 +234,8 @@ export class MutationObserver<
     const result$ = merge(
       this.observed$,
       mutationResult$,
-      currentMutationCancelled$
-    )
+      defaultStateOnMutationCancel$
+    ).pipe(distinctUntilStateChanged)
 
     return { result$, lastValue }
   }

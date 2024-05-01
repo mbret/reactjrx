@@ -2,8 +2,15 @@ import { type QueryClient } from "../../client/QueryClient"
 import { type QueryKey } from "../../client/keys/types"
 import { QueryObserver } from "../../client/queries/observer/QueryObserver"
 import { type DefaultError } from "../../client/types"
-import { type DefinedInitialDataOptions, type UndefinedInitialDataOptions } from "./queryOptions"
-import { type DefinedUseQueryResult, type UseQueryOptions, type UseQueryResult } from "./types"
+import {
+  type DefinedInitialDataOptions,
+  type UndefinedInitialDataOptions
+} from "./queryOptions"
+import {
+  type DefinedUseQueryResult,
+  type UseQueryOptions,
+  type UseQueryResult
+} from "./types"
 import { useBaseQuery } from "./useBaseQuery"
 
 export function useQuery<

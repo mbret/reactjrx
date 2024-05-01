@@ -9,14 +9,12 @@ import {
   iif,
   catchError,
   scan,
-  distinctUntilChanged,
   shareReplay
 } from "rxjs"
 import { type MutationOptions, type MutationState } from "./types"
 import { makeObservable } from "../../utils/makeObservable"
 import { type DefaultError } from "../../types"
-import { getDefaultMutationState } from "../defaultMutationState"
-import { shallowEqual } from "../../../../utils/shallowEqual"
+import { getDefaultMutationState } from "../utils/defaultMutationState"
 import { onlineManager } from "../../onlineManager"
 import { waitForNetworkOnError } from "./waitForNetworkOnError"
 import { delayWhenNetworkOnline } from "./delayWhenNetworkOnline"
@@ -227,11 +225,7 @@ export const executeMutation = <
         data: current.data ?? acc.data,
         error: current.error ?? acc.error
       }
-    }, getDefaultMutationState<TData, TError, TVariables, TContext>()),
-    distinctUntilChanged(
-      ({ data: prevData, ...prev }, { data: currData, ...curr }) =>
-        shallowEqual(prev, curr) && shallowEqual(prevData, currData)
-    )
+    }, getDefaultMutationState<TData, TError, TVariables, TContext>())
   )
 
   return mutation$

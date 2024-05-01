@@ -45,8 +45,8 @@ export const QueryErrorResetBoundary = ({
   return (
     <QueryErrorResetBoundaryContext.Provider value={value}>
       {typeof children === "function"
-        // eslint-disable-next-line @typescript-eslint/ban-types
-        ? (children as Function)(value)
+        ? // eslint-disable-next-line @typescript-eslint/ban-types
+          (children as Function)(value)
         : children}
     </QueryErrorResetBoundaryContext.Provider>
   )

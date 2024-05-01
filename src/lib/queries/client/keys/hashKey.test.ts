@@ -10,7 +10,7 @@ it("should return correct serialized key", () => {
   expect(hashKey(["todos", { page: 2, status: "foo" }])).toBe(
     `["todos",{"page":2,"status":"foo"}]`
   )
-  expect(
-    hashKey(["todos", { page: 2, status: "foo", bar: undefined }])
-  ).toBe(`["todos",{"page":2,"status":"foo"}]`)
+  expect(hashKey(["todos", { page: 2, status: "foo", bar: undefined }])).toBe(
+    `["todos",{"page":2,"status":"foo"}]`
+  )
 })

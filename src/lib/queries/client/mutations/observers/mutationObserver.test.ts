@@ -6,7 +6,8 @@ import {
 } from "../../../../../tests/utils"
 import { QueryClient } from "../../QueryClient"
 import { MutationObserver } from "./MutationObserver"
-import { noop } from "rxjs"
+import { NEVER, noop } from "rxjs"
+import { type MutationObserverResult } from "./types"
 
 describe("mutationObserver", () => {
   let queryClient: QueryClient
@@ -64,5 +65,42 @@ describe("mutationObserver", () => {
       newClient.getMutationCache().find({ mutationKey: ["foo"] })?.options
         .networkMode
     ).toBe("always")
+  })
+
+  test("should return new pending result after a mutation is cancelled", async () => {
+    const newClient = new QueryClient()
+    const results: Array<
+      MutationObserverResult<unknown, Error, void, unknown>
+    > = []
+    const observer = new MutationObserver(newClient, {
+      mutationKey: ["foo"],
+      mutationFn: () => NEVER
+    })
+
+    const sub = observer.observe().result$.subscribe((observerResult) => {
+      results.push(observerResult)
+    })
+
+    observer.mutate().then(noop).catch(noop)
+
+    observer.reset()
+
+    await waitForTimeout(10)
+
+    expect(results.length).toBe(2)
+    expect(results).toMatchObject([{ status: "pending" }, { status: "idle" }])
+
+    observer.mutate().then(noop).catch(noop)
+
+    await waitForTimeout(10)
+
+    expect(results.length).toBe(3)
+    expect(results).toMatchObject([
+      { status: "pending" },
+      { status: "idle" },
+      { status: "pending" }
+    ])
+
+    sub.unsubscribe()
   })
 })

@@ -1,7 +1,9 @@
 import { type Observable, takeWhile } from "rxjs"
 import { type MutationState } from "./types"
 
-export const observeUntilFinished = <T extends MutationState<any, any, any, any>>(
+export const observeUntilFinished = <
+  T extends MutationState<any, any, any, any>
+>(
   source: Observable<T>
 ) =>
   source.pipe(

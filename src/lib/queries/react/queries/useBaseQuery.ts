@@ -80,7 +80,7 @@ export function useBaseQuery<
          * It's important to not skip the first result (even tho most of the time they are equal).
          * We only skip if they are the same.
          */
-        filter((result) => !shallowEqual(result, optimisticResult.current)),
+        filter((result) => !shallowEqual(result, optimisticResult.current))
       ),
     []
   )
@@ -100,9 +100,12 @@ export function useBaseQuery<
       throwOnError: defaultedOptions.throwOnError,
       query: client
         .getQueryCache()
-        .get<TQueryFnData, TError, TQueryData, TQueryKey>(
-          defaultedOptions.queryHash
-        )
+        .get<
+          TQueryFnData,
+          TError,
+          TQueryData,
+          TQueryKey
+        >(defaultedOptions.queryHash)
     })
   ) {
     // eslint-disable-next-line @typescript-eslint/no-throw-literal

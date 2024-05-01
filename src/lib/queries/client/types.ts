@@ -93,7 +93,7 @@ export interface RefetchOptions extends ResultOptions {
 }
 
 export interface InvalidateQueryFilters extends QueryFilters {
-  refetchType?: QueryTypeFilter | 'none'
+  refetchType?: QueryTypeFilter | "none"
 }
 
 export interface InvalidateOptions extends RefetchOptions {}

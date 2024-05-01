@@ -12,7 +12,7 @@ import {
   combineLatest,
   EMPTY
 } from "rxjs"
-import { createPredicateForFilters } from "../filters"
+import { createPredicateForFilters } from "../utils/filters"
 import {
   type MutationCacheConfig,
   type MutationCacheNotifyEvent

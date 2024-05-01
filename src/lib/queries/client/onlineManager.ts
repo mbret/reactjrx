@@ -5,7 +5,7 @@ import {
   first,
   fromEvent,
   map,
-  merge,
+  merge
 } from "rxjs"
 import { emitToSubject } from "../../utils/operators/emitToSubject"
 
