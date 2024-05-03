@@ -19,6 +19,7 @@ import { delayUntilFocus } from "../delayUntilFocus"
 import { retryBackoff } from "../../../../../utils/operators/retryBackoff"
 import { delayOnNetworkMode } from "../delayOnNetworkMode"
 import { completeFnIfNotMoreObservers } from "./completeFnIfNotMoreObservers"
+import { skipToken } from "../../utils"
 
 export const executeQuery = <
   TQueryFnData = unknown,
@@ -39,8 +40,19 @@ export const executeQuery = <
   const defaultFn = async () =>
     await Promise.reject(new Error("No query found"))
 
+  if (process.env.NODE_ENV !== "production") {
+    if (options.queryFn === skipToken) {
+      console.error(
+        `Attempted to invoke queryFn when set to skipToken. This is likely a configuration error. Query hash: '${options.queryHash}'`
+      )
+    }
+  }
+
   let fnIsComplete = false
-  const queryFn = options.queryFn ?? defaultFn
+  const queryFn =
+    options.queryFn && options.queryFn !== skipToken
+      ? options.queryFn
+      : defaultFn
   const abortController = new AbortController()
 
   const queryFnContext: Omit<QueryFunctionContext<TQueryKey>, "signal"> = {
