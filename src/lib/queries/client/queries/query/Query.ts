@@ -105,11 +105,11 @@ export class Query<
       ),
       this.invalidatedSubject.pipe(
         filter(() => !this.state.isInvalidated),
-        map(() => ({
-          command: "invalidate" as const,
+        map((): { command: "invalidate"; state: PartialState } => ({
+          command: "invalidate",
           state: {
             isInvalidated: true
-          } satisfies PartialState
+          }
         }))
       ),
       this.cancelSubject.pipe(

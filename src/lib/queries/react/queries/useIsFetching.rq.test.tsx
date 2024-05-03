@@ -13,9 +13,9 @@ import { queryKey } from "../../client/tests/utils"
 import { useIsFetching } from "./useIsFetching"
 import { useQuery } from "./useQuery"
 
-describe('useIsFetching', () => {
+describe("useIsFetching", () => {
   // See https://github.com/tannerlinsley/react-query/issues/105
-  it('should update as queries start and stop fetching', async () => {
+  it("should update as queries start and stop fetching", async () => {
     const queryCache = new QueryCache()
     const queryClient = createQueryClient({ queryCache })
     const key = queryKey()
@@ -32,12 +32,20 @@ describe('useIsFetching', () => {
         queryKey: key,
         queryFn: async () => {
           await sleep(50)
-          return 'test'
+          return "test"
         },
-        enabled: ready,
+        enabled: ready
       })
 
-      return <button onClick={() => { setReady(true); }}>setReady</button>
+      return (
+        <button
+          onClick={() => {
+            setReady(true)
+          }}
+        >
+          setReady
+        </button>
+      )
     }
 
     function Page() {
@@ -51,13 +59,13 @@ describe('useIsFetching', () => {
 
     const { findByText, getByRole } = renderWithClient(queryClient, <Page />)
 
-    await findByText('isFetching: 0')
-    fireEvent.click(getByRole('button', { name: /setReady/i }))
-    await findByText('isFetching: 1')
-    await findByText('isFetching: 0')
+    await findByText("isFetching: 0")
+    fireEvent.click(getByRole("button", { name: /setReady/i }))
+    await findByText("isFetching: 1")
+    await findByText("isFetching: 0")
   })
 
-  it('should not update state while rendering', async () => {
+  it("should not update state while rendering", async () => {
     const queryCache = new QueryCache()
     const queryClient = createQueryClient({ queryCache })
 
@@ -77,8 +85,8 @@ describe('useIsFetching', () => {
         queryKey: key1,
         queryFn: async () => {
           await sleep(100)
-          return 'data'
-        },
+          return "data"
+        }
       })
       return null
     }
@@ -88,8 +96,8 @@ describe('useIsFetching', () => {
         queryKey: key2,
         queryFn: async () => {
           await sleep(100)
-          return 'data'
-        },
+          return "data"
+        }
       })
       return null
     }
@@ -113,10 +121,12 @@ describe('useIsFetching', () => {
     }
 
     renderWithClient(queryClient, <Page />)
-    await waitFor(() => { expect(isFetchingArray).toEqual([0, 1, 1, 2, 1, 0]); })
+    await waitFor(() => {
+      expect(isFetchingArray).toEqual([0, 1, 1, 2, 1, 0])
+    })
   })
 
-  it('should be able to filter', async () => {
+  it("should be able to filter", async () => {
     const queryClient = createQueryClient()
     const key1 = queryKey()
     const key2 = queryKey()
@@ -128,8 +138,8 @@ describe('useIsFetching', () => {
         queryKey: key1,
         queryFn: async () => {
           await sleep(10)
-          return 'test'
-        },
+          return "test"
+        }
       })
       return null
     }
@@ -139,8 +149,8 @@ describe('useIsFetching', () => {
         queryKey: key2,
         queryFn: async () => {
           await sleep(20)
-          return 'test'
-        },
+          return "test"
+        }
       })
       return null
     }
@@ -153,7 +163,13 @@ describe('useIsFetching', () => {
 
       return (
         <div>
-          <button onClick={() => { setStarted(true); }}>setStarted</button>
+          <button
+            onClick={() => {
+              setStarted(true)
+            }}
+          >
+            setStarted
+          </button>
           <div>isFetching: {isFetching}</div>
           {started ? (
             <>
@@ -167,15 +183,15 @@ describe('useIsFetching', () => {
 
     const { findByText, getByRole } = renderWithClient(queryClient, <Page />)
 
-    await findByText('isFetching: 0')
-    fireEvent.click(getByRole('button', { name: /setStarted/i }))
-    await findByText('isFetching: 1')
-    await findByText('isFetching: 0')
+    await findByText("isFetching: 0")
+    fireEvent.click(getByRole("button", { name: /setStarted/i }))
+    await findByText("isFetching: 1")
+    await findByText("isFetching: 0")
     // at no point should we have isFetching: 2
     expect(isFetchingArray).toEqual(expect.not.arrayContaining([2]))
   })
 
-  it('should show the correct fetching state when mounted after a query', async () => {
+  it("should show the correct fetching state when mounted after a query", async () => {
     const queryClient = createQueryClient()
     const key = queryKey()
 
@@ -184,8 +200,8 @@ describe('useIsFetching', () => {
         queryKey: key,
         queryFn: async () => {
           await sleep(10)
-          return 'test'
-        },
+          return "test"
+        }
       })
 
       const isFetching = useIsFetching()
@@ -199,11 +215,11 @@ describe('useIsFetching', () => {
 
     const rendered = renderWithClient(queryClient, <Page />)
 
-    await rendered.findByText('isFetching: 1')
-    await rendered.findByText('isFetching: 0')
+    await rendered.findByText("isFetching: 1")
+    await rendered.findByText("isFetching: 0")
   })
 
-  it('should use provided custom queryClient', async () => {
+  it("should use provided custom queryClient", async () => {
     const queryClient = createQueryClient()
     const key = queryKey()
 
@@ -213,10 +229,10 @@ describe('useIsFetching', () => {
           queryKey: key,
           queryFn: async () => {
             await sleep(10)
-            return 'test'
-          },
+            return "test"
+          }
         },
-        queryClient,
+        queryClient
       )
 
       const isFetching = useIsFetching({}, queryClient)
@@ -230,6 +246,6 @@ describe('useIsFetching', () => {
 
     const rendered = render(<Page></Page>)
 
-    await waitFor(() => rendered.getByText('isFetching: 1'))
+    await waitFor(() => rendered.getByText("isFetching: 1"))
   })
 })

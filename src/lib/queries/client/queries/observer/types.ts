@@ -24,12 +24,9 @@ export interface QueryObserverOptions<
   TQueryData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey,
   TPageParam = never
-> extends QueryOptions<
-    TQueryFnData,
-    TError,
-    TQueryData,
-    TQueryKey,
-    TPageParam
+> extends WithRequired<
+    QueryOptions<TQueryFnData, TError, TQueryData, TQueryKey, TPageParam>,
+    "queryKey"
   > {
   /**
    * Set this to `false` to disable automatic refetching when the query mounts or changes query keys.
@@ -88,7 +85,7 @@ export interface QueryObserverOptions<
       ) => boolean | "always")
   /**
    * If set to `true`, the query will refetch on mount if the data is stale.
-   * If set to `false`, will disable additional instances of a query to trigger background refetches.
+   * If set to `false`, will disable additional instances of a query to trigger background refetch.
    * If set to `'always'`, the query will always refetch on mount.
    * If set to `'always'`, the query will always refetch on mount if idle.
    * If set to a function, the function will be executed with the latest data and query to compute the value

@@ -7,7 +7,7 @@ import { type QueryOptions, type QueryFilters, type Updater } from "./types"
 
 export function hashQueryKeyByOptions<TQueryKey extends QueryKey = QueryKey>(
   queryKey: TQueryKey,
-  options?: QueryOptions<any, any, any, TQueryKey>
+  options?: Pick<QueryOptions<any, any, any, any>, "queryKeyHashFn">
 ): string {
   const hashFn = options?.queryKeyHashFn ?? hashKey
   return hashFn(queryKey)
@@ -82,10 +82,14 @@ export function replaceData<
   TOptions extends QueryOptions<any, any, any, any>
 >(prevData: TData | undefined, data: TData, options: TOptions): TData {
   if (typeof options.structuralSharing === "function") {
-    return options.structuralSharing(prevData, data)
+    return options.structuralSharing(prevData, data) as TData
   } else if (options.structuralSharing !== false) {
     // Structurally share data between prev and new data if needed
     return replaceEqualDeep(prevData, data)
   }
   return data
 }
+
+// eslint-disable-next-line symbol-description
+export const skipToken = Symbol()
+export type SkipToken = typeof skipToken

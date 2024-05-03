@@ -1,4 +1,4 @@
-import { type WithRequired } from "../../../utils/types"
+import { type OmitKeyof } from "../../../utils/types"
 import { type QueryKey } from "../../client/keys/types"
 import {
   type QueryObserverResult,
@@ -17,21 +17,31 @@ export interface UseBaseQueryOptions<
   TError = DefaultError,
   TData = TQueryFnData,
   TQueryData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey
-> extends WithRequired<
-    QueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>,
-    "queryKey"
+  TQueryKey extends QueryKey = QueryKey,
+  TPageParam = never
+> extends QueryObserverOptions<
+    TQueryFnData,
+    TError,
+    TData,
+    TQueryData,
+    TQueryKey,
+    TPageParam
   > {}
 
 export interface UseQueryOptions<
   TQueryFnData = unknown,
   TError = DefaultError,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey
-> extends Omit<
-    WithRequired<
-      UseBaseQueryOptions<TQueryFnData, TError, TData, TQueryFnData, TQueryKey>,
-      "queryKey"
+  TQueryKey extends QueryKey = QueryKey,
+  TPageParam = never
+> extends OmitKeyof<
+    UseBaseQueryOptions<
+      TQueryFnData,
+      TError,
+      TData,
+      TQueryFnData,
+      TQueryKey,
+      TPageParam
     >,
     "suspense"
   > {}

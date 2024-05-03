@@ -1,9 +1,13 @@
 // eslint-disable-next-line @typescript-eslint/ban-types
-export type WithRequired<T, K extends keyof T> = T & { [_ in K]: {} }
+export type WithRequired<TTarget, TKey extends keyof TTarget> = TTarget & {
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  [_ in TKey]: {}
+}
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export type NonFunctionGuard<T> = T extends Function ? never : T
 
+// @todo migrate to 5.4 which is part of the API
 export type NoInfer<T> = [T][T extends any ? 0 : never]
 
 export type Equal<X, Y> =
@@ -12,3 +16,11 @@ export type Equal<X, Y> =
     : false
 
 export type Expect<T extends true> = T
+
+export type OmitKeyof<
+  TObject,
+  TKey extends TStrictly extends "safely"
+    ? keyof TObject | (string & Record<never, never>)
+    : keyof TObject,
+  TStrictly extends "strictly" | "safely" = "strictly"
+> = Omit<TObject, TKey>

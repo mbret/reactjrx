@@ -87,7 +87,10 @@ export class QueryCache {
 
   build<TQueryFnData, TError, TData, TQueryKey extends QueryKey>(
     client: QueryClient,
-    options: QueryOptions<TQueryFnData, TError, TData, TQueryKey>,
+    options: WithRequired<
+      QueryOptions<TQueryFnData, TError, TData, TQueryKey>,
+      "queryKey"
+    >,
     state?: QueryState<TData, TError>
   ): Query<TQueryFnData, TError, TData, TQueryKey> {
     const queryKey = options.queryKey ?? ([nanoid()] as unknown as TQueryKey)

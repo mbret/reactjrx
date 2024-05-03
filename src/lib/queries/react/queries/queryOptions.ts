@@ -7,8 +7,9 @@ export type UndefinedInitialDataOptions<
   TQueryFnData = unknown,
   TError = DefaultError,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey
-> = UseQueryOptions<TQueryFnData, TError, TData, TQueryKey> & {
+  TQueryKey extends QueryKey = QueryKey,
+  TPageParam = never
+> = UseQueryOptions<TQueryFnData, TError, TData, TQueryKey, TPageParam> & {
   initialData?: undefined
 }
 
@@ -31,8 +32,8 @@ export function queryOptions<
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey
 >(
-  options: UndefinedInitialDataOptions<TQueryFnData, TError, TData, TQueryKey>
-): UndefinedInitialDataOptions<TQueryFnData, TError, TData, TQueryKey> & {
+  options: DefinedInitialDataOptions<TQueryFnData, TError, TData, TQueryKey>
+): DefinedInitialDataOptions<TQueryFnData, TError, TData, TQueryKey> & {
   queryKey: DataTag<TQueryKey, TQueryFnData>
 }
 
@@ -40,10 +41,23 @@ export function queryOptions<
   TQueryFnData = unknown,
   TError = DefaultError,
   TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey
+  TQueryKey extends QueryKey = QueryKey,
+  TPageParam = never
 >(
-  options: DefinedInitialDataOptions<TQueryFnData, TError, TData, TQueryKey>
-): DefinedInitialDataOptions<TQueryFnData, TError, TData, TQueryKey> & {
+  options: UndefinedInitialDataOptions<
+    TQueryFnData,
+    TError,
+    TData,
+    TQueryKey,
+    TPageParam
+  >
+): UndefinedInitialDataOptions<
+  TQueryFnData,
+  TError,
+  TData,
+  TQueryKey,
+  TPageParam
+> & {
   queryKey: DataTag<TQueryKey, TQueryFnData>
 }
 

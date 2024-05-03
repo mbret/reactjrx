@@ -11,8 +11,7 @@ import {
   type FetchQueryOptions,
   type QueryFilters,
   type SetDataOptions,
-  type RefetchOptions,
-  type QueryOptions
+  type RefetchOptions
 } from "./queries/types"
 import {
   type RefetchQueryFilters,
@@ -26,15 +25,22 @@ import {
   type DefaultedQueryObserverOptions,
   type QueryObserverOptions
 } from "./queries/observer/types"
-import { functionalUpdate, hashQueryKeyByOptions } from "./queries/utils"
-import { type NoInfer } from "../../utils/types"
+import {
+  functionalUpdate,
+  hashQueryKeyByOptions,
+  skipToken
+} from "./queries/utils"
+import { type NoInfer, type OmitKeyof } from "../../utils/types"
 import { type QueryState } from "./queries/query/types"
 import { type CancelOptions } from "./queries/retryer/types"
 import { hashKey } from "./keys/hashKey"
 import { partialMatchKey } from "./keys/partialMatchKey"
 
 export interface DefaultOptions<TError = DefaultError> {
-  queries?: Omit<QueryObserverOptions<unknown, TError>, "suspense">
+  queries?: OmitKeyof<
+    QueryObserverOptions<unknown, TError>,
+    "suspense" | "queryKey"
+  >
   mutations?: MutationObserverOptions<unknown, TError, unknown, unknown>
 }
 
@@ -99,7 +105,8 @@ export class QueryClient {
     TQueryKey extends QueryKey = QueryKey,
     TPageParam = never
   >(
-    options?:
+    options:
+      | QueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>
       | QueryObserverOptions<
           TQueryFnData,
           TError,
@@ -122,7 +129,7 @@ export class QueryClient {
     TQueryData,
     TQueryKey
   > {
-    if (options?._defaulted) {
+    if (options._defaulted) {
       return options as DefaultedQueryObserverOptions<
         TQueryFnData,
         TError,
@@ -134,7 +141,7 @@ export class QueryClient {
 
     const defaultedOptions = {
       ...this.#defaultOptions.queries,
-      ...(options?.queryKey && this.getQueryDefaults(options.queryKey)),
+      ...this.getQueryDefaults(options.queryKey),
       ...options,
       _defaulted: true
     }
@@ -142,24 +149,28 @@ export class QueryClient {
     if (!defaultedOptions.queryHash) {
       defaultedOptions.queryHash = hashQueryKeyByOptions(
         defaultedOptions.queryKey,
-        defaultedOptions as QueryOptions<any, any, any, any, never>
+        defaultedOptions
       )
     }
 
     // dependent default values
-    if (typeof defaultedOptions.refetchOnReconnect === "undefined") {
+    if (defaultedOptions.refetchOnReconnect === undefined) {
       defaultedOptions.refetchOnReconnect =
         defaultedOptions.networkMode !== "always"
     }
-    if (typeof defaultedOptions.throwOnError === "undefined") {
+    if (defaultedOptions.throwOnError === undefined) {
       defaultedOptions.throwOnError = !!defaultedOptions.suspense
     }
 
-    if (
-      typeof defaultedOptions.networkMode === "undefined" &&
-      defaultedOptions.persister
-    ) {
+    if (!defaultedOptions.networkMode && defaultedOptions.persister) {
       defaultedOptions.networkMode = "offlineFirst"
+    }
+
+    if (
+      defaultedOptions.enabled !== true &&
+      defaultedOptions.queryFn === skipToken
+    ) {
+      defaultedOptions.enabled = false
     }
 
     return defaultedOptions as DefaultedQueryObserverOptions<
@@ -178,13 +189,9 @@ export class QueryClient {
     TQueryKey extends QueryKey = QueryKey,
     TPageParam = never
   >(
-    options: FetchQueryOptions<
-      TQueryFnData,
-      TError,
-      TData,
-      TQueryKey,
-      TPageParam
-    >
+    options:
+      | FetchQueryOptions<TQueryFnData, TError, TData, TQueryKey, TPageParam>
+      | FetchQueryOptions<TQueryFnData, TError, TData, TQueryKey>
   ): Promise<TData> {
     const defaultedOptions = this.defaultQueryOptions(options)
 
@@ -265,34 +272,27 @@ export class QueryClient {
   >(queryKey: TTaggedQueryKey): TInferredQueryFnData | undefined
   getQueryData(queryKey: QueryKey) {
     const options = this.defaultQueryOptions({ queryKey })
+
     return this.#queryCache.get(options.queryHash)?.state.data
   }
 
   setQueryData<
     TQueryFnData = unknown,
-    TaggedQueryKey extends QueryKey = QueryKey,
-    TInferredQueryFnData = TaggedQueryKey extends DataTag<
+    TTaggedQueryKey extends QueryKey = QueryKey,
+    TInferredQueryFnData = TTaggedQueryKey extends DataTag<
       unknown,
       infer TaggedValue
     >
       ? TaggedValue
       : TQueryFnData
   >(
-    queryKey: TaggedQueryKey,
+    queryKey: TTaggedQueryKey,
     updater: Updater<
       NoInfer<TInferredQueryFnData> | undefined,
       NoInfer<TInferredQueryFnData> | undefined
     >,
     options?: SetDataOptions
   ): TInferredQueryFnData | undefined {
-    const query = this.#queryCache.find<TInferredQueryFnData>({ queryKey })
-    const prevData = query?.state.data
-    const data = functionalUpdate(updater, prevData)
-
-    if (typeof data === "undefined") {
-      return undefined
-    }
-
     const defaultedOptions = this.defaultQueryOptions<
       any,
       any,
@@ -300,6 +300,16 @@ export class QueryClient {
       any,
       QueryKey
     >({ queryKey })
+
+    const query = this.#queryCache.get<TInferredQueryFnData>(
+      defaultedOptions.queryHash
+    )
+    const prevData = query?.state.data
+    const data = functionalUpdate(updater, prevData)
+
+    if (data === undefined) {
+      return undefined
+    }
 
     return this.#queryCache
       .build(this, defaultedOptions)
@@ -322,10 +332,21 @@ export class QueryClient {
     return result
   }
 
-  getQueryState<TQueryFnData = unknown, TError = DefaultError>(
-    queryKey: QueryKey
-  ): QueryState<TQueryFnData, TError> | undefined {
-    return this.#queryCache.find<TQueryFnData, TError>({ queryKey })?.state
+  getQueryState<
+    TQueryFnData = unknown,
+    TError = DefaultError,
+    TTaggedQueryKey extends QueryKey = QueryKey,
+    TInferredQueryFnData = TTaggedQueryKey extends DataTag<
+      unknown,
+      infer TaggedValue
+    >
+      ? TaggedValue
+      : TQueryFnData
+  >(
+    queryKey: TTaggedQueryKey
+  ): QueryState<TInferredQueryFnData, TError> | undefined {
+    return this.#queryCache.find<TInferredQueryFnData, TError>({ queryKey })
+      ?.state
   }
 
   setMutationDefaults(
@@ -352,10 +373,13 @@ export class QueryClient {
 
   getQueryDefaults(
     queryKey: QueryKey
-  ): QueryObserverOptions<any, any, any, any, any> {
+  ): OmitKeyof<QueryObserverOptions<any, any, any, any, any>, "queryKey"> {
     const defaults = [...this.#queryDefaults.values()]
 
-    let result: QueryObserverOptions<any, any, any, any, any> = {}
+    let result: OmitKeyof<
+      QueryObserverOptions<any, any, any, any, any>,
+      "queryKey"
+    > = {}
 
     defaults.forEach((queryDefault) => {
       if (partialMatchKey(queryKey, queryDefault.queryKey)) {

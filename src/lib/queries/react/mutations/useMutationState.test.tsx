@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/array-type */
 import { describe, expect, expectTypeOf, it } from "vitest"
 import { fireEvent, render, waitFor } from "@testing-library/react"
-import type { MutationStatus } from "@tanstack/query-core"
 import { useMutationState } from "./useMutationState"
 import {
   createQueryClient,
@@ -12,7 +11,10 @@ import {
 } from "../../../../tests/utils"
 import { useMutation } from "./useMutation"
 import React, { memo } from "react"
-import { type MutationState } from "../../client/mutations/mutation/types"
+import {
+  type MutationStatus,
+  type MutationState
+} from "../../client/mutations/mutation/types"
 import { useIsMutating } from "./useIsMutating"
 
 describe("useIsMutating", () => {

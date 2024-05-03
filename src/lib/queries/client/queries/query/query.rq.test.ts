@@ -3,10 +3,7 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { afterEach, beforeEach, describe, expect, it, test, vi } from "vitest"
 import { waitFor } from "@testing-library/react"
-import {
-  createQueryClient,
-  sleep
-} from "../../../../../tests/utils"
+import { createQueryClient, sleep } from "../../../../../tests/utils"
 import { type QueryCache } from "../cache/QueryCache"
 import { type QueryClient } from "../../QueryClient"
 import { mockVisibilityState, queryKey } from "../../tests/utils"
@@ -205,7 +202,6 @@ describe("query", () => {
     expect(queryFn).toHaveBeenCalledTimes(1)
     const args = queryFn.mock.calls[0]![0]
     expect(args).toBeDefined()
-    // @ts-expect-error page param should be undefined
     expect(args.pageParam).toBeUndefined()
     expect(args.queryKey).toEqual(key)
     expect(args.signal).toBeInstanceOf(AbortSignal)
@@ -845,79 +841,79 @@ describe("query", () => {
     expect(initialDataUpdatedAtSpy).toHaveBeenCalled()
   })
 
-    // test("queries should be garbage collected even if they never fetched", async () => {
-    //   const key = queryKey()
+  // test("queries should be garbage collected even if they never fetched", async () => {
+  //   const key = queryKey()
 
-    //   queryClient.setQueryDefaults(key, { gcTime: 10 })
+  //   queryClient.setQueryDefaults(key, { gcTime: 10 })
 
-    //   const fn = vi.fn()
+  //   const fn = vi.fn()
 
-    //   const unsubscribe = queryClient.getQueryCache().subscribe(fn)
+  //   const unsubscribe = queryClient.getQueryCache().subscribe(fn)
 
-    //   queryClient.setQueryData(key, "data")
+  //   queryClient.setQueryData(key, "data")
 
-    //   await waitFor(() =>
-    //     { expect(fn).toHaveBeenCalledWith(
-    //       expect.objectContaining({
-    //         type: "removed"
-    //       })
-    //     ); }
-    //   )
+  //   await waitFor(() =>
+  //     { expect(fn).toHaveBeenCalledWith(
+  //       expect.objectContaining({
+  //         type: "removed"
+  //       })
+  //     ); }
+  //   )
 
-    //   expect(queryClient.getQueryCache().findAll()).toHaveLength(0)
+  //   expect(queryClient.getQueryCache().findAll()).toHaveLength(0)
 
-    //   unsubscribe()
-    // })
+  //   unsubscribe()
+  // })
 
-    test("should always revert to idle state (#5958)", async () => {
-      let mockedData = [1]
+  test("should always revert to idle state (#5958)", async () => {
+    let mockedData = [1]
 
-      const key = queryKey()
+    const key = queryKey()
 
-      const queryFn = vi
-        .fn<
-          [QueryFunctionContext<ReturnType<typeof queryKey>>],
-          Promise<unknown>
-        >()
-        .mockImplementation(async ({ signal }) => {
-          return await new Promise((resolve, reject) => {
-            const abortListener = () => {
-              clearTimeout(timerId)
-              reject(signal.reason)
-            }
-            signal.addEventListener("abort", abortListener)
+    const queryFn = vi
+      .fn<
+        [QueryFunctionContext<ReturnType<typeof queryKey>>],
+        Promise<unknown>
+      >()
+      .mockImplementation(async ({ signal }) => {
+        return await new Promise((resolve, reject) => {
+          const abortListener = () => {
+            clearTimeout(timerId)
+            reject(signal.reason)
+          }
+          signal.addEventListener("abort", abortListener)
 
-            const timerId = setTimeout(() => {
-              signal.removeEventListener("abort", abortListener)
-              resolve(mockedData.join(" - "))
-            }, 50)
-          })
+          const timerId = setTimeout(() => {
+            signal.removeEventListener("abort", abortListener)
+            resolve(mockedData.join(" - "))
+          }, 50)
         })
-
-      const observer = new QueryObserver(queryClient, {
-        queryKey: key,
-        queryFn
-      })
-      const unsubscribe = observer.subscribe(() => undefined)
-      await sleep(60) // let it resolve
-
-      mockedData = [1, 2] // update "server" state in the background
-
-      queryClient.invalidateQueries({ queryKey: key })
-      await sleep(1)
-      queryClient.invalidateQueries({ queryKey: key })
-      await sleep(1)
-      unsubscribe() // unsubscribe to simulate unmount
-
-      // set up a new observer to simulate a mount of new component
-      const newObserver = new QueryObserver(queryClient, {
-        queryKey: key,
-        queryFn
       })
 
-      const spy = vi.fn()
-      newObserver.subscribe(({ data }) => spy(data))
-      await sleep(60) // let it resolve
-      expect(spy).toHaveBeenCalledWith("1 - 2")
+    const observer = new QueryObserver(queryClient, {
+      queryKey: key,
+      queryFn
     })
+    const unsubscribe = observer.subscribe(() => undefined)
+    await sleep(60) // let it resolve
+
+    mockedData = [1, 2] // update "server" state in the background
+
+    queryClient.invalidateQueries({ queryKey: key })
+    await sleep(1)
+    queryClient.invalidateQueries({ queryKey: key })
+    await sleep(1)
+    unsubscribe() // unsubscribe to simulate unmount
+
+    // set up a new observer to simulate a mount of new component
+    const newObserver = new QueryObserver(queryClient, {
+      queryKey: key,
+      queryFn
+    })
+
+    const spy = vi.fn()
+    newObserver.subscribe(({ data }) => spy(data))
+    await sleep(60) // let it resolve
+    expect(spy).toHaveBeenCalledWith("1 - 2")
+  })
 })

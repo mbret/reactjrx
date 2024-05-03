@@ -9,10 +9,11 @@ import {
   type QueryFunctionContext,
   type QueryBehavior
 } from "./query/types"
+import { type SkipToken } from "./utils"
 
 export declare const dataTagSymbol: unique symbol
-export type DataTag<Type, Value> = Type & {
-  [dataTagSymbol]: Value
+export type DataTag<TType, TValue> = TType & {
+  [dataTagSymbol]: TValue
 }
 
 export type Updater<TInput, TOutput> = TOutput | ((input: TInput) => TOutput)
@@ -103,7 +104,7 @@ export interface QueryOptions<
    * Setting it to `Infinity` will disable garbage collection.
    */
   gcTime?: number
-  queryFn?: QueryFunction<TQueryFnData, TQueryKey, TPageParam>
+  queryFn?: QueryFunction<TQueryFnData, TQueryKey, TPageParam> | SkipToken
   persister?: QueryPersister<
     NoInfer<TQueryFnData>,
     NoInfer<TQueryKey>,
@@ -120,7 +121,9 @@ export interface QueryOptions<
    * Set this to a function which accepts the old and new data and returns resolved data of the same type to implement custom structural sharing logic.
    * Defaults to `true`.
    */
-  structuralSharing?: boolean | (<T>(oldData: T | undefined, newData: T) => T)
+  structuralSharing?:
+    | boolean
+    | ((oldData: unknown | undefined, newData: unknown) => unknown)
   _defaulted?: boolean
   /**
    * Additional payload to be stored on each query.
