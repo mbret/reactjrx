@@ -1,9 +1,19 @@
-import { filter, fromEvent, map, merge, skip, tap, BehaviorSubject } from "rxjs"
+import {
+  filter,
+  fromEvent,
+  map,
+  merge,
+  skip,
+  tap,
+  BehaviorSubject,
+  EMPTY
+} from "rxjs"
+import { isServer } from "../../utils"
 
 export class FocusManager {
   readonly #visibility$ = merge(
     fromEvent(document, "visibilitychange"),
-    fromEvent(window, "visibilitychange")
+    isServer ? EMPTY : fromEvent(window, "visibilitychange")
   ).pipe(map(() => document.visibilityState))
 
   readonly #focusedSubject = new BehaviorSubject(

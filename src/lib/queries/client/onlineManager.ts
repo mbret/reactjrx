@@ -1,5 +1,6 @@
 import {
   BehaviorSubject,
+  EMPTY,
   distinctUntilChanged,
   filter,
   first,
@@ -8,6 +9,7 @@ import {
   merge
 } from "rxjs"
 import { emitToSubject } from "../../utils/operators/emitToSubject"
+import { isServer } from "../../utils"
 
 export class OnlineManager {
   protected isOnlineSubject = new BehaviorSubject(true)
@@ -21,8 +23,8 @@ export class OnlineManager {
 
   constructor() {
     merge(
-      fromEvent(window, "offline").pipe(map(() => false)),
-      fromEvent(window, "online").pipe(map(() => true))
+      isServer ? EMPTY : fromEvent(window, "offline").pipe(map(() => false)),
+      isServer ? EMPTY : fromEvent(window, "online").pipe(map(() => true))
     )
       .pipe(emitToSubject(this.isOnlineSubject))
       .subscribe()

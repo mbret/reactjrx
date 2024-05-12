@@ -399,7 +399,6 @@ describe("query", () => {
     expect(queryFn).toHaveBeenCalledTimes(1)
     expect(isCancelledError(query.state.error)).toBe(true)
     const result = await query.fetch()
-
     expect(result).toBe("data")
     expect(query.state.error).toBe(null)
     expect(queryFn).toHaveBeenCalledTimes(2)
@@ -524,7 +523,7 @@ describe("query", () => {
     // unsubscribe should not remove even though gcTime has elapsed b/c query is still fetching
     expect(queryCache.find({ queryKey: key })).toBeDefined()
     await sleep(10)
-    // // should be removed after an additional staleTime wait
+    // should be removed after an additional staleTime wait
     await waitFor(() => {
       expect(queryCache.find({ queryKey: key })).toBeUndefined()
     })
