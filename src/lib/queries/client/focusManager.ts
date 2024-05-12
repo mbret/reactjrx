@@ -1,5 +1,3 @@
-"use client"
-
 import {
   filter,
   fromEvent,
@@ -14,12 +12,12 @@ import { isServer } from "../../utils"
 
 export class FocusManager {
   readonly #visibility$ = merge(
-    fromEvent(document, "visibilitychange"),
+    isServer ? EMPTY : fromEvent(document, "visibilitychange"),
     isServer ? EMPTY : fromEvent(window, "visibilitychange")
   ).pipe(map(() => document.visibilityState))
 
   readonly #focusedSubject = new BehaviorSubject(
-    document.visibilityState === "visible"
+    isServer ? true : document.visibilityState === "visible"
   )
 
   // public readonly focused$ = this.#focusedSubject.pipe(distinctUntilChanged())
