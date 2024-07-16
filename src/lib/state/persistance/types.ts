@@ -1,4 +1,4 @@
-import { type Signal } from "../signal"
+import { type SignalValue, type Signal } from "../signal"
 import type { IDENTIFIER_PERSISTANCE_KEY } from "./constants"
 
 export interface Adapter {
@@ -14,14 +14,14 @@ export interface PersistanceEntry {
   [IDENTIFIER_PERSISTANCE_KEY]: typeof IDENTIFIER_PERSISTANCE_KEY
 }
 
-export interface SignalPersistenceConfig<Value> {
+export interface SignalPersistenceConfig<S extends Signal<any, any, string>> {
   version: number
-  signal: Signal<any, Value, string>
+  signal: S
   /**
    * Only called if there is a value to hydrate
    */
   hydrate?: (params: {
     version: number
-    value: Value
-  }) => Value
+    value: SignalValue<S>
+  }) => SignalValue<S>
 }
