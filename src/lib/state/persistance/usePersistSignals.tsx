@@ -97,7 +97,7 @@ export function usePersistSignals({
    * process will start again. This is useful when you
    * need to change adapter during runtime.
    */
-  adapter: Adapter
+  adapter?: Adapter
 }) {
   const entriesRef = useLiveRef(entries)
   const onReadyRef = useLiveRef(onReady)
@@ -110,7 +110,7 @@ export function usePersistSignals({
       return adapterSubject.current.pipe(
         switchMap((adapterInstance) => {
           const stream =
-            entries.length === 0
+            entries.length === 0 || !adapterInstance
               ? of(true)
               : zip(
                   ...entries.map((config) =>
