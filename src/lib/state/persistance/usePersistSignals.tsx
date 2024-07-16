@@ -8,7 +8,6 @@ import {
   from,
   map,
   merge,
-  mergeMap,
   of,
   switchMap,
   tap,
@@ -16,8 +15,11 @@ import {
   zip
 } from "rxjs"
 import { useSubscribe } from "../../binding/useSubscribe"
-import type { PersistanceEntry, Adapter } from "./types"
-import type { Signal } from "../signal"
+import type {
+  PersistanceEntry,
+  Adapter,
+  SignalPersistenceConfig
+} from "./types"
 import { getNormalizedPersistanceValue } from "./getNormalizedPersistanceValue"
 import { IDENTIFIER_PERSISTANCE_KEY } from "./constants"
 import { isDefined } from "../../utils/isDefined"
@@ -25,13 +27,12 @@ import { useLiveBehaviorSubject } from "../../binding/useLiveBehaviorSubject"
 
 const persistValue = ({
   adapter,
-  signal,
-  version
+  config
 }: {
   adapter: Adapter
-  signal: Signal<unknown, unknown, string>
-  version: number
+  config: SignalPersistenceConfig<any>
 }) => {
+  const { signal, version } = config
   const state = signal.getValue()
 
   const value = {
@@ -49,15 +50,15 @@ const persistValue = ({
   )
 }
 
-const hydrateValueToSignal = ({
+function hydrateValueToSignal<Value>({
   adapter,
-  version,
-  signal
+  config
 }: {
   adapter: Adapter
-  version: number
-  signal: Signal<unknown, unknown, string>
-}) => {
+  config: SignalPersistenceConfig<Value>
+}) {
+  const { hydrate = ({ value }) => value, signal, version } = config
+
   return from(adapter.getItem(signal.config.key)).pipe(
     switchMap((value) => {
       const normalizedValue = getNormalizedPersistanceValue(value)
@@ -65,33 +66,39 @@ const hydrateValueToSignal = ({
       if (!normalizedValue) return of(value)
 
       if (
-        normalizedValue.migrationVersion !== undefined &&
-        version > normalizedValue.migrationVersion
+        (normalizedValue.migrationVersion !== undefined &&
+          version > normalizedValue.migrationVersion) ||
+        normalizedValue.value === undefined
       ) {
         return of(value)
       }
 
-      signal.setValue(normalizedValue.value)
+      const correctVersionValue = normalizedValue.value as Value
+
+      signal.setValue(hydrate({ value: correctVersionValue, version }))
 
       return of(value)
     })
   )
 }
 
-export const usePersistSignals = ({
+export function usePersistSignals({
   entries = [],
   onReady,
   adapter
 }: {
-  entries?: Array<{ version: number; signal: Signal<any, any, string> }>
+  entries?: Array<SignalPersistenceConfig<any>>
+  /**
+   * Triggered after first successful hydrate
+   */
   onReady?: () => void
   /**
    * Requires a stable instance otherwise the hydration
    * process will start again. This is useful when you
    * need to change adapter during runtime.
    */
-  adapter?: Adapter
-}) => {
+  adapter: Adapter
+}) {
   const entriesRef = useLiveRef(entries)
   const onReadyRef = useLiveRef(onReady)
   const adapterSubject = useLiveBehaviorSubject(adapter)
@@ -102,30 +109,19 @@ export const usePersistSignals = ({
 
       return adapterSubject.current.pipe(
         switchMap((adapterInstance) => {
-          if (!adapterInstance) return of(false)
-
           const stream =
             entries.length === 0
               ? of(true)
               : zip(
-                  ...entries.map(({ signal, version }) =>
+                  ...entries.map((config) =>
                     hydrateValueToSignal({
                       adapter: adapterInstance,
-                      signal,
-                      version
-                    }).pipe(
-                      mergeMap(() =>
-                        persistValue({
-                          adapter: adapterInstance,
-                          signal,
-                          version
-                        })
-                      )
-                    )
+                      config
+                    })
                   )
                 ).pipe(map(() => true))
 
-          return merge(of(false), stream).pipe(
+          return stream.pipe(
             tap(() => {
               if (onReadyRef.current != null) onReadyRef.current()
             }),
@@ -152,25 +148,24 @@ export const usePersistSignals = ({
   useSubscribe(
     () =>
       isHydratedSubject.current.pipe(
-        filter((value) => value),
+        filter((isHydrated) => isHydrated),
         switchMap(() => adapterSubject.current),
         filter(isDefined),
         switchMap((adapterInstance) =>
           merge(
-            ...entriesRef.current.map(({ signal, version }) =>
-              signal.subject.pipe(
+            ...entriesRef.current.map((config) =>
+              config.signal.subject.pipe(
                 throttleTime(500, asyncScheduler, {
                   trailing: true
                 }),
-                switchMap(() => {
-                  return from(
+                switchMap(() =>
+                  from(
                     persistValue({
                       adapter: adapterInstance,
-                      signal,
-                      version
+                      config
                     })
                   )
-                })
+                )
               )
             )
           )

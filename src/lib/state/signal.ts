@@ -41,14 +41,17 @@ export interface Signal<
 export function signal<T = undefined, V = T>(
   config?: Omit<Partial<Config<T, string | undefined>>, "key" | "get">
 ): Signal<T, V, undefined>
+
 export function signal<T = undefined, V = T>(
   config: Omit<Partial<Config<T, string | undefined>>, "get"> & {
     key: string
   }
 ): Signal<T, V, string>
+
 export function signal<V = undefined>(
   config: ReadOnlySignalConfig<V>
 ): ReadOnlySignal<V>
+
 export function signal<
   T = undefined,
   V = undefined,
