@@ -50,12 +50,12 @@ const persistValue = ({
   )
 }
 
-function hydrateValueToSignal<Value>({
+function hydrateValueToSignal({
   adapter,
   config
 }: {
   adapter: Adapter
-  config: SignalPersistenceConfig<Value>
+  config: SignalPersistenceConfig<any>
 }) {
   const { hydrate = ({ value }) => value, signal, version } = config
 
@@ -73,7 +73,7 @@ function hydrateValueToSignal<Value>({
         return of(value)
       }
 
-      const correctVersionValue = normalizedValue.value as Value
+      const correctVersionValue = normalizedValue.value
 
       signal.setValue(hydrate({ value: correctVersionValue, version }))
 
