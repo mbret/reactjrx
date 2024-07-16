@@ -20,6 +20,8 @@ export * from "./lib/utils/operators/retryBackoff"
 export * from "./lib/utils/useLiveRef"
 export * from "./lib/utils/isDefined"
 export * from "./lib/utils/arrayEqual"
+export * from "./lib/utils/useMount"
+export * from "./lib/utils/useEffectOnce"
 
 // query
 export * from "./lib/queries/react/mutations/useMutation"
