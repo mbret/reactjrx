@@ -19,6 +19,7 @@ export * from "./lib/utils/useUnmountObservable"
 export * from "./lib/utils/operators/retryBackoff"
 export * from "./lib/utils/useLiveRef"
 export * from "./lib/utils/isDefined"
+export * from "./lib/utils/arrayEqual"
 
 // query
 export * from "./lib/queries/react/mutations/useMutation"
