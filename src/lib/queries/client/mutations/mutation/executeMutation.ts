@@ -9,7 +9,11 @@ import {
   iif,
   catchError,
   scan,
-  shareReplay
+  shareReplay,
+  isEmpty,
+  tap,
+  share,
+  ignoreElements
 } from "rxjs"
 import { type MutationOptions, type MutationState } from "./types"
 import { makeObservable } from "../../utils/makeObservable"
@@ -43,16 +47,16 @@ export const executeMutation = <
 
   const mutationFn = options.mutationFn ?? defaultFn
 
-  const onOptionMutate$ = iif(
-    () => isPaused,
-    of(state.context),
-    makeObservable(
-      // eslint-disable-next-line @typescript-eslint/promise-function-async
-      () => options.onMutate?.(variables) ?? undefined
-    )
+  const contextFromOnMutate$ = makeObservable(
+    // eslint-disable-next-line @typescript-eslint/promise-function-async
+    () => options.onMutate?.(variables) ?? undefined
   )
 
-  const onMutate$ = onOptionMutate$.pipe(shareReplay(1))
+  const rawContext$ = of(state.context)
+
+  const context$ = iif(() => isPaused, rawContext$, contextFromOnMutate$).pipe(
+    shareReplay(1)
+  )
 
   type QueryState = Omit<Partial<LocalState>, "data"> & {
     // add layer to allow undefined as mutation result
@@ -78,7 +82,7 @@ export const executeMutation = <
     )
   }
 
-  const queryRunner$ = onMutate$.pipe(
+  const queryRunner$ = context$.pipe(
     switchMap((context) => {
       const fn$ =
         typeof mutationFn === "function"
@@ -86,7 +90,19 @@ export const executeMutation = <
             makeObservable(() => mutationFn(variables))
           : mutationFn
 
-      const finalFn$ = fn$.pipe(
+      const sharedFn$ = fn$.pipe(share())
+
+      const completeWithoutValue$ = sharedFn$.pipe(
+        isEmpty(),
+        tap((isEmppty) => {
+          if (isEmppty) {
+            throw new Error("Mutation completed without any emission (EMPTY)")
+          }
+        }),
+        ignoreElements()
+      )
+
+      const finalFn$ = merge(sharedFn$, completeWithoutValue$).pipe(
         map(
           (data): QueryState => ({
             result: {
@@ -152,7 +168,7 @@ export const executeMutation = <
   const mutation$ = merge(
     initState$,
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    onMutate$.pipe(map((context) => ({ context }) as Partial<LocalState>)),
+    context$.pipe(map((context) => ({ context }) as Partial<LocalState>)),
     queryRunner$.pipe(
       switchMap(({ result: mutationData, error, ...restState }) => {
         if (!mutationData && !error)
@@ -161,7 +177,7 @@ export const executeMutation = <
             ...restState
           } as Partial<LocalState>)
 
-        const onSuccess$ = error
+        const success$ = error
           ? of(null)
           : makeObservable(() =>
               options.onSuccess?.(
@@ -180,11 +196,11 @@ export const executeMutation = <
           )
         )
 
-        const onSettled$ = onOptionSettled$.pipe(
+        const settled$ = onOptionSettled$.pipe(
           catchError((error) => (mutationData ? of(mutationData) : of(error)))
         )
 
-        const result$ = concat(onSuccess$, onSettled$).pipe(
+        const result$ = concat(success$, settled$).pipe(
           toArray(),
           map(() =>
             error
