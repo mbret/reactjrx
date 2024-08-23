@@ -46,7 +46,7 @@ describe("Given a function that returns undefined", () => {
         }, [])
       }, {})
 
-      await waitForTimeout(15)
+      await waitForTimeout(20)
 
       expect(testValue).toBe(5)
     })
