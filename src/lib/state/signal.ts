@@ -12,10 +12,17 @@ type Getter<Value> = (
   ) => ReturnType<GetSignal["getValue"]>
 ) => Value
 
-export interface Config<DefaultValue = undefined, Key = undefined> {
-  default: DefaultValue
-  key: Key
-}
+export type Config<
+  DefaultValue = undefined,
+  Key = undefined
+> = Key extends undefined
+  ? {
+      default: DefaultValue
+    }
+  : {
+      default: DefaultValue
+      key: Key
+    }
 
 interface ReadOnlySignalConfig<Value> {
   get: Getter<Value>
