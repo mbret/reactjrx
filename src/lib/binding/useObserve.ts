@@ -14,6 +14,7 @@ import {
 } from "rxjs"
 import { useLiveRef } from "../utils/useLiveRef"
 import { primitiveEqual } from "../utils/primitiveEqual"
+import { makeObservable } from "../queries/client/utils/makeObservable"
 
 interface Option<R = undefined> {
   defaultValue: R
@@ -29,6 +30,11 @@ export function useObserve<T>(
   deps: DependencyList
 ): T | undefined
 
+export function useObserve<T>(
+  source: () => Observable<T> | undefined,
+  deps: DependencyList
+): T | undefined
+
 export function useObserve<T>(source: Observable<T>, options: Option<T>): T
 
 export function useObserve<T>(
@@ -38,7 +44,7 @@ export function useObserve<T>(
 ): T
 
 export function useObserve<T>(
-  source$: Observable<T> | (() => Observable<T>),
+  source$: Observable<T> | (() => Observable<T> | undefined),
   optionsOrDeps?: Option<T> | DependencyList,
   maybeDeps?: DependencyList
 ): T {
@@ -66,10 +72,8 @@ export function useObserve<T>(
   const subscribe = useCallback(
     (next: () => void) => {
       const source = sourceRef.current
-      const makeObservable =
-        typeof source === "function" ? source : () => source
 
-      const sub = makeObservable()
+      const sub = makeObservable(source)
         .pipe(
           /**
            * @important

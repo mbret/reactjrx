@@ -1,8 +1,8 @@
-import { afterEach, describe, expect, it } from "vitest"
-import { BehaviorSubject, Subject, map, of, timer } from "rxjs"
+import { afterEach, describe, expect, expectTypeOf, it } from "vitest"
+import { BehaviorSubject, type Observable, Subject, map, of, timer } from "rxjs"
 import { useObserve } from "./useObserve"
 import { render, renderHook, cleanup } from "@testing-library/react"
-import React, { act, memo, useEffect, useRef } from "react"
+import React, { act, memo, useEffect, useRef, useState } from "react"
 import { useBehaviorSubject } from "./useBehaviorSubject"
 import { waitForTimeout } from "../../tests/utils"
 
@@ -215,5 +215,42 @@ describe("useObserve", () => {
     await waitForTimeout(10)
 
     expect(numberOfRenders).toBe(2)
+  })
+
+  describe("Given a factory that may or may not return an observable", () => {
+    it("should type return correctly", async () => {
+      renderHook(() => {
+        const value = useObserve(
+          () => of(1) as Observable<number> | undefined,
+          []
+        )
+
+        expectTypeOf(value).toEqualTypeOf<number | undefined>()
+      }, {})
+
+      expect(true).toBe(true)
+    })
+
+    it("should return undefined and then the correct value", async () => {
+      const values: any = []
+
+      renderHook(() => {
+        const [res, setRes] = useState<BehaviorSubject<number> | undefined>(
+          undefined
+        )
+
+        values.push(useObserve(() => res, [res]))
+
+        useEffect(() => {
+          setTimeout(() => {
+            setRes(new BehaviorSubject(1))
+          }, 1)
+        }, [])
+      }, {})
+
+      await waitForTimeout(10)
+
+      expect(values).toEqual([undefined, undefined, 1])
+    })
   })
 })

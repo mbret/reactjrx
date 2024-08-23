@@ -41,7 +41,7 @@ describe("useQuery.observable", () => {
     })
   })
 
-  it("should return consecutive results foobar", async () => {
+  it("should return consecutive results", async () => {
     // interval big enough so react does not skip some render
     const source = interval(5).pipe(takeWhile((value) => value < 5, true))
     const states: any = []
