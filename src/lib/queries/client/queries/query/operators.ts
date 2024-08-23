@@ -26,7 +26,9 @@ export const reduceState =
 
         if (command === "cancel") {
           const status =
-            acc.status === "pending" ? "pending" : current.status ?? acc.status
+            acc.status === "pending"
+              ? "pending"
+              : (current.status ?? acc.status)
 
           return { ...acc, ...current, status }
         }
@@ -61,7 +63,7 @@ export const reduceState =
 
         const dataUpdateCount = weHaveNewData
           ? acc.dataUpdateCount + 1
-          : current.dataUpdateCount ?? acc.dataUpdateCount
+          : (current.dataUpdateCount ?? acc.dataUpdateCount)
 
         const newPendingStatusOnHold =
           current.status === "pending" &&
@@ -69,7 +71,7 @@ export const reduceState =
           // (dataUpdateCount !== 0 || errorUpdateCount !== 0)
           (hasData || hasError)
 
-        const error = status === "pending" ? null : current.error ?? acc.error
+        const error = status === "pending" ? null : (current.error ?? acc.error)
 
         return {
           ...acc,

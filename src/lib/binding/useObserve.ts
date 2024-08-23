@@ -53,7 +53,7 @@ export function useObserve<T>(
     !maybeDeps && Array.isArray(optionsOrDeps)
       ? optionsOrDeps
       : typeof source$ === "function"
-        ? maybeDeps ?? []
+        ? (maybeDeps ?? [])
         : [source$]
   const valueRef = useRef(
     "getValue" in source$ && typeof source$.getValue === "function"

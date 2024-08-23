@@ -64,7 +64,7 @@ export function retryBackoff<T, TError>(config: RetryBackoffConfig<T, TError>) {
         ? 0
         : retry === true
           ? Infinity
-          : retry ?? Infinity
+          : (retry ?? Infinity)
       : Infinity
 
   const shouldRetry =

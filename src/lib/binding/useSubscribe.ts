@@ -5,7 +5,7 @@ import { type SubscribeSource } from "./types"
 import { catchError, EMPTY } from "rxjs"
 
 export function useSubscribe<T>(
-  source: SubscribeSource<T>,
+  source: SubscribeSource<T> | (() => T),
   deps: DependencyList = []
 ) {
   const sourceRef = useLiveRef(source)
