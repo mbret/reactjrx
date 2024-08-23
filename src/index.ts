@@ -9,6 +9,7 @@ export * from "./lib/binding/useBehaviorSubject"
 // state
 export * from "./lib/state/signal"
 export * from "./lib/state/useSignalValue"
+export * from "./lib/state/useSignal"
 export * from "./lib/state/constants"
 export * from "./lib/state/persistance/adapters/createLocalforageAdapter"
 export * from "./lib/state/persistance/adapters/createLocalStorageAdapter"
