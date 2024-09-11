@@ -26,6 +26,7 @@ const createSharedStoreAdapter = ({
 
   removeItem: async (keyToDelete) => {
     const unsafeStore = await adapter.getItem(key)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { [keyToDelete]: toRemove, ...rest } =
       normalizeStore(unsafeStore) ?? ({} as any)
 

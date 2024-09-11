@@ -20,6 +20,7 @@ describe("useMutation", () => {
 
         const Comp = () => {
           const { mutate } = useMutation({
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             mutationFn: async (_: number) => {
               await waitForTimeout(10)
             },

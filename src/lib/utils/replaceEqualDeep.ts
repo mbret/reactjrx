@@ -7,6 +7,7 @@ import { isPlainObject } from "./isPlainObject"
  * This can be used for structural sharing between JSON values for example.
  */
 export function replaceEqualDeep<T>(a: unknown, b: T): T
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function replaceEqualDeep(a: any, b: any): any {
   if (a === b) {
     return a
@@ -19,6 +20,7 @@ export function replaceEqualDeep(a: any, b: any): any {
     const aSize = aItems.length
     const bItems = array ? b : Object.keys(b)
     const bSize = bItems.length
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const copy: any = array ? [] : {}
 
     let equalItems = 0

@@ -9,7 +9,7 @@ const config = {
   extends: [
     "plugin:react/recommended",
     "plugin:react-hooks/recommended",
-    "standard-with-typescript",
+    "plugin:@typescript-eslint/recommended",
     "prettier"
   ],
   overrides: [],
@@ -29,7 +29,9 @@ const config = {
     "react/react-in-jsx-scope": 0,
     "@typescript-eslint/triple-slash-reference": 0,
     "@typescript-eslint/strict-boolean-expressions": 0,
-    "@typescript-eslint/no-unsafe-argument": 0
+    "@typescript-eslint/no-unsafe-argument": 0,
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-unused-vars": "warn"
   }
 }
 

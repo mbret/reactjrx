@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function sortObj(obj: any) {
   return Object.keys(obj)
     .sort()
@@ -9,11 +10,13 @@ function sortObj(obj: any) {
     }, {})
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const printQuery = (data: any, keys?: string[]) => {
   const match = !keys?.length
     ? data
     : Object.keys(data)
         .filter((key) => keys.includes(key))
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .reduce<any>((acc, key) => {
           acc[key] = data[key]
 

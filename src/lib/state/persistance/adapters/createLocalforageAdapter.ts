@@ -16,6 +16,7 @@ export const createLocalforageAdapter = (forage: {
     await forage.setItem(key, JSON.stringify(value))
   },
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   removeItem: async (_: string) => {},
 
   clear: async () => {}

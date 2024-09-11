@@ -1,11 +1,13 @@
 export function shallowEqual<A, B>(objA: A, objB: B): boolean {
   // Check if both objects are null or undefined
   if (objA === null || objA === undefined || objB === undefined) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (objA as any) === (objB as any)
   }
 
   // Check if both objects are primitives
   if (typeof objA !== "object" || typeof objB !== "object") {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (objA as any) === (objB as any)
   }
 
@@ -24,7 +26,7 @@ export function shallowEqual<A, B>(objA: A, objB: B): boolean {
 
   // Check if the values of the keys are equal
   for (const key of keysA) {
-    // eslint-disable-next-line no-prototype-builtins
+    // eslint-disable-next-line no-prototype-builtins, @typescript-eslint/no-explicit-any
     if (!objB.hasOwnProperty(key) || objA[key] !== (objB as any)[key]) {
       return false
     }

@@ -46,6 +46,7 @@ export function renderWithClient(
         <QueryClientProvider client={client}>{rerenderUi}</QueryClientProvider>
       )
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any
 }
 
@@ -56,11 +57,13 @@ export function createQueryClient(config?: QueryClientConfig): QueryClient {
   return new QueryClient(config)
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const doNotExecute = (_func: () => void) => true
 
 /**
  * Assert the parameter is not typed as `any`
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function expectTypeNotAny<T>(_: 0 extends 1 & T ? never : T): void {
   return undefined
 }

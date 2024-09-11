@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { afterEach, describe, expect, expectTypeOf, it } from "vitest"
 import { BehaviorSubject, type Observable, Subject, map, of, timer } from "rxjs"
 import { useObserve } from "./useObserve"
