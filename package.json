@@ -14,6 +14,9 @@
       "require": "./dist/index.umd.cjs"
     }
   },
+  "engines": {
+    "node": "20"
+  },
   "types": "./dist/index.d.ts",
   "publishConfig": {
     "access": "public"
@@ -39,8 +42,8 @@
   "devDependencies": {
     "@tanstack/react-query": "^5.8.4",
     "@testing-library/jest-dom": "^6.2.0",
-    "@testing-library/react": "^14.0.0",
-    "@types/node": "^18.15.11",
+    "@testing-library/react": "^16.0.0",
+    "@types/node": "^20.0.0",
     "@types/react": "^18.0.28",
     "@types/react-dom": "^18.0.11",
     "@typescript-eslint/eslint-plugin": "^6.11.0",
@@ -50,19 +53,18 @@
     "eslint-config-standard-with-typescript": "^43.0.1",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-n": "^16.3.1",
-    "eslint-plugin-promise": "^6.1.1",
+    "eslint-plugin-promise": "^7.1.0",
     "eslint-plugin-react": "^7.32.2",
     "eslint-plugin-react-hooks": "^4.6.0",
-    "global-jsdom": "^24.0.0",
-    "jsdom": "^24.0.0",
+    "jsdom": "^25.0.0",
     "prettier": "^3.1.0",
     "react-error-boundary": "^4.0.12",
     "rollup-plugin-node-externals": "^7.0.1",
     "rxjs": "^7.8.0",
-    "semantic-release": "^23.0.2",
-    "typescript": "5.2.2",
+    "semantic-release": "^24.1.1",
+    "typescript": "5.6.2",
     "vite": "^5.1.3",
-    "vite-plugin-dts": "^3.6.3",
+    "vite-plugin-dts": "^4.2.1",
     "vitest": "^1.3.0"
   },
   "repository": {
