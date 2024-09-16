@@ -1,4 +1,4 @@
-import { useSubject } from "../binding/useSubject"
+import { useSubject } from "../../binding/useSubject"
 
 export const useUnmountObservable = () => {
   const subject = useSubject<void>({

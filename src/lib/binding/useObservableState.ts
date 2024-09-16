@@ -1,6 +1,6 @@
 import { useCallback } from "react"
 import { useBehaviorSubject } from "./useBehaviorSubject"
-import { useLiveRef } from "../utils/useLiveRef"
+import { useLiveRef } from "../utils/react/useLiveRef"
 import { type Observable } from "rxjs"
 
 /**

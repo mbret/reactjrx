@@ -12,8 +12,7 @@ import {
   EMPTY,
   type BehaviorSubject
 } from "rxjs"
-import { useLiveRef } from "../utils/useLiveRef"
-import { primitiveEqual } from "../utils/primitiveEqual"
+import { useLiveRef } from "../utils/react/useLiveRef"
 import { makeObservable } from "../queries/client/utils/makeObservable"
 
 interface Option<R = undefined> {
@@ -81,7 +80,7 @@ export function useObserve<T>(
            * be using objects and keeping same reference but pushing new
            * properties values
            */
-          distinctUntilChanged(primitiveEqual),
+          distinctUntilChanged((a: unknown, b: unknown) => a === b),
           tap((value) => {
             valueRef.current = value
           }),

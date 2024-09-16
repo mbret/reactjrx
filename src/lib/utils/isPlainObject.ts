@@ -1,6 +1,8 @@
 // Copied from: https://github.com/jonschlinkert/is-plain-object
 
-import { hasObjectPrototype } from "./hasObjectPrototype"
+function hasObjectPrototype(o: any): boolean {
+  return Object.prototype.toString.call(o) === "[object Object]"
+}
 
 // eslint-disable-next-line @typescript-eslint/ban-types
 export function isPlainObject(o: any): o is Object {

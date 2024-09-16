@@ -1,8 +1,12 @@
-export function isPromiseLike(value: any): value is Promise<any> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isPromiseLike<T>(value: T): value is T & Promise<any> {
   return (
     value instanceof Promise ||
     (value &&
+      typeof value === "object" &&
+      "then" in value &&
       typeof value.then === "function" &&
-      typeof value.catch === "function")
+      "catch" in value &&
+      value.catch === "function")
   )
 }

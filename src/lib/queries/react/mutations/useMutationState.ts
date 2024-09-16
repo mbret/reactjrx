@@ -1,12 +1,12 @@
 import { useObserve } from "../../../binding/useObserve"
 import { type MutationFilters } from "../../client/mutations/types"
-import { useLiveRef } from "../../../utils/useLiveRef"
+import { useLiveRef } from "../../../utils/react/useLiveRef"
 import { type Mutation } from "../../client/mutations/mutation/Mutation"
 import { distinctUntilChanged, map, skip } from "rxjs"
 import { type QueryClient } from "../../client/QueryClient"
 import { type MutationState } from "../../client/mutations/mutation/types"
 import { useQueryClient } from "../useQueryClient"
-import { useConstant } from "../../../utils/useConstant"
+import { useConstant } from "../../../utils/react/useConstant"
 import { shallowEqual } from "../../../utils/shallowEqual"
 
 export interface MutationStateOptions<TResult, TData> {
