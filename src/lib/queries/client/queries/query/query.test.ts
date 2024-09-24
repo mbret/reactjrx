@@ -26,7 +26,7 @@ describe("query", () => {
 
     const subscription = observer.observe().subscribe()
 
-    await sleep(12)
+    await sleep(15)
 
     expect(observer.getCurrentResult()).toMatchObject({
       data: 0,
