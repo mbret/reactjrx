@@ -1,4 +1,4 @@
-import { BehaviorSubject, first, skip } from "rxjs"
+import { BehaviorSubject, first, pairwise, scan, skip, startWith } from "rxjs"
 import type { Observable } from "rxjs"
 import { SIGNAL_RESET } from "./constants"
 
@@ -76,21 +76,35 @@ export function signal<
   const setValue = <F extends (prev: T) => T>(
     arg: T | F | typeof SIGNAL_RESET
   ) => {
+    const update = (value: T | undefined) => {
+      if ("key" in config) {
+        console.log(
+          "[reactjrx][state][signal]:",
+          `Value update for signal ${config.key}`,
+          { prev: subject.getValue(), curr: value }
+        )
+      }
+
+      subject.next(value)
+    }
+
     if (typeof arg === "function") {
       const change = (arg as F)(subject.getValue())
 
       if (change === subject.getValue()) return
 
-      subject.next(change)
-      return
+      return update(change)
     }
 
     if (arg === SIGNAL_RESET) {
-      subject.next((defaultValue ?? undefined) as T)
-      return
+      if (defaultValue === subject.getValue()) return
+
+      return update((defaultValue ?? undefined) as T)
     }
 
-    subject.next(arg)
+    if (arg === subject.getValue()) return
+
+    return update(arg)
   }
 
   const getValue = () => subject.getValue()

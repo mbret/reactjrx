@@ -1,4 +1,4 @@
-import { type Adapter } from "../types"
+import { type Adapter } from "./Adapter"
 
 const normalizeStore = (store: unknown) => {
   if (!store || typeof store !== "object") {

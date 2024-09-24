@@ -1,4 +1,4 @@
-import { type Adapter } from "../types"
+import { type Adapter } from "./Adapter"
 
 export const createLocalforageAdapter = (forage: {
   getItem: (key: string) => Promise<string | null>

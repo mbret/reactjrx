@@ -3,7 +3,6 @@
 /* eslint-disable new-cap */
 import { StrictMode, memo } from "react"
 import ReactDOM from "react-dom/client"
-import { useMutation } from "./lib/queries/react/mutations/useMutation"
 import {
   QueryClient as rc_QueryClient,
   QueryClientProvider as RcQueryClientProvider,
@@ -12,7 +11,9 @@ import {
 import { QueryClient } from "./lib/queries/client/QueryClient"
 import { MutationCache } from "./lib/queries/client/mutations/cache/MutationCache"
 import { QueryClientProvider } from "./lib/queries/react/QueryClientProvider"
-import { ignoreElements, interval, tap } from "rxjs"
+import { usePersistSignals } from "./lib/state/react/usePersistSignals"
+import { signal } from "./lib/state/signal"
+import { createLocalStorageAdapter } from "./lib/state/persistance/adapters/createLocalStorageAdapter"
 
 const rcClient = new rc_QueryClient({
   mutationCache: new RQMutationCache({
@@ -30,36 +31,40 @@ const client = new QueryClient({
   })
 })
 
+const mySignal = signal({ default: 0, key: "foo" })
+const adapter = createLocalStorageAdapter()
+
 const App = memo(() => {
-  const { mutate, reset, isPending, data } = useMutation({
-    mutationFn: () =>
-      interval(1000).pipe(
-        tap((v) => {
-          console.log("value", v)
-        }),
-        ignoreElements()
-      )
+  const persistance = usePersistSignals({
+    entries: [{ signal: mySignal, version: 0 }],
+    adapter,
+    onHydrated: () => {
+      console.log("onHydrated")
+    }
   })
+
+  console.log(persistance)
 
   return (
     <>
-      <div>
-        {String(isPending)} {data ?? 0}
-      </div>
       <button
         onClick={() => {
-          mutate()
+          mySignal.setValue(s => s + 1)
         }}
       >
         click
       </button>
+      {/* <div>
+        {String(isPending)} {data ?? 0}
+      </div>
+      
       <button
         onClick={() => {
           reset()
         }}
       >
         reset
-      </button>
+      </button> */}
     </>
   )
 })

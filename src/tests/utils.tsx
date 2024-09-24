@@ -9,7 +9,7 @@ import React from "react"
 import * as utils from "../lib/utils"
 
 export const waitForTimeout = async (timeout: number) =>
-  await new Promise((resolve) => setTimeout(resolve, timeout))
+  await new Promise<undefined>((resolve) => setTimeout(resolve, timeout))
 
 /**
  * @see https://github.com/TanStack/query/blob/main/packages/react-query/src/__tests__/utils.tsx

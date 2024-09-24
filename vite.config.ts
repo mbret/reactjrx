@@ -3,6 +3,7 @@ import { defineConfig } from "vite"
 import { name } from "./package.json"
 import dts from "vite-plugin-dts"
 import externals from "rollup-plugin-node-externals"
+// import react from "@vitejs/plugin-react"
 
 export default defineConfig({
   plugins: [
@@ -26,6 +27,6 @@ export default defineConfig({
       formats: ["es", "cjs"]
     },
     // handled by consumer
-    minify: true
+    minify: false
   }
 })

@@ -1,6 +1,8 @@
 # reactjrx
 
-`reactjrx` is an innovative library designed to bridge RxJS and React, offering developers a powerful set of tools to integrate observables into their React applications seamlessly.
+Innovative library designed to bridge RxJS and frontend library / frameworks, offering developers a powerful set of tools to integrate observables into their React, Svelte or other applications seamlessly.
+
+**Only React is supported at the moment**
 
 It simplifies the reactive programming approach by providing easy-to-use bindings for observing and reacting to data changes, coupled with advanced state management and queries helpers akin to `react-query` for handling effects, mutations, and asynchronous data fetching.
 

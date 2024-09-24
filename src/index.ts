@@ -8,12 +8,12 @@ export * from "./lib/binding/useBehaviorSubject"
 
 // state
 export * from "./lib/state/signal"
-export * from "./lib/state/useSignalValue"
-export * from "./lib/state/useSignal"
+export * from "./lib/state/react/useSignalValue"
+export * from "./lib/state/react/useSignal"
 export * from "./lib/state/constants"
 export * from "./lib/state/persistance/adapters/createLocalforageAdapter"
 export * from "./lib/state/persistance/adapters/createLocalStorageAdapter"
-export * from "./lib/state/persistance/usePersistSignals"
+export * from "./lib/state/react/usePersistSignals"
 export { type SignalPersistenceConfig } from "./lib/state/persistance/types"
 
 // utils
