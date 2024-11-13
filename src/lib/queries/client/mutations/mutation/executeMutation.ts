@@ -47,11 +47,17 @@ export const executeMutation = <
 
   const mutationFn = options.mutationFn ?? defaultFn
 
-  const contextFromOnMutate$ = makeObservable(
-    // eslint-disable-next-line @typescript-eslint/promise-function-async
-    () => options.onMutate?.(variables) ?? undefined
-  )
+  const onMutateFactory = () => options.onMutate?.(variables) ?? undefined
 
+  const contextFromOnMutate$ = makeObservable(onMutateFactory)
+
+  contextFromOnMutate$.pipe(
+    tap((context) => {
+      if (context === undefined) {
+        throw new Error("onMutate returned undefined")
+      }
+    })
+  )
   const rawContext$ = of(state.context)
 
   const context$ = iif(() => isPaused, rawContext$, contextFromOnMutate$).pipe(
@@ -86,8 +92,7 @@ export const executeMutation = <
     switchMap((context) => {
       const fn$ =
         typeof mutationFn === "function"
-          ? // eslint-disable-next-line @typescript-eslint/promise-function-async
-            makeObservable(() => mutationFn(variables))
+          ? makeObservable(() => mutationFn(variables))
           : mutationFn
 
       const sharedFn$ = fn$.pipe(share())

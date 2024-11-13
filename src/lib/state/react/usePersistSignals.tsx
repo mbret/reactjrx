@@ -1,14 +1,18 @@
 import { useLiveRef } from "../../utils/react/useLiveRef"
 import { useObserve } from "../../binding/useObserve"
-import { concatMap, NEVER, scan } from "rxjs"
+import { concatMap, merge, of, scan, switchMap } from "rxjs"
 import type { SignalPersistenceConfig } from "../persistance/types"
 import { useLiveBehaviorSubject } from "../../binding/useLiveBehaviorSubject"
 import { persistSignals } from "../persistance/persistSignals"
 import { Adapter } from "../persistance/adapters/Adapter"
+import { shallowEqual } from "../../utils/shallowEqual"
 
 /**
  * Make sure to pass stable reference of entries and adapter if you don't
  * intentionally want to start over the process.
+ *
+ * `isHydrated` will be `true` after the first successful hydration. This value
+ * will be reset as soon as the adapter reference changes.
  */
 export function usePersistSignals({
   entries = [],
@@ -40,18 +44,21 @@ export function usePersistSignals({
   return useObserve(
     () => {
       const persistence$ = adapterSubject.current.pipe(
-        concatMap((adapter) => {
-          if (!adapter) return NEVER
+        switchMap((adapter) => {
+          if (!adapter) return of({ type: "reset" })
 
-          return entriesSubject.current.pipe(
-            concatMap((entries) =>
-              persistSignals({
-                adapter,
-                entries,
-                onHydrated: () => {
-                  onHydratedRef.current?.()
-                }
-              })
+          return merge(
+            of({ type: "reset" }),
+            entriesSubject.current.pipe(
+              concatMap((entries) =>
+                persistSignals({
+                  adapter,
+                  entries,
+                  onHydrated: () => {
+                    onHydratedRef.current?.()
+                  }
+                })
+              )
             )
           )
         })
@@ -60,6 +67,7 @@ export function usePersistSignals({
       return persistence$.pipe(
         scan(
           (acc, event) => {
+            if (event.type === "reset") return { isHydrated: false }
             if (event.type === "hydrated") return { isHydrated: true }
 
             return acc
@@ -68,7 +76,7 @@ export function usePersistSignals({
         )
       )
     },
-    { defaultValue: { isHydrated: false } },
-    [adapterSubject]
+    { defaultValue: { isHydrated: false }, compareFn: shallowEqual },
+    [adapterSubject, entriesSubject]
   )
 }

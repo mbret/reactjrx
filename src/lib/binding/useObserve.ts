@@ -10,7 +10,9 @@ import {
   distinctUntilChanged,
   catchError,
   EMPTY,
-  type BehaviorSubject
+  type BehaviorSubject,
+  startWith,
+  identity
 } from "rxjs"
 import { useLiveRef } from "../utils/react/useLiveRef"
 import { makeObservable } from "../queries/client/utils/makeObservable"
@@ -18,6 +20,7 @@ import { makeObservable } from "../queries/client/utils/makeObservable"
 interface Option<R = undefined> {
   defaultValue: R
   unsubscribeOnUnmount?: boolean
+  compareFn?: (a: R, b: R) => boolean
 }
 
 export function useObserve<T>(source: BehaviorSubject<T>): T
@@ -52,7 +55,8 @@ export function useObserve<T>(
       ? (optionsOrDeps as Option<T>)
       : ({
           defaultValue: undefined,
-          unsubscribeOnUnmount: true
+          unsubscribeOnUnmount: true,
+          compareFn: undefined
         } satisfies Option<undefined>)
   const deps =
     !maybeDeps && Array.isArray(optionsOrDeps)
@@ -74,13 +78,20 @@ export function useObserve<T>(
 
       const sub = makeObservable(source)
         .pipe(
+          optionsRef.current.defaultValue
+            ? startWith(optionsRef.current.defaultValue)
+            : identity,
           /**
-           * @important
-           * We only check primitives because underlying subscription might
-           * be using objects and keeping same reference but pushing new
-           * properties values
+           * @important there is already a Object.is comparison in place from react
+           * so we only add a custom compareFn if provided
            */
-          distinctUntilChanged((a: unknown, b: unknown) => a === b),
+          optionsRef.current.compareFn
+            ? distinctUntilChanged((a, b) => {
+                if (a === undefined || b === undefined) return false
+
+                return optionsRef.current.compareFn!(a, b)
+              })
+            : identity,
           tap((value) => {
             valueRef.current = value
           }),

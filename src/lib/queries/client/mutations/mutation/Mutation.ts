@@ -78,11 +78,11 @@ export class Mutation<
               const onCacheMutate$ = makeObservable(() =>
                 mutationCache.config.onMutate?.(
                   variables,
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   this as Mutation<any, any, any, any>
                 )
               ) as Observable<TContext>
 
-              // eslint-disable-next-line @typescript-eslint/promise-function-async
               const optionsOnMutate = () => {
                 return this.options.onMutate?.(variables)
               }
@@ -101,6 +101,7 @@ export class Mutation<
                   error as any,
                   variables,
                   context,
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   this as Mutation<any, any, any, any>
                 )
               )
@@ -118,6 +119,7 @@ export class Mutation<
                   error as Error,
                   variables,
                   context,
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   this as Mutation<any, any, any, any>
                 )
               )
@@ -134,6 +136,7 @@ export class Mutation<
                   data,
                   variables,
                   context,
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   this as Mutation<any, any, any, any>
                 )
               )

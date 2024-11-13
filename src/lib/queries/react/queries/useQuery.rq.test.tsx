@@ -5240,7 +5240,7 @@ describe("useQuery", () => {
         rendered.getByText("status: success, isPaused: false")
       )
       await waitFor(() => {
-        // @ts-ignore
+        // @ts-expect-error
         expect(rendered.getByText("data: data")).toBeInTheDocument()
       })
 
@@ -5311,7 +5311,7 @@ describe("useQuery", () => {
       await waitFor(() => rendered.getByText("failureReason: null"))
 
       await waitFor(() => {
-        // @ts-ignore
+        // @ts-expect-error
         expect(rendered.getByText("data: data2")).toBeInTheDocument()
       })
     })
@@ -5360,7 +5360,7 @@ describe("useQuery", () => {
       await sleep(15)
 
       await waitFor(() =>
-        // @ts-ignore
+        // @ts-expect-error
         expect(rendered.queryByText("data: data2")).not.toBeInTheDocument()
       )
       expect(count).toBe(1)
@@ -5455,7 +5455,7 @@ describe("useQuery", () => {
         rendered.getByText("status: success, fetchStatus: paused")
       )
       await waitFor(() => {
-        // @ts-ignore
+        // @ts-expect-error
         expect(rendered.getByText("data: initial")).toBeInTheDocument()
       })
 
@@ -5511,7 +5511,7 @@ describe("useQuery", () => {
         rendered.getByText("status: success, fetchStatus: paused")
       )
       await waitFor(() => {
-        // @ts-ignore
+        // @ts-expect-error
         expect(rendered.getByText("data: initial")).toBeInTheDocument()
       })
 
@@ -5538,7 +5538,7 @@ describe("useQuery", () => {
         rendered.getByText("status: success, fetchStatus: idle")
       )
       await waitFor(() => {
-        // @ts-ignore
+        // @ts-expect-error
         expect(rendered.getByText("data: data1")).toBeInTheDocument()
       })
 
@@ -5836,7 +5836,7 @@ describe("useQuery", () => {
       )
 
       await waitFor(() => {
-        // @ts-ignore
+        // @ts-expect-error
         expect(rendered.getByText("data: data 1")).toBeInTheDocument()
       })
 
@@ -5879,7 +5879,7 @@ describe("useQuery", () => {
       await waitFor(() => rendered.getByText("status: error, isPaused: false"))
 
       await waitFor(() => {
-        // @ts-ignore
+        // @ts-expect-error
         expect(rendered.getByText("error: error 2")).toBeInTheDocument()
       })
 
@@ -6006,7 +6006,7 @@ describe("useQuery", () => {
     fireEvent.click(rendered.getByRole("button", { name: /setQueryData/i }))
     await waitFor(() => rendered.getByText("data: newData"))
     await waitFor(() => {
-      // @ts-ignore
+      // @ts-expect-error
       expect(rendered.getByText("dataUpdatedAt: 100")).toBeInTheDocument()
     })
   })

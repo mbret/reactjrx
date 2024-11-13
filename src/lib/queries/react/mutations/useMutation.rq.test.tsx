@@ -470,7 +470,7 @@ describe("useMutation", () => {
     await waitFor(() => {
       expect(
         rendered.getByText("error: null, status: idle, isPaused: false")
-        // @ts-ignore
+        // @ts-expect-error
       ).toBeInTheDocument()
     })
 
@@ -479,7 +479,7 @@ describe("useMutation", () => {
     await waitFor(() => {
       expect(
         rendered.getByText("error: null, status: pending, isPaused: true")
-        // @ts-ignore
+        // @ts-expect-error
       ).toBeInTheDocument()
     })
 
@@ -493,7 +493,7 @@ describe("useMutation", () => {
     await waitFor(() => {
       expect(
         rendered.getByText("error: oops, status: error, isPaused: false")
-        // @ts-ignore
+        // @ts-expect-error
       ).toBeInTheDocument()
     })
 
