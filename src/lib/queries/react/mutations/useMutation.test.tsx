@@ -216,6 +216,8 @@ describe("useMutation", () => {
         const { data, mutate } = useMutation({
           mutationFn: async () => {
             called++
+
+            return 2
           }
         })
 
