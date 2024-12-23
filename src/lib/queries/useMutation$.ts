@@ -39,7 +39,7 @@ export function useMutation$<
   })
 
   const mutationFnAsync = (variables: TVariables) => {
-    let lastData: TData | undefined
+    let lastData: { value: TData } | undefined
 
     return new Promise<TData>((resolve, reject) => {
       const source =
@@ -49,7 +49,7 @@ export function useMutation$<
 
       source.pipe(take(1)).subscribe({
         next: (data) => {
-          lastData = data
+          lastData = { value: data }
         },
         error: (error) => {
           reject(error)
@@ -58,7 +58,7 @@ export function useMutation$<
           if (lastData === undefined)
             return reject(new Error("Stream completed without any data"))
 
-          resolve(lastData)
+          resolve(lastData.value)
         }
       })
     })
