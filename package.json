@@ -34,10 +34,10 @@
   "peerDependencies": {
     "react": "18",
     "react-dom": "18",
-    "rxjs": "*"
+    "rxjs": "*",
+    "@tanstack/react-query": "^5.8.4"
   },
   "devDependencies": {
-    "@tanstack/react-query": "^5.8.4",
     "@testing-library/jest-dom": "^6.2.0",
     "@testing-library/react": "^16.0.0",
     "@types/node": "^20.0.0",

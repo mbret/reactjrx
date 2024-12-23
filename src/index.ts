@@ -20,6 +20,8 @@ export { type SignalPersistenceConfig } from "./lib/state/persistance/types"
 export * from "./lib/utils"
 
 // query
+export * from "./lib/tmp/useQuery$"
+export * from "./lib/tmp/useMutation$"
 export * from "./lib/queries/react/mutations/useMutation"
 export * from "./lib/queries/react/queries/useQuery"
 export * from "./lib/queries/react/useQueryClient"
