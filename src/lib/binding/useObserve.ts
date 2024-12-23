@@ -12,7 +12,7 @@ import {
   EMPTY,
   type BehaviorSubject,
   startWith,
-  identity
+  identity,
 } from "rxjs"
 import { useLiveRef } from "../utils/react/useLiveRef"
 import { makeObservable } from "../deprecated/client/utils/makeObservable"
@@ -72,6 +72,10 @@ export function useObserve<T>(
   const sourceRef = useLiveRef(source$)
   const optionsRef = useLiveRef(options)
 
+  const getSnapshot = useCallback(() => {
+    return valueRef.current
+  }, [])
+
   const subscribe = useCallback(
     (next: () => void) => {
       const source = sourceRef.current
@@ -113,11 +117,7 @@ export function useObserve<T>(
     [...deps]
   )
 
-  const getSnapshot = useCallback(() => {
-    return valueRef.current
-  }, [])
-
-  const result = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+  const result = useSyncExternalStore(subscribe, getSnapshot)
 
   return result as T
 }

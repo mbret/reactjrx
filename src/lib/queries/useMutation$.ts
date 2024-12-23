@@ -3,8 +3,11 @@ import {
   QueryClient,
   useMutation,
   UseMutationOptions,
+  UseMutationResult
 } from "@tanstack/react-query"
 import { Observable, take } from "rxjs"
+import { useBehaviorSubject } from "../binding/useBehaviorSubject"
+import { useEffect } from "react"
 
 export function useMutation$<
   TData = unknown,
@@ -22,6 +25,19 @@ export function useMutation$<
   },
   queryClient?: QueryClient
 ) {
+  const stateSubject = useBehaviorSubject<
+    Pick<
+      UseMutationResult<TData, TError, TVariables, TContext>,
+      "status" | "isPending" | "isError" | "isSuccess" | "isIdle"
+    >
+  >({
+    status: "idle",
+    isPending: false,
+    isError: false,
+    isSuccess: false,
+    isIdle: true
+  })
+
   const mutationFnAsync = (variables: TVariables) => {
     let lastData: TData | undefined
 
@@ -56,5 +72,11 @@ export function useMutation$<
     queryClient
   )
 
-  return result
+  const { status, isPending, isError, isSuccess, isIdle } = result
+
+  useEffect(() => {
+    stateSubject.current.next({ status, isPending, isError, isSuccess, isIdle })
+  }, [status, isPending, isError, isSuccess, isIdle, stateSubject])
+
+  return { ...result, state$: stateSubject.current }
 }
