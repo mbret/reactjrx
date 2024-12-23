@@ -15,7 +15,7 @@ import {
   identity
 } from "rxjs"
 import { useLiveRef } from "../utils/react/useLiveRef"
-import { makeObservable } from "../queries/client/utils/makeObservable"
+import { makeObservable } from "../deprecated/client/utils/makeObservable"
 
 interface Option<R = undefined> {
   defaultValue: R

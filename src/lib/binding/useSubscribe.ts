@@ -1,6 +1,6 @@
 import { type DependencyList, useEffect } from "react"
 import { useLiveRef } from "../utils/react/useLiveRef"
-import { makeObservable } from "../queries/client/utils/makeObservable"
+import { makeObservable } from "../deprecated/client/utils/makeObservable"
 import { type SubscribeSource } from "./types"
 import { catchError, EMPTY } from "rxjs"
 

@@ -3,8 +3,8 @@ import { act, render } from "@testing-library/react"
 import {
   QueryClient,
   type QueryClientConfig
-} from "../lib/queries/client/QueryClient"
-import { QueryClientProvider } from "../lib/queries/react/QueryClientProvider"
+} from "../lib/deprecated/client/QueryClient"
+import { QueryClientProvider } from "../lib/deprecated/react/QueryClientProvider"
 import React from "react"
 import * as utils from "../lib/utils"
 
