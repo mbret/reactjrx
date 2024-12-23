@@ -1,14 +1,15 @@
 import { useCallback } from "react"
 import { useSubject } from "./useSubject"
-import { useLiveRef } from "../utils/react/useLiveRef"
+import { Observable } from "rxjs"
 
 /**
  * This creates an event handler and an observable that represents calls to that handler.
  */
-export const useObserveCallback = <T = void>() => {
+export const useObservableCallback = <T = void>(): readonly [
+  Observable<T>,
+  (arg: T) => void
+] => {
   const subject = useSubject<T>()
-
-  const event$ = useLiveRef(subject.current.asObservable())
 
   const trigger = useCallback(
     (arg: T) => {
@@ -18,5 +19,5 @@ export const useObserveCallback = <T = void>() => {
     []
   )
 
-  return [event$.current, trigger] as const
+  return [subject.current, trigger] as const
 }
