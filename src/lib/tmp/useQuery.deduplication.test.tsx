@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { Subject, interval, map, of, tap, timer } from "rxjs"
+import { Subject, interval, map, tap } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
