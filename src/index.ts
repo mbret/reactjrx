@@ -5,6 +5,7 @@ export * from "./lib/binding/useObservableEvent"
 export * from "./lib/binding/useObservableState"
 export * from "./lib/binding/useSubject"
 export * from "./lib/binding/useBehaviorSubject"
+export * from "./lib/binding/useLiveBehaviorSubject"
 
 // state
 export * from "./lib/state/signal"
