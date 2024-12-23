@@ -9,20 +9,27 @@ import { Observable, take } from "rxjs"
 import { useBehaviorSubject } from "../binding/useBehaviorSubject"
 import { useEffect } from "react"
 
+export type UseMutation$Options<
+  TData = unknown,
+  TError = DefaultError,
+  TVariables = void,
+  TContext = unknown
+> = Omit<
+  UseMutationOptions<TData, TError, TVariables, TContext>,
+  "mutationFn"
+> & {
+  mutationFn:
+    | ((variables: TVariables) => Observable<TData>)
+    | Observable<TData>
+}
+
 export function useMutation$<
   TData = unknown,
   TError = DefaultError,
   TVariables = void,
   TContext = unknown
 >(
-  options: Omit<
-    UseMutationOptions<TData, TError, TVariables, TContext>,
-    "mutationFn"
-  > & {
-    mutationFn:
-      | ((variables: TVariables) => Observable<TData>)
-      | Observable<TData>
-  },
+  options: UseMutation$Options<TData, TError, TVariables, TContext>,
   queryClient?: QueryClient
 ) {
   const stateSubject = useBehaviorSubject<
