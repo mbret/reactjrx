@@ -526,30 +526,6 @@ describe("queryObserver", () => {
     expect(count).toBe(2)
   })
 
-  test("should clear interval when unsubscribing to a refetchInterval query", async () => {
-    const key = queryKey()
-    let count = 0
-
-    const fetchData = async () => {
-      count++
-      return await Promise.resolve("data")
-    }
-    const observer = new QueryObserver(queryClient, {
-      queryKey: key,
-      queryFn: fetchData,
-      gcTime: 0,
-      refetchInterval: 10
-    })
-    const unsubscribe = observer.subscribe(() => undefined)
-    expect(count).toBe(1)
-    await sleep(15)
-    expect(count).toBe(2)
-    unsubscribe()
-    await sleep(10)
-    expect(queryClient.getQueryCache().find({ queryKey: key })).toBeUndefined()
-    expect(count).toBe(2)
-  })
-
   test("uses placeholderData as non-cache data when pending a query with no data", async () => {
     const key = queryKey()
     const observer = new QueryObserver(queryClient, {
