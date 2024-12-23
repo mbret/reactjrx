@@ -8,12 +8,11 @@ import {
   QueryClientProvider as RcQueryClientProvider,
   MutationCache as RQMutationCache
 } from "@tanstack/react-query"
-import { QueryClient } from "./lib/queries/client/QueryClient"
-import { MutationCache } from "./lib/queries/client/mutations/cache/MutationCache"
-import { QueryClientProvider } from "./lib/queries/react/QueryClientProvider"
-import { usePersistSignals } from "./lib/state/react/usePersistSignals"
-import { signal } from "./lib/state/signal"
-import { createLocalStorageAdapter } from "./lib/state/persistance/adapters/createLocalStorageAdapter"
+import { QueryClient } from "./lib/deprecated/client/QueryClient"
+import { MutationCache } from "./lib/deprecated/client/mutations/cache/MutationCache"
+import { QueryClientProvider } from "./lib/deprecated/react/QueryClientProvider"
+import { finalize, interval } from "rxjs"
+import { useMutation$ } from "./lib/queries/useMutation$"
 
 const rcClient = new rc_QueryClient({
   mutationCache: new RQMutationCache({
@@ -31,40 +30,63 @@ const client = new QueryClient({
   })
 })
 
-const mySignal = signal({ default: 0, key: "foo" })
-const adapter = createLocalStorageAdapter()
-
 const App = memo(() => {
-  const persistance = usePersistSignals({
-    entries: [{ signal: mySignal, version: 0 }],
-    adapter,
-    onHydrated: () => {
-      console.log("onHydrated")
-    }
-  })
+  // const [adapter, setAdapter] = useState<Adapter | undefined>()
 
-  console.log(persistance)
+  // const persistance = usePersistSignals({
+  //   entries: [{ signal: mySignal, version: 0 }],
+  //   adapter,
+  //   onHydrated: () => {
+  //     console.log("onHydrated")
+  //   }
+  // })
+
+  // useEffect(() => {
+  //   setTimeout(() => {
+  //     setAdapter(createLocalStorageAdapter())
+
+  //     setTimeout(() => {
+  //       // console.log("set undefined")
+  //       setAdapter(undefined)
+  //     }, 1000)
+  //   }, 1000)
+  // }, [])
+
+  const mutation = useMutation$({
+    mutationFn: () =>
+      interval(1000).pipe(
+        finalize(() => {
+          console.log("finalize")
+        })
+      )
+  })
+  // const data = useQuery$({
+  //   queryKey: ["foo"],
+  //   queryFn: () =>
+  //     interval(1000).pipe(
+  //       // tap(() => {
+  //       //   throw new Error("foo")
+  //       // })
+  //     ),
+  //   retry: false
+  // })
+
+  console.log({ ...mutation })
 
   return (
     <>
       <button
         onClick={() => {
-          mySignal.setValue(s => s + 1)
+          // mySignal.setValue((s) => s + 1)
+          mutation.mutate()
+
+          // setTimeout(() => {
+          //   mutation.reset()
+          // }, 100)
         }}
       >
-        click
+        mutate
       </button>
-      {/* <div>
-        {String(isPending)} {data ?? 0}
-      </div>
-      
-      <button
-        onClick={() => {
-          reset()
-        }}
-      >
-        reset
-      </button> */}
     </>
   )
 })
