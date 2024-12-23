@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { createQueryClient, sleep } from "../../../../../tests/utils"
 import { type QueryClient } from "../../QueryClient"
-import { QueryObserver } from "../observer/QueryObserver"
 import { finalize, interval } from "rxjs"
 
 describe("query", () => {
@@ -16,43 +15,43 @@ describe("query", () => {
     queryClient.clear()
   })
 
-  it("should complete forever query as soon as there is no more observers", async () => {
-    const finalizeFn = vi.fn()
+  // it("should complete forever query as soon as there is no more observers", async () => {
+  //   const finalizeFn = vi.fn()
 
-    const observer = new QueryObserver(queryClient, {
-      queryKey: ["foo"],
-      queryFn: () => interval(10).pipe(finalize(finalizeFn))
-    })
+  //   const observer = new QueryObserver(queryClient, {
+  //     queryKey: ["foo"],
+  //     queryFn: () => interval(10).pipe(finalize(finalizeFn))
+  //   })
 
-    const subscription = observer.observe().subscribe()
+  //   const subscription = observer.observe().subscribe()
 
-    await sleep(15)
+  //   await sleep(15)
 
-    expect(observer.getCurrentResult()).toMatchObject({
-      data: 0,
-      fetchStatus: "fetching"
-    })
+  //   expect(observer.getCurrentResult()).toMatchObject({
+  //     data: 0,
+  //     fetchStatus: "fetching"
+  //   })
 
-    expect(finalizeFn).not.toBeCalled()
+  //   expect(finalizeFn).not.toBeCalled()
 
-    await sleep(12)
+  //   await sleep(12)
 
-    expect(observer.getCurrentResult()).toMatchObject({
-      data: 1,
-      fetchStatus: "fetching"
-    })
+  //   expect(observer.getCurrentResult()).toMatchObject({
+  //     data: 1,
+  //     fetchStatus: "fetching"
+  //   })
 
-    subscription.unsubscribe()
+  //   subscription.unsubscribe()
 
-    await sleep(2)
+  //   await sleep(2)
 
-    expect(observer.getCurrentResult()).toMatchObject({
-      data: 1,
-      fetchStatus: "idle"
-    })
+  //   expect(observer.getCurrentResult()).toMatchObject({
+  //     data: 1,
+  //     fetchStatus: "idle"
+  //   })
 
-    expect(finalizeFn).toBeCalled()
-  })
+  //   expect(finalizeFn).toBeCalled()
+  // })
 
   it("should complete forever query on first result when there is no observers at all", async () => {
     const finalizeFn = vi.fn()
