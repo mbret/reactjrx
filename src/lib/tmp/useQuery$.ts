@@ -1,56 +1,14 @@
 import {
   DefaultError,
-  DefinedInitialDataOptions,
-  DefinedUseQueryResult,
   QueryClient,
-  QueryFunction,
   QueryFunctionContext,
   QueryKey,
-  UndefinedInitialDataOptions,
   useQuery,
   useQueryClient,
-  UseQueryOptions,
-  UseQueryResult
+  UseQueryOptions
 } from "@tanstack/react-query"
-import { useEffect, useRef } from "react"
-import {
-  finalize,
-  firstValueFrom,
-  lastValueFrom,
-  Observable,
-  Subscription
-} from "rxjs"
-import { makeObservable } from "../queries/client/utils/makeObservable"
-
-// export function useQuery$<
-//   TQueryFnData = unknown,
-//   TError = DefaultError,
-//   TData = TQueryFnData,
-//   TQueryKey extends QueryKey = QueryKey
-// >(
-//   options: DefinedInitialDataOptions<TQueryFnData, TError, TData, TQueryKey>,
-//   queryClient?: QueryClient
-// ): DefinedUseQueryResult<TData, TError>
-
-// export function useQuery$<
-//   TQueryFnData = unknown,
-//   TError = DefaultError,
-//   TData = TQueryFnData,
-//   TQueryKey extends QueryKey = QueryKey
-// >(
-//   options: UndefinedInitialDataOptions<TQueryFnData, TError, TData, TQueryKey>,
-//   queryClient?: QueryClient
-// ): UseQueryResult<TData, TError>
-
-// export function useQuery$<
-//   TQueryFnData = unknown,
-//   TError = DefaultError,
-//   TData = TQueryFnData,
-//   TQueryKey extends QueryKey = QueryKey
-// >(
-//   options: UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
-//   queryClient?: QueryClient
-// ): UseQueryResult<TData, TError>
+import { useRef } from "react"
+import { defer, finalize, Observable, Subscription } from "rxjs"
 
 export function useQuery$<
   TQueryFnData = unknown,
@@ -75,7 +33,7 @@ export function useQuery$<
     let isResolved = false
 
     return new Promise<TQueryFnData>((resolve, reject) => {
-      let lastData = undefined
+      let lastData: TQueryFnData | undefined = undefined
 
       if (sub.current) {
         sub.current.unsubscribe()
@@ -94,10 +52,11 @@ export function useQuery$<
         }
       })
 
-      const source =
+      const source = defer(() =>
         typeof options.queryFn === "function"
           ? options.queryFn(context)
           : options.queryFn
+      )
 
       sub.current = source
         .pipe(
@@ -110,23 +69,23 @@ export function useQuery$<
         .subscribe({
           next: (data) => {
             lastData = data
-            // console.log("next", data)
-            _queryClient?.setQueryData(context.queryKey, data as any)
-            // isResolved = true
+
+            _queryClient?.setQueryData<TQueryFnData>(context.queryKey, data)
           },
           error: (error) => {
-            console.log("error", error)
             isResolved = true
 
             reject(error)
           },
           complete: () => {
+            if (lastData === undefined)
+              return reject(new Error("Stream completed without any data"))
+
             if (isResolved) return
 
-            // console.log("complete")
             isResolved = true
 
-            resolve(lastData as any)
+            resolve(lastData)
           }
         })
     })
