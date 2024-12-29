@@ -5,10 +5,18 @@ import {
   QueryKey,
   useQuery,
   useQueryClient,
-  UseQueryOptions
+  UseQueryOptions,
+  hashKey
 } from "@tanstack/react-query"
 import { useRef } from "react"
-import { defer, finalize, Observable, Subscription } from "rxjs"
+import {
+  defer,
+  delay,
+  Observable,
+  Subscription,
+  take,
+} from "rxjs"
+import { useQueryClient$ } from "./QueryClientProvider$"
 
 export function useQuery$<
   TQueryFnData = unknown,
@@ -26,66 +34,85 @@ export function useQuery$<
   },
   queryClient?: QueryClient
 ) {
+  const query$ = useRef<Observable<TQueryFnData>>()
   const sub = useRef<Subscription>()
   const _queryClient = useQueryClient(queryClient)
+  const reactJrxQueryClient = useQueryClient$()
 
   const queryFnAsync = (context: QueryFunctionContext<TQueryKey>) => {
-    let isResolved = false
-
     return new Promise<TQueryFnData>((resolve, reject) => {
-      let lastData: TQueryFnData | undefined = undefined
-
-      if (sub.current) {
-        sub.current.unsubscribe()
-        sub.current = undefined
-      }
-
       /**
        * Auto unsubscribe when there is no more observers.
        */
-      const unsub = _queryClient.getQueryCache().subscribe((d) => {
-        if (d.type === "observerRemoved" && d.query.observers.length === 0) {
-          unsub()
+      // const unsub = _queryClient.getQueryCache().subscribe((d) => {
+      //   if (
+      //     d.type === "observerRemoved" &&
+      //     d.query.queryHash === hashKey(context.queryKey) &&
+      //     d.query.observers.length === 0
+      //   ) {
+      //     unsub()
+      //     sub.current?.unsubscribe()
+      //   }
+      // })
 
-          _queryClient.cancelQueries({ queryKey: context.queryKey })
-          sub.current?.unsubscribe()
-        }
-      })
+      const getSource = () =>
+        defer(() =>
+          typeof options.queryFn === "function"
+            ? options.queryFn(context)
+            : options.queryFn
+        )
 
-      const source = defer(() =>
-        typeof options.queryFn === "function"
-          ? options.queryFn(context)
-          : options.queryFn
-      )
+      const queryHash = hashKey(context.queryKey)
 
-      sub.current = source
+      const queryCacheEntry =
+        reactJrxQueryClient.getQuery(queryHash) ??
+        reactJrxQueryClient.setQuery(
+          context.queryKey,
+          getSource(),
+          context.signal
+        )
+
+      const query$ = queryCacheEntry.query$
+
+      query$
         .pipe(
-          finalize(() => {
-            unsub()
-
-            isResolved = true
-          })
+          take(1),
+          /**
+           * If several values are emitted during this delay, we will only
+           * keep the last value. This is unfortunate but it's the best we can do
+           * for now.
+           */
+          delay(1)
         )
         .subscribe({
-          next: (data) => {
-            lastData = data
-
-            _queryClient?.setQueryData<TQueryFnData>(context.queryKey, data)
-          },
           error: (error) => {
-            isResolved = true
-
-            reject(error)
+            return reject(error)
           },
           complete: () => {
-            if (lastData === undefined)
-              return reject(new Error("Stream completed without any data"))
+            if (queryCacheEntry?.lastData === undefined) {
+              console.log(
+                "cancelled due to stream completing without data",
+                queryCacheEntry?.lastData
+              )
 
-            if (isResolved) return
+              _queryClient.cancelQueries({
+                queryKey: context.queryKey,
+                exact: true
+              })
 
-            isResolved = true
+              return resolve(undefined as TQueryFnData)
+            }
 
-            resolve(lastData)
+            resolve(queryCacheEntry.lastData.value as TQueryFnData)
+
+            if (queryCacheEntry?.isCompleted === false) {
+              setTimeout(() => {
+                _queryClient?.refetchQueries({
+                  queryKey: context.queryKey,
+                  exact: true
+                })
+              })
+            }
           }
         })
     })
@@ -94,7 +121,11 @@ export function useQuery$<
   const result = useQuery<TQueryFnData, TError, TData, TQueryKey>(
     {
       ...options,
-      queryFn: queryFnAsync
+      queryFn: queryFnAsync,
+
+      meta: {
+        query$
+      }
     },
     queryClient
   )

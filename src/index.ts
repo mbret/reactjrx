@@ -24,6 +24,9 @@ export * from "./lib/utils"
 export * from "./lib/queries/useQuery$"
 export * from "./lib/queries/useMutation$"
 export * from "./lib/queries/useSwitchMutation$"
+export * from "./lib/queries/QueryClientProvider$"
+
+
 export * from "./lib/deprecated/react/mutations/useMutation"
 export * from "./lib/deprecated/react/queries/useQuery"
 export * from "./lib/deprecated/react/useQueryClient"

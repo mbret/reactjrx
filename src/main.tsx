@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/non-nullable-type-assertion-style */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable new-cap */
-import { StrictMode, memo } from "react"
+import { memo, StrictMode, useState } from "react"
 import ReactDOM from "react-dom/client"
 import {
   QueryClient as rc_QueryClient,
@@ -11,8 +11,10 @@ import {
 import { QueryClient } from "./lib/deprecated/client/QueryClient"
 import { MutationCache } from "./lib/deprecated/client/mutations/cache/MutationCache"
 import { QueryClientProvider } from "./lib/deprecated/react/QueryClientProvider"
-import { finalize, interval } from "rxjs"
-import { useMutation$ } from "./lib/queries/useMutation$"
+import { finalize, interval, map, tap, timer } from "rxjs"
+import { useQuery$ } from "./lib/queries/useQuery$"
+import { useSwitchMutation$ } from "./lib/queries/useSwitchMutation$"
+import { QueryClientProvider$ } from "./lib/queries/QueryClientProvider$"
 
 const rcClient = new rc_QueryClient({
   mutationCache: new RQMutationCache({
@@ -28,6 +30,18 @@ const client = new QueryClient({
       console.log("cache onError", error)
     }
   })
+})
+
+const Foo = memo(() => {
+  const { data } = useQuery$({ queryKey: ["foo"], queryFn: () => timer(99999) })
+  // const { data: data2 } = useQuery$({
+  //   queryKey: ["foo"],
+  //   queryFn: query
+  // })
+
+  console.log(data)
+
+  return null
 })
 
 const App = memo(() => {
@@ -52,41 +66,65 @@ const App = memo(() => {
   //   }, 1000)
   // }, [])
 
-  const mutation = useMutation$({
-    mutationFn: () =>
-      interval(1000).pipe(
-        finalize(() => {
-          console.log("finalize")
-        })
-      )
-  })
+  const [hide, setHide] = useState(false)
+
   // const data = useQuery$({
-  //   queryKey: ["foo"],
-  //   queryFn: () =>
-  //     interval(1000).pipe(
-  //       // tap(() => {
-  //       //   throw new Error("foo")
-  //       // })
-  //     ),
+  //   queryKey: ["foo", "bar"],
+  //   queryFn: () => {
+  //     // console.log("queryFn A")
+
+  //     return interval(3000)
+  //   },
   //   retry: false
   // })
 
-  console.log({ ...mutation })
+  // const data = useQuery({
+  //   queryKey: ["foo"],
+  //   queryFn: async () => {
+  //     console.log("queryFn")
+
+  //     // rcClient.setQueryData(["foo"], "foo")
+
+  //     await waitForTimeout(3000)
+
+  //     return false
+  //   },
+  //   retry: false
+  // })
+
+  // console.log({ ...data })
+
+  const mutation = useSwitchMutation$({
+    mutationFn: (v) => {
+      console.log("mutationFn", v)
+
+      return interval(2000).pipe(
+        tap(() => {
+          console.log("tap")
+        }),
+        finalize(() => {
+          console.log("finalize")
+        }),
+        map(() => "foo")
+      )
+    }
+  })
 
   return (
     <>
+      {/* <div>{data.data ?? 0}</div> */}
       <button
         onClick={() => {
-          // mySignal.setValue((s) => s + 1)
-          mutation.mutate()
-
-          // setTimeout(() => {
-          //   mutation.reset()
-          // }, 100)
+          setHide((v) => !v)
         }}
       >
-        mutate
+        toggle hide
       </button>
+      <button onClick={() => mutation.mutate()}>mutate {mutation.data}</button>
+      <button onClick={() => rcClient.cancelQueries({ queryKey: ["foo"] })}>
+        cancel query
+      </button>
+      {hide ? <div>hidden</div> : <Foo />}
     </>
   )
 })
@@ -95,7 +133,9 @@ ReactDOM.createRoot(document.getElementById("app") as HTMLElement).render(
   <StrictMode>
     <RcQueryClientProvider client={rcClient}>
       <QueryClientProvider client={client}>
-        <App />
+        <QueryClientProvider$>
+          <App />
+        </QueryClientProvider$>
       </QueryClientProvider>
     </RcQueryClientProvider>
   </StrictMode>

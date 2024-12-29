@@ -5,6 +5,7 @@ import { StrictMode } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useQuery$ } from "./useQuery$"
 import { waitForTimeout } from "../../tests/utils"
+import { QueryClient$, QueryClientProvider$ } from "./QueryClientProvider$"
 
 afterEach(() => {
   cleanup()
@@ -34,7 +35,9 @@ describe("Given a long observable", () => {
       const { unmount } = render(
         <StrictMode>
           <QueryClientProvider client={client}>
-            <Comp />
+            <QueryClientProvider$>
+              <Comp />
+            </QueryClientProvider$>
           </QueryClientProvider>
         </StrictMode>
       )
@@ -46,5 +49,45 @@ describe("Given a long observable", () => {
       // 2 because of strict mode
       expect(tapped).toBe(2)
     })
+  })
+})
+
+describe("Given an observable that completes", () => {
+  it("should remove it from cache and finalize the subscription", async () => {
+    let tapped = 0
+
+    const Comp = () => {
+      useQuery$({
+        queryKey: ["foo"],
+        queryFn: () =>
+          timer(10).pipe(
+            finalize(() => {
+              tapped++
+            })
+          )
+      })
+
+      return null
+    }
+
+    const client = new QueryClient()
+    const reactJrxQueryClient = new QueryClient$(client)
+
+    render(<Comp />, {
+      wrapper: ({ children }) => (
+        <StrictMode>
+          <QueryClientProvider client={client}>
+            <QueryClientProvider$ client={reactJrxQueryClient}>
+              {children}
+            </QueryClientProvider$>
+          </QueryClientProvider>
+        </StrictMode>
+      )
+    })
+
+    await waitForTimeout(15)
+
+    expect(tapped).toBe(2)
+    expect(reactJrxQueryClient.queryMap.size).toBe(0)
   })
 })

@@ -7,6 +7,7 @@ import { QueryClientProvider } from "@tanstack/react-query"
 import { printQuery } from "../../tests/testUtils"
 import { QueryClient } from "@tanstack/react-query"
 import { waitForTimeout } from "../../tests/utils"
+import { QueryClientProvider$ } from "./QueryClientProvider$"
 
 afterEach(() => {
   cleanup()
@@ -22,7 +23,7 @@ describe("useQuery", () => {
           const Comp = ({ queryKey }: { queryKey: string }) => {
             const result = useQuery$({
               queryKey: [queryKey],
-              queryFn: () =>triggerSubject
+              queryFn: () => triggerSubject
             })
 
             return (
@@ -43,7 +44,9 @@ describe("useQuery", () => {
           const { findByText, rerender, debug } = render(
             <React.StrictMode>
               <QueryClientProvider client={client}>
-                <Comp queryKey="1" />
+                <QueryClientProvider$>
+                  <Comp queryKey="1" />
+                </QueryClientProvider$>
               </QueryClientProvider>
             </React.StrictMode>
           )
@@ -65,7 +68,9 @@ describe("useQuery", () => {
           rerender(
             <React.StrictMode>
               <QueryClientProvider client={client}>
-                <Comp queryKey="2" />
+                <QueryClientProvider$>
+                  <Comp queryKey="2" />
+                </QueryClientProvider$>
               </QueryClientProvider>
             </React.StrictMode>
           )

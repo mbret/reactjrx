@@ -1,15 +1,11 @@
 import { afterEach, describe, expect, it } from "vitest"
-import {
-  finalize,
-  takeUntil,
-  timer,
-  ReplaySubject
-} from "rxjs"
+import { finalize, takeUntil, timer, ReplaySubject } from "rxjs"
 import { render, cleanup } from "@testing-library/react"
 import React, { useEffect } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useMutation$ } from "./useMutation$"
 import { waitForTimeout } from "../../tests/utils"
+import { QueryClientProvider$ } from "./QueryClientProvider$"
 
 afterEach(() => {
   cleanup()
@@ -55,7 +51,9 @@ describe("useMutation", () => {
         const { unmount } = render(
           <React.StrictMode>
             <QueryClientProvider client={client}>
-              <Comp />
+              <QueryClientProvider$>
+                <Comp />
+              </QueryClientProvider$>
             </QueryClientProvider>
           </React.StrictMode>
         )
