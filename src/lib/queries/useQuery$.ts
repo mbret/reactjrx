@@ -73,7 +73,7 @@ export function useQuery$<
           complete: () => {
             if (queryCacheEntry?.lastData === undefined) {
               console.log(
-                "cancelled due to stream completing without data",
+                `cancelled due to stream completing without data for query ${queryHash}`,
                 queryCacheEntry?.lastData
               )
 
