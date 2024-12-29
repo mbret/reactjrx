@@ -39,7 +39,8 @@ export function useSwitchMutation$<
   const mutateSwitch = useCallback(
     (variables: TVariables) => {
       cancel()
-      mutate(variables)
+
+      return mutate(variables)
     },
     [mutate, cancel]
   )

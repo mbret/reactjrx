@@ -18,9 +18,7 @@ export type UseMutation$Options<
   UseMutationOptions<TData, TError, TVariables, TContext>,
   "mutationFn"
 > & {
-  mutationFn:
-    | ((variables: TVariables) => Observable<TData>)
-    | Observable<TData>
+  mutationFn: ((variables: TVariables) => Observable<TData>) | Observable<TData>
 }
 
 export function useMutation$<
@@ -45,36 +43,34 @@ export function useMutation$<
     isIdle: true
   })
 
-  const mutationFnAsync = (variables: TVariables) => {
-    let lastData: { value: TData } | undefined
-
-    return new Promise<TData>((resolve, reject) => {
-      const source =
-        typeof options.mutationFn === "function"
-          ? options.mutationFn(variables)
-          : options.mutationFn
-
-      source.pipe(take(1)).subscribe({
-        next: (data) => {
-          lastData = { value: data }
-        },
-        error: (error) => {
-          reject(error)
-        },
-        complete: () => {
-          if (lastData === undefined)
-            return reject(new Error("Stream completed without any data"))
-
-          resolve(lastData.value)
-        }
-      })
-    })
-  }
-
   const result = useMutation<TData, TError, TVariables, TContext>(
     {
       ...options,
-      mutationFn: mutationFnAsync
+      mutationFn: (variables: TVariables) => {
+        let lastData: { value: TData } | undefined
+
+        return new Promise<TData>((resolve, reject) => {
+          const source =
+            typeof options.mutationFn === "function"
+              ? options.mutationFn(variables)
+              : options.mutationFn
+
+          source.pipe(take(1)).subscribe({
+            next: (data) => {
+              lastData = { value: data }
+            },
+            error: (error) => {
+              reject(error)
+            },
+            complete: () => {
+              if (lastData === undefined)
+                return reject(new Error("Stream completed without any data"))
+
+              resolve(lastData.value)
+            }
+          })
+        })
+      }
     },
     queryClient
   )
