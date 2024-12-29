@@ -8,12 +8,10 @@ import {
   UseQueryOptions,
   hashKey
 } from "@tanstack/react-query"
-import { useRef } from "react"
 import {
   defer,
   delay,
   Observable,
-  Subscription,
   take,
 } from "rxjs"
 import { useQueryClient$ } from "./QueryClientProvider$"
@@ -34,27 +32,11 @@ export function useQuery$<
   },
   queryClient?: QueryClient
 ) {
-  const query$ = useRef<Observable<TQueryFnData>>()
-  const sub = useRef<Subscription>()
   const _queryClient = useQueryClient(queryClient)
-  const reactJrxQueryClient = useQueryClient$()
+  const queryClient$ = useQueryClient$()
 
   const queryFnAsync = (context: QueryFunctionContext<TQueryKey>) => {
     return new Promise<TQueryFnData>((resolve, reject) => {
-      /**
-       * Auto unsubscribe when there is no more observers.
-       */
-      // const unsub = _queryClient.getQueryCache().subscribe((d) => {
-      //   if (
-      //     d.type === "observerRemoved" &&
-      //     d.query.queryHash === hashKey(context.queryKey) &&
-      //     d.query.observers.length === 0
-      //   ) {
-      //     unsub()
-      //     sub.current?.unsubscribe()
-      //   }
-      // })
-
       const getSource = () =>
         defer(() =>
           typeof options.queryFn === "function"
@@ -65,8 +47,8 @@ export function useQuery$<
       const queryHash = hashKey(context.queryKey)
 
       const queryCacheEntry =
-        reactJrxQueryClient.getQuery(queryHash) ??
-        reactJrxQueryClient.setQuery(
+        queryClient$.getQuery(queryHash) ??
+        queryClient$.setQuery(
           context.queryKey,
           getSource(),
           context.signal
@@ -122,10 +104,6 @@ export function useQuery$<
     {
       ...options,
       queryFn: queryFnAsync,
-
-      meta: {
-        query$
-      }
     },
     queryClient
   )

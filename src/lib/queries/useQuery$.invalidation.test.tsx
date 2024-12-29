@@ -5,8 +5,7 @@ import { useQuery$ } from "./useQuery$"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { printQuery } from "../../tests/testUtils"
 import { QueryClientProvider$ } from "./QueryClientProvider$"
-import React from "react"
-import { waitForTimeout } from "../../tests/utils"
+import React, { act } from "react"
 
 afterEach(() => {
   cleanup()
@@ -40,11 +39,16 @@ describe("useQuery", () => {
           const Main = () => {
             const [showComp, setShowComp] = React.useState(true)
 
-            console.log("showComp", showComp)
             return (
               <>
                 {showComp && <Comp />}
-                <button onClick={() => setShowComp(false)}>toggle</button>
+                <button
+                  onClick={() => {
+                    setShowComp((v) => !v)
+                  }}
+                >
+                  toggle
+                </button>
               </>
             )
           }
@@ -63,19 +67,21 @@ describe("useQuery", () => {
             await findByText(printQuery({ data: 1, status: "success" }))
           ).toBeDefined()
 
-          // expect(queryFn.mock.calls.length).toBe(1)
+          expect(queryFn.mock.calls.length).toBe(2)
 
-          // getByText('toggle').click()
+          act(() => {
+            getByText("toggle").click()
+          })
 
-          // await waitForTimeout(10)
+          act(() => {
+            getByText("toggle").click()
+          })
 
-          // getByText('toggle').click()
+          expect(
+            await findByText(printQuery({ data: 3, status: "success" }))
+          ).toBeDefined()
 
-          // expect(
-          //   await findByText(printQuery({ data: 2, status: "success" }))
-          // ).toBeDefined()
-
-          // expect(queryFn.mock.calls.length).toBe(2)
+          expect(queryFn.mock.calls.length).toBe(4)
         })
       })
     })

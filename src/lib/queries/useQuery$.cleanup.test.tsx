@@ -71,7 +71,7 @@ describe("Given an observable that completes", () => {
     }
 
     const client = new QueryClient()
-    const reactJrxQueryClient = new QueryClient$(client)
+    const reactJrxQueryClient = new QueryClient$()
 
     render(<Comp />, {
       wrapper: ({ children }) => (
