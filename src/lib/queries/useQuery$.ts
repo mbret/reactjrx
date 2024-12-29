@@ -8,12 +8,7 @@ import {
   UseQueryOptions,
   hashKey
 } from "@tanstack/react-query"
-import {
-  defer,
-  delay,
-  Observable,
-  take,
-} from "rxjs"
+import { defer, delay, Observable, take } from "rxjs"
 import { useQueryClient$ } from "./QueryClientProvider$"
 
 export function useQuery$<
@@ -48,11 +43,7 @@ export function useQuery$<
 
       const queryCacheEntry =
         queryClient$.getQuery(queryHash) ??
-        queryClient$.setQuery(
-          context.queryKey,
-          getSource(),
-          context.signal
-        )
+        queryClient$.setQuery(context.queryKey, getSource(), context.signal)
 
       const query$ = queryCacheEntry.query$
 
@@ -72,6 +63,10 @@ export function useQuery$<
           },
           complete: () => {
             if (queryCacheEntry?.lastData === undefined) {
+              if (queryCacheEntry.signal.aborted) {
+                return resolve(undefined as TQueryFnData)
+              }
+
               console.log(
                 `cancelled due to stream completing without data for query ${queryHash}`,
                 queryCacheEntry?.lastData
@@ -103,7 +98,7 @@ export function useQuery$<
   const result = useQuery<TQueryFnData, TError, TData, TQueryKey>(
     {
       ...options,
-      queryFn: queryFnAsync,
+      queryFn: queryFnAsync
     },
     queryClient
   )
