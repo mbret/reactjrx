@@ -16,12 +16,12 @@ export function useSwitchMutation$<
   const [cancel$, cancel] = useObservableCallback()
   type TDataOrNull = TData | null
 
-  const {
-    mutate,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    mutateAsync: _removed,
-    ...rest
-  } = useMutation$<TDataOrNull, TError, TVariables, TContext>(
+  const { mutate, mutateAsync, ...rest } = useMutation$<
+    TDataOrNull,
+    TError,
+    TVariables,
+    TContext
+  >(
     {
       ...options,
       mutationFn: (variables) => {
@@ -44,5 +44,14 @@ export function useSwitchMutation$<
     [mutate, cancel]
   )
 
-  return { ...rest, mutate: mutateSwitch }
+  const mutateAsyncSwitch = useCallback(
+    (variables: TVariables) => {
+      cancel()
+
+      return mutateAsync(variables)
+    },
+    [mutateAsync, cancel]
+  )
+
+  return { ...rest, mutate: mutateSwitch, mutateAsync: mutateAsyncSwitch }
 }
