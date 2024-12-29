@@ -6,7 +6,6 @@ import {
   Subscription,
   takeUntil,
   share,
-  tap
 } from "rxjs"
 
 type CacheEntry = {
@@ -38,13 +37,7 @@ export class QueryClient$ {
        * - unmounting the component
        * @see https://tanstack.com/query/latest/docs/framework/react/guides/query-cancellation
        */
-      takeUntil(
-        fromEvent(signal, "abort").pipe(
-          tap(() => {
-            debugger
-          })
-        )
-      ),
+      takeUntil(fromEvent(signal, "abort")),
       share()
     )
 
