@@ -8,13 +8,10 @@ import {
   QueryClientProvider as RcQueryClientProvider,
   MutationCache as RQMutationCache
 } from "@tanstack/react-query"
-import { QueryClient } from "./lib/deprecated/client/QueryClient"
-import { MutationCache } from "./lib/deprecated/client/mutations/cache/MutationCache"
-import { QueryClientProvider } from "./lib/deprecated/react/QueryClientProvider"
-import { finalize, interval, map, tap, timer } from "rxjs"
+import { interval, map, timer } from "rxjs"
 import { useQuery$ } from "./lib/queries/useQuery$"
-import { useSwitchMutation$ } from "./lib/queries/useSwitchMutation$"
 import { QueryClientProvider$ } from "./lib/queries/QueryClientProvider$"
+import { useContactMutation$ } from "./lib/queries/useConcatMutation$"
 
 const rcClient = new rc_QueryClient({
   mutationCache: new RQMutationCache({
@@ -24,91 +21,35 @@ const rcClient = new rc_QueryClient({
   })
 })
 
-const client = new QueryClient({
-  mutationCache: new MutationCache({
-    onError: (error) => {
-      console.log("cache onError", error)
-    }
-  })
-})
-
 const Foo = memo(() => {
-  const { data } = useQuery$({ queryKey: ["foo"], queryFn: () => timer(99999) })
-  // const { data: data2 } = useQuery$({
-  //   queryKey: ["foo"],
-  //   queryFn: query
-  // })
+  const data = useQuery$({ queryKey: ["foo"], queryFn: () => timer(99999) })
 
-  console.log(data)
+  console.log({ ...data })
 
   return null
 })
 
+let t = 0
+
 const App = memo(() => {
-  // const [adapter, setAdapter] = useState<Adapter | undefined>()
-
-  // const persistance = usePersistSignals({
-  //   entries: [{ signal: mySignal, version: 0 }],
-  //   adapter,
-  //   onHydrated: () => {
-  //     console.log("onHydrated")
-  //   }
-  // })
-
-  // useEffect(() => {
-  //   setTimeout(() => {
-  //     setAdapter(createLocalStorageAdapter())
-
-  //     setTimeout(() => {
-  //       // console.log("set undefined")
-  //       setAdapter(undefined)
-  //     }, 1000)
-  //   }, 1000)
-  // }, [])
-
   const [hide, setHide] = useState(false)
 
-  // const data = useQuery$({
-  //   queryKey: ["foo", "bar"],
-  //   queryFn: () => {
-  //     // console.log("queryFn A")
-
-  //     return interval(3000)
-  //   },
-  //   retry: false
-  // })
-
-  // const data = useQuery({
-  //   queryKey: ["foo"],
-  //   queryFn: async () => {
-  //     console.log("queryFn")
-
-  //     // rcClient.setQueryData(["foo"], "foo")
-
-  //     await waitForTimeout(3000)
-
-  //     return false
-  //   },
-  //   retry: false
-  // })
-
-  // console.log({ ...data })
-
-  const mutation = useSwitchMutation$({
-    mutationFn: (v) => {
+  const { mutate, data, ...rest } = useContactMutation$({
+    mutationKey: ["foo"],
+    mutationFn: (v: number) => {
       console.log("mutationFn", v)
 
-      return interval(2000).pipe(
-        tap(() => {
-          console.log("tap")
-        }),
-        finalize(() => {
-          console.log("finalize")
-        }),
-        map(() => "foo")
+      return interval(Math.floor(Math.random() * 2000) + 1).pipe(
+        map(() => {
+          console.log("FOOO result", v)
+
+          return v
+        })
       )
     }
   })
+
+  console.log({ ...rest })
 
   return (
     <>
@@ -120,7 +61,16 @@ const App = memo(() => {
       >
         toggle hide
       </button>
-      <button onClick={() => mutation.mutate()}>mutate {mutation.data}</button>
+      <button
+        onClick={() => {
+          t++
+          console.log("FOOO trigger", t)
+
+          mutate(t)
+        }}
+      >
+        mutate {data}
+      </button>
       <button onClick={() => rcClient.cancelQueries({ queryKey: ["foo"] })}>
         cancel query
       </button>
@@ -132,11 +82,9 @@ const App = memo(() => {
 ReactDOM.createRoot(document.getElementById("app") as HTMLElement).render(
   <StrictMode>
     <RcQueryClientProvider client={rcClient}>
-      <QueryClientProvider client={client}>
-        <QueryClientProvider$>
-          <App />
-        </QueryClientProvider$>
-      </QueryClientProvider>
+      <QueryClientProvider$>
+        <App />
+      </QueryClientProvider$>
     </RcQueryClientProvider>
   </StrictMode>
 )

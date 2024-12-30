@@ -6,6 +6,7 @@ export * from "./lib/binding/useObservableState"
 export * from "./lib/binding/useSubject"
 export * from "./lib/binding/useBehaviorSubject"
 export * from "./lib/binding/useLiveBehaviorSubject"
+export * from "./lib/binding/useSubscribeEffect"
 
 // state
 export * from "./lib/state/signal"
@@ -26,14 +27,3 @@ export * from "./lib/queries/useMutation$"
 export * from "./lib/queries/useSwitchMutation$"
 export * from "./lib/queries/useConcatMutation$"
 export * from "./lib/queries/QueryClientProvider$"
-
-
-export * from "./lib/deprecated/react/mutations/useMutation"
-export * from "./lib/deprecated/react/queries/useQuery"
-export * from "./lib/deprecated/react/useQueryClient"
-export * from "./lib/deprecated/react/queries/useForeverQuery"
-export * from "./lib/binding/useSubscribeEffect"
-export * from "./lib/deprecated/client/QueryClient"
-export { QueryCache } from "./lib/deprecated/client/queries/cache/QueryCache"
-export { QueryClientProvider } from "./lib/deprecated/react/QueryClientProvider"
-export { MutationCache } from "./lib/deprecated/client/mutations/cache/MutationCache"
