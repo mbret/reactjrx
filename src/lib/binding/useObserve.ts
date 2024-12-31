@@ -12,7 +12,7 @@ import {
   EMPTY,
   type BehaviorSubject,
   startWith,
-  identity,
+  identity
 } from "rxjs"
 import { useLiveRef } from "../utils/react/useLiveRef"
 import { makeObservable } from "../utils/makeObservable"
