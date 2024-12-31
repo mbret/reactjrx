@@ -29,7 +29,8 @@
     "test:ci": "vitest run",
     "tsc": "tsc",
     "lint": "eslint '**/*.{js,ts,tsx}'",
-    "format": "prettier -w . && eslint --fix '**/*.{js,ts,tsx}'"
+    "format": "prettier -w . && eslint --fix '**/*.{js,ts,tsx}'",
+    "prepare": "husky && husky install"
   },
   "peerDependencies": {
     "@tanstack/react-query": "5.x",
@@ -52,7 +53,9 @@
     "eslint-plugin-promise": "^6.0.0",
     "eslint-plugin-react": "^7.32.2",
     "eslint-plugin-react-hooks": "^4.6.0",
+    "husky": "^9.1.7",
     "jsdom": "^25.0.0",
+    "lint-staged": "^15.3.0",
     "prettier": "^3.1.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -60,12 +63,18 @@
     "rxjs": "^7.8.0",
     "semantic-release": "^24.1.1",
     "typescript": "^5.6.2",
-    "vite": "^5.1.3",
+    "vite": "^6.0.6",
     "vite-plugin-dts": "^4.2.1",
-    "vitest": "^1.3.0"
+    "vitest": "^2.1.8"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/mbret/reactjrx.git"
+  },
+  "lint-staged": {
+    "*.{js,ts,tsx}": [
+      "eslint --cache --fix",
+      "prettier --write"
+    ]
   }
 }

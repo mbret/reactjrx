@@ -4,14 +4,7 @@ import {
   QueryClient,
   useQueryClient
 } from "@tanstack/react-query"
-import {
-  BehaviorSubject,
-  filter,
-  first,
-  noop,
-  Subject,
-  switchMap
-} from "rxjs"
+import { BehaviorSubject, filter, first, noop, Subject, switchMap } from "rxjs"
 import { useCallback } from "react"
 import { useMutation$, UseMutation$Options } from "./useMutation$"
 

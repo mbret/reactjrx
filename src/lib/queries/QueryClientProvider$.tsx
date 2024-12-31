@@ -1,12 +1,6 @@
 import { hashKey, QueryKey } from "@tanstack/react-query"
 import { createContext, memo, useContext, useEffect, useState } from "react"
-import {
-  fromEvent,
-  Observable,
-  Subscription,
-  takeUntil,
-  share,
-} from "rxjs"
+import { fromEvent, Observable, Subscription, takeUntil, share } from "rxjs"
 
 type CacheEntry = {
   query$: Observable<unknown>
