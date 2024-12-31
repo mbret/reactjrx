@@ -1,4 +1,4 @@
-import { defer, type Observable, throwError, timer, merge, of } from "rxjs";
+import { type Observable, defer, merge, of, throwError, timer } from "rxjs";
 import {
 	catchError,
 	concatMap,

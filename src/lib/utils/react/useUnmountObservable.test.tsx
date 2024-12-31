@@ -1,8 +1,8 @@
 import { render } from "@testing-library/react";
-import { useUnmountObservable } from "./useUnmountObservable";
-import { describe, expect, it } from "vitest";
 import { StrictMode, useEffect } from "react";
 import { BehaviorSubject, takeUntil } from "rxjs";
+import { describe, expect, it } from "vitest";
+import { useUnmountObservable } from "./useUnmountObservable";
 
 describe("useUnmountObservable", () => {
 	it("should not update source2 after unmounted", async () => {

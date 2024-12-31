@@ -1,4 +1,4 @@
-import type { SignalValue, Signal } from "../signal";
+import type { Signal, SignalValue } from "../signal";
 import type { IDENTIFIER_PERSISTANCE_KEY } from "./constants";
 
 export interface PersistanceEntry {

@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import { useSubject } from "./useSubject";
 import type { Observable } from "rxjs";
+import { useSubject } from "./useSubject";
 
 /**
  * This creates an event handler and an observable that represents calls to that handler.

@@ -4,16 +4,16 @@ import {
 	type QueryClient,
 	useQueryClient,
 } from "@tanstack/react-query";
+import { useCallback } from "react";
 import {
 	BehaviorSubject,
+	type Subject,
 	filter,
 	first,
 	noop,
-	type Subject,
 	switchMap,
 } from "rxjs";
-import { useCallback } from "react";
-import { useMutation$, type UseMutation$Options } from "./useMutation$";
+import { type UseMutation$Options, useMutation$ } from "./useMutation$";
 
 export function useContactMutation$<
 	TData = unknown,

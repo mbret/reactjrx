@@ -1,11 +1,11 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, cleanup } from "@testing-library/react";
-import { of } from "rxjs";
-import { useQuery$ } from "./useQuery$";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, render } from "@testing-library/react";
+import React, { act } from "react";
+import { of } from "rxjs";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { printQuery } from "../../tests/testUtils";
 import { QueryClientProvider$ } from "./QueryClientProvider$";
-import React, { act } from "react";
+import { useQuery$ } from "./useQuery$";
 
 afterEach(() => {
 	cleanup();

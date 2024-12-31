@@ -1,14 +1,14 @@
-import { memo, StrictMode, useState } from "react";
-import ReactDOM from "react-dom/client";
 import {
-	QueryClient as rc_QueryClient,
-	QueryClientProvider as RcQueryClientProvider,
 	MutationCache as RQMutationCache,
+	QueryClientProvider as RcQueryClientProvider,
+	QueryClient as rc_QueryClient,
 } from "@tanstack/react-query";
+import { StrictMode, memo, useState } from "react";
+import ReactDOM from "react-dom/client";
 import { interval, map, timer } from "rxjs";
-import { useQuery$ } from "./lib/queries/useQuery$";
 import { QueryClientProvider$ } from "./lib/queries/QueryClientProvider$";
 import { useContactMutation$ } from "./lib/queries/useConcatMutation$";
+import { useQuery$ } from "./lib/queries/useQuery$";
 
 const rcClient = new rc_QueryClient({
 	mutationCache: new RQMutationCache({

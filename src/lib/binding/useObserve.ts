@@ -5,17 +5,17 @@ import {
 	useSyncExternalStore,
 } from "react";
 import {
-	type Observable,
-	tap,
-	distinctUntilChanged,
-	catchError,
-	EMPTY,
 	type BehaviorSubject,
-	startWith,
+	EMPTY,
+	type Observable,
+	catchError,
+	distinctUntilChanged,
 	identity,
+	startWith,
+	tap,
 } from "rxjs";
-import { useLiveRef } from "../utils/react/useLiveRef";
 import { makeObservable } from "../utils/makeObservable";
+import { useLiveRef } from "../utils/react/useLiveRef";
 
 interface Option<R = undefined> {
 	defaultValue: R;

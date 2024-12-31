@@ -1,7 +1,7 @@
-import { from, catchError, of, switchMap } from "rxjs";
+import { catchError, from, of, switchMap } from "rxjs";
 import type { Adapter } from "./adapters/Adapter";
 import { IDENTIFIER_PERSISTANCE_KEY } from "./constants";
-import type { SignalPersistenceConfig, PersistanceEntry } from "./types";
+import type { PersistanceEntry, SignalPersistenceConfig } from "./types";
 
 export const getNormalizedPersistanceValue = (unknownValue: unknown) => {
 	if (

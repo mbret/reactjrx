@@ -3,12 +3,12 @@ import {
 	type QueryClient,
 	type QueryFunctionContext,
 	type QueryKey,
-	useQuery,
-	useQueryClient,
 	type UseQueryOptions,
 	hashKey,
+	useQuery,
+	useQueryClient,
 } from "@tanstack/react-query";
-import { defer, delay, type Observable, take } from "rxjs";
+import { type Observable, defer, delay, take } from "rxjs";
 import { useQueryClient$ } from "./QueryClientProvider$";
 
 export function useQuery$<

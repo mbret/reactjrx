@@ -1,13 +1,13 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { Subject } from "rxjs";
-import { render, cleanup } from "@testing-library/react";
-import React from "react";
-import { useQuery$ } from "./useQuery$";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { printQuery } from "../../tests/testUtils";
 import { QueryClient } from "@tanstack/react-query";
+import { cleanup, render } from "@testing-library/react";
+import React from "react";
+import { Subject } from "rxjs";
+import { afterEach, describe, expect, it } from "vitest";
+import { printQuery } from "../../tests/testUtils";
 import { waitForTimeout } from "../../tests/utils";
 import { QueryClientProvider$ } from "./QueryClientProvider$";
+import { useQuery$ } from "./useQuery$";
 
 afterEach(() => {
 	cleanup();

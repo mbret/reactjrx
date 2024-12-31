@@ -1,10 +1,10 @@
 import { firstValueFrom } from "rxjs";
 import { describe, expect, it } from "vitest";
-import { persistSignals } from "./persistSignals";
+import { waitForTimeout } from "../../../tests/utils";
 import { signal } from "../signal";
 import { MockAdapter } from "./adapters/MockAdapter";
-import { waitForTimeout } from "../../../tests/utils";
 import { IDENTIFIER_PERSISTANCE_KEY } from "./constants";
+import { persistSignals } from "./persistSignals";
 import type { PersistanceEntry } from "./types";
 
 describe("Given a storage that never resolves", () => {

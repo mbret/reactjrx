@@ -1,8 +1,8 @@
 import type { DefaultError, QueryClient } from "@tanstack/react-query";
-import { defaultIfEmpty, takeUntil } from "rxjs";
 import { useCallback } from "react";
+import { defaultIfEmpty, takeUntil } from "rxjs";
 import { useObservableCallback } from "../binding/useObservableCallback";
-import { useMutation$, type UseMutation$Options } from "./useMutation$";
+import { type UseMutation$Options, useMutation$ } from "./useMutation$";
 
 export function useSwitchMutation$<
 	TData = unknown,

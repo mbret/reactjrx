@@ -1,7 +1,7 @@
 import { useCallback } from "react";
-import { useBehaviorSubject } from "./useBehaviorSubject";
-import { useLiveRef } from "../utils/react/useLiveRef";
 import type { Observable } from "rxjs";
+import { useLiveRef } from "../utils/react/useLiveRef";
+import { useBehaviorSubject } from "./useBehaviorSubject";
 
 /**
  * If you need to represent some piece of state as an observable and also want the ability to change

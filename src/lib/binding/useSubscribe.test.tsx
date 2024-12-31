@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { type Observable, of, tap } from "rxjs";
-import { renderHook, cleanup } from "@testing-library/react";
+import { cleanup, renderHook } from "@testing-library/react";
 import { useEffect, useState } from "react";
+import { type Observable, of, tap } from "rxjs";
+import { afterEach, describe, expect, it } from "vitest";
 import { waitForTimeout } from "../../tests/utils";
 import { useSubscribe } from "./useSubscribe";
 

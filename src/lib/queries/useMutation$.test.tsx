@@ -1,11 +1,11 @@
-import { afterEach, describe, expect, it } from "vitest";
-import { finalize, takeUntil, timer, ReplaySubject } from "rxjs";
-import { render, cleanup } from "@testing-library/react";
-import React, { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useMutation$ } from "./useMutation$";
+import { cleanup, render } from "@testing-library/react";
+import React, { useEffect } from "react";
+import { ReplaySubject, finalize, takeUntil, timer } from "rxjs";
+import { afterEach, describe, expect, it } from "vitest";
 import { waitForTimeout } from "../../tests/utils";
 import { QueryClientProvider$ } from "./QueryClientProvider$";
+import { useMutation$ } from "./useMutation$";
 
 afterEach(() => {
 	cleanup();

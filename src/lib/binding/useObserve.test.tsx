@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, expectTypeOf, it } from "vitest";
+import { cleanup, render, renderHook } from "@testing-library/react";
+import React, { act, memo, useEffect, useRef, useState } from "react";
 import {
 	BehaviorSubject,
 	type Observable,
@@ -7,11 +8,10 @@ import {
 	of,
 	timer,
 } from "rxjs";
-import { useObserve } from "./useObserve";
-import { render, renderHook, cleanup } from "@testing-library/react";
-import React, { act, memo, useEffect, useRef, useState } from "react";
-import { useBehaviorSubject } from "./useBehaviorSubject";
+import { afterEach, describe, expect, expectTypeOf, it } from "vitest";
 import { waitForTimeout } from "../../tests/utils";
+import { useBehaviorSubject } from "./useBehaviorSubject";
+import { useObserve } from "./useObserve";
 
 afterEach(() => {
 	cleanup();
