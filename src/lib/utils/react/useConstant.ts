@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react"
 
 export const useConstant = <T>(fn: () => T) => {
-  const ref = useRef<T>()
+  const ref = useRef<T>(undefined)
 
   if (!ref.current) {
     ref.current = fn()
