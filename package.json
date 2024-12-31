@@ -27,8 +27,7 @@
 		"test:ci": "vitest run",
 		"tsc": "tsc",
 		"prepare": "husky && husky install",
-		"lint": "npx @biomejs/biome lint --write .",
-		"format": "npx @biomejs/biome format --write ."
+		"check": "npx @biomejs/biome check ."
 	},
 	"peerDependencies": {
 		"@tanstack/react-query": "5.x",
