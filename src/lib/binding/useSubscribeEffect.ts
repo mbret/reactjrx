@@ -2,8 +2,8 @@ import { type DependencyList, useCallback } from "react"
 import { catchError, identity, retry } from "rxjs"
 import { useSubscribe } from "./useSubscribe"
 import { useLiveRef } from "../utils/react/useLiveRef"
-import { makeObservable } from "../deprecated/client/utils/makeObservable"
 import { type SubscribeSource } from "./types"
+import { makeObservable } from "../utils/makeObservable"
 
 interface Option {
   retry?: boolean
@@ -45,7 +45,7 @@ export function useSubscribeEffect<T>(
   )
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const sourceAsObservable = useCallback(() => makeObservable(source), deps)
+  const sourceAsObservable = useCallback(() => makeObservable(source)(), deps)
 
   const enhancerMakeObservable = useCallback(
     () =>

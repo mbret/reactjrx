@@ -44,7 +44,7 @@ describe("Given a long observable", () => {
 
       unmount()
 
-      await waitForTimeout(10)
+      await waitForTimeout(15)
 
       // 2 because of strict mode
       expect(tapped).toBe(2)
@@ -59,12 +59,14 @@ describe("Given an observable that completes", () => {
     const Comp = () => {
       useQuery$({
         queryKey: ["foo"],
-        queryFn: () =>
-          timer(10).pipe(
+        queryFn: () => {
+          console.log("fn")
+          return timer(10).pipe(
             finalize(() => {
               tapped++
             })
           )
+        }
       })
 
       return null
@@ -73,17 +75,15 @@ describe("Given an observable that completes", () => {
     const client = new QueryClient()
     const reactJrxQueryClient = new QueryClient$()
 
-    render(<Comp />, {
-      wrapper: ({ children }) => (
-        <StrictMode>
-          <QueryClientProvider client={client}>
-            <QueryClientProvider$ client={reactJrxQueryClient}>
-              {children}
-            </QueryClientProvider$>
-          </QueryClientProvider>
-        </StrictMode>
-      )
-    })
+    render(
+      <StrictMode>
+        <QueryClientProvider client={client}>
+          <QueryClientProvider$ client={reactJrxQueryClient}>
+            <Comp />
+          </QueryClientProvider$>
+        </QueryClientProvider>
+      </StrictMode>
+    )
 
     await waitForTimeout(15)
 

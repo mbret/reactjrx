@@ -1,8 +1,8 @@
 import { type DependencyList, useEffect } from "react"
 import { useLiveRef } from "../utils/react/useLiveRef"
-import { makeObservable } from "../deprecated/client/utils/makeObservable"
 import { type SubscribeSource } from "./types"
 import { catchError, EMPTY } from "rxjs"
+import { makeObservable } from "../utils/makeObservable"
 
 export function useSubscribe<T>(
   source: SubscribeSource<T> | (() => T),
@@ -11,7 +11,7 @@ export function useSubscribe<T>(
   const sourceRef = useLiveRef(source)
 
   useEffect(() => {
-    const sub = makeObservable(sourceRef.current)
+    const sub = makeObservable(sourceRef.current)()
       .pipe(
         catchError((error) => {
           console.error(error)

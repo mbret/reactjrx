@@ -1,10 +1,5 @@
 /* eslint-disable no-import-assign */
-import { act, render } from "@testing-library/react"
-import {
-  QueryClient,
-  type QueryClientConfig
-} from "../lib/deprecated/client/QueryClient"
-import { QueryClientProvider } from "../lib/deprecated/react/QueryClientProvider"
+import { act } from "@testing-library/react"
 import React from "react"
 import * as utils from "../lib/utils"
 
@@ -27,34 +22,6 @@ export function setActTimeout(fn: () => void, ms?: number) {
       fn()
     })
   }, ms)
-}
-
-/**
- * @see https://github.com/TanStack/query/blob/main/packages/react-query/src/__tests__/utils.tsx
- */
-export function renderWithClient(
-  client: QueryClient,
-  ui: React.ReactElement
-): ReturnType<typeof render> {
-  const { rerender, ...result } = render(
-    <QueryClientProvider client={client}>{ui}</QueryClientProvider>
-  )
-  return {
-    ...result,
-    rerender: (rerenderUi: React.ReactElement) => {
-      rerender(
-        <QueryClientProvider client={client}>{rerenderUi}</QueryClientProvider>
-      )
-    }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any
-}
-
-/**
- * @see https://github.com/TanStack/query/blob/main/packages/react-query/src/__tests__/utils.tsx
- */
-export function createQueryClient(config?: QueryClientConfig): QueryClient {
-  return new QueryClient(config)
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

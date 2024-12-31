@@ -32,10 +32,10 @@
     "format": "prettier -w . && eslint --fix '**/*.{js,ts,tsx}'"
   },
   "peerDependencies": {
-    "react": "18",
-    "react-dom": "18",
-    "rxjs": "*",
-    "@tanstack/react-query": "^5.8.4"
+    "@tanstack/react-query": "5.x",
+    "react": "^18 || ^19",
+    "react-dom": "^18 || ^19",
+    "rxjs": "*"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.2.0",
@@ -54,6 +54,8 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "jsdom": "^25.0.0",
     "prettier": "^3.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "rollup-plugin-node-externals": "^7.0.1",
     "rxjs": "^7.8.0",
     "semantic-release": "^24.1.1",

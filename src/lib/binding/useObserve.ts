@@ -15,7 +15,7 @@ import {
   identity,
 } from "rxjs"
 import { useLiveRef } from "../utils/react/useLiveRef"
-import { makeObservable } from "../deprecated/client/utils/makeObservable"
+import { makeObservable } from "../utils/makeObservable"
 
 interface Option<R = undefined> {
   defaultValue: R
@@ -80,7 +80,7 @@ export function useObserve<T>(
     (next: () => void) => {
       const source = sourceRef.current
 
-      const sub = makeObservable(source)
+      const sub = makeObservable(source)()
         .pipe(
           optionsRef.current.defaultValue
             ? startWith(optionsRef.current.defaultValue)
