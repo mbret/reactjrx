@@ -26,7 +26,9 @@
 		"test": "vitest --typecheck",
 		"test:ci": "vitest run",
 		"tsc": "tsc",
-		"prepare": "husky && husky install"
+		"prepare": "husky && husky install",
+		"lint": "npx @biomejs/biome lint --write .",
+		"format": "npx @biomejs/biome format --write ."
 	},
 	"peerDependencies": {
 		"@tanstack/react-query": "5.x",
@@ -60,9 +62,8 @@
 		"url": "https://github.com/mbret/reactjrx.git"
 	},
 	"lint-staged": {
-		"*.{js,ts,tsx}": [
-			"npx @biomejs/biome lint --write .",
-			"npx @biomejs/biome format --write ."
+		"*": [
+			"biome check --no-errors-on-unmatched --files-ignore-unknown=true --write"
 		]
 	}
 }
