@@ -1,80 +1,68 @@
 {
-  "name": "reactjrx",
-  "private": false,
-  "version": "0.0.0-development",
-  "type": "module",
-  "files": [
-    "dist"
-  ],
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.umd.cjs"
-    }
-  },
-  "types": "./dist/index.d.ts",
-  "publishConfig": {
-    "access": "public"
-  },
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "watch": "vite build --watch",
-    "preview": "vite preview",
-    "prepublishOnly": "npm run build",
-    "semantic-release": "semantic-release",
-    "test": "vitest --typecheck",
-    "test:ci": "vitest run",
-    "tsc": "tsc",
-    "lint": "eslint '**/*.{js,ts,tsx}'",
-    "format": "prettier -w . && eslint --fix '**/*.{js,ts,tsx}'",
-    "prepare": "husky && husky install"
-  },
-  "peerDependencies": {
-    "@tanstack/react-query": "5.x",
-    "react": "^18 || ^19",
-    "react-dom": "^18 || ^19",
-    "rxjs": "*"
-  },
-  "devDependencies": {
-    "@testing-library/jest-dom": "^6.2.0",
-    "@testing-library/react": "^16.1.0",
-    "@types/node": "^22.10.2",
-    "@types/react": "^19.0.2",
-    "@types/react-dom": "^19.0.2",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@vitejs/plugin-react": "^4.0.0",
-    "eslint": "^8.47.0",
-    "eslint-config-prettier": "^9.0.0",
-    "eslint-plugin-import": "^2.27.5",
-    "eslint-plugin-n": "^16.3.1",
-    "eslint-plugin-promise": "^6.0.0",
-    "eslint-plugin-react": "^7.32.2",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "husky": "^9.1.7",
-    "jsdom": "^25.0.0",
-    "lint-staged": "^15.3.0",
-    "prettier": "^3.1.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "rollup-plugin-node-externals": "^8.0.0",
-    "rxjs": "^7.8.0",
-    "semantic-release": "^24.1.1",
-    "typescript": "^5.6.2",
-    "vite": "^6.0.6",
-    "vite-plugin-dts": "^4.2.1",
-    "vitest": "^2.1.8"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/mbret/reactjrx.git"
-  },
-  "lint-staged": {
-    "*.{js,ts,tsx}": [
-      "eslint --cache --fix",
-      "prettier --write"
-    ]
-  }
+	"name": "reactjrx",
+	"private": false,
+	"version": "0.0.0-development",
+	"type": "module",
+	"files": ["dist"],
+	"main": "./dist/index.js",
+	"module": "./dist/index.js",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"require": "./dist/index.umd.cjs"
+		}
+	},
+	"types": "./dist/index.d.ts",
+	"publishConfig": {
+		"access": "public"
+	},
+	"scripts": {
+		"dev": "vite",
+		"build": "tsc && vite build",
+		"watch": "vite build --watch",
+		"preview": "vite preview",
+		"prepublishOnly": "npm run build",
+		"semantic-release": "semantic-release",
+		"test": "vitest --typecheck",
+		"test:ci": "vitest run",
+		"tsc": "tsc",
+		"prepare": "husky && husky install"
+	},
+	"peerDependencies": {
+		"@tanstack/react-query": "5.x",
+		"react": "^18 || ^19",
+		"react-dom": "^18 || ^19",
+		"rxjs": "*"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "1.9.4",
+		"@testing-library/jest-dom": "^6.2.0",
+		"@testing-library/react": "^16.1.0",
+		"@types/node": "^22.10.2",
+		"@types/react": "^19.0.2",
+		"@types/react-dom": "^19.0.2",
+		"@vitejs/plugin-react": "^4.0.0",
+		"husky": "^9.1.7",
+		"jsdom": "^25.0.0",
+		"lint-staged": "^15.3.0",
+		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
+		"rollup-plugin-node-externals": "^8.0.0",
+		"rxjs": "^7.8.0",
+		"semantic-release": "^24.1.1",
+		"typescript": "^5.6.2",
+		"vite": "^6.0.6",
+		"vite-plugin-dts": "^4.2.1",
+		"vitest": "^2.1.8"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/mbret/reactjrx.git"
+	},
+	"lint-staged": {
+		"*.{js,ts,tsx}": [
+			"npx @biomejs/biome lint --write .",
+			"npx @biomejs/biome format --write ."
+		]
+	}
 }

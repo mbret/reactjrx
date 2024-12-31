@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react"
-import { BehaviorSubject } from "rxjs"
-import { useConstant } from "../utils/react/useConstant"
+import { useEffect, useRef } from "react";
+import { BehaviorSubject } from "rxjs";
+import { useConstant } from "../utils/react/useConstant";
 
 /**
  * @important
@@ -22,23 +22,23 @@ import { useConstant } from "../utils/react/useConstant"
  * @see https://github.com/reactwg/react-18/discussions/19
  */
 export const useBehaviorSubject = <S>(state: S) => {
-  const subject = useConstant(() => new BehaviorSubject(state))
-  const completed = useRef(false)
-  const stateRef = useRef(state)
+	const subject = useConstant(() => new BehaviorSubject(state));
+	const completed = useRef(false);
+	const stateRef = useRef(state);
 
-  useEffect(() => {
-    if (completed.current) {
-      subject.current = new BehaviorSubject(stateRef.current)
-      completed.current = false
-    }
+	useEffect(() => {
+		if (completed.current) {
+			subject.current = new BehaviorSubject(stateRef.current);
+			completed.current = false;
+		}
 
-    return () => {
-      if (!completed.current) {
-        subject.current.complete()
-        completed.current = true
-      }
-    }
-  }, [subject])
+		return () => {
+			if (!completed.current) {
+				subject.current.complete();
+				completed.current = true;
+			}
+		};
+	}, [subject]);
 
-  return subject
-}
+	return subject;
+};

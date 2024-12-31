@@ -1,12 +1,12 @@
-import { type Adapter } from "./Adapter"
+import type { Adapter } from "./Adapter";
 
 const normalizeStore = (store: unknown) => {
-  if (!store || typeof store !== "object") {
-    return undefined
-  }
+	if (!store || typeof store !== "object") {
+		return undefined;
+	}
 
-  return store
-}
+	return store;
+};
 
 /**
  * Create an adapter which use one unique store entry to store all
@@ -14,73 +14,73 @@ const normalizeStore = (store: unknown) => {
  * tidy.
  */
 const createSharedStoreAdapter = ({
-  adapter,
-  key
+	adapter,
+	key,
 }: {
-  adapter: Adapter
-  key: string
+	adapter: Adapter;
+	key: string;
 }): Adapter => ({
-  clear: async () => {
-    return await adapter.removeItem(key)
-  },
+	clear: async () => {
+		return await adapter.removeItem(key);
+	},
 
-  removeItem: async (keyToDelete) => {
-    const unsafeStore = await adapter.getItem(key)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { [keyToDelete]: toRemove, ...rest } =
-      normalizeStore(unsafeStore) ?? ({} as any)
+	removeItem: async (keyToDelete) => {
+		const unsafeStore = await adapter.getItem(key);
+		const { [keyToDelete]: toRemove, ...rest } =
+			// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+			normalizeStore(unsafeStore) ?? ({} as any);
 
-    await adapter.setItem(key, rest)
-  },
+		await adapter.setItem(key, rest);
+	},
 
-  getItem: async (itemKey: string) => {
-    const unsafeStore = await adapter.getItem(key)
-    const store = normalizeStore(unsafeStore) ?? {}
+	getItem: async (itemKey: string) => {
+		const unsafeStore = await adapter.getItem(key);
+		const store = normalizeStore(unsafeStore) ?? {};
 
-    if (itemKey in store) {
-      return store[itemKey as keyof typeof store]
-    }
+		if (itemKey in store) {
+			return store[itemKey as keyof typeof store];
+		}
 
-    return undefined
-  },
+		return undefined;
+	},
 
-  setItem: async (itemKey: string, value: unknown) => {
-    const unsafeStore = await adapter.getItem(key)
-    const store = normalizeStore(unsafeStore) ?? {}
+	setItem: async (itemKey: string, value: unknown) => {
+		const unsafeStore = await adapter.getItem(key);
+		const store = normalizeStore(unsafeStore) ?? {};
 
-    await adapter.setItem(key, { ...store, [itemKey]: value })
-  }
-})
+		await adapter.setItem(key, { ...store, [itemKey]: value });
+	},
+});
 
 export const createLocalStorageAdapter = ({
-  key
+	key,
 }: { key?: string } = {}): Adapter => {
-  if (key) {
-    return createSharedStoreAdapter({
-      adapter: createLocalStorageAdapter(),
-      key
-    })
-  }
+	if (key) {
+		return createSharedStoreAdapter({
+			adapter: createLocalStorageAdapter(),
+			key,
+		});
+	}
 
-  return {
-    clear: async () => {
-      localStorage.clear()
-    },
+	return {
+		clear: async () => {
+			localStorage.clear();
+		},
 
-    removeItem: async (key) => {
-      localStorage.removeItem(key)
-    },
+		removeItem: async (key) => {
+			localStorage.removeItem(key);
+		},
 
-    getItem: async (key) => {
-      const serializedValue = localStorage.getItem(key)
+		getItem: async (key) => {
+			const serializedValue = localStorage.getItem(key);
 
-      if (!serializedValue) return undefined
+			if (!serializedValue) return undefined;
 
-      return JSON.parse(serializedValue)
-    },
+			return JSON.parse(serializedValue);
+		},
 
-    setItem: async (key, value) => {
-      localStorage.setItem(key, JSON.stringify(value))
-    }
-  }
-}
+		setItem: async (key, value) => {
+			localStorage.setItem(key, JSON.stringify(value));
+		},
+	};
+};

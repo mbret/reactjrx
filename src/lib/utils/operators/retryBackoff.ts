@@ -1,45 +1,48 @@
-import { defer, type Observable, throwError, timer, merge, of } from "rxjs"
+import { defer, type Observable, throwError, timer, merge, of } from "rxjs";
 import {
-  catchError,
-  concatMap,
-  first,
-  mergeMap,
-  retryWhen,
-  tap
-} from "rxjs/operators"
+	catchError,
+	concatMap,
+	first,
+	mergeMap,
+	retryWhen,
+	tap,
+} from "rxjs/operators";
 
 export interface RetryBackoffConfig<T, TError> {
-  // Initial interval. It will eventually go as high as maxInterval.
-  initialInterval?: number
-  // Maximum delay between retries.
-  maxInterval?: number
-  // When set to `true` every successful emission will reset the delay and the
-  // error count.
-  resetOnSuccess?: boolean
-  retry?: (attempt: number, error: TError) => boolean
-  retryAfterDelay?: (attempt: number, error: TError) => boolean
-  // Can be used to delay the retry (outside of backoff process)
-  // for example if you want to pause retry due to connectivity issue
-  retryAfter?: () => Observable<any>
-  retryDelay?: number | ((attempt: number, error: TError) => number)
-  // Conditional retry.
-  // shouldRetry?: (attempt: number, error: any) => Observable<boolean>
-  backoffDelay?: (iteration: number, initialInterval: number) => number
-  caughtError?: (attempt: number, error: any) => void | Observable<T>
-  catchError?: (attempt: number, error: any) => Observable<T>
+	// Initial interval. It will eventually go as high as maxInterval.
+	initialInterval?: number;
+	// Maximum delay between retries.
+	maxInterval?: number;
+	// When set to `true` every successful emission will reset the delay and the
+	// error count.
+	resetOnSuccess?: boolean;
+	retry?: (attempt: number, error: TError) => boolean;
+	retryAfterDelay?: (attempt: number, error: TError) => boolean;
+	// Can be used to delay the retry (outside of backoff process)
+	// for example if you want to pause retry due to connectivity issue
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	retryAfter?: () => Observable<any>;
+	retryDelay?: number | ((attempt: number, error: TError) => number);
+	// Conditional retry.
+	// shouldRetry?: (attempt: number, error: any) => Observable<boolean>
+	backoffDelay?: (iteration: number, initialInterval: number) => number;
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	caughtError?: (attempt: number, error: any) => undefined | Observable<T>;
+	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+	catchError?: (attempt: number, error: any) => Observable<T>;
 }
 
 /** Calculates the actual delay which can be limited by maxInterval */
 export function getDelay(backoffDelay: number, maxInterval: number) {
-  return Math.min(backoffDelay, maxInterval)
+	return Math.min(backoffDelay, maxInterval);
 }
 
 /** Exponential backoff delay */
 export function exponentialBackoffDelay(
-  iteration: number,
-  initialInterval: number
+	iteration: number,
+	initialInterval: number,
 ) {
-  return Math.pow(2, iteration) * initialInterval
+	return 2 ** iteration * initialInterval;
 }
 
 /**
@@ -51,110 +54,110 @@ export function exponentialBackoffDelay(
  * shouldRetry returns false.
  */
 export function retryBackoff<T, TError>(config: RetryBackoffConfig<T, TError>) {
-  const {
-    retry,
-    retryDelay,
-    retryAfterDelay,
-    retryAfter = () => of(true)
-  } = config
+	const {
+		retry,
+		retryDelay,
+		retryAfterDelay,
+		retryAfter = () => of(true),
+	} = config;
 
-  const maxRetries =
-    typeof retry !== "function"
-      ? retry === false
-        ? 0
-        : retry === true
-          ? Infinity
-          : (retry ?? Infinity)
-      : Infinity
+	const maxRetries =
+		typeof retry !== "function"
+			? retry === false
+				? 0
+				: retry === true
+					? Number.POSITIVE_INFINITY
+					: (retry ?? Number.POSITIVE_INFINITY)
+			: Number.POSITIVE_INFINITY;
 
-  const shouldRetry =
-    typeof retry === "function"
-      ? // ? (attempt: number, error: TError) => of(retry(attempt, error))
-        retry
-      : () => true
+	const shouldRetry =
+		typeof retry === "function"
+			? // ? (attempt: number, error: TError) => of(retry(attempt, error))
+				retry
+			: () => true;
 
-  const initialInterval = typeof retryDelay === "number" ? retryDelay : 100
+	const initialInterval = typeof retryDelay === "number" ? retryDelay : 100;
 
-  const normalizedConfig = {
-    shouldRetry,
-    ...config
-  }
+	const normalizedConfig = {
+		shouldRetry,
+		...config,
+	};
 
-  const {
-    maxInterval = Infinity,
-    resetOnSuccess = false,
-    backoffDelay = exponentialBackoffDelay
-  } = normalizedConfig
+	const {
+		maxInterval = Number.POSITIVE_INFINITY,
+		resetOnSuccess = false,
+		backoffDelay = exponentialBackoffDelay,
+	} = normalizedConfig;
 
-  return <T>(source: Observable<T>) =>
-    defer(() => {
-      let caughtErrors = 0
+	return <T>(source: Observable<T>) =>
+		defer(() => {
+			let caughtErrors = 0;
 
-      const shouldRetryFn = (attempt: number, error: TError) =>
-        attempt < maxRetries ? shouldRetry(attempt, error) : false
+			const shouldRetryFn = (attempt: number, error: TError) =>
+				attempt < maxRetries ? shouldRetry(attempt, error) : false;
 
-      return source.pipe(
-        catchError<T, Observable<T>>((error) => {
-          caughtErrors++
+			return source.pipe(
+				catchError<T, Observable<T>>((error) => {
+					caughtErrors++;
 
-          if (!shouldRetryFn(caughtErrors - 1, error)) throw error
+					if (!shouldRetryFn(caughtErrors - 1, error)) throw error;
 
-          const caughtErrorResult$ = config.caughtError?.(caughtErrors, error)
+					const caughtErrorResult$ = config.caughtError?.(caughtErrors, error);
 
-          if (!caughtErrorResult$) throw error
+					if (!caughtErrorResult$) throw error;
 
-          return caughtErrorResult$.pipe(
-            mergeMap((source) =>
-              merge(
-                of(source) as unknown as Observable<T>,
-                throwError(() => error)
-              )
-            )
-          )
-        }),
-        retryWhen<T>((errors) => {
-          return errors.pipe(
-            concatMap((error) => {
-              const attempt = caughtErrors - 1
+					return caughtErrorResult$.pipe(
+						mergeMap((source) =>
+							merge(
+								of(source) as unknown as Observable<T>,
+								throwError(() => error),
+							),
+						),
+					);
+				}),
+				retryWhen<T>((errors) => {
+					return errors.pipe(
+						concatMap((error) => {
+							const attempt = caughtErrors - 1;
 
-              return retryAfter().pipe(
-                first(),
-                mergeMap(() =>
-                  shouldRetryFn(attempt, error)
-                    ? timer(
-                        getDelay(
-                          backoffDelay(attempt, initialInterval),
-                          maxInterval
-                        )
-                      ).pipe(
-                        mergeMap((timer) => {
-                          if (
-                            retryAfterDelay &&
-                            !retryAfterDelay(attempt, error)
-                          )
-                            return throwError(() => error)
+							return retryAfter().pipe(
+								first(),
+								mergeMap(() =>
+									shouldRetryFn(attempt, error)
+										? timer(
+												getDelay(
+													backoffDelay(attempt, initialInterval),
+													maxInterval,
+												),
+											).pipe(
+												mergeMap((timer) => {
+													if (
+														retryAfterDelay &&
+														!retryAfterDelay(attempt, error)
+													)
+														return throwError(() => error);
 
-                          return of(timer)
-                        })
-                      )
-                    : throwError(() => error)
-                )
-              )
-            })
-          )
-        }),
-        catchError((e) => {
-          if (config.catchError) {
-            return config.catchError(caughtErrors, e)
-          }
+													return of(timer);
+												}),
+											)
+										: throwError(() => error),
+								),
+							);
+						}),
+					);
+				}),
+				catchError((e) => {
+					if (config.catchError) {
+						return config.catchError(caughtErrors, e);
+					}
 
-          throw e
-        }),
-        tap(() => {
-          if (resetOnSuccess) {
-            caughtErrors = 0
-          }
-        })
-      )
-    })
+					throw e;
+				}),
+				tap(() => {
+					if (resetOnSuccess) {
+						caughtErrors = 0;
+					}
+				}),
+			);
+		});
 }

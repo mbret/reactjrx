@@ -1,7 +1,7 @@
-import { useCallback } from "react"
-import { useBehaviorSubject } from "./useBehaviorSubject"
-import { useLiveRef } from "../utils/react/useLiveRef"
-import { type Observable } from "rxjs"
+import { useCallback } from "react";
+import { useBehaviorSubject } from "./useBehaviorSubject";
+import { useLiveRef } from "../utils/react/useLiveRef";
+import type { Observable } from "rxjs";
 
 /**
  * If you need to represent some piece of state as an observable and also want the ability to change
@@ -18,19 +18,18 @@ import { type Observable } from "rxjs"
  * you need a direct reference to the value
  */
 export const useObservableState = <T>(
-  defaultValue: T
+	defaultValue: T,
 ): [Observable<T>, (value: T) => void, T] => {
-  const subject = useBehaviorSubject(defaultValue)
+	const subject = useBehaviorSubject(defaultValue);
 
-  const subject$ = useLiveRef(subject.current.asObservable())
+	const subject$ = useLiveRef(subject.current.asObservable());
 
-  const setState = useCallback(
-    (value: T) => {
-      subject.current.next(value)
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [subject.current]
-  )
+	const setState = useCallback(
+		(value: T) => {
+			subject.current.next(value);
+		},
+		[subject.current],
+	);
 
-  return [subject$.current, setState, subject.current.getValue()]
-}
+	return [subject$.current, setState, subject.current.getValue()];
+};

@@ -1,21 +1,21 @@
-import { Observable } from "rxjs"
+import { Observable } from "rxjs";
 
 export function trackSubscriptions(
-  onCountUpdate: (activeSubscriptions: number) => void
+	onCountUpdate: (activeSubscriptions: number) => void,
 ) {
-  let count = 0
+	let count = 0;
 
-  return function refCountOperatorFunction<T>(source: Observable<T>) {
-    return new Observable<T>((observer) => {
-      count++
-      const sub = source.subscribe(observer)
-      onCountUpdate(count)
+	return function refCountOperatorFunction<T>(source: Observable<T>) {
+		return new Observable<T>((observer) => {
+			count++;
+			const sub = source.subscribe(observer);
+			onCountUpdate(count);
 
-      return () => {
-        count--
-        onCountUpdate(count)
-        sub.unsubscribe()
-      }
-    })
-  }
+			return () => {
+				count--;
+				onCountUpdate(count);
+				sub.unsubscribe();
+			};
+		});
+	};
 }
