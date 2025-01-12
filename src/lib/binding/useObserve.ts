@@ -119,7 +119,7 @@ export function useObserve<T>(
 		[...deps],
 	);
 
-	const result = useSyncExternalStore(subscribe, getSnapshot);
+	const result = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
 	return result as T;
 }
