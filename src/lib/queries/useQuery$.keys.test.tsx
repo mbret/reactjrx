@@ -10,116 +10,116 @@ import { QueryClientProvider$ } from "./QueryClientProvider$";
 import { useQuery$ } from "./useQuery$";
 
 afterEach(() => {
-	cleanup();
+  cleanup();
 });
 
 describe("useQuery", () => {
-	describe("Given a query subject", () => {
-		describe("and a first value fired from the subject", () => {
-			describe("when the key change", () => {
-				it("should reset data to undefined and have fetchStatus as fetching and status as loading", async () => {
-					const triggerSubject = new Subject();
+  describe("Given a query subject", () => {
+    describe("and a first value fired from the subject", () => {
+      describe("when the key change", () => {
+        it("should reset data to undefined and have fetchStatus as fetching and status as loading", async () => {
+          const triggerSubject = new Subject();
 
-					const Comp = ({ queryKey }: { queryKey: string }) => {
-						const result = useQuery$({
-							queryKey: [queryKey],
-							queryFn: () => triggerSubject,
-						});
+          const Comp = ({ queryKey }: { queryKey: string }) => {
+            const result = useQuery$({
+              queryKey: [queryKey],
+              queryFn: () => triggerSubject,
+            });
 
-						return (
-							<>
-								{printQuery(result, [
-									"data",
-									"error",
-									"isLoading",
-									"status",
-									"fetchStatus",
-								])}
-							</>
-						);
-					};
+            return (
+              <>
+                {printQuery(result, [
+                  "data",
+                  "error",
+                  "isLoading",
+                  "status",
+                  "fetchStatus",
+                ])}
+              </>
+            );
+          };
 
-					const client = new QueryClient();
+          const client = new QueryClient();
 
-					const { findByText, rerender, debug } = render(
-						<React.StrictMode>
-							<QueryClientProvider client={client}>
-								<QueryClientProvider$>
-									<Comp queryKey="1" />
-								</QueryClientProvider$>
-							</QueryClientProvider>
-						</React.StrictMode>,
-					);
+          const { findByText, rerender, debug } = render(
+            <React.StrictMode>
+              <QueryClientProvider client={client}>
+                <QueryClientProvider$>
+                  <Comp queryKey="1" />
+                </QueryClientProvider$>
+              </QueryClientProvider>
+            </React.StrictMode>,
+          );
 
-					triggerSubject.next(2);
+          triggerSubject.next(2);
 
-					expect(
-						await findByText(
-							printQuery({
-								data: 2,
-								error: null,
-								fetchStatus: "fetching",
-								isLoading: false,
-								status: "success",
-							}),
-						),
-					).toBeDefined();
+          expect(
+            await findByText(
+              printQuery({
+                data: 2,
+                error: null,
+                fetchStatus: "fetching",
+                isLoading: false,
+                status: "success",
+              }),
+            ),
+          ).toBeDefined();
 
-					rerender(
-						<React.StrictMode>
-							<QueryClientProvider client={client}>
-								<QueryClientProvider$>
-									<Comp queryKey="2" />
-								</QueryClientProvider$>
-							</QueryClientProvider>
-						</React.StrictMode>,
-					);
+          rerender(
+            <React.StrictMode>
+              <QueryClientProvider client={client}>
+                <QueryClientProvider$>
+                  <Comp queryKey="2" />
+                </QueryClientProvider$>
+              </QueryClientProvider>
+            </React.StrictMode>,
+          );
 
-					expect(
-						await findByText(
-							printQuery({
-								data: undefined,
-								error: null,
-								fetchStatus: "fetching",
-								isLoading: true,
-								status: "pending",
-							}),
-						),
-					).toBeDefined();
+          expect(
+            await findByText(
+              printQuery({
+                data: undefined,
+                error: null,
+                fetchStatus: "fetching",
+                isLoading: true,
+                status: "pending",
+              }),
+            ),
+          ).toBeDefined();
 
-					triggerSubject.next(3);
+          triggerSubject.next(3);
 
-					expect(
-						await findByText(
-							printQuery({
-								data: 3,
-								error: null,
-								fetchStatus: "fetching",
-								isLoading: false,
-								status: "success",
-							}),
-						),
-					).toBeDefined();
+          expect(
+            await findByText(
+              printQuery({
+                data: 3,
+                error: null,
+                fetchStatus: "fetching",
+                isLoading: false,
+                status: "success",
+              }),
+            ),
+          ).toBeDefined();
 
-					triggerSubject.complete();
+          triggerSubject.complete();
 
-					await waitForTimeout(100);
+          await waitForTimeout(100);
 
-					debug();
+          debug();
 
-					expect(
-						await findByText(
-							printQuery({
-								data: 3,
-								error: null,
-								fetchStatus: "idle",
-								isLoading: false,
-								status: "success",
-							}),
-						),
-					).toBeDefined();
-				});
-			});
-		});
-	});
+          expect(
+            await findByText(
+              printQuery({
+                data: 3,
+                error: null,
+                fetchStatus: "idle",
+                isLoading: false,
+                status: "success",
+              }),
+            ),
+          ).toBeDefined();
+        });
+      });
+    });
+  });
 });

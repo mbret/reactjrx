@@ -1,68 +1,68 @@
 {
-	"name": "reactjrx",
-	"private": false,
-	"version": "0.0.0-development",
-	"type": "module",
-	"files": ["dist"],
-	"main": "./dist/index.js",
-	"module": "./dist/index.js",
-	"exports": {
-		".": {
-			"import": "./dist/index.js",
-			"require": "./dist/index.umd.cjs"
-		}
-	},
-	"types": "./dist/index.d.ts",
-	"publishConfig": {
-		"access": "public"
-	},
-	"scripts": {
-		"dev": "vite",
-		"build": "tsc && vite build",
-		"watch": "vite build --watch",
-		"preview": "vite preview",
-		"prepublishOnly": "npm run build",
-		"semantic-release": "semantic-release",
-		"test": "vitest --typecheck",
-		"test:ci": "vitest run",
-		"tsc": "tsc",
-		"prepare": "husky && husky install",
-		"check": "npx @biomejs/biome check ."
-	},
-	"peerDependencies": {
-		"@tanstack/react-query": "5.x",
-		"react": "^18 || ^19",
-		"react-dom": "^18 || ^19",
-		"rxjs": "*"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "1.9.4",
-		"@testing-library/jest-dom": "^6.2.0",
-		"@testing-library/react": "^16.1.0",
-		"@types/node": "^22.10.2",
-		"@types/react": "^19.0.2",
-		"@types/react-dom": "^19.0.2",
-		"@vitejs/plugin-react": "^4.0.0",
-		"husky": "^9.1.7",
-		"jsdom": "^26.0.0",
-		"lint-staged": "^15.3.0",
-		"react": "^19.0.0",
-		"react-dom": "^19.0.0",
-		"rollup-plugin-node-externals": "^8.0.0",
-		"rxjs": "^7.8.0",
-		"semantic-release": "^24.1.1",
-		"typescript": "^5.6.2",
-		"vite": "^6.0.6",
-		"vite-plugin-dts": "^4.2.1",
-		"vitest": "^2.1.8"
-	},
-	"repository": {
-		"type": "git",
-		"url": "https://github.com/mbret/reactjrx.git"
-	},
-	"lint-staged": {
-		"*": [
-			"biome check --no-errors-on-unmatched --files-ignore-unknown=true --write"
-		]
-	}
+  "name": "reactjrx",
+  "private": false,
+  "version": "0.0.0-development",
+  "type": "module",
+  "files": ["dist"],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.umd.cjs"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "watch": "vite build --watch",
+    "preview": "vite preview",
+    "prepublishOnly": "npm run build",
+    "semantic-release": "semantic-release",
+    "test": "vitest --typecheck",
+    "test:ci": "vitest run",
+    "tsc": "tsc",
+    "prepare": "husky && husky install",
+    "check": "npx @biomejs/biome check ."
+  },
+  "peerDependencies": {
+    "@tanstack/react-query": "5.x",
+    "react": "^18 || ^19",
+    "react-dom": "^18 || ^19",
+    "rxjs": "*"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "1.9.4",
+    "@testing-library/jest-dom": "^6.2.0",
+    "@testing-library/react": "^16.1.0",
+    "@types/node": "^22.10.2",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.0.0",
+    "husky": "^9.1.7",
+    "jsdom": "^26.0.0",
+    "lint-staged": "^15.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "rollup-plugin-node-externals": "^8.0.0",
+    "rxjs": "^7.8.0",
+    "semantic-release": "^24.1.1",
+    "typescript": "^5.6.2",
+    "vite": "^6.0.6",
+    "vite-plugin-dts": "^4.2.1",
+    "vitest": "^2.1.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mbret/reactjrx.git"
+  },
+  "lint-staged": {
+    "*": [
+      "biome check --no-errors-on-unmatched --files-ignore-unknown=true --write"
+    ]
+  }
 }

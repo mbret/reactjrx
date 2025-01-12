@@ -15,69 +15,69 @@ import type { SignalPersistenceConfig } from "../persistance/types";
  * will be reset as soon as the adapter reference changes.
  */
 export function usePersistSignals({
-	entries = [],
-	onHydrated,
-	adapter,
+  entries = [],
+  onHydrated,
+  adapter,
 }: {
-	/**
-	 * Passing a new list of entries will start over the process
-	 * once the current one is finished. Use a stable reference to avoid
-	 * inifite loop.
-	 */
+  /**
+   * Passing a new list of entries will start over the process
+   * once the current one is finished. Use a stable reference to avoid
+   * inifite loop.
+   */
 
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	entries?: Array<SignalPersistenceConfig<any>>;
-	/**
-	 * Triggered after first successful hydrate
-	 */
-	onHydrated?: () => void;
-	/**
-	 * Passing a new adapter reference will start over the process
-	 * once the current one is finished. Use a stable reference to avoid
-	 * inifite loop.
-	 */
-	adapter?: Adapter;
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  entries?: Array<SignalPersistenceConfig<any>>;
+  /**
+   * Triggered after first successful hydrate
+   */
+  onHydrated?: () => void;
+  /**
+   * Passing a new adapter reference will start over the process
+   * once the current one is finished. Use a stable reference to avoid
+   * inifite loop.
+   */
+  adapter?: Adapter;
 }): { isHydrated: boolean } {
-	const onHydratedRef = useLiveRef(onHydrated);
-	const adapterSubject = useLiveBehaviorSubject(adapter);
-	const entriesSubject = useLiveBehaviorSubject(entries);
+  const onHydratedRef = useLiveRef(onHydrated);
+  const adapterSubject = useLiveBehaviorSubject(adapter);
+  const entriesSubject = useLiveBehaviorSubject(entries);
 
-	return useObserve(
-		() => {
-			const persistence$ = adapterSubject.current.pipe(
-				switchMap((adapter) => {
-					if (!adapter) return of({ type: "reset" });
+  return useObserve(
+    () => {
+      const persistence$ = adapterSubject.current.pipe(
+        switchMap((adapter) => {
+          if (!adapter) return of({ type: "reset" });
 
-					return merge(
-						of({ type: "reset" }),
-						entriesSubject.current.pipe(
-							concatMap((entries) =>
-								persistSignals({
-									adapter,
-									entries,
-									onHydrated: () => {
-										onHydratedRef.current?.();
-									},
-								}),
-							),
-						),
-					);
-				}),
-			);
+          return merge(
+            of({ type: "reset" }),
+            entriesSubject.current.pipe(
+              concatMap((entries) =>
+                persistSignals({
+                  adapter,
+                  entries,
+                  onHydrated: () => {
+                    onHydratedRef.current?.();
+                  },
+                }),
+              ),
+            ),
+          );
+        }),
+      );
 
-			return persistence$.pipe(
-				scan(
-					(acc, event) => {
-						if (event.type === "reset") return { isHydrated: false };
-						if (event.type === "hydrated") return { isHydrated: true };
+      return persistence$.pipe(
+        scan(
+          (acc, event) => {
+            if (event.type === "reset") return { isHydrated: false };
+            if (event.type === "hydrated") return { isHydrated: true };
 
-						return acc;
-					},
-					{ isHydrated: false as boolean },
-				),
-			);
-		},
-		{ defaultValue: { isHydrated: false }, compareFn: shallowEqual },
-		[adapterSubject, entriesSubject],
-	);
+            return acc;
+          },
+          { isHydrated: false as boolean },
+        ),
+      );
+    },
+    { defaultValue: { isHydrated: false }, compareFn: shallowEqual },
+    [adapterSubject, entriesSubject],
+  );
 }

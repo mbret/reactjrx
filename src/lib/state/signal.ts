@@ -3,157 +3,157 @@ import type { Observable } from "rxjs";
 import { SIGNAL_RESET } from "./constants";
 
 type setValue<S> = (
-	stateOrUpdater: typeof SIGNAL_RESET | S | ((prev: S) => S),
+  stateOrUpdater: typeof SIGNAL_RESET | S | ((prev: S) => S),
 ) => void;
 
 type Getter<Value> = (
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	get: <GetSignal extends Signal<any, any, any>>(
-		signal: GetSignal,
-	) => ReturnType<GetSignal["getValue"]>,
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  get: <GetSignal extends Signal<any, any, any>>(
+    signal: GetSignal,
+  ) => ReturnType<GetSignal["getValue"]>,
 ) => Value;
 
 export type Config<
-	DefaultValue = undefined,
-	Key = undefined,
+  DefaultValue = undefined,
+  Key = undefined,
 > = Key extends undefined
-	? {
-			default: DefaultValue;
-		}
-	: {
-			default: DefaultValue;
-			key: Key;
-		};
+  ? {
+      default: DefaultValue;
+    }
+  : {
+      default: DefaultValue;
+      key: Key;
+    };
 
 interface ReadOnlySignalConfig<Value> {
-	get: Getter<Value>;
+  get: Getter<Value>;
 }
 
 export interface ReadOnlySignal<Value> {
-	getValue: () => Value;
-	config: ReadOnlySignalConfig<Value>;
-	subject: Observable<Value>;
+  getValue: () => Value;
+  config: ReadOnlySignalConfig<Value>;
+  subject: Observable<Value>;
 }
 
 export interface Signal<
-	DefaultValue = undefined,
-	Value = undefined,
-	Key = undefined,
+  DefaultValue = undefined,
+  Value = undefined,
+  Key = undefined,
 > {
-	setValue: setValue<DefaultValue>;
-	getValue: () => Value;
-	config: Config<DefaultValue, Key>;
-	subject: Observable<DefaultValue>;
+  setValue: setValue<DefaultValue>;
+  getValue: () => Value;
+  config: Config<DefaultValue, Key>;
+  subject: Observable<DefaultValue>;
 }
 
 export function signal<T = undefined, V = T>(
-	config?: Omit<Partial<Config<T, string | undefined>>, "key" | "get">,
+  config?: Omit<Partial<Config<T, string | undefined>>, "key" | "get">,
 ): Signal<T, V, undefined>;
 
 export function signal<T = undefined, V = T>(
-	config: Omit<Partial<Config<T, string | undefined>>, "get"> & {
-		key: string;
-	},
+  config: Omit<Partial<Config<T, string | undefined>>, "get"> & {
+    key: string;
+  },
 ): Signal<T, V, string>;
 
 export function signal<V = undefined>(
-	config: ReadOnlySignalConfig<V>,
+  config: ReadOnlySignalConfig<V>,
 ): ReadOnlySignal<V>;
 
 export function signal<
-	T = undefined,
-	V = undefined,
-	Key extends string | undefined = undefined,
+  T = undefined,
+  V = undefined,
+  Key extends string | undefined = undefined,
 >(
-	config: Partial<Config<T, Key>> | ReadOnlySignalConfig<V> = {},
+  config: Partial<Config<T, Key>> | ReadOnlySignalConfig<V> = {},
 ): Signal<T, V, Key> | ReadOnlySignal<V> {
-	const normalizedConfig: Config<T | undefined, string | undefined> = {
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-		default: (config as any).default,
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-		key: (config as any).key,
-	};
-	const { default: defaultValue } = normalizedConfig ?? {};
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-	const subject = new BehaviorSubject(defaultValue as any);
+  const normalizedConfig: Config<T | undefined, string | undefined> = {
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    default: (config as any).default,
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    key: (config as any).key,
+  };
+  const { default: defaultValue } = normalizedConfig ?? {};
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  const subject = new BehaviorSubject(defaultValue as any);
 
-	const setValue = <F extends (prev: T) => T>(
-		arg: T | F | typeof SIGNAL_RESET,
-	) => {
-		const update = (value: T | undefined) => {
-			if ("key" in config) {
-				console.log(
-					"[reactjrx][state][signal]:",
-					`Value update for signal ${config.key}`,
-					{
-						prev: subject.getValue(),
-						curr: value,
-					},
-				);
-			}
+  const setValue = <F extends (prev: T) => T>(
+    arg: T | F | typeof SIGNAL_RESET,
+  ) => {
+    const update = (value: T | undefined) => {
+      if ("key" in config) {
+        console.log(
+          "[reactjrx][state][signal]:",
+          `Value update for signal ${config.key}`,
+          {
+            prev: subject.getValue(),
+            curr: value,
+          },
+        );
+      }
 
-			subject.next(value);
-		};
+      subject.next(value);
+    };
 
-		if (typeof arg === "function") {
-			const change = (arg as F)(subject.getValue());
+    if (typeof arg === "function") {
+      const change = (arg as F)(subject.getValue());
 
-			if (change === subject.getValue()) return;
+      if (change === subject.getValue()) return;
 
-			return update(change);
-		}
+      return update(change);
+    }
 
-		if (arg === SIGNAL_RESET) {
-			if (defaultValue === subject.getValue()) return;
+    if (arg === SIGNAL_RESET) {
+      if (defaultValue === subject.getValue()) return;
 
-			return update((defaultValue ?? undefined) as T);
-		}
+      return update((defaultValue ?? undefined) as T);
+    }
 
-		if (arg === subject.getValue()) return;
+    if (arg === subject.getValue()) return;
 
-		return update(arg);
-	};
+    return update(arg);
+  };
 
-	const getValue = () => subject.getValue();
+  const getValue = () => subject.getValue();
 
-	/**
-	 * Read Only signals
-	 */
-	if ("get" in config) {
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-		const getter = (signal: Signal<any, any, any>) => {
-			signal.subject.pipe(skip(1), first()).subscribe(() => {
-				const newValue = config.get?.(getter);
+  /**
+   * Read Only signals
+   */
+  if ("get" in config) {
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    const getter = (signal: Signal<any, any, any>) => {
+      signal.subject.pipe(skip(1), first()).subscribe(() => {
+        const newValue = config.get?.(getter);
 
-				// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-				setValue(newValue as any);
-			});
+        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        setValue(newValue as any);
+      });
 
-			return signal.getValue();
-		};
+      return signal.getValue();
+    };
 
-		const defaultValue = config.get(getter);
+    const defaultValue = config.get(getter);
 
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-		setValue(defaultValue as any);
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    setValue(defaultValue as any);
 
-		return {
-			getValue,
-			config,
-			subject,
-		};
-	}
+    return {
+      getValue,
+      config,
+      subject,
+    };
+  }
 
-	return {
-		setValue,
-		getValue,
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-		config: normalizedConfig as any,
-		subject,
-	};
+  return {
+    setValue,
+    getValue,
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    config: normalizedConfig as any,
+    subject,
+  };
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
 export type SignalValue<S extends Signal<any, any, any>> = ReturnType<
-	S["getValue"]
+  S["getValue"]
 >;
