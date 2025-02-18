@@ -81,17 +81,6 @@ export function signal<
     arg: T | F | typeof SIGNAL_RESET,
   ) => {
     const update = (value: T | undefined) => {
-      if ("key" in config) {
-        console.log(
-          "[reactjrx][state][signal]:",
-          `Value update for signal ${config.key}`,
-          {
-            prev: subject.getValue(),
-            curr: value,
-          },
-        );
-      }
-
       subject.next(value);
     };
 
