@@ -1,6 +1,6 @@
 import { type Observable, distinctUntilChanged, map } from "rxjs";
 import { useObserve } from "../../binding/useObserve";
-import type { ReadOnlySignal, Signal } from "../signals";
+import type { ReadOnlySignal, Signal } from "../Signal";
 
 export function useSignalValue<DefaultValue, Value, Key, SelectValue>(
   signal: Signal<DefaultValue, Value, Key>,

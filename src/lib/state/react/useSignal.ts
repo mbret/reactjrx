@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { type Config, signal } from "../signals";
+import { type Config, signal } from "../Signal";
 import { useSignalValue } from "./useSignalValue";
 
 /**

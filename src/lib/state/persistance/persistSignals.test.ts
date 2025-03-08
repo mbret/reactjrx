@@ -1,7 +1,7 @@
 import { firstValueFrom } from "rxjs";
 import { describe, expect, it } from "vitest";
 import { waitForTimeout } from "../../../tests/utils";
-import { signal } from "../signals";
+import { signal } from "../Signal";
 import { MockAdapter } from "./adapters/MockAdapter";
 import { IDENTIFIER_PERSISTANCE_KEY } from "./constants";
 import { persistSignals } from "./persistSignals";

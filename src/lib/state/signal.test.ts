@@ -1,8 +1,8 @@
 import { renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { signal } from "./Signal";
 import { SIGNAL_RESET } from "./constants";
 import { useSignalValue } from "./react/useSignalValue";
-import { signal } from "./signals";
 
 describe("signal", () => {
   describe("Given a number signal with default value", () => {
