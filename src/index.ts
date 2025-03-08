@@ -9,7 +9,7 @@ export * from "./lib/binding/useLiveBehaviorSubject";
 export * from "./lib/binding/useSubscribeEffect";
 
 // state
-export * from "./lib/state/signal";
+export * from "./lib/state/signals";
 export * from "./lib/state/react/useSignalValue";
 export * from "./lib/state/react/useSignal";
 export * from "./lib/state/constants";

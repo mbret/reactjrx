@@ -12,7 +12,7 @@ import {
   throttleTime,
   zip,
 } from "rxjs";
-import type { Signal } from "../signal";
+import type { Signal } from "../signals";
 import type { Adapter } from "./adapters/Adapter";
 import { hydrateValueToSignal, persistValue } from "./helpers";
 import type { SignalPersistenceConfig } from "./types";
