@@ -22,7 +22,7 @@ export const useObservableState = <T>(
 ): [Observable<T>, (value: T) => void, T] => {
   const subject = useBehaviorSubject(defaultValue)
 
-  const subject$ = useLiveRef(subject.asObservable())
+  const subject$ = useLiveRef(subject)
 
   const setState = useCallback(
     (value: T) => {
