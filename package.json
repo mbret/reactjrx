@@ -3,9 +3,7 @@
   "private": false,
   "version": "0.0.0-development",
   "type": "module",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "exports": {
@@ -29,7 +27,8 @@
     "test:ci": "vitest run",
     "tsc": "tsc",
     "prepare": "husky && husky install",
-    "check": "npx @biomejs/biome check ."
+    "check": "npx @biomejs/biome check .",
+    "format": "npx @biomejs/biome check . --write"
   },
   "peerDependencies": {
     "@tanstack/react-query": "5.x",

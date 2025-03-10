@@ -30,7 +30,10 @@ const SubCom = memo(() => {
 
   return (
     <div>
-      <button type="button" onClick={() => setBar((bar) => ({ ...bar, foo: bar.foo + 1 }))}>
+      <button
+        type="button"
+        onClick={() => setBar((bar) => ({ ...bar, foo: bar.foo + 1 }))}
+      >
         tap
       </button>
     </div>
