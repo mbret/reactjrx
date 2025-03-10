@@ -1,30 +1,30 @@
-import { QueryClientProvider } from "@tanstack/react-query";
-import { QueryClient } from "@tanstack/react-query";
-import { cleanup, render } from "@testing-library/react";
-import React from "react";
-import { Subject } from "rxjs";
-import { afterEach, describe, expect, it } from "vitest";
-import { printQuery } from "../../tests/testUtils";
-import { waitForTimeout } from "../../tests/utils";
-import { QueryClientProvider$ } from "./QueryClientProvider$";
-import { useQuery$ } from "./useQuery$";
+import { QueryClientProvider } from "@tanstack/react-query"
+import { QueryClient } from "@tanstack/react-query"
+import { cleanup, render } from "@testing-library/react"
+import React from "react"
+import { Subject } from "rxjs"
+import { afterEach, describe, expect, it } from "vitest"
+import { printQuery } from "../../tests/testUtils"
+import { waitForTimeout } from "../../tests/utils"
+import { QueryClientProvider$ } from "./QueryClientProvider$"
+import { useQuery$ } from "./useQuery$"
 
 afterEach(() => {
-  cleanup();
-});
+  cleanup()
+})
 
 describe("useQuery", () => {
   describe("Given a query subject", () => {
     describe("and a first value fired from the subject", () => {
       describe("when the key change", () => {
         it("should reset data to undefined and have fetchStatus as fetching and status as loading", async () => {
-          const triggerSubject = new Subject();
+          const triggerSubject = new Subject()
 
           const Comp = ({ queryKey }: { queryKey: string }) => {
             const result = useQuery$({
               queryKey: [queryKey],
               queryFn: () => triggerSubject,
-            });
+            })
 
             return (
               <>
@@ -36,10 +36,10 @@ describe("useQuery", () => {
                   "fetchStatus",
                 ])}
               </>
-            );
-          };
+            )
+          }
 
-          const client = new QueryClient();
+          const client = new QueryClient()
 
           const { findByText, rerender, debug } = render(
             <React.StrictMode>
@@ -49,9 +49,9 @@ describe("useQuery", () => {
                 </QueryClientProvider$>
               </QueryClientProvider>
             </React.StrictMode>,
-          );
+          )
 
-          triggerSubject.next(2);
+          triggerSubject.next(2)
 
           expect(
             await findByText(
@@ -63,7 +63,7 @@ describe("useQuery", () => {
                 status: "success",
               }),
             ),
-          ).toBeDefined();
+          ).toBeDefined()
 
           rerender(
             <React.StrictMode>
@@ -73,7 +73,7 @@ describe("useQuery", () => {
                 </QueryClientProvider$>
               </QueryClientProvider>
             </React.StrictMode>,
-          );
+          )
 
           expect(
             await findByText(
@@ -85,9 +85,9 @@ describe("useQuery", () => {
                 status: "pending",
               }),
             ),
-          ).toBeDefined();
+          ).toBeDefined()
 
-          triggerSubject.next(3);
+          triggerSubject.next(3)
 
           expect(
             await findByText(
@@ -99,13 +99,13 @@ describe("useQuery", () => {
                 status: "success",
               }),
             ),
-          ).toBeDefined();
+          ).toBeDefined()
 
-          triggerSubject.complete();
+          triggerSubject.complete()
 
-          await waitForTimeout(100);
+          await waitForTimeout(100)
 
-          debug();
+          debug()
 
           expect(
             await findByText(
@@ -117,9 +117,9 @@ describe("useQuery", () => {
                 status: "success",
               }),
             ),
-          ).toBeDefined();
-        });
-      });
-    });
-  });
-});
+          ).toBeDefined()
+        })
+      })
+    })
+  })
+})

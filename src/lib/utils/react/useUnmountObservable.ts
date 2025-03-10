@@ -1,11 +1,11 @@
-import { useSubject } from "../../binding/useSubject";
+import { useSubject } from "../../binding/useSubject"
 
 export const useUnmountObservable = () => {
   const subject = useSubject<void>({
     onBeforeComplete: () => {
-      subject.current.next();
+      subject.current.next()
     },
-  });
+  })
 
-  return subject;
-};
+  return subject
+}

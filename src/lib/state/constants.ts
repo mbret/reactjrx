@@ -1,1 +1,1 @@
-export const SIGNAL_RESET = Symbol("SIGNAL_RESET");
+export const SIGNAL_RESET = Symbol("SIGNAL_RESET")

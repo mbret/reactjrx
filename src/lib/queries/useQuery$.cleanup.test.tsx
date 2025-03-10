@@ -1,20 +1,20 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render } from "@testing-library/react";
-import { StrictMode } from "react";
-import { finalize, timer } from "rxjs";
-import { afterEach, describe, expect, it } from "vitest";
-import { waitForTimeout } from "../../tests/utils";
-import { QueryClient$, QueryClientProvider$ } from "./QueryClientProvider$";
-import { useQuery$ } from "./useQuery$";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { cleanup, render } from "@testing-library/react"
+import { StrictMode } from "react"
+import { finalize, timer } from "rxjs"
+import { afterEach, describe, expect, it } from "vitest"
+import { waitForTimeout } from "../../tests/utils"
+import { QueryClient$, QueryClientProvider$ } from "./QueryClientProvider$"
+import { useQuery$ } from "./useQuery$"
 
 afterEach(() => {
-  cleanup();
-});
+  cleanup()
+})
 
 describe("Given a long observable", () => {
   describe("when the component unmount", () => {
     it("should unsubscribe to the observable", async () => {
-      let tapped = 0;
+      let tapped = 0
 
       const Comp = () => {
         useQuery$({
@@ -22,15 +22,15 @@ describe("Given a long observable", () => {
           queryFn: () =>
             timer(99999).pipe(
               finalize(() => {
-                tapped++;
+                tapped++
               }),
             ),
-        });
+        })
 
-        return null;
-      };
+        return null
+      }
 
-      const client = new QueryClient();
+      const client = new QueryClient()
 
       const { unmount } = render(
         <StrictMode>
@@ -40,40 +40,40 @@ describe("Given a long observable", () => {
             </QueryClientProvider$>
           </QueryClientProvider>
         </StrictMode>,
-      );
+      )
 
-      unmount();
+      unmount()
 
-      await waitForTimeout(15);
+      await waitForTimeout(15)
 
       // 2 because of strict mode
-      expect(tapped).toBe(2);
-    });
-  });
-});
+      expect(tapped).toBe(2)
+    })
+  })
+})
 
 describe("Given an observable that completes", () => {
   it("should remove it from cache and finalize the subscription", async () => {
-    let tapped = 0;
+    let tapped = 0
 
     const Comp = () => {
       useQuery$({
         queryKey: ["foo"],
         queryFn: () => {
-          console.log("fn");
+          console.log("fn")
           return timer(10).pipe(
             finalize(() => {
-              tapped++;
+              tapped++
             }),
-          );
+          )
         },
-      });
+      })
 
-      return null;
-    };
+      return null
+    }
 
-    const client = new QueryClient();
-    const reactJrxQueryClient = new QueryClient$();
+    const client = new QueryClient()
+    const reactJrxQueryClient = new QueryClient$()
 
     render(
       <StrictMode>
@@ -83,11 +83,11 @@ describe("Given an observable that completes", () => {
           </QueryClientProvider$>
         </QueryClientProvider>
       </StrictMode>,
-    );
+    )
 
-    await waitForTimeout(15);
+    await waitForTimeout(15)
 
-    expect(tapped).toBe(2);
-    expect(reactJrxQueryClient.queryMap.size).toBe(0);
-  });
-});
+    expect(tapped).toBe(2)
+    expect(reactJrxQueryClient.queryMap.size).toBe(0)
+  })
+})

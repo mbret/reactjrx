@@ -1,7 +1,7 @@
-import { useEffect, useRef } from "react";
-import { Subject } from "rxjs";
-import { useConstant } from "../utils/react/useConstant";
-import { useLiveRef } from "../utils/react/useLiveRef";
+import { useEffect, useRef } from "react"
+import { Subject } from "rxjs"
+import { useConstant } from "../utils/react/useConstant"
+import { useLiveRef } from "../utils/react/useLiveRef"
 
 /**
  * @see
@@ -11,15 +11,15 @@ export const useSubject = <S>({
   onBeforeComplete,
   completeOnUnmount = true,
 }: { onBeforeComplete?: () => void; completeOnUnmount?: boolean } = {}) => {
-  const subject = useConstant(() => new Subject<S>());
-  const completed = useRef(false);
-  const onBeforeCompleteRef = useLiveRef(onBeforeComplete);
-  const completeOnUnmountRef = useLiveRef(completeOnUnmount);
+  const subject = useConstant(() => new Subject<S>())
+  const completed = useRef(false)
+  const onBeforeCompleteRef = useLiveRef(onBeforeComplete)
+  const completeOnUnmountRef = useLiveRef(completeOnUnmount)
 
   useEffect(() => {
     if (completed.current) {
-      subject.current = new Subject<S>();
-      completed.current = false;
+      subject.current = new Subject<S>()
+      completed.current = false
     }
 
     return () => {
@@ -29,18 +29,18 @@ export const useSubject = <S>({
        * flag it in order to be replaced with new subject on remount.
        */
       if (!completeOnUnmountRef.current) {
-        completed.current = true;
+        completed.current = true
 
-        return;
+        return
       }
 
       if (!completed.current) {
-        if (onBeforeCompleteRef.current != null) onBeforeCompleteRef.current();
-        subject.current.complete();
-        completed.current = true;
+        if (onBeforeCompleteRef.current != null) onBeforeCompleteRef.current()
+        subject.current.complete()
+        completed.current = true
       }
-    };
-  }, [completeOnUnmountRef, onBeforeCompleteRef, subject]);
+    }
+  }, [completeOnUnmountRef, onBeforeCompleteRef, subject])
 
-  return subject;
-};
+  return subject
+}

@@ -8,5 +8,5 @@ export function isPromiseLike<T>(value: T): value is T & Promise<any> {
       typeof value.then === "function" &&
       "catch" in value &&
       value.catch === "function")
-  );
+  )
 }

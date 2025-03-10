@@ -4,10 +4,10 @@ import {
   type UseMutationOptions,
   type UseMutationResult,
   useMutation,
-} from "@tanstack/react-query";
-import { useEffect } from "react";
-import { type Observable, take } from "rxjs";
-import { useBehaviorSubject } from "../binding/useBehaviorSubject";
+} from "@tanstack/react-query"
+import { useEffect } from "react"
+import { type Observable, take } from "rxjs"
+import { useBehaviorSubject } from "../binding/useBehaviorSubject"
 
 export type UseMutation$Options<
   TData = unknown,
@@ -18,10 +18,8 @@ export type UseMutation$Options<
   UseMutationOptions<TData, TError, TVariables, TContext>,
   "mutationFn"
 > & {
-  mutationFn:
-    | ((variables: TVariables) => Observable<TData>)
-    | Observable<TData>;
-};
+  mutationFn: ((variables: TVariables) => Observable<TData>) | Observable<TData>
+}
 
 export function useMutation$<
   TData = unknown,
@@ -43,51 +41,51 @@ export function useMutation$<
     isError: false,
     isSuccess: false,
     isIdle: true,
-  });
+  })
 
   const result = useMutation<TData, TError, TVariables, TContext>(
     {
       ...options,
       mutationFn: (variables: TVariables) => {
-        let lastData: { value: TData } | undefined;
+        let lastData: { value: TData } | undefined
 
         return new Promise<TData>((resolve, reject) => {
           const source =
             typeof options.mutationFn === "function"
               ? options.mutationFn(variables)
-              : options.mutationFn;
+              : options.mutationFn
 
           source.pipe(take(1)).subscribe({
             next: (data) => {
-              lastData = { value: data };
+              lastData = { value: data }
             },
             error: (error) => {
-              reject(error);
+              reject(error)
             },
             complete: () => {
               if (lastData === undefined)
-                return reject(new Error("Stream completed without any data"));
+                return reject(new Error("Stream completed without any data"))
 
-              resolve(lastData.value);
+              resolve(lastData.value)
             },
-          });
-        });
+          })
+        })
       },
     },
     queryClient,
-  );
+  )
 
-  const { status, isPending, isError, isSuccess, isIdle } = result;
+  const { status, isPending, isError, isSuccess, isIdle } = result
 
   useEffect(() => {
-    stateSubject.current.next({
+    stateSubject.next({
       status,
       isPending,
       isError,
       isSuccess,
       isIdle,
-    });
-  }, [status, isPending, isError, isSuccess, isIdle, stateSubject]);
+    })
+  }, [status, isPending, isError, isSuccess, isIdle, stateSubject])
 
-  return { ...result, state$: stateSubject.current };
+  return { ...result, state$: stateSubject }
 }

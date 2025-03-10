@@ -1,46 +1,65 @@
-import { type Observable, distinctUntilChanged, map } from "rxjs";
-import { useObserve } from "../../binding/useObserve";
-import type { ReadOnlySignal, Signal } from "../Signal";
+import { useEffect } from "react"
+import { distinctUntilChanged, map } from "rxjs"
+import { useObserve } from "../../binding/useObserve"
+import { useLiveRef } from "../../utils"
+import { type Signal, VirtualSignal } from "../Signal"
+import {
+  useMakeOrRetrieveSignal,
+  useSignalContext,
+} from "./SignalContextProvider"
 
-export function useSignalValue<DefaultValue, Value, Key, SelectValue>(
-  signal: Signal<DefaultValue, Value, Key>,
-  selector: (value: DefaultValue) => SelectValue,
-): SelectValue;
-export function useSignalValue<DefaultValue, Value, Key>(
-  signal: Signal<DefaultValue, Value, Key>,
-): DefaultValue;
-// read only
-export function useSignalValue<Value>(signal: ReadOnlySignal<Value>): Value;
-// read only select
-export function useSignalValue<Value, SelectValue>(
-  signal: ReadOnlySignal<Value>,
-  selector: (value: Value) => SelectValue,
-): SelectValue;
-export function useSignalValue<DefaultValue, Value, Key, SelectedValue>(
-  signal: Signal<DefaultValue, Value, Key> | ReadOnlySignal<Value>,
-  selector?: (
-    value: DefaultValue | Value,
-  ) => SelectedValue | DefaultValue | Value,
+export function useSignalValue<T>(signal: VirtualSignal<T>): T
+
+export function useSignalValue<T, SelectValue>(
+  signal: VirtualSignal<T>,
+  selector: (value: T) => SelectValue,
+): SelectValue
+
+export function useSignalValue<T>(signal: Signal<T>): T
+
+export function useSignalValue<T, SelectValue>(
+  signal: Signal<T>,
+  selector: (value: T) => SelectValue,
+): SelectValue
+
+export function useSignalValue<T, SelectValue>(
+  signal: Signal<T>,
+  selector: (value: T) => SelectValue,
+): SelectValue | undefined
+
+export function useSignalValue(
+  signal: Signal<unknown> | VirtualSignal<unknown>,
+  selector?: (value: unknown) => unknown,
 ) {
-  const defaultSelector = () => signal.getValue();
-  const selectorOrDefault = selector ?? defaultSelector;
+  const selectorRef = useLiveRef(selector)
+  const signalContext = useSignalContext()
+
+  if (signal instanceof VirtualSignal && !signalContext) {
+    throw new Error(
+      "useSignalValue must be used within a SignalContextProvider",
+    )
+  }
+
+  const finalSignal = (useMakeOrRetrieveSignal(
+    signal instanceof VirtualSignal ? signal : undefined,
+  ) ?? signal) as Signal<unknown>
 
   return useObserve(
     () => {
-      const observed$ = (signal.subject as Observable<Value>).pipe(
-        map((value) => {
-          const selectedValue = selectorOrDefault(value);
+      const defaultSelector = selectorRef.current ?? ((value: unknown) => value)
 
-          return selectedValue;
-        }),
+      const observed$ = finalSignal.pipe(
+        map(defaultSelector),
         distinctUntilChanged(),
-      );
+      )
 
-      return observed$;
+      return observed$
     },
     {
-      defaultValue: selectorOrDefault(signal.getValue()),
+      defaultValue: selector
+        ? selector?.(finalSignal.value)
+        : finalSignal.value,
     },
-    [],
-  );
+    [finalSignal],
+  )
 }

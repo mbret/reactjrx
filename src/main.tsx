@@ -2,91 +2,66 @@ import {
   MutationCache as RQMutationCache,
   QueryClientProvider as RcQueryClientProvider,
   QueryClient as rc_QueryClient,
-} from "@tanstack/react-query";
-import { StrictMode, memo, useState } from "react";
-import ReactDOM from "react-dom/client";
-import { interval, map, timer } from "rxjs";
-import { QueryClientProvider$ } from "./lib/queries/QueryClientProvider$";
-import { useContactMutation$ } from "./lib/queries/useConcatMutation$";
-import { useQuery$ } from "./lib/queries/useQuery$";
+} from "@tanstack/react-query"
+import { StrictMode, memo, useState } from "react"
+import ReactDOM from "react-dom/client"
+import { QueryClientProvider$ } from "./lib/queries/QueryClientProvider$"
+import { virtualSignal } from "./lib/state/Signal"
+import { SignalContextProvider } from "./lib/state/react/SignalContextProvider"
+import { useSignal } from "./lib/state/react/useSignal"
 
 const rcClient = new rc_QueryClient({
   mutationCache: new RQMutationCache({
     onError: (error) => {
-      console.log("cache onError", error);
+      console.log("cache onError", error)
     },
   }),
-});
+})
 
-const Foo = memo(() => {
-  const data = useQuery$({ queryKey: ["foo"], queryFn: () => timer(99999) });
+const virtualSignal1 = virtualSignal({
+  key: "foo",
+  default: { foo: 2 },
+})
 
-  console.log({ ...data });
+const SubCom = memo(() => {
+  const [bar, setBar] = useSignal(virtualSignal1)
 
-  return null;
-});
+  console.log({ bar: bar.foo })
 
-let t = 0;
+  return (
+    <div>
+      <button onClick={() => setBar((bar) => ({ ...bar, foo: bar.foo + 1 }))}>
+        tap
+      </button>
+    </div>
+  )
+})
 
 const App = memo(() => {
-  const [hide, setHide] = useState(false);
-
-  const { mutate, data, ...rest } = useContactMutation$({
-    mutationKey: ["foo"],
-    mutationFn: (v: number) => {
-      console.log("mutationFn", v);
-
-      return interval(Math.floor(Math.random() * 2000) + 1).pipe(
-        map(() => {
-          console.log("FOOO result", v);
-
-          return v;
-        }),
-      );
-    },
-  });
-
-  console.log({ ...rest });
+  const [isVisible, setIsVisible] = useState(true)
 
   return (
     <>
-      {/* <div>{data.data ?? 0}</div> */}
-      <button
-        type="button"
-        onClick={() => {
-          setHide((v) => !v);
-        }}
-      >
-        toggle hide
+      <button type="button" onClick={() => setIsVisible(!isVisible)}>
+        Toggle
       </button>
-      <button
-        type="button"
-        onClick={() => {
-          t++;
-          console.log("FOOO trigger", t);
-
-          mutate(t);
-        }}
-      >
-        mutate {data}
-      </button>
-      <button
-        type="button"
-        onClick={() => rcClient.cancelQueries({ queryKey: ["foo"] })}
-      >
-        cancel query
-      </button>
-      {hide ? <div>hidden</div> : <Foo />}
+      {isVisible && (
+        <SignalContextProvider>
+          <SubCom />
+        </SignalContextProvider>
+      )}
     </>
-  );
-});
+  )
+})
 
 ReactDOM.createRoot(document.getElementById("app") as HTMLElement).render(
   <StrictMode>
     <RcQueryClientProvider client={rcClient}>
       <QueryClientProvider$>
-        <App />
+        <SignalContextProvider>
+          <App />
+        </SignalContextProvider>
       </QueryClientProvider$>
     </RcQueryClientProvider>
   </StrictMode>,
-);
+)

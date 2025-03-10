@@ -3,7 +3,7 @@ import {
   useCallback,
   useRef,
   useSyncExternalStore,
-} from "react";
+} from "react"
 import {
   type BehaviorSubject,
   EMPTY,
@@ -13,37 +13,37 @@ import {
   identity,
   startWith,
   tap,
-} from "rxjs";
-import { makeObservable } from "../utils/makeObservable";
-import { useLiveRef } from "../utils/react/useLiveRef";
+} from "rxjs"
+import { makeObservable } from "../utils/makeObservable"
+import { useLiveRef } from "../utils/react/useLiveRef"
 
 interface Option<R = undefined> {
-  defaultValue: R;
-  unsubscribeOnUnmount?: boolean;
-  compareFn?: (a: R, b: R) => boolean;
+  defaultValue: R
+  unsubscribeOnUnmount?: boolean
+  compareFn?: (a: R, b: R) => boolean
 }
 
-export function useObserve<T>(source: BehaviorSubject<T>): T;
+export function useObserve<T>(source: BehaviorSubject<T>): T
 
-export function useObserve<T>(source: Observable<T>): T | undefined;
+export function useObserve<T>(source: Observable<T>): T | undefined
 
 export function useObserve<T>(
   source: () => Observable<T>,
   deps: DependencyList,
-): T | undefined;
+): T | undefined
 
 export function useObserve<T>(
   source: () => Observable<T> | undefined,
   deps: DependencyList,
-): T | undefined;
+): T | undefined
 
-export function useObserve<T>(source: Observable<T>, options: Option<T>): T;
+export function useObserve<T>(source: Observable<T>, options: Option<T>): T
 
 export function useObserve<T>(
   source: () => Observable<T>,
   options: Option<T>,
   deps: DependencyList,
-): T;
+): T
 
 export function useObserve<T>(
   source$: Observable<T> | (() => Observable<T> | undefined),
@@ -57,29 +57,29 @@ export function useObserve<T>(
           defaultValue: undefined,
           unsubscribeOnUnmount: true,
           compareFn: undefined,
-        } satisfies Option<undefined>);
+        } satisfies Option<undefined>)
   const deps =
     !maybeDeps && Array.isArray(optionsOrDeps)
       ? optionsOrDeps
       : typeof source$ === "function"
         ? (maybeDeps ?? [])
-        : [source$];
+        : [source$]
   const valueRef = useRef(
     "getValue" in source$ && typeof source$.getValue === "function"
       ? source$.getValue()
       : options.defaultValue,
-  );
-  const sourceRef = useLiveRef(source$);
-  const optionsRef = useLiveRef(options);
+  )
+  const sourceRef = useLiveRef(source$)
+  const optionsRef = useLiveRef(options)
 
   const getSnapshot = useCallback(() => {
-    return valueRef.current;
-  }, []);
+    return valueRef.current
+  }, [])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   const subscribe = useCallback(
     (next: () => void) => {
-      const source = sourceRef.current;
+      const source = sourceRef.current
 
       const sub = makeObservable(source)()
         .pipe(
@@ -92,34 +92,34 @@ export function useObserve<T>(
            */
           distinctUntilChanged((a, b) => {
             if (optionsRef.current.compareFn) {
-              if (a === undefined || b === undefined) return false;
+              if (a === undefined || b === undefined) return false
 
-              return optionsRef.current.compareFn(a, b);
+              return optionsRef.current.compareFn(a, b)
             }
 
-            return false;
+            return false
           }),
           tap((value) => {
-            valueRef.current = value;
+            valueRef.current = value
           }),
           catchError((error) => {
-            console.error(error);
+            console.error(error)
 
-            return EMPTY;
+            return EMPTY
           }),
         )
-        .subscribe(next);
+        .subscribe(next)
 
       return () => {
-        if (optionsRef.current.unsubscribeOnUnmount === false) return;
+        if (optionsRef.current.unsubscribeOnUnmount === false) return
 
-        sub.unsubscribe();
-      };
+        sub.unsubscribe()
+      }
     },
     [...deps],
-  );
+  )
 
-  const result = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const result = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 
-  return result as T;
+  return result as T
 }

@@ -1,10 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from "react"
 
 export const useConstant = <T>(fn: () => T) => {
-  const ref = useRef<T>(undefined);
+  const ref = useRef<T>(undefined)
 
   if (!ref.current) {
-    ref.current = fn();
+    ref.current = fn()
   }
 
   useEffect(() => {
@@ -21,7 +21,7 @@ export const useConstant = <T>(fn: () => T) => {
     if (process.env.NODE_ENV === "development") {
       // ref.current = fn();
     }
-  }, []);
+  }, [])
 
-  return ref as { current: T };
-};
+  return ref as { current: T }
+}

@@ -1,4 +1,4 @@
-import { type Observable, defer, merge, of, throwError, timer } from "rxjs";
+import { type Observable, defer, merge, of, throwError, timer } from "rxjs"
 import {
   catchError,
   concatMap,
@@ -6,35 +6,35 @@ import {
   mergeMap,
   retryWhen,
   tap,
-} from "rxjs/operators";
+} from "rxjs/operators"
 
 export interface RetryBackoffConfig<T, TError> {
   // Initial interval. It will eventually go as high as maxInterval.
-  initialInterval?: number;
+  initialInterval?: number
   // Maximum delay between retries.
-  maxInterval?: number;
+  maxInterval?: number
   // When set to `true` every successful emission will reset the delay and the
   // error count.
-  resetOnSuccess?: boolean;
-  retry?: (attempt: number, error: TError) => boolean;
-  retryAfterDelay?: (attempt: number, error: TError) => boolean;
+  resetOnSuccess?: boolean
+  retry?: (attempt: number, error: TError) => boolean
+  retryAfterDelay?: (attempt: number, error: TError) => boolean
   // Can be used to delay the retry (outside of backoff process)
   // for example if you want to pause retry due to connectivity issue
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  retryAfter?: () => Observable<any>;
-  retryDelay?: number | ((attempt: number, error: TError) => number);
+  retryAfter?: () => Observable<any>
+  retryDelay?: number | ((attempt: number, error: TError) => number)
   // Conditional retry.
   // shouldRetry?: (attempt: number, error: any) => Observable<boolean>
-  backoffDelay?: (iteration: number, initialInterval: number) => number;
+  backoffDelay?: (iteration: number, initialInterval: number) => number
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  caughtError?: (attempt: number, error: any) => undefined | Observable<T>;
+  caughtError?: (attempt: number, error: any) => undefined | Observable<T>
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  catchError?: (attempt: number, error: any) => Observable<T>;
+  catchError?: (attempt: number, error: any) => Observable<T>
 }
 
 /** Calculates the actual delay which can be limited by maxInterval */
 export function getDelay(backoffDelay: number, maxInterval: number) {
-  return Math.min(backoffDelay, maxInterval);
+  return Math.min(backoffDelay, maxInterval)
 }
 
 /** Exponential backoff delay */
@@ -42,7 +42,7 @@ export function exponentialBackoffDelay(
   iteration: number,
   initialInterval: number,
 ) {
-  return 2 ** iteration * initialInterval;
+  return 2 ** iteration * initialInterval
 }
 
 /**
@@ -59,7 +59,7 @@ export function retryBackoff<T, TError>(config: RetryBackoffConfig<T, TError>) {
     retryDelay,
     retryAfterDelay,
     retryAfter = () => of(true),
-  } = config;
+  } = config
 
   const maxRetries =
     typeof retry !== "function"
@@ -68,43 +68,43 @@ export function retryBackoff<T, TError>(config: RetryBackoffConfig<T, TError>) {
         : retry === true
           ? Number.POSITIVE_INFINITY
           : (retry ?? Number.POSITIVE_INFINITY)
-      : Number.POSITIVE_INFINITY;
+      : Number.POSITIVE_INFINITY
 
   const shouldRetry =
     typeof retry === "function"
       ? // ? (attempt: number, error: TError) => of(retry(attempt, error))
         retry
-      : () => true;
+      : () => true
 
-  const initialInterval = typeof retryDelay === "number" ? retryDelay : 100;
+  const initialInterval = typeof retryDelay === "number" ? retryDelay : 100
 
   const normalizedConfig = {
     shouldRetry,
     ...config,
-  };
+  }
 
   const {
     maxInterval = Number.POSITIVE_INFINITY,
     resetOnSuccess = false,
     backoffDelay = exponentialBackoffDelay,
-  } = normalizedConfig;
+  } = normalizedConfig
 
   return <T>(source: Observable<T>) =>
     defer(() => {
-      let caughtErrors = 0;
+      let caughtErrors = 0
 
       const shouldRetryFn = (attempt: number, error: TError) =>
-        attempt < maxRetries ? shouldRetry(attempt, error) : false;
+        attempt < maxRetries ? shouldRetry(attempt, error) : false
 
       return source.pipe(
         catchError<T, Observable<T>>((error) => {
-          caughtErrors++;
+          caughtErrors++
 
-          if (!shouldRetryFn(caughtErrors - 1, error)) throw error;
+          if (!shouldRetryFn(caughtErrors - 1, error)) throw error
 
-          const caughtErrorResult$ = config.caughtError?.(caughtErrors, error);
+          const caughtErrorResult$ = config.caughtError?.(caughtErrors, error)
 
-          if (!caughtErrorResult$) throw error;
+          if (!caughtErrorResult$) throw error
 
           return caughtErrorResult$.pipe(
             mergeMap((source) =>
@@ -113,12 +113,12 @@ export function retryBackoff<T, TError>(config: RetryBackoffConfig<T, TError>) {
                 throwError(() => error),
               ),
             ),
-          );
+          )
         }),
         retryWhen<T>((errors) => {
           return errors.pipe(
             concatMap((error) => {
-              const attempt = caughtErrors - 1;
+              const attempt = caughtErrors - 1
 
               return retryAfter().pipe(
                 first(),
@@ -135,29 +135,29 @@ export function retryBackoff<T, TError>(config: RetryBackoffConfig<T, TError>) {
                             retryAfterDelay &&
                             !retryAfterDelay(attempt, error)
                           )
-                            return throwError(() => error);
+                            return throwError(() => error)
 
-                          return of(timer);
+                          return of(timer)
                         }),
                       )
                     : throwError(() => error),
                 ),
-              );
+              )
             }),
-          );
+          )
         }),
         catchError((e) => {
           if (config.catchError) {
-            return config.catchError(caughtErrors, e);
+            return config.catchError(caughtErrors, e)
           }
 
-          throw e;
+          throw e
         }),
         tap(() => {
           if (resetOnSuccess) {
-            caughtErrors = 0;
+            caughtErrors = 0
           }
         }),
-      );
-    });
+      )
+    })
 }

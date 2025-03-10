@@ -1,16 +1,19 @@
-import { useState } from "react";
-import { type Config, signal } from "../Signal";
-import { useSignalValue } from "./useSignalValue";
+import type { Signal, VirtualSignal } from "../Signal"
+import { useSetSignal } from "./useSetSignal"
+import { useSignalValue } from "./useSignalValue"
 
-/**
- * Use it when:
- * - you need reactive state
- * - you don't need global state
- */
-export const useSignal = <T>(config: Config<T>) => {
-  const [stateSignal] = useState(() => signal(config));
+export function useSignal<T>(signal: VirtualSignal<T>): [T, Signal<T>["update"]]
 
-  const value = useSignalValue(stateSignal);
+export function useSignal<T>(signal: Signal<T>): [T, Signal<T>["next"]]
 
-  return [value, stateSignal] as const;
-};
+export function useSignal<T>(
+  signal: Signal<T>,
+): [T | undefined, Signal<T>["next"]]
+
+export function useSignal<T>(signal: Signal<T> | VirtualSignal<T>) {
+  const value = useSignalValue(signal)
+
+  const setValue = useSetSignal(signal)
+
+  return [value, setValue] as const
+}

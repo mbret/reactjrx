@@ -1,7 +1,7 @@
-import { catchError, from, of, switchMap } from "rxjs";
-import type { Adapter } from "./adapters/Adapter";
-import { IDENTIFIER_PERSISTANCE_KEY } from "./constants";
-import type { PersistanceEntry, SignalPersistenceConfig } from "./types";
+import { catchError, from, of, switchMap } from "rxjs"
+import type { Adapter } from "./adapters/Adapter"
+import { IDENTIFIER_PERSISTANCE_KEY } from "./constants"
+import type { PersistanceEntry, SignalPersistenceConfig } from "./types"
 
 export const getNormalizedPersistanceValue = (unknownValue: unknown) => {
   if (
@@ -10,28 +10,28 @@ export const getNormalizedPersistanceValue = (unknownValue: unknown) => {
     IDENTIFIER_PERSISTANCE_KEY in unknownValue &&
     unknownValue[IDENTIFIER_PERSISTANCE_KEY] === IDENTIFIER_PERSISTANCE_KEY
   ) {
-    return unknownValue as PersistanceEntry;
+    return unknownValue as PersistanceEntry
   }
 
-  return undefined;
-};
+  return undefined
+}
 
 export const persistValue = ({
   adapter,
   config,
 }: {
-  adapter: Adapter;
+  adapter: Adapter
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  config: SignalPersistenceConfig<any>;
+  config: SignalPersistenceConfig<any>
 }) => {
-  const { signal, version } = config;
-  const state = signal.getValue();
+  const { signal, version } = config
+  const state = signal.getValue()
 
   const value = {
     value: state,
     [IDENTIFIER_PERSISTANCE_KEY]: IDENTIFIER_PERSISTANCE_KEY,
     migrationVersion: version,
-  } satisfies PersistanceEntry;
+  } satisfies PersistanceEntry
 
   if (process.env.NODE_ENV === "development") {
     console.log(
@@ -39,50 +39,50 @@ export const persistValue = ({
       "Persist value",
       value,
       `for signal ${signal.config.key}`,
-    );
+    )
   }
 
   return from(adapter.setItem(signal.config.key, value)).pipe(
     catchError((e) => {
-      console.error(e);
+      console.error(e)
 
-      return of(null);
+      return of(null)
     }),
-  );
-};
+  )
+}
 
 export function hydrateValueToSignal({
   adapter,
   config,
 }: {
-  adapter: Adapter;
+  adapter: Adapter
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  config: SignalPersistenceConfig<any>;
+  config: SignalPersistenceConfig<any>
 }) {
-  const { hydrate = ({ value }) => value, signal, version } = config;
+  const { hydrate = ({ value }) => value, signal, version } = config
 
   return from(adapter.getItem(signal.config.key)).pipe(
     switchMap((value) => {
-      const normalizedValue = getNormalizedPersistanceValue(value);
+      const normalizedValue = getNormalizedPersistanceValue(value)
 
-      if (!normalizedValue) return of(value);
+      if (!normalizedValue) return of(value)
 
       const storedVersionIsInvalid =
-        typeof normalizedValue.migrationVersion !== "number";
+        typeof normalizedValue.migrationVersion !== "number"
 
       const signalVersionIsSuperior =
         normalizedValue.migrationVersion !== undefined &&
-        version > normalizedValue.migrationVersion;
+        version > normalizedValue.migrationVersion
 
       if (
         storedVersionIsInvalid ||
         signalVersionIsSuperior ||
         normalizedValue.value === undefined
       ) {
-        return of(value);
+        return of(value)
       }
 
-      const correctVersionValue = normalizedValue.value;
+      const correctVersionValue = normalizedValue.value
 
       if (process.env.NODE_ENV === "development") {
         console.log(
@@ -90,12 +90,12 @@ export function hydrateValueToSignal({
           "Hydrate value",
           normalizedValue,
           `for signal ${signal.config.key}`,
-        );
+        )
       }
 
-      signal.setValue(hydrate({ value: correctVersionValue, version }));
+      signal.setValue(hydrate({ value: correctVersionValue, version }))
 
-      return of(value);
+      return of(value)
     }),
-  );
+  )
 }

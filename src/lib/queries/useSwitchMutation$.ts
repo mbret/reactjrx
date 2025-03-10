@@ -1,8 +1,8 @@
-import type { DefaultError, QueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
-import { defaultIfEmpty, takeUntil } from "rxjs";
-import { useObservableCallback } from "../binding/useObservableCallback";
-import { type UseMutation$Options, useMutation$ } from "./useMutation$";
+import type { DefaultError, QueryClient } from "@tanstack/react-query"
+import { useCallback } from "react"
+import { defaultIfEmpty, takeUntil } from "rxjs"
+import { useObservableCallback } from "../binding/useObservableCallback"
+import { type UseMutation$Options, useMutation$ } from "./useMutation$"
 
 export function useSwitchMutation$<
   TData = unknown,
@@ -13,8 +13,8 @@ export function useSwitchMutation$<
   options: UseMutation$Options<TData | null, TError, TVariables, TContext>,
   queryClient?: QueryClient,
 ) {
-  const [cancel$, cancel] = useObservableCallback();
-  type TDataOrNull = TData | null;
+  const [cancel$, cancel] = useObservableCallback()
+  type TDataOrNull = TData | null
 
   const { mutate, mutateAsync, ...rest } = useMutation$<
     TDataOrNull,
@@ -28,31 +28,31 @@ export function useSwitchMutation$<
         const source =
           typeof options.mutationFn === "function"
             ? options.mutationFn(variables)
-            : options.mutationFn;
+            : options.mutationFn
 
-        return source.pipe(takeUntil(cancel$), defaultIfEmpty(null));
+        return source.pipe(takeUntil(cancel$), defaultIfEmpty(null))
       },
     },
     queryClient,
-  );
+  )
 
   const mutateSwitch = useCallback(
     (variables: TVariables) => {
-      cancel();
+      cancel()
 
-      return mutate(variables);
+      return mutate(variables)
     },
     [mutate, cancel],
-  );
+  )
 
   const mutateAsyncSwitch = useCallback(
     (variables: TVariables) => {
-      cancel();
+      cancel()
 
-      return mutateAsync(variables);
+      return mutateAsync(variables)
     },
     [mutateAsync, cancel],
-  );
+  )
 
-  return { ...rest, mutate: mutateSwitch, mutateAsync: mutateAsyncSwitch };
+  return { ...rest, mutate: mutateSwitch, mutateAsync: mutateAsyncSwitch }
 }

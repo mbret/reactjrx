@@ -1,5 +1,5 @@
-import type { MonoTypeOperatorFunction, Subject } from "rxjs";
-import { tap } from "rxjs/operators";
+import type { MonoTypeOperatorFunction, Subject } from "rxjs"
+import { tap } from "rxjs/operators"
 
 export function emitToSubject<T>(
   subject: Subject<T>,
@@ -7,7 +7,7 @@ export function emitToSubject<T>(
   return (source$) =>
     source$.pipe(
       tap((value) => {
-        subject.next(value);
+        subject.next(value)
       }),
-    );
+    )
 }

@@ -6,10 +6,10 @@ export function filterObjectByKey<T extends object, K extends keyof T>(
     (acc, key) => {
       if (key in obj) {
         // biome-ignore lint/performance/noAccumulatingSpread: <explanation>
-        return { ...acc, [key]: obj[key] };
+        return { ...acc, [key]: obj[key] }
       }
-      return acc;
+      return acc
     },
     {} as Pick<T, K>,
-  );
+  )
 }

@@ -3,8 +3,8 @@ import {
   type MutationKey,
   type QueryClient,
   useQueryClient,
-} from "@tanstack/react-query";
-import { useCallback } from "react";
+} from "@tanstack/react-query"
+import { useCallback } from "react"
 import {
   BehaviorSubject,
   type Subject,
@@ -12,8 +12,8 @@ import {
   first,
   noop,
   switchMap,
-} from "rxjs";
-import { type UseMutation$Options, useMutation$ } from "./useMutation$";
+} from "rxjs"
+import { type UseMutation$Options, useMutation$ } from "./useMutation$"
 
 export function useContactMutation$<
   TData = unknown,
@@ -22,13 +22,13 @@ export function useContactMutation$<
   TContext = unknown,
 >(
   options: UseMutation$Options<TData | null, TError, TVariables, TContext> & {
-    mutationKey: MutationKey;
+    mutationKey: MutationKey
   },
   queryClient?: QueryClient,
 ) {
-  const client = useQueryClient(queryClient);
-  type TDataOrNull = TData | null;
-  const mutationKey = options.mutationKey;
+  const client = useQueryClient(queryClient)
+  type TDataOrNull = TData | null
+  const mutationKey = options.mutationKey
 
   const { mutateAsync, ...rest } = useMutation$<
     TDataOrNull,
@@ -39,63 +39,63 @@ export function useContactMutation$<
     {
       ...options,
       onMutate({ variables }) {
-        return options.onMutate?.(variables);
+        return options.onMutate?.(variables)
       },
       onSuccess(data, variables, context) {
-        return options.onSuccess?.(data, variables.variables, context);
+        return options.onSuccess?.(data, variables.variables, context)
       },
       onError(error, variables, context) {
-        return options.onError?.(error, variables.variables, context);
+        return options.onError?.(error, variables.variables, context)
       },
       onSettled(data, error, variables, context) {
-        return options.onSettled?.(data, error, variables.variables, context);
+        return options.onSettled?.(data, error, variables.variables, context)
       },
       mutationFn: ({ ready$, variables }) => {
         const source =
           typeof options.mutationFn === "function"
             ? options.mutationFn(variables)
-            : options.mutationFn;
+            : options.mutationFn
 
         return ready$.pipe(
           filter((isReady) => isReady),
           first(),
           switchMap(() => source),
-        );
+        )
       },
     },
     queryClient,
-  );
+  )
 
   const mutateAsyncConcat = useCallback(
     async (variables: TVariables) => {
       const mutations = client.getMutationCache().findAll({
         mutationKey,
         exact: true,
-      });
+      })
 
-      const subject = new BehaviorSubject(false);
+      const subject = new BehaviorSubject(false)
 
-      const result = mutateAsync({ variables, ready$: subject });
+      const result = mutateAsync({ variables, ready$: subject })
 
       await Promise.all(
         mutations.map((mutation) => mutation.continue().catch(noop)),
-      );
+      )
 
-      subject.next(true);
+      subject.next(true)
 
       return await result.finally(() => {
-        subject.complete();
-      });
+        subject.complete()
+      })
     },
     [mutateAsync, client, mutationKey],
-  );
+  )
 
   const mutateConcat = useCallback(
     (variables: TVariables) => {
-      mutateAsyncConcat(variables).catch(noop);
+      mutateAsyncConcat(variables).catch(noop)
     },
     [mutateAsyncConcat],
-  );
+  )
 
-  return { ...rest, mutate: mutateConcat, mutateAsync: mutateAsyncConcat };
+  return { ...rest, mutate: mutateConcat, mutateAsync: mutateAsyncConcat }
 }

@@ -7,9 +7,9 @@ import {
   hashKey,
   useQuery,
   useQueryClient,
-} from "@tanstack/react-query";
-import { type Observable, defer, delay, take } from "rxjs";
-import { useQueryClient$ } from "./QueryClientProvider$";
+} from "@tanstack/react-query"
+import { type Observable, defer, delay, take } from "rxjs"
+import { useQueryClient$ } from "./QueryClientProvider$"
 
 export function useQuery$<
   TQueryFnData = unknown,
@@ -23,12 +23,12 @@ export function useQuery$<
   > & {
     queryFn:
       | ((context: QueryFunctionContext<TQueryKey>) => Observable<TQueryFnData>)
-      | Observable<TQueryFnData>;
+      | Observable<TQueryFnData>
   },
   queryClient?: QueryClient,
 ) {
-  const _queryClient = useQueryClient(queryClient);
-  const queryClient$ = useQueryClient$();
+  const _queryClient = useQueryClient(queryClient)
+  const queryClient$ = useQueryClient$()
 
   const queryFnAsync = (context: QueryFunctionContext<TQueryKey>) => {
     return new Promise<TQueryFnData>((resolve, reject) => {
@@ -37,15 +37,15 @@ export function useQuery$<
           typeof options.queryFn === "function"
             ? options.queryFn(context)
             : options.queryFn,
-        );
+        )
 
-      const queryHash = hashKey(context.queryKey);
+      const queryHash = hashKey(context.queryKey)
 
       const queryCacheEntry =
         queryClient$.getQuery(queryHash) ??
-        queryClient$.setQuery(context.queryKey, getSource(), context.signal);
+        queryClient$.setQuery(context.queryKey, getSource(), context.signal)
 
-      const query$ = queryCacheEntry.query$;
+      const query$ = queryCacheEntry.query$
 
       query$
         .pipe(
@@ -59,41 +59,41 @@ export function useQuery$<
         )
         .subscribe({
           error: (error) => {
-            return reject(error);
+            return reject(error)
           },
           complete: () => {
             if (queryCacheEntry?.lastData === undefined) {
               if (queryCacheEntry.signal.aborted) {
-                return resolve(undefined as TQueryFnData);
+                return resolve(undefined as TQueryFnData)
               }
 
               console.log(
                 `cancelled due to stream completing without data for query ${queryHash}`,
                 queryCacheEntry?.lastData,
-              );
+              )
 
               _queryClient.cancelQueries({
                 queryKey: context.queryKey,
                 exact: true,
-              });
+              })
 
-              return resolve(undefined as TQueryFnData);
+              return resolve(undefined as TQueryFnData)
             }
 
-            resolve(queryCacheEntry.lastData.value as TQueryFnData);
+            resolve(queryCacheEntry.lastData.value as TQueryFnData)
 
             if (queryCacheEntry?.isCompleted === false) {
               setTimeout(() => {
                 _queryClient?.refetchQueries({
                   queryKey: context.queryKey,
                   exact: true,
-                });
-              });
+                })
+              })
             }
           },
-        });
-    });
-  };
+        })
+    })
+  }
 
   const result = useQuery<TQueryFnData, TError, TData, TQueryKey>(
     {
@@ -101,7 +101,7 @@ export function useQuery$<
       queryFn: queryFnAsync,
     },
     queryClient,
-  );
+  )
 
-  return result;
+  return result
 }

@@ -11,11 +11,11 @@ import {
   tap,
   throttleTime,
   zip,
-} from "rxjs";
-import type { Signal } from "../Signal";
-import type { Adapter } from "./adapters/Adapter";
-import { hydrateValueToSignal, persistValue } from "./helpers";
-import type { SignalPersistenceConfig } from "./types";
+} from "rxjs"
+import type { SignalWithKey } from "../Signal"
+import type { Adapter } from "./adapters/Adapter"
+import { hydrateValueToSignal, persistValue } from "./helpers"
+import type { SignalPersistenceConfig } from "./types"
 
 export function persistSignals({
   entries = [],
@@ -23,17 +23,17 @@ export function persistSignals({
   adapter,
 }: {
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  entries: Array<SignalPersistenceConfig<Signal<any, any, string>>>;
+  entries: Array<SignalPersistenceConfig<SignalWithKey<any>>>
   /**
    * Triggered after first successful hydrate
    */
-  onHydrated?: () => void;
+  onHydrated?: () => void
   /**
    * Requires a stable instance otherwise the hydration
    * process will start again. This is useful when you
    * need to change adapter during runtime.
    */
-  adapter: Adapter;
+  adapter: Adapter
 }) {
   const signalsHydrated$ =
     entries.length === 0
@@ -45,17 +45,17 @@ export function persistSignals({
               config,
             }),
           ),
-        );
+        )
 
   const isHydrated$ = signalsHydrated$.pipe(
     tap(onHydrated),
     catchError((error) => {
-      console.error("Unable to hydrate", error);
+      console.error("Unable to hydrate", error)
 
-      return EMPTY;
+      return EMPTY
     }),
     share(),
-  );
+  )
 
   /**
    * Start persisting to the current adapter
@@ -66,7 +66,7 @@ export function persistSignals({
     switchMap(() =>
       merge(
         ...entries.map((config) =>
-          config.signal.subject.pipe(
+          config.signal.pipe(
             throttleTime(500, asyncScheduler, {
               trailing: true,
             }),
@@ -82,7 +82,7 @@ export function persistSignals({
         ),
       ),
     ),
-  );
+  )
 
   return merge(
     isHydrated$.pipe(
@@ -95,5 +95,5 @@ export function persistSignals({
         type: "persisted" as const,
       })),
     ),
-  );
+  )
 }

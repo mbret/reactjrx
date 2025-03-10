@@ -1,15 +1,15 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render } from "@testing-library/react";
-import React, { useEffect } from "react";
-import { ReplaySubject, finalize, takeUntil, timer } from "rxjs";
-import { afterEach, describe, expect, it } from "vitest";
-import { waitForTimeout } from "../../tests/utils";
-import { QueryClientProvider$ } from "./QueryClientProvider$";
-import { useMutation$ } from "./useMutation$";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { cleanup, render } from "@testing-library/react"
+import React, { useEffect } from "react"
+import { ReplaySubject, finalize, takeUntil, timer } from "rxjs"
+import { afterEach, describe, expect, it } from "vitest"
+import { waitForTimeout } from "../../tests/utils"
+import { QueryClientProvider$ } from "./QueryClientProvider$"
+import { useMutation$ } from "./useMutation$"
 
 afterEach(() => {
-  cleanup();
-});
+  cleanup()
+})
 
 describe("useMutation", () => {
   describe("Given component unmount", () => {
@@ -20,11 +20,11 @@ describe("useMutation", () => {
        * by adding a hook. It's anti pattern but will do it until I find better way
        */
       it("should complete main observable chain when mutation finish", async () => {
-        let finalized = 0;
-        let unmountTime = 0;
-        const manualStop = new ReplaySubject<void>();
+        let finalized = 0
+        let unmountTime = 0
+        const manualStop = new ReplaySubject<void>()
 
-        const client = new QueryClient();
+        const client = new QueryClient()
 
         const Comp = () => {
           const { mutate } = useMutation$({
@@ -32,21 +32,21 @@ describe("useMutation", () => {
               timer(1000).pipe(
                 takeUntil(manualStop),
                 finalize(() => {
-                  finalized++;
+                  finalized++
                 }),
               ),
-          });
+          })
 
           useEffect(() => {
-            mutate();
+            mutate()
 
             return () => {
-              unmountTime++;
-            };
-          }, [mutate]);
+              unmountTime++
+            }
+          }, [mutate])
 
-          return null;
-        };
+          return null
+        }
 
         const { unmount } = render(
           <React.StrictMode>
@@ -56,20 +56,20 @@ describe("useMutation", () => {
               </QueryClientProvider$>
             </QueryClientProvider>
           </React.StrictMode>,
-        );
+        )
 
-        unmount();
+        unmount()
 
         // observable should not be forcefully closed
-        expect(finalized).toBe(0);
+        expect(finalized).toBe(0)
 
         // we simulate a long observable to stop after a while
-        manualStop.next();
+        manualStop.next()
 
-        await waitForTimeout(10);
+        await waitForTimeout(10)
 
-        expect(finalized).toBe(unmountTime);
-      });
-    });
-  });
-});
+        expect(finalized).toBe(unmountTime)
+      })
+    })
+  })
+})
