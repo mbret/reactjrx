@@ -14,6 +14,7 @@ export class Signal<T> extends BehaviorSubject<T> {
   update = <U extends T>(
     valueOrUpdater:
       | ((prev: T) => T)
+      // biome-ignore lint/complexity/noBannedTypes: <explanation>
       | (U extends Function ? never : U)
       | typeof SIGNAL_RESET,
   ): void => {
