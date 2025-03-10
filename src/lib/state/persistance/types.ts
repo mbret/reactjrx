@@ -8,7 +8,7 @@ export interface PersistanceEntry {
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-export interface SignalPersistenceConfig<S extends Signal<any, any, string>> {
+export interface SignalPersistenceConfig<S extends Signal<any, string>> {
   version: number
   signal: S
   /**

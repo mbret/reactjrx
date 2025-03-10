@@ -12,7 +12,7 @@ import {
   throttleTime,
   zip,
 } from "rxjs"
-import type { SignalWithKey } from "../Signal"
+import type { Signal } from "../Signal"
 import type { Adapter } from "./adapters/Adapter"
 import { hydrateValueToSignal, persistValue } from "./helpers"
 import type { SignalPersistenceConfig } from "./types"
@@ -23,7 +23,7 @@ export function persistSignals({
   adapter,
 }: {
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  entries: Array<SignalPersistenceConfig<SignalWithKey<any>>>
+  entries: Array<SignalPersistenceConfig<Signal<any, string>>>
   /**
    * Triggered after first successful hydrate
    */

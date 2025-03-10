@@ -13,7 +13,7 @@ export class SignalContext {
       return existingSignal as Signal<T>
     }
 
-    const newSignal = new Signal(virtualSignal.config)
+    const newSignal = new Signal<T>({ ...virtualSignal.config, key: undefined })
 
     this.signals.value.set(virtualSignal, newSignal)
     this.signals.next(this.signals.value)

@@ -1,4 +1,3 @@
-import { useEffect } from "react"
 import { distinctUntilChanged, map } from "rxjs"
 import { useObserve } from "../../binding/useObserve"
 import { useLiveRef } from "../../utils"
