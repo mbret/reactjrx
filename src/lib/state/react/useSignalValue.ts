@@ -1,11 +1,8 @@
 import { distinctUntilChanged, map } from "rxjs"
 import { useObserve } from "../../binding/useObserve"
 import { useLiveRef } from "../../utils"
-import { type Signal, VirtualSignal } from "../Signal"
-import {
-  useMakeOrRetrieveSignal,
-  useSignalContext,
-} from "./SignalContextProvider"
+import type { Signal, VirtualSignal } from "../Signal"
+import { useSignalReference } from "./useSignalReference"
 
 export function useSignalValue<T>(signal: VirtualSignal<T>): T
 
@@ -31,17 +28,8 @@ export function useSignalValue(
   selector?: (value: unknown) => unknown,
 ) {
   const selectorRef = useLiveRef(selector)
-  const signalContext = useSignalContext()
 
-  if (signal instanceof VirtualSignal && !signalContext) {
-    throw new Error(
-      "useSignalValue must be used within a SignalContextProvider",
-    )
-  }
-
-  const finalSignal = (useMakeOrRetrieveSignal(
-    signal instanceof VirtualSignal ? signal : undefined,
-  ) ?? signal) as Signal<unknown>
+  const finalSignal = useSignalReference(signal)
 
   return useObserve(
     () => {
