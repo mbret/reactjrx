@@ -2,8 +2,14 @@ import { BehaviorSubject } from "rxjs"
 import { Signal, type VirtualSignal } from "./Signal"
 
 export class SignalContext {
+  /**
+   * items only get added as they are created. The only time we should cleanup
+   * are on context destroy. This is to ensure later re-use of virtual signals
+   * return the same persisted state.
+   */
   // biome-ignore lint/suspicious/noExplicitAny: <explanation>
   signals = new BehaviorSubject(new Map<VirtualSignal<unknown>, Signal<any>>())
+
   public isDestroyed = false
 
   getOrCreateSignal<T>(virtualSignal: VirtualSignal<T>): Signal<T> {
