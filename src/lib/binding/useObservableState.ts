@@ -1,7 +1,7 @@
 import { useCallback } from "react"
-import type { Observable } from "rxjs"
+import { BehaviorSubject, type Observable } from "rxjs"
+import { useConstant } from "../utils/react/useConstant"
 import { useLiveRef } from "../utils/react/useLiveRef"
-import { useBehaviorSubject } from "./useBehaviorSubject"
 
 /**
  * If you need to represent some piece of state as an observable and also want the ability to change
@@ -20,7 +20,7 @@ import { useBehaviorSubject } from "./useBehaviorSubject"
 export const useObservableState = <T>(
   defaultValue: T,
 ): [Observable<T>, (value: T) => void, T] => {
-  const subject = useBehaviorSubject(defaultValue)
+  const subject = useConstant(() => new BehaviorSubject(defaultValue))
 
   const subject$ = useLiveRef(subject)
 

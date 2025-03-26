@@ -1,7 +1,13 @@
-import { createContext, memo, useContext, useEffect, useMemo } from "react"
+import {
+  createContext,
+  memo,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react"
 import { map } from "rxjs"
 import { useObserve } from "../../binding/useObserve"
-import { useConstant } from "../../utils/react/useConstant"
 import type { VirtualSignal } from "../Signal"
 import { SignalContext } from "../SignalContext"
 
@@ -11,17 +17,19 @@ export const SignalReactContext = createContext<SignalContextType>(undefined)
 
 export const SignalContextProvider = memo(
   ({ children }: { children: React.ReactNode }) => {
-    const signalContext = useConstant(() => new SignalContext())
+    const [signalContext, setSignalContext] = useState<SignalContextType>(
+      () => new SignalContext(),
+    )
 
-    if (signalContext.current.isDestroyed) {
-      signalContext.current = new SignalContext()
+    if (signalContext?.isDestroyed) {
+      setSignalContext(new SignalContext())
     }
 
-    const value = useMemo(() => signalContext.current, [signalContext])
+    const value = useMemo(() => signalContext, [signalContext])
 
     useEffect(() => {
       return () => {
-        signalContext.current.destroy()
+        signalContext?.destroy()
       }
     }, [signalContext])
 

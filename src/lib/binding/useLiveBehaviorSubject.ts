@@ -1,8 +1,9 @@
 import { useEffect } from "react"
-import { useBehaviorSubject } from "./useBehaviorSubject"
+import { BehaviorSubject } from "rxjs"
+import { useConstant } from "../utils/react/useConstant"
 
 export const useLiveBehaviorSubject = <S>(state: S) => {
-  const subject = useBehaviorSubject(state)
+  const subject = useConstant(() => new BehaviorSubject(state))
 
   useEffect(() => {
     subject.next(state)

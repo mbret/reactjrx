@@ -3,7 +3,7 @@ import React, { act, memo, useEffect, useRef, useState } from "react"
 import { BehaviorSubject, type Observable, Subject, map, of, timer } from "rxjs"
 import { afterEach, describe, expect, expectTypeOf, it } from "vitest"
 import { waitForTimeout } from "../../tests/utils"
-import { useBehaviorSubject } from "./useBehaviorSubject"
+import { useConstant } from "../utils/react/useConstant"
 import { useObserve } from "./useObserve"
 
 afterEach(() => {
@@ -114,7 +114,7 @@ describe("useObserve", () => {
 
   it("should return correct result with use ref source under strict mode", async () => {
     const Comp = memo(() => {
-      const source = useBehaviorSubject(3)
+      const source = useConstant(() => new BehaviorSubject(3))
       const result = useObserve(() => source, [source])
 
       useEffect(() => {

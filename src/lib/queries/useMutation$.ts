@@ -6,8 +6,8 @@ import {
   useMutation,
 } from "@tanstack/react-query"
 import { useEffect } from "react"
-import { type Observable, take } from "rxjs"
-import { useBehaviorSubject } from "../binding/useBehaviorSubject"
+import { BehaviorSubject, type Observable, take } from "rxjs"
+import { useConstant } from "../utils/react/useConstant"
 
 export type UseMutation$Options<
   TData = unknown,
@@ -30,18 +30,21 @@ export function useMutation$<
   options: UseMutation$Options<TData, TError, TVariables, TContext>,
   queryClient?: QueryClient,
 ) {
-  const stateSubject = useBehaviorSubject<
-    Pick<
-      UseMutationResult<TData, TError, TVariables, TContext>,
-      "status" | "isPending" | "isError" | "isSuccess" | "isIdle"
-    >
-  >({
-    status: "idle",
-    isPending: false,
-    isError: false,
-    isSuccess: false,
-    isIdle: true,
-  })
+  const stateSubject = useConstant(
+    () =>
+      new BehaviorSubject<
+        Pick<
+          UseMutationResult<TData, TError, TVariables, TContext>,
+          "status" | "isPending" | "isError" | "isSuccess" | "isIdle"
+        >
+      >({
+        status: "idle",
+        isPending: false,
+        isError: false,
+        isSuccess: false,
+        isIdle: true,
+      }),
+  )
 
   const result = useMutation<TData, TError, TVariables, TContext>(
     {
