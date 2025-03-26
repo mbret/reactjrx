@@ -8,6 +8,7 @@ import {
 } from "react"
 import { map } from "rxjs"
 import { useObserve } from "../../binding/useObserve"
+import { useRefOnce } from "../../utils/react/useRefOnce"
 import type { VirtualSignal } from "../Signal"
 import { SignalContext } from "../SignalContext"
 
@@ -17,21 +18,26 @@ export const SignalReactContext = createContext<SignalContextType>(undefined)
 
 export const SignalContextProvider = memo(
   ({ children }: { children: React.ReactNode }) => {
-    const [signalContext, setSignalContext] = useState<SignalContextType>(
+    const signalContextRef = useRefOnce<SignalContextType>(
       () => new SignalContext(),
     )
+    const signalContext = signalContextRef.current
+    const [isDestroyed, setIsDestroyed] = useState(false)
 
-    if (signalContext?.isDestroyed) {
-      setSignalContext(new SignalContext())
+    if (isDestroyed) {
+      signalContextRef.current = new SignalContext()
+      setIsDestroyed(false)
     }
 
     const value = useMemo(() => signalContext, [signalContext])
 
     useEffect(() => {
       return () => {
-        signalContext?.destroy()
+        signalContextRef.current?.destroy()
+        // force re-render
+        setIsDestroyed(true)
       }
-    }, [signalContext])
+    }, [signalContextRef])
 
     return (
       <SignalReactContext.Provider value={value}>

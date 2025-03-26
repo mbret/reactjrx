@@ -1,7 +1,21 @@
 import type { DefaultError, QueryClient } from "@tanstack/react-query"
 import { useCallback, useRef } from "react"
-import { defaultIfEmpty, fromEvent, of, takeUntil } from "rxjs"
+import {
+  defaultIfEmpty,
+  first,
+  fromEvent,
+  ignoreElements,
+  merge,
+  tap,
+} from "rxjs"
 import { type UseMutation$Options, useMutation$ } from "./useMutation$"
+
+export class SwitchMutationCancelError extends Error {
+  constructor(message = "Mutation canceled") {
+    super(message)
+    this.name = "SwitchMutationCancelError"
+  }
+}
 
 export function useSwitchMutation$<
   TData = unknown,
@@ -25,7 +39,7 @@ export function useSwitchMutation$<
       ...options,
       mutationFn: ({ variables, abort }) => {
         if (abort.aborted) {
-          return of(null)
+          throw new SwitchMutationCancelError()
         }
 
         const source =
@@ -33,10 +47,15 @@ export function useSwitchMutation$<
             ? options.mutationFn(variables)
             : options.mutationFn
 
-        return source.pipe(
-          takeUntil(fromEvent(abort, "abort")),
-          defaultIfEmpty(null),
-        )
+        return merge(
+          source,
+          fromEvent(abort, "abort").pipe(
+            tap(() => {
+              throw new SwitchMutationCancelError()
+            }),
+            ignoreElements(),
+          ),
+        ).pipe(first(), defaultIfEmpty(null))
       },
       onMutate: ({ variables }) => {
         return options.onMutate?.(variables)
