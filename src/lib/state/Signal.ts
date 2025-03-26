@@ -21,11 +21,11 @@ export class Signal<
     super(config.default)
   }
 
-  update = <U extends T>(
+  update = (
     valueOrUpdater:
       | ((prev: T) => T)
       // biome-ignore lint/complexity/noBannedTypes: <explanation>
-      | (U extends Function ? never : U)
+      | (T extends Function ? never : T)
       | typeof SIGNAL_RESET,
   ): void => {
     if (valueOrUpdater === SIGNAL_RESET) {
