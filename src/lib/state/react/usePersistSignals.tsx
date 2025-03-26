@@ -2,7 +2,7 @@ import { concatMap, merge, of, scan, switchMap } from "rxjs"
 import { useLiveBehaviorSubject } from "../../binding/useLiveBehaviorSubject"
 import { useObserve } from "../../binding/useObserve"
 import { useLiveRef } from "../../utils/react/useLiveRef"
-import { shallowEqual } from "../../utils/shallowEqual"
+import { isShallowEqual } from "../../utils/shallowEqual"
 import type { Adapter } from "../persistance/adapters/Adapter"
 import { persistSignals } from "../persistance/persistSignals"
 import type { SignalPersistenceConfig } from "../persistance/types"
@@ -77,7 +77,7 @@ export function usePersistSignals({
         ),
       )
     },
-    { defaultValue: { isHydrated: false }, compareFn: shallowEqual },
+    { defaultValue: { isHydrated: false }, compareFn: isShallowEqual },
     [adapterSubject, entriesSubject],
   )
 }

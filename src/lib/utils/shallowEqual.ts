@@ -1,4 +1,4 @@
-export function shallowEqual<A, B>(objA: A, objB: B): boolean {
+export function isShallowEqual<A, B>(objA: A, objB: B): boolean {
   // Check if both objects are null or undefined
   if (objA === null || objA === undefined || objB === undefined) {
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
