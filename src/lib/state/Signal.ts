@@ -60,7 +60,7 @@ export class VirtualSignal<T> {
   constructor(public config: { default: T }) {}
 }
 
-export function signal<T, K extends string>(config: {
+export function signal<T, K extends string = string>(config: {
   key: K
   default: T
 }): Signal<T, K>
