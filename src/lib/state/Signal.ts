@@ -60,10 +60,21 @@ export class VirtualSignal<T> {
   constructor(public config: { default: T }) {}
 }
 
+export function signal// biome-ignore lint/complexity/noBannedTypes: <explanation>
+(config: {}): Signal<undefined, undefined>
+
+export function signal<T = undefined, K extends string = string>(config: {
+  key: K
+}): Signal<T | undefined, K>
+
 export function signal<T, K extends string = string>(config: {
   key: K
   default: T
 }): Signal<T, K>
+
+export function signal<T>(config: {
+  key?: undefined
+}): Signal<T | undefined, undefined>
 
 export function signal<T>(config: {
   key?: undefined
@@ -74,11 +85,6 @@ export function signal<K extends string>(config: {
   key: K
   default?: undefined
 }): Signal<undefined, K>
-
-export function signal<T>(config?: {
-  key?: undefined
-  default?: T
-}): Signal<T, undefined>
 
 export function signal<T, K extends string | undefined = undefined>(
   config: { default?: T; key?: K } = {},
