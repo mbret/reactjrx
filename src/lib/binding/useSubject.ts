@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react"
-import { Subject } from "rxjs"
+import { useEffect, useState } from "react"
+import { ReplaySubject, Subject } from "rxjs"
 import { useConstant } from "../utils/react/useConstant"
 import { useLiveRef } from "../utils/react/useLiveRef"
 
@@ -12,16 +12,17 @@ export const useSubject = <S>({
   completeOnUnmount = true,
 }: { onBeforeComplete?: () => void; completeOnUnmount?: boolean } = {}) => {
   const subject = useConstant(() => new Subject<S>())
-  const completed = useRef(false)
+  const completedSubject = useConstant(() => new ReplaySubject<boolean>(1))
   const onBeforeCompleteRef = useLiveRef(onBeforeComplete)
   const completeOnUnmountRef = useLiveRef(completeOnUnmount)
+  const [render, setRender] = useState(0)
+
+  if (completedSubject.current) {
+    subject.current = new Subject<S>()
+    completedSubject.current = new ReplaySubject<boolean>(1)
+  }
 
   useEffect(() => {
-    if (completed.current) {
-      subject.current = new Subject<S>()
-      completed.current = false
-    }
-
     return () => {
       /**
        * @important
@@ -29,18 +30,20 @@ export const useSubject = <S>({
        * flag it in order to be replaced with new subject on remount.
        */
       if (!completeOnUnmountRef.current) {
-        completed.current = true
-
         return
       }
 
-      if (!completed.current) {
-        if (onBeforeCompleteRef.current != null) onBeforeCompleteRef.current()
-        subject.current.complete()
-        completed.current = true
+      if (onBeforeCompleteRef.current != null) {
+        onBeforeCompleteRef.current()
       }
-    }
-  }, [completeOnUnmountRef, onBeforeCompleteRef, subject])
 
-  return subject
+      completedSubject.current.next(true)
+
+      subject.current = new Subject<S>()
+      completedSubject.current = new ReplaySubject<boolean>(1)
+      setRender((state) => state + 1)
+    }
+  }, [completeOnUnmountRef, onBeforeCompleteRef, completedSubject, subject])
+
+  return [subject.current, completedSubject.current] as const
 }

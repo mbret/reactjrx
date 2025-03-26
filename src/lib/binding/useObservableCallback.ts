@@ -1,5 +1,6 @@
 import { useCallback } from "react"
 import type { Observable } from "rxjs"
+import { useLiveRef } from "../utils"
 import { useSubject } from "./useSubject"
 
 /**
@@ -9,12 +10,15 @@ export const useObservableCallback = <T = void>(): readonly [
   Observable<T>,
   (arg: T) => void,
 ] => {
-  const subject = useSubject<T>()
+  const [subject] = useSubject<T>()
+  const subjectRef = useLiveRef(subject)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-  const trigger = useCallback((arg: T) => {
-    subject.current.next(arg)
-  }, [])
+  const trigger = useCallback(
+    (arg: T) => {
+      subjectRef.current.next(arg)
+    },
+    [subjectRef],
+  )
 
-  return [subject.current, trigger] as const
+  return [subject, trigger] as const
 }

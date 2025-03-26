@@ -1,11 +1,7 @@
 import { useSubject } from "../../binding/useSubject"
 
 export const useUnmountObservable = () => {
-  const subject = useSubject<void>({
-    onBeforeComplete: () => {
-      subject.current.next()
-    },
-  })
+  const [, completed] = useSubject<boolean>()
 
-  return subject
+  return completed
 }
