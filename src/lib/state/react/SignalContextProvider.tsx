@@ -1,20 +1,13 @@
-import {
-  createContext,
-  memo,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react"
-import { map } from "rxjs"
-import { useObserve } from "../../binding/useObserve"
+import { createContext, memo, useContext, useEffect, useState } from "react"
 import { useRefOnce } from "../../utils/react/useRefOnce"
 import type { VirtualSignal } from "../Signal"
 import { SignalContext } from "../SignalContext"
 
-export type SignalContextType = undefined | SignalContext
+export type SignalContextType = SignalContext
 
-export const SignalReactContext = createContext<SignalContextType>(undefined)
+export const SignalReactContext = createContext<SignalContextType>(
+  new SignalContext(),
+)
 
 export const SignalContextProvider = memo(
   ({ children }: { children: React.ReactNode }) => {
@@ -29,7 +22,7 @@ export const SignalContextProvider = memo(
       setIsDestroyed(false)
     }
 
-    const value = useMemo(() => signalContext, [signalContext])
+    const value = signalContext
 
     useEffect(() => {
       return () => {
@@ -58,32 +51,9 @@ export const useMakeOrRetrieveSignal = (
 ) => {
   const signalContext = useSignalContext()
 
-  if (!signalContext) {
-    if (virtualSignal) {
-      throw new Error(
-        "useSignalValue must be used within a SignalContextProvider",
-      )
-    }
+  const signal = virtualSignal
+    ? signalContext.getOrCreateSignal(virtualSignal)
+    : undefined
 
-    return undefined
-  }
-
-  const signals = signalContext.signals
-
-  return useObserve(
-    () =>
-      signals.pipe(
-        map(() =>
-          virtualSignal
-            ? signalContext.getOrCreateSignal(virtualSignal)
-            : undefined,
-        ),
-      ),
-    {
-      defaultValue: virtualSignal
-        ? signalContext.getOrCreateSignal(virtualSignal)
-        : undefined,
-    },
-    [signals],
-  )
+  return signal
 }
