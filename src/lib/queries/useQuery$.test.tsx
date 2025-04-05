@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, render } from "@testing-library/react"
 import React, { memo, useEffect, useState } from "react"
-import { Subject, interval, takeWhile } from "rxjs"
+import { Subject, interval, merge, of, takeWhile, timer } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
 import { waitForTimeout } from "../../tests/utils"
 import { QueryClientProvider$ } from "./QueryClientProvider$"
@@ -41,6 +41,33 @@ describe("Given a query that returns an interval stream", () => {
     )
 
     expect(await findByText(JSON.stringify([1, 2, 3]))).toBeDefined()
+  })
+})
+
+describe("Given a query that returns a value synchronously but keep going", () => {
+  it("should return the first value", async () => {
+    const Comp = () => {
+      const { data } = useQuery$({
+        queryKey: [],
+        queryFn: () => merge(of(1), timer(Number.POSITIVE_INFINITY)),
+      })
+
+      return <>{data}</>
+    }
+
+    const client = new QueryClient()
+
+    const { findByText } = render(
+      <React.StrictMode>
+        <QueryClientProvider client={client}>
+          <QueryClientProvider$>
+            <Comp />
+          </QueryClientProvider$>
+        </QueryClientProvider>
+      </React.StrictMode>,
+    )
+
+    expect(await findByText("1")).toBeDefined()
   })
 })
 

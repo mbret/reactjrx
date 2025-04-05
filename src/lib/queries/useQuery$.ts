@@ -41,9 +41,31 @@ export function useQuery$<
 
       const queryHash = hashKey(context.queryKey)
 
+      const queryAlreadyInCache = queryClient$.getQuery(queryHash)
+
       const queryCacheEntry =
-        queryClient$.getQuery(queryHash) ??
+        queryAlreadyInCache ??
         queryClient$.setQuery(context.queryKey, getSource(), context.signal)
+
+      const refetchIfNeeded = () => {
+        if (queryCacheEntry?.isCompleted === false) {
+          setTimeout(() => {
+            _queryClient?.refetchQueries({
+              queryKey: context.queryKey,
+              exact: true,
+            })
+          })
+        }
+      }
+
+      // if the observable returns results synchronously
+      if (!queryAlreadyInCache && queryCacheEntry.lastData !== undefined) {
+        resolve(queryCacheEntry.lastData.value as TQueryFnData)
+
+        refetchIfNeeded()
+
+        return
+      }
 
       const query$ = queryCacheEntry.query$
 
@@ -82,14 +104,7 @@ export function useQuery$<
 
             resolve(queryCacheEntry.lastData.value as TQueryFnData)
 
-            if (queryCacheEntry?.isCompleted === false) {
-              setTimeout(() => {
-                _queryClient?.refetchQueries({
-                  queryKey: context.queryKey,
-                  exact: true,
-                })
-              })
-            }
+            refetchIfNeeded()
           },
         })
     })

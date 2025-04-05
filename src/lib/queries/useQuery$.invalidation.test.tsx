@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, render } from "@testing-library/react"
-import React, { act } from "react"
+import React, { act, StrictMode } from "react"
 import { of } from "rxjs"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { printQuery } from "../../tests/testUtils"
@@ -18,7 +18,7 @@ describe("useQuery", () => {
         it("should refetch", async () => {
           let value = 0
 
-          const queryFn = vi.fn().mockImplementation(() => {
+          const queryFnMock = vi.fn().mockImplementation(() => {
             return of(++value)
           })
 
@@ -27,7 +27,7 @@ describe("useQuery", () => {
           const Comp = () => {
             const result = useQuery$({
               queryKey: ["foo"],
-              queryFn,
+              queryFn: () => queryFnMock(),
               staleTime: staleTimeout,
             })
 
@@ -57,18 +57,21 @@ describe("useQuery", () => {
           const client = new QueryClient()
 
           const { findByText, getByText } = render(
-            <QueryClientProvider client={client}>
-              <QueryClientProvider$>
-                <Main />
-              </QueryClientProvider$>
-            </QueryClientProvider>,
+            <StrictMode>
+              <QueryClientProvider client={client}>
+                <QueryClientProvider$>
+                  <Main />
+                </QueryClientProvider$>
+              </QueryClientProvider>
+            </StrictMode>,
           )
 
+          // strict mode runs 2 times
           expect(
-            await findByText(printQuery({ data: 1, status: "success" })),
+            await findByText(printQuery({ data: 2, status: "success" })),
           ).toBeDefined()
 
-          expect(queryFn.mock.calls.length).toBe(2)
+          expect(queryFnMock.mock.calls.length).toBe(2)
 
           act(() => {
             getByText("toggle").click()
@@ -78,11 +81,12 @@ describe("useQuery", () => {
             getByText("toggle").click()
           })
 
+          // strict mode runs 2 times
           expect(
-            await findByText(printQuery({ data: 3, status: "success" })),
+            await findByText(printQuery({ data: 4, status: "success" })),
           ).toBeDefined()
 
-          expect(queryFn.mock.calls.length).toBe(4)
+          expect(queryFnMock.mock.calls.length).toBe(4)
         })
       })
     })
