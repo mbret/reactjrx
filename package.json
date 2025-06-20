@@ -3,7 +3,9 @@
   "private": false,
   "version": "0.0.0-development",
   "type": "module",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "exports": {
@@ -37,17 +39,16 @@
     "rxjs": "*"
   },
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
+    "@biomejs/biome": "2.0.0",
     "@testing-library/jest-dom": "^6.2.0",
     "@testing-library/react": "^16.1.0",
     "@types/node": "^22.13.1",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "@vitejs/plugin-react": "^4.0.0",
-    "biome": "^0.3.3",
     "husky": "^9.1.7",
     "jsdom": "^26.0.0",
-    "lint-staged": "^15.4.3",
+    "lint-staged": "^16.1.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "rollup-plugin-node-externals": "^8.0.0",

@@ -44,7 +44,7 @@ export function useSubscribeEffect<T>(
       }),
   )
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  // biome-ignore lint/correctness/useExhaustiveDependencies: TODO
   const sourceAsObservable = useCallback(() => makeObservable(source)(), deps)
 
   const enhancerMakeObservable = useCallback(

@@ -1,6 +1,6 @@
 import { cleanup, render, renderHook, screen } from "@testing-library/react"
 import { type FC, type PropsWithChildren, StrictMode, useEffect } from "react"
-import { type MockInstance, afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, type MockInstance, vi } from "vitest"
 import { virtualSignal } from "../Signal"
 import type { SignalContext } from "../SignalContext"
 import {

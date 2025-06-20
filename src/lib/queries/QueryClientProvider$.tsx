@@ -1,9 +1,9 @@
-import { type QueryKey, hashKey } from "@tanstack/react-query"
+import { hashKey, type QueryKey } from "@tanstack/react-query"
 import { createContext, memo, useContext, useEffect, useState } from "react"
 import {
+  fromEvent,
   type Observable,
   type Subscription,
-  fromEvent,
   share,
   takeUntil,
 } from "rxjs"

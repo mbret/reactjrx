@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, render } from "@testing-library/react"
 import React, { memo, useEffect, useState } from "react"
-import { Subject, interval, merge, of, takeWhile, timer } from "rxjs"
+import { interval, merge, of, Subject, takeWhile, timer } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
 import { waitForTimeout } from "../../tests/utils"
 import { QueryClientProvider$ } from "./QueryClientProvider$"
@@ -74,7 +74,7 @@ describe("Given a query that returns a value synchronously but keep going", () =
 it("should return consecutive results", async () => {
   // interval big enough so react does not skip some render
   const source = interval(5).pipe(takeWhile((value) => value < 5, true))
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: TODO
   const states: any = []
 
   const Comp = memo(() => {

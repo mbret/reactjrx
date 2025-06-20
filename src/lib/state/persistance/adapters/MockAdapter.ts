@@ -2,7 +2,7 @@ import type { Adapter } from "./Adapter"
 
 export class MockAdapter implements Adapter {
   constructor(
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: TODO
     public storage: Record<string, any> = {},
     public config = {
       resolve: true,
@@ -15,7 +15,7 @@ export class MockAdapter implements Adapter {
     return Promise.resolve(this.storage[key])
   }
 
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: TODO
   setItem(_: string, __: any) {
     return new Promise(() => {})
   }

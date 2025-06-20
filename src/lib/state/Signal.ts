@@ -1,7 +1,7 @@
 import { BehaviorSubject } from "rxjs"
 import { SIGNAL_RESET } from "./constants"
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: TODO
 export type SignalValue<T extends Signal<any, any>> = T["value"]
 
 export type SignalWithKey<T> = Signal<T> & {
@@ -24,7 +24,7 @@ export class Signal<
   update = (
     valueOrUpdater:
       | ((prev: T) => T)
-      // biome-ignore lint/complexity/noBannedTypes: <explanation>
+      // biome-ignore lint/complexity/noBannedTypes: TODO
       | (T extends Function ? never : T)
       | typeof SIGNAL_RESET,
   ): void => {
@@ -59,7 +59,7 @@ export class Signal<
 export class VirtualSignal<T> {
   constructor(public config: { default: T }) {}
 }
-// biome-ignore lint/complexity/noBannedTypes: <explanation>
+// biome-ignore lint/complexity/noBannedTypes: TODO
 export function signal(config: {}): Signal<undefined, undefined>
 
 export function signal<T = undefined, K extends string = string>(config: {

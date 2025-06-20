@@ -7,10 +7,10 @@ import {
 import { useCallback } from "react"
 import {
   BehaviorSubject,
-  type Subject,
   filter,
   first,
   noop,
+  type Subject,
   switchMap,
 } from "rxjs"
 import { type UseMutation$Options, useMutation$ } from "./useMutation$"

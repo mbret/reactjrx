@@ -1,12 +1,12 @@
 // Copied from: https://github.com/jonschlinkert/is-plain-object
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: TODO
 function hasObjectPrototype(o: any): boolean {
   return Object.prototype.toString.call(o) === "[object Object]"
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
-// biome-ignore lint/complexity/noBannedTypes: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: TODO
+// biome-ignore lint/complexity/noBannedTypes: TODO
 export function isPlainObject(o: any): o is Object {
   if (!hasObjectPrototype(o)) {
     return false
@@ -25,7 +25,7 @@ export function isPlainObject(o: any): o is Object {
   }
 
   // If constructor does not have an Object-specific method
-  // biome-ignore lint/suspicious/noPrototypeBuiltins: <explanation>
+  // biome-ignore lint/suspicious/noPrototypeBuiltins: TODO
   if (!prot.hasOwnProperty("isPrototypeOf")) {
     return false
   }

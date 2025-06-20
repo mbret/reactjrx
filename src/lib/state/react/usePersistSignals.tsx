@@ -25,7 +25,7 @@ export function usePersistSignals({
    * inifite loop.
    */
 
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: TODO
   entries?: Array<SignalPersistenceConfig<any>>
   /**
    * Triggered after first successful hydrate

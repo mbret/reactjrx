@@ -21,7 +21,7 @@ export const persistValue = ({
   config,
 }: {
   adapter: Adapter
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: TODO
   config: SignalPersistenceConfig<any>
 }) => {
   const { signal, version } = config
@@ -56,7 +56,7 @@ export function hydrateValueToSignal({
   config,
 }: {
   adapter: Adapter
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: TODO
   config: SignalPersistenceConfig<any>
 }) {
   const { hydrate = ({ value }) => value, signal, version } = config

@@ -1,13 +1,13 @@
 export type WithRequired<TTarget, TKey extends keyof TTarget> = TTarget & {
-  // biome-ignore lint/complexity/noBannedTypes: <explanation>
+  // biome-ignore lint/complexity/noBannedTypes: TODO
   [_ in TKey]: {}
 }
 
-// biome-ignore lint/complexity/noBannedTypes: <explanation>
+// biome-ignore lint/complexity/noBannedTypes: TODO
 export type NonFunctionGuard<T> = T extends Function ? never : T
 
 // @todo migrate to 5.4 which is part of the API
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: TODO
 export type NoInfer<T> = [T][T extends any ? 0 : never]
 
 export type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <

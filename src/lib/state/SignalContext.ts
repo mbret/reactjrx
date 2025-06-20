@@ -7,7 +7,7 @@ export class SignalContext {
    * are on context destroy. This is to ensure later re-use of virtual signals
    * return the same persisted state.
    */
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: TODO
   signals = new BehaviorSubject(new Map<VirtualSignal<unknown>, Signal<any>>())
 
   public isDestroyed = false

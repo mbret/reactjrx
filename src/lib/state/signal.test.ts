@@ -1,9 +1,9 @@
 import { renderHook } from "@testing-library/react"
 import { act } from "react"
 import { describe, expect, expectTypeOf, it } from "vitest"
-import { type Signal, type SignalValue, signal } from "./Signal"
 import { SIGNAL_RESET } from "./constants"
 import { useSignalValue } from "./react/useSignalValue"
+import { type Signal, type SignalValue, signal } from "./Signal"
 
 describe("signal", () => {
   it("should have correct types for various signal configurations", () => {

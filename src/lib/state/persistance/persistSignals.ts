@@ -1,7 +1,7 @@
 import {
-  EMPTY,
   asyncScheduler,
   catchError,
+  EMPTY,
   from,
   map,
   merge,
@@ -22,7 +22,7 @@ export function persistSignals({
   onHydrated,
   adapter,
 }: {
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: TODO
   entries: Array<SignalPersistenceConfig<Signal<any, string>>>
   /**
    * Triggered after first successful hydrate

@@ -1,4 +1,4 @@
-import { type Observable, defer, from, isObservable, of } from "rxjs"
+import { defer, from, isObservable, type Observable, of } from "rxjs"
 import { isPromiseLike } from "./isPromiseLike"
 
 type FnReturnToObservable<T> = T extends Observable<infer ObservedData>

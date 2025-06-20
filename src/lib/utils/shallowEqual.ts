@@ -1,13 +1,13 @@
 export function isShallowEqual<A, B>(objA: A, objB: B): boolean {
   // Check if both objects are null or undefined
   if (objA === null || objA === undefined || objB === undefined) {
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: TODO
     return (objA as any) === (objB as any)
   }
 
   // Check if both objects are primitives
   if (typeof objA !== "object" || typeof objB !== "object") {
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noExplicitAny: TODO
     return (objA as any) === (objB as any)
   }
 
@@ -26,8 +26,8 @@ export function isShallowEqual<A, B>(objA: A, objB: B): boolean {
 
   // Check if the values of the keys are equal
   for (const key of keysA) {
-    // biome-ignore lint/suspicious/noPrototypeBuiltins: <explanation>
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    // biome-ignore lint/suspicious/noPrototypeBuiltins: TODO
+    // biome-ignore lint/suspicious/noExplicitAny: TODO
     if (!objB.hasOwnProperty(key) || objA[key] !== (objB as any)[key]) {
       return false
     }

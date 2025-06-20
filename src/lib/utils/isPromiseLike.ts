@@ -1,4 +1,4 @@
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: TODO
 export function isPromiseLike<T>(value: T): value is T & Promise<any> {
   return (
     value instanceof Promise ||

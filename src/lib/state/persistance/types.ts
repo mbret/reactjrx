@@ -7,7 +7,7 @@ export interface PersistanceEntry {
   [IDENTIFIER_PERSISTANCE_KEY]: typeof IDENTIFIER_PERSISTANCE_KEY
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: TODO
 export interface SignalPersistenceConfig<S extends Signal<any, string>> {
   version: number
   signal: S

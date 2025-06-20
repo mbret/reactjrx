@@ -1,6 +1,6 @@
 import { cleanup, render, renderHook } from "@testing-library/react"
-import React, { act, memo, useEffect, useRef, useState } from "react"
-import { BehaviorSubject, type Observable, Subject, map, of, timer } from "rxjs"
+import React, { act, memo, useEffect, useState } from "react"
+import { BehaviorSubject, map, type Observable, of, Subject, timer } from "rxjs"
 import { afterEach, describe, expect, expectTypeOf, it } from "vitest"
 import { waitForTimeout } from "../../tests/utils"
 import { useConstant } from "../utils/react/useConstant"
@@ -12,7 +12,7 @@ afterEach(() => {
 
 describe("useObserve", () => {
   describe("Given a non BehaviorSubject observable", () => {
-    it("should return undefined before subscription", async () => {
+    it("should return `foo` as first render cycle due to internal optimization and should only have one render cycle", async () => {
       const values: Array<string | undefined> = []
       const source$ = of("foo")
 
@@ -20,7 +20,8 @@ describe("useObserve", () => {
         values.push(useObserve(source$))
       }, {})
 
-      expect(values[0]).toBe(undefined)
+      expect(values[0]).toBe("foo")
+      expect(values.length).toBe(1)
     })
   })
 
@@ -157,18 +158,15 @@ describe("useObserve", () => {
 
   it("should disable query once render count reach 10 and therefore return 10", async () => {
     const Comp = memo(() => {
-      const renderCount = useRef(0)
+      const [renderCount, setRenderCount] = useState(0)
 
-      const data = useObserve(
-        () => of(renderCount.current),
-        [renderCount.current],
-      )
+      const data = useObserve(() => of(renderCount), [renderCount])
 
       useEffect(() => {
-        if (renderCount.current < 10) {
-          renderCount.current++
+        if (renderCount < 10) {
+          setRenderCount(renderCount + 1)
         }
-      })
+      }, [renderCount])
 
       return <>{data}</>
     })
@@ -232,7 +230,7 @@ describe("useObserve", () => {
     })
 
     it("should return undefined and then the correct value", async () => {
-      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      // biome-ignore lint/suspicious/noExplicitAny: TODO
       const values: any = []
 
       renderHook(() => {
@@ -251,7 +249,7 @@ describe("useObserve", () => {
 
       await waitForTimeout(10)
 
-      expect(values).toEqual([undefined, undefined, 1])
+      expect(values).toEqual([undefined, 1, 1])
     })
   })
 })

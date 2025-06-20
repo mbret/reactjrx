@@ -1,7 +1,6 @@
 import { renderHook } from "@testing-library/react"
-import { describe, expect, test } from "vitest"
-
 import { act } from "react"
+import { describe, expect, test } from "vitest"
 import { useLiveRef } from "./useLiveRef"
 
 describe("useLiveRef", () => {

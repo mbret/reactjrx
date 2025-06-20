@@ -1,16 +1,19 @@
 import {
   type DependencyList,
   useCallback,
+  useMemo,
   useRef,
   useSyncExternalStore,
 } from "react"
 import {
   type BehaviorSubject,
-  EMPTY,
-  type Observable,
   catchError,
   distinctUntilChanged,
+  EMPTY,
   identity,
+  type Observable,
+  type Subscription,
+  shareReplay,
   startWith,
   tap,
 } from "rxjs"
@@ -64,24 +67,49 @@ export function useObserve<T>(
       : typeof source$ === "function"
         ? (maybeDeps ?? [])
         : [source$]
-  const valueRef = useRef(
-    "getValue" in source$ && typeof source$.getValue === "function"
-      ? source$.getValue()
-      : options.defaultValue,
-  )
+  const valueRef = useRef<{ value: T | undefined } | undefined>(undefined)
   const sourceRef = useLiveRef(source$)
   const optionsRef = useLiveRef(options)
 
-  const getSnapshot = useCallback(() => {
-    return valueRef.current
-  }, [])
+  // biome-ignore lint/correctness/useExhaustiveDependencies: TODO
+  const observable = useMemo(
+    () => ({
+      observable: makeObservable(sourceRef.current)().pipe(
+        shareReplay({ refCount: true, bufferSize: 1 }),
+      ),
+      subscribed: false,
+      snapshotSub: undefined as Subscription | undefined,
+    }),
+    [...deps],
+  )
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+  const getSnapshot = useCallback(() => {
+    /**
+     * If getting a snapshot before the observable has been subscribed, we will subscribe to it to get a chance
+     * to retrieve the actual value if the observable is synchronous.
+     * This is to avoid re-rendering the hook in the situation where we can actually have a value already.
+     */
+    if (!observable.subscribed) {
+      observable.subscribed = true
+
+      const sub = observable.observable.subscribe((v) => {
+        valueRef.current = { value: v }
+      })
+
+      observable.snapshotSub = sub
+    }
+
+    if (valueRef.current === undefined) return optionsRef.current.defaultValue
+
+    return valueRef.current?.value
+  }, [observable, optionsRef])
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: TODO
   const subscribe = useCallback(
     (next: () => void) => {
-      const source = sourceRef.current
+      observable.subscribed = true
 
-      const sub = makeObservable(source)()
+      const sub = observable.observable
         .pipe(
           optionsRef.current.defaultValue
             ? startWith(optionsRef.current.defaultValue)
@@ -100,7 +128,7 @@ export function useObserve<T>(
             return false
           }),
           tap((value) => {
-            valueRef.current = value
+            valueRef.current = { value }
           }),
           catchError((error) => {
             console.error(error)
@@ -110,13 +138,19 @@ export function useObserve<T>(
         )
         .subscribe(next)
 
+      /**
+       * Unsubscribe from early snapshot subscription to avoid re-running the original observable.
+       * From this point onward we have an active subscription to the observable.
+       */
+      observable.snapshotSub?.unsubscribe()
+
       return () => {
         if (optionsRef.current.unsubscribeOnUnmount === false) return
 
         sub.unsubscribe()
       }
     },
-    [...deps],
+    [observable],
   )
 
   const result = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)

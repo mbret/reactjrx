@@ -1,4 +1,4 @@
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: TODO
 function sortObj(obj: any) {
   return Object.keys(obj)
     .sort()
@@ -9,13 +9,13 @@ function sortObj(obj: any) {
     }, {})
 }
 
-// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+// biome-ignore lint/suspicious/noExplicitAny: TODO
 export const printQuery = (data: any, keys?: string[]) => {
   const match = !keys?.length
     ? data
     : Object.keys(data)
         .filter((key) => keys.includes(key))
-        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        // biome-ignore lint/suspicious/noExplicitAny: TODO
         .reduce<any>((acc, key) => {
           acc[key] = data[key]
 

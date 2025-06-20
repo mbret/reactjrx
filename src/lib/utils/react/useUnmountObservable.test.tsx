@@ -1,5 +1,5 @@
 import { render } from "@testing-library/react"
-import { StrictMode, memo, useEffect } from "react"
+import { memo, StrictMode, useEffect } from "react"
 import { BehaviorSubject, takeUntil } from "rxjs"
 import { describe, expect, it } from "vitest"
 import { useUnmountObservable } from "./useUnmountObservable"

@@ -1,5 +1,4 @@
-import { QueryClientProvider } from "@tanstack/react-query"
-import { QueryClient } from "@tanstack/react-query"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, render } from "@testing-library/react"
 import React from "react"
 import { Subject } from "rxjs"

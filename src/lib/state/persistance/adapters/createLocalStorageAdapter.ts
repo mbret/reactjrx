@@ -26,8 +26,9 @@ const createSharedStoreAdapter = ({
 
   removeItem: async (keyToDelete) => {
     const unsafeStore = await adapter.getItem(key)
+    // biome-ignore lint/correctness/noUnusedVariables: TODO
     const { [keyToDelete]: toRemove, ...rest } =
-      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      // biome-ignore lint/suspicious/noExplicitAny: TODO
       normalizeStore(unsafeStore) ?? ({} as any)
 
     await adapter.setItem(key, rest)
@@ -54,7 +55,9 @@ const createSharedStoreAdapter = ({
 
 export const createLocalStorageAdapter = ({
   key,
-}: { key?: string } = {}): Adapter => {
+}: {
+  key?: string
+} = {}): Adapter => {
   if (key) {
     return createSharedStoreAdapter({
       adapter: createLocalStorageAdapter(),

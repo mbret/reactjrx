@@ -1,4 +1,4 @@
-import { type Observable, defer, merge, of, throwError, timer } from "rxjs"
+import { defer, merge, type Observable, of, throwError, timer } from "rxjs"
 import {
   catchError,
   concatMap,
@@ -20,15 +20,15 @@ export interface RetryBackoffConfig<T, TError> {
   retryAfterDelay?: (attempt: number, error: TError) => boolean
   // Can be used to delay the retry (outside of backoff process)
   // for example if you want to pause retry due to connectivity issue
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: TODO
   retryAfter?: () => Observable<any>
   retryDelay?: number | ((attempt: number, error: TError) => number)
   // Conditional retry.
   // shouldRetry?: (attempt: number, error: any) => Observable<boolean>
   backoffDelay?: (iteration: number, initialInterval: number) => number
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: TODO
   caughtError?: (attempt: number, error: any) => undefined | Observable<T>
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  // biome-ignore lint/suspicious/noExplicitAny: TODO
   catchError?: (attempt: number, error: any) => Observable<T>
 }
 
