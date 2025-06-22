@@ -1,14 +1,14 @@
 import {
-  MutationCache as RQMutationCache,
   QueryClientProvider as RcQueryClientProvider,
+  MutationCache as RQMutationCache,
   QueryClient as rc_QueryClient,
 } from "@tanstack/react-query"
-import { StrictMode, memo, useState } from "react"
+import { memo, StrictMode, useState } from "react"
 import ReactDOM from "react-dom/client"
 import { QueryClientProvider$ } from "./lib/queries/QueryClientProvider$"
-import { virtualSignal } from "./lib/state/Signal"
 import { SignalContextProvider } from "./lib/state/react/SignalContextProvider"
 import { useSignal } from "./lib/state/react/useSignal"
+import { virtualSignal } from "./lib/state/Signal"
 
 const rcClient = new rc_QueryClient({
   mutationCache: new RQMutationCache({
