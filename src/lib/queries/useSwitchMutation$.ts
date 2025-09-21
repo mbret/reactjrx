@@ -57,23 +57,17 @@ export function useSwitchMutation$<
           ),
         ).pipe(first(), defaultIfEmpty(null))
       },
-      onMutate: ({ variables }, context) => {
-        return options.onMutate?.(variables, context)
+      onMutate: ({ variables }, ...rest) => {
+        return options.onMutate?.(variables, ...rest)
       },
-      onSuccess: (data, { variables }, onMutateResult, context) => {
-        return options.onSuccess?.(data, variables, onMutateResult, context)
+      onSuccess: (data, { variables }, ...rest) => {
+        return options.onSuccess?.(data, variables, ...rest)
       },
-      onError: (error, { variables }, onMutateResult, ...rest) => {
-        return options.onError?.(error, variables, onMutateResult, ...rest)
+      onError: (error, { variables }, ...rest) => {
+        return options.onError?.(error, variables, ...rest)
       },
-      onSettled: (data, error, { variables }, onMutateResult, context) => {
-        return options.onSettled?.(
-          data,
-          error,
-          variables,
-          onMutateResult,
-          context,
-        )
+      onSettled: (data, error, { variables }, ...rest) => {
+        return options.onSettled?.(data, error, variables, ...rest)
       },
     },
     queryClient,
