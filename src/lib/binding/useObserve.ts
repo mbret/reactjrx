@@ -11,14 +11,17 @@ import {
   distinctUntilChanged,
   EMPTY,
   identity,
+  map,
   type Observable,
   type Subscription,
   shareReplay,
   startWith,
   tap,
 } from "rxjs"
+import { filterObjectByKey } from "../utils/filterObjectByKey"
 import { makeObservable } from "../utils/makeObservable"
 import { useLiveRef } from "../utils/react/useLiveRef"
+import { isShallowEqual } from "../utils/shallowEqual"
 
 interface Option<R = undefined> {
   defaultValue: R
@@ -27,8 +30,20 @@ interface Option<R = undefined> {
 }
 
 export function useObserve<T>(source: BehaviorSubject<T>): T
+export function useObserve<T extends object, SelectorKeys extends keyof T>(
+  source: BehaviorSubject<T>,
+  selector: SelectorKeys[],
+): { [K in SelectorKeys]: T[K] }
+export function useObserve<T>(
+  source: BehaviorSubject<T>,
+  options: Omit<Option<T>, "defaultValue">,
+): T
 
 export function useObserve<T>(source: Observable<T>): T | undefined
+export function useObserve<T extends object, SelectorKeys extends keyof T>(
+  source: Observable<T>,
+  selector: SelectorKeys[],
+): { [K in SelectorKeys]: T[K] } | undefined
 
 export function useObserve<T>(
   source: () => Observable<T>,
@@ -48,19 +63,19 @@ export function useObserve<T>(
   deps: DependencyList,
 ): T
 
-export function useObserve<T>(
+export function useObserve<T, SelectorKeys extends keyof T>(
   source$: Observable<T> | (() => Observable<T> | undefined),
-  optionsOrDeps?: Option<T> | DependencyList,
+  optionsOrDeps?: Partial<Option<T>> | DependencyList | SelectorKeys[],
   maybeDeps?: DependencyList,
 ): T {
   const options =
     optionsOrDeps != null && !Array.isArray(optionsOrDeps)
-      ? (optionsOrDeps as Option<T>)
+      ? (optionsOrDeps as Partial<Option<T>>)
       : ({
           defaultValue: undefined,
           unsubscribeOnUnmount: true,
           compareFn: undefined,
-        } satisfies Option<undefined>)
+        } satisfies Partial<Option<T>>)
   const deps =
     !maybeDeps && Array.isArray(optionsOrDeps)
       ? optionsOrDeps
@@ -70,18 +85,54 @@ export function useObserve<T>(
   const valueRef = useRef<{ value: T | undefined } | undefined>(undefined)
   const sourceRef = useLiveRef(source$)
   const optionsRef = useLiveRef(options)
+  const selectorKey =
+    typeof source$ !== "function" && Array.isArray(optionsOrDeps)
+      ? JSON.stringify(optionsOrDeps)
+      : undefined
+  const selectorRef = useLiveRef(
+    typeof source$ !== "function" && Array.isArray(optionsOrDeps)
+      ? (optionsOrDeps as SelectorKeys[])
+      : undefined,
+  )
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: TODO
-  const observable = useMemo(
-    () => ({
-      observable: makeObservable(sourceRef.current)().pipe(
+  const observable = useMemo(() => {
+    void selectorKey
+
+    const selectorOption = selectorRef.current
+    const compareFnOption = optionsRef.current.compareFn
+    const compareFn = compareFnOption
+      ? compareFnOption
+      : selectorOption
+        ? isShallowEqual
+        : undefined
+    const observable$ = makeObservable(sourceRef.current)()
+
+    return {
+      observable: observable$.pipe(
+        // Maybe selector
+        map((v) => {
+          if (selectorOption && typeof v === "object" && v !== null) {
+            return filterObjectByKey(v, selectorOption) as T | undefined
+          }
+
+          return v
+        }),
+        // Maybe compareFn
+        distinctUntilChanged((a, b) => {
+          if (a === undefined || b === undefined) return false
+
+          if (compareFn) {
+            return compareFn(a as T, b as T)
+          }
+
+          return a === b
+        }),
         shareReplay({ refCount: true, bufferSize: 1 }),
       ),
       subscribed: false,
       snapshotSub: undefined as Subscription | undefined,
-    }),
-    [...deps],
-  )
+    }
+  }, [...deps, selectorKey, selectorRef, sourceRef, optionsRef])
 
   const getSnapshot = useCallback(() => {
     /**
@@ -92,8 +143,8 @@ export function useObserve<T>(
     if (!observable.subscribed) {
       observable.subscribed = true
 
-      const sub = observable.observable.subscribe((v) => {
-        valueRef.current = { value: v }
+      const sub = observable.observable.subscribe((value) => {
+        valueRef.current = { value: value as T }
       })
 
       observable.snapshotSub = sub
@@ -114,21 +165,8 @@ export function useObserve<T>(
           optionsRef.current.defaultValue
             ? startWith(optionsRef.current.defaultValue)
             : identity,
-          /**
-           * @important there is already a Object.is comparison in place from react
-           * so we only add a custom compareFn if provided
-           */
-          distinctUntilChanged((a, b) => {
-            if (optionsRef.current.compareFn) {
-              if (a === undefined || b === undefined) return false
-
-              return optionsRef.current.compareFn(a, b)
-            }
-
-            return false
-          }),
           tap((value) => {
-            valueRef.current = { value }
+            valueRef.current = { value: value as T }
           }),
           catchError((error) => {
             console.error(error)
