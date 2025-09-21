@@ -38,17 +38,33 @@ export function useContactMutation$<
   >(
     {
       ...options,
-      onMutate({ variables }) {
-        return options.onMutate?.(variables)
+      onMutate({ variables }, context) {
+        return options.onMutate?.(variables, context)
       },
-      onSuccess(data, variables, context) {
-        return options.onSuccess?.(data, variables.variables, context)
+      onSuccess(data, variables, onMutateResult, context) {
+        return options.onSuccess?.(
+          data,
+          variables.variables,
+          onMutateResult,
+          context,
+        )
       },
-      onError(error, variables, context) {
-        return options.onError?.(error, variables.variables, context)
+      onError(error, variables, onMutateResult, context) {
+        return options.onError?.(
+          error,
+          variables.variables,
+          onMutateResult,
+          context,
+        )
       },
-      onSettled(data, error, variables, context) {
-        return options.onSettled?.(data, error, variables.variables, context)
+      onSettled(data, error, variables, onMutateResult, context) {
+        return options.onSettled?.(
+          data,
+          error,
+          variables.variables,
+          onMutateResult,
+          context,
+        )
       },
       mutationFn: ({ ready$, variables }) => {
         const source =
