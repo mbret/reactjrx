@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { ReplaySubject } from "rxjs"
-import { useRefOnce } from "./useRefOnce"
+import { useRefOnce } from "../utils/react/useRefOnce"
 
 export const useUnmountObservable = () => {
   const replaySubject = useRefOnce(() => new ReplaySubject(1))
