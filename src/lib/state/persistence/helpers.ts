@@ -1,16 +1,16 @@
 import { catchError, from, of, switchMap } from "rxjs"
 import type { Adapter } from "./adapters/Adapter"
-import { IDENTIFIER_PERSISTANCE_KEY } from "./constants"
-import type { PersistanceEntry, SignalPersistenceConfig } from "./types"
+import { IDENTIFIER_PERSISTENCE_KEY } from "./constants"
+import type { PersistenceEntry, SignalPersistenceConfig } from "./types"
 
 export const getNormalizedPersistanceValue = (unknownValue: unknown) => {
   if (
     typeof unknownValue === "object" &&
     unknownValue !== null &&
-    IDENTIFIER_PERSISTANCE_KEY in unknownValue &&
-    unknownValue[IDENTIFIER_PERSISTANCE_KEY] === IDENTIFIER_PERSISTANCE_KEY
+    IDENTIFIER_PERSISTENCE_KEY in unknownValue &&
+    unknownValue[IDENTIFIER_PERSISTENCE_KEY] === IDENTIFIER_PERSISTENCE_KEY
   ) {
-    return unknownValue as PersistanceEntry
+    return unknownValue as PersistenceEntry
   }
 
   return undefined
@@ -29,9 +29,9 @@ export const persistValue = ({
 
   const value = {
     value: state,
-    [IDENTIFIER_PERSISTANCE_KEY]: IDENTIFIER_PERSISTANCE_KEY,
+    [IDENTIFIER_PERSISTENCE_KEY]: IDENTIFIER_PERSISTENCE_KEY,
     migrationVersion: version,
-  } satisfies PersistanceEntry
+  } satisfies PersistenceEntry
 
   if (process.env.NODE_ENV === "development") {
     console.log(

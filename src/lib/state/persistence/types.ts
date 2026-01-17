@@ -1,10 +1,10 @@
 import type { Signal, SignalValue } from "../Signal"
-import type { IDENTIFIER_PERSISTANCE_KEY } from "./constants"
+import type { IDENTIFIER_PERSISTENCE_KEY } from "./constants"
 
-export interface PersistanceEntry {
+export interface PersistenceEntry {
   value: unknown
   migrationVersion?: number
-  [IDENTIFIER_PERSISTANCE_KEY]: typeof IDENTIFIER_PERSISTANCE_KEY
+  [IDENTIFIER_PERSISTENCE_KEY]: typeof IDENTIFIER_PERSISTENCE_KEY
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: TODO

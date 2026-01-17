@@ -1,1 +1,1 @@
-export type { Adapter } from "./persistance/adapters/Adapter"
+export type { Adapter } from "./persistence/adapters/Adapter"

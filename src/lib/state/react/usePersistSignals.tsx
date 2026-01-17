@@ -3,9 +3,9 @@ import { useLiveBehaviorSubject } from "../../binding/useLiveBehaviorSubject"
 import { useObserve } from "../../binding/useObserve"
 import { useLiveRef } from "../../utils/react/useLiveRef"
 import { isShallowEqual } from "../../utils/shallowEqual"
-import type { Adapter } from "../persistance/adapters/Adapter"
-import { persistSignals } from "../persistance/persistSignals"
-import type { SignalPersistenceConfig } from "../persistance/types"
+import type { Adapter } from "../persistence/adapters/Adapter"
+import { persistSignals } from "../persistence/persistSignals"
+import type { SignalPersistenceConfig } from "../persistence/types"
 
 /**
  * Make sure to pass stable reference of entries and adapter if you don't
@@ -22,7 +22,7 @@ export function usePersistSignals({
   /**
    * Passing a new list of entries will start over the process
    * once the current one is finished. Use a stable reference to avoid
-   * inifite loop.
+   * infinite loop.
    */
 
   // biome-ignore lint/suspicious/noExplicitAny: TODO
@@ -34,7 +34,7 @@ export function usePersistSignals({
   /**
    * Passing a new adapter reference will start over the process
    * once the current one is finished. Use a stable reference to avoid
-   * inifite loop.
+   * infinite loop.
    */
   adapter?: Adapter
 }): { isHydrated: boolean } {

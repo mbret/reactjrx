@@ -1,6 +1,19 @@
 import { BehaviorSubject } from "rxjs"
 import { SIGNAL_RESET } from "./constants"
 
+/**
+ * Distributive helper to validate the shape of the updater function
+ * and prevent covariance
+ */
+// biome-ignore lint/suspicious/noExplicitAny: Expected to prevent covariance
+type ValidateShape<T, U> = T extends any
+  ? U extends T
+    ? U extends object
+      ? { [K in keyof U]: K extends keyof T ? T[K] : never }
+      : U
+    : never
+  : never
+
 // biome-ignore lint/suspicious/noExplicitAny: TODO
 export type SignalValue<T extends Signal<any, any>> = T["value"]
 
@@ -21,9 +34,9 @@ export class Signal<
     super(config.default)
   }
 
-  update = (
+  update = <U>(
     valueOrUpdater:
-      | ((prev: T) => T)
+      | ((prev: T) => U & ValidateShape<T, U>)
       // biome-ignore lint/complexity/noBannedTypes: TODO
       | (T extends Function ? never : T)
       | typeof SIGNAL_RESET,

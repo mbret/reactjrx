@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest"
 import { waitForTimeout } from "../../../tests/utils"
 import { signal } from "../Signal"
 import { MockAdapter } from "./adapters/MockAdapter"
-import { IDENTIFIER_PERSISTANCE_KEY } from "./constants"
+import { IDENTIFIER_PERSISTENCE_KEY } from "./constants"
 import { persistSignals } from "./persistSignals"
-import type { PersistanceEntry } from "./types"
+import type { PersistenceEntry } from "./types"
 
 describe("Given a storage that never resolves", () => {
   it("should not hydrate", async () => {
@@ -63,10 +63,10 @@ describe("Given a valid stored value", () => {
   it("should hydrate and overwrite", async () => {
     const mockAdapter = new MockAdapter({
       key: {
-        [IDENTIFIER_PERSISTANCE_KEY]: IDENTIFIER_PERSISTANCE_KEY,
+        [IDENTIFIER_PERSISTENCE_KEY]: IDENTIFIER_PERSISTENCE_KEY,
         value: 5,
         migrationVersion: 0,
-      } satisfies PersistanceEntry,
+      } satisfies PersistenceEntry,
     })
     const mySignal = signal({ default: 0, key: "key" })
 
@@ -86,9 +86,9 @@ describe("Given a new signal version", () => {
     it("should hydrate and not overwrite", async () => {
       const mockAdapter = new MockAdapter({
         key: {
-          [IDENTIFIER_PERSISTANCE_KEY]: IDENTIFIER_PERSISTANCE_KEY,
+          [IDENTIFIER_PERSISTENCE_KEY]: IDENTIFIER_PERSISTENCE_KEY,
           value: 5,
-        } satisfies PersistanceEntry,
+        } satisfies PersistenceEntry,
       })
       const mySignal = signal({ default: 0, key: "key" })
 
@@ -107,10 +107,10 @@ describe("Given a new signal version", () => {
     it("should hydrate and overwrite", async () => {
       const mockAdapter = new MockAdapter({
         key: {
-          [IDENTIFIER_PERSISTANCE_KEY]: IDENTIFIER_PERSISTANCE_KEY,
+          [IDENTIFIER_PERSISTENCE_KEY]: IDENTIFIER_PERSISTENCE_KEY,
           value: 5,
           migrationVersion: 1,
-        } satisfies PersistanceEntry,
+        } satisfies PersistenceEntry,
       })
       const mySignal = signal({ default: 0, key: "key" })
 
@@ -129,10 +129,10 @@ describe("Given a new signal version", () => {
     it("should hydrate and overwrite", async () => {
       const mockAdapter = new MockAdapter({
         key: {
-          [IDENTIFIER_PERSISTANCE_KEY]: IDENTIFIER_PERSISTANCE_KEY,
+          [IDENTIFIER_PERSISTENCE_KEY]: IDENTIFIER_PERSISTENCE_KEY,
           value: 5,
           migrationVersion: 3,
-        } satisfies PersistanceEntry,
+        } satisfies PersistenceEntry,
       })
       const mySignal = signal({ default: 0, key: "key" })
 
