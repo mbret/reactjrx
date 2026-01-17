@@ -2,6 +2,7 @@ import { renderHook } from "@testing-library/react"
 import { act, useEffect } from "react"
 import { BehaviorSubject, of } from "rxjs"
 import { expect, it } from "vitest"
+import type { UseObserveResult } from "./types"
 import { useObserve } from "./useObserve"
 
 it("should return the selected keys", async () => {
@@ -11,15 +12,15 @@ it("should return the selected keys", async () => {
   renderHook(() => {
     const value = useObserve(source$, ["foo"])
 
-    values.push(value)
+    values.push(value.data)
   }, {})
 
   expect(values[0]).toEqual({ foo: "foo" })
   expect(values.length).toBe(1)
 })
 
-it("should not re-render when the selected keys don't change", async () => {
-  const values: Array<{ a: string } | undefined> = []
+it("should not re-render when the selected keys don't change foobar", async () => {
+  const values: Array<UseObserveResult<{ a: string }, { a: string }>> = []
   const source$ = new BehaviorSubject({ a: "a", b: "b" })
 
   renderHook(() => {
@@ -30,10 +31,22 @@ it("should not re-render when the selected keys don't change", async () => {
     }, [value])
   }, {})
 
-  expect(values[0]).toEqual({ a: "a" })
+  expect(values[0]).toEqual({
+    data: { a: "a" },
+    error: undefined,
+    status: "pending",
+    observableState: "live",
+  })
 
   act(() => {
     source$.next({ a: "a", b: "c" })
+  })
+
+  expect(values[1]).toEqual({
+    data: { a: "a" },
+    error: undefined,
+    status: "pending",
+    observableState: "live",
   })
 
   expect(values.length).toBe(1)
@@ -47,7 +60,7 @@ it("should re-render when the selected keys change", async () => {
     const value = useObserve(source$, ["a"])
 
     useEffect(() => {
-      values.push(value)
+      values.push(value.data)
     }, [value])
   }, {})
 

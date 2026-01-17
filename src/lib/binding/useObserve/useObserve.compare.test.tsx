@@ -2,7 +2,7 @@ import { renderHook } from "@testing-library/react"
 import { act, useEffect } from "react"
 import { BehaviorSubject } from "rxjs"
 import { describe, expect, it } from "vitest"
-import { isShallowEqual } from "../utils/shallowEqual"
+import { isShallowEqual } from "../../utils/shallowEqual"
 import { useObserve } from "./useObserve"
 
 it("should not re-render when the value is same reference", async () => {
@@ -13,7 +13,7 @@ it("should not re-render when the value is same reference", async () => {
     const value = useObserve(source$)
 
     useEffect(() => {
-      values.push(value)
+      values.push(value.data)
     }, [value])
   }, {})
 
@@ -34,7 +34,7 @@ it("should re-render when the object is same but new reference", async () => {
     const value = useObserve(source$)
 
     useEffect(() => {
-      values.push(value)
+      values.push(value.data)
     }, [value])
   }, {})
 
@@ -56,7 +56,7 @@ it("should not return new value when the hook re-render but the value is the sam
     const value = useObserve(source$)
 
     useEffect(() => {
-      values.push(value)
+      values.push(value.data)
     }, [value])
   }, {})
 
@@ -79,7 +79,7 @@ describe("given a custom compareFn", () => {
       })
 
       useEffect(() => {
-        values.push(value)
+        values.push(value.data)
       }, [value])
     }, {})
 
@@ -102,7 +102,7 @@ describe("given a custom compareFn", () => {
       })
 
       useEffect(() => {
-        values.push(value)
+        values.push(value.data)
       }, [value])
     }, {})
 

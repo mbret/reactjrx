@@ -2,8 +2,8 @@ import { cleanup, render, renderHook } from "@testing-library/react"
 import React, { act, memo, useEffect, useState } from "react"
 import { BehaviorSubject, map, type Observable, of, Subject, timer } from "rxjs"
 import { afterEach, describe, expect, expectTypeOf, it } from "vitest"
-import { waitForTimeout } from "../../tests/utils"
-import { useConstant } from "../utils/react/useConstant"
+import { waitForTimeout } from "../../../tests/utils"
+import { useConstant } from "../../utils/react/useConstant"
 import { useObserve } from "./useObserve"
 
 afterEach(() => {
@@ -17,7 +17,7 @@ describe("useObserve", () => {
       const source$ = of("foo")
 
       renderHook(() => {
-        values.push(useObserve(source$))
+        values.push(useObserve(source$).data)
       }, {})
 
       expect(values[0]).toBe("foo")
@@ -31,7 +31,7 @@ describe("useObserve", () => {
       const source$ = new BehaviorSubject("foo")
 
       renderHook(() => {
-        values.push(useObserve(source$))
+        values.push(useObserve(source$).data)
       }, {})
 
       expect(values[0]).toBe("foo")
@@ -46,7 +46,12 @@ describe("useObserve", () => {
       {},
     )
 
-    expect(result.current).toBe(null)
+    expect(result.current).toEqual({
+      data: null,
+      status: "pending",
+      observableState: "live",
+      error: undefined,
+    })
   })
 
   it("should return the value after subscription", async ({ expect }) => {
@@ -56,7 +61,12 @@ describe("useObserve", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 1))
 
-    expect(result.current).toBe(123)
+    expect(result.current).toEqual({
+      data: 123,
+      status: "success",
+      observableState: "complete",
+      error: undefined,
+    })
   })
 
   it("should return new value after a stream change", async ({ expect }) => {
@@ -66,19 +76,45 @@ describe("useObserve", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 1))
 
-    expect(result.current).toBe(undefined)
+    expect(result.current).toEqual({
+      data: undefined,
+      status: "pending",
+      observableState: "live",
+      error: undefined,
+    })
 
     act(() => {
       source$.next(0)
     })
 
-    expect(result.current).toBe(0)
+    expect(result.current).toEqual({
+      data: 0,
+      status: "pending",
+      observableState: "live",
+      error: undefined,
+    })
 
     act(() => {
       source$.next(1)
     })
 
-    expect(result.current).toBe(1)
+    expect(result.current).toEqual({
+      data: 1,
+      status: "pending",
+      observableState: "live",
+      error: undefined,
+    })
+
+    act(() => {
+      source$.complete()
+    })
+
+    expect(result.current).toEqual({
+      data: 1,
+      status: "success",
+      observableState: "complete",
+      error: undefined,
+    })
   })
 
   it("should return correct result with observable under normal mode", async () => {
@@ -87,7 +123,7 @@ describe("useObserve", () => {
     const Comp = () => {
       const a = useObserve(source)
 
-      return <>{a}</>
+      return <>{a.data}</>
     }
 
     const { findByText } = render(<Comp />)
@@ -101,7 +137,7 @@ describe("useObserve", () => {
     const Comp = () => {
       const a = useObserve(source)
 
-      return <>{a}</>
+      return <>{a.data}</>
     }
 
     const { findByText } = render(
@@ -128,7 +164,7 @@ describe("useObserve", () => {
         }
       }, [source])
 
-      return <>{result}</>
+      return <>{result.data}</>
     })
 
     const { findByText } = render(
@@ -144,7 +180,7 @@ describe("useObserve", () => {
     const Comp = () => {
       const data = useObserve(() => of(3), [])
 
-      return <>{data}</>
+      return <>{data.data}</>
     }
 
     const { getByText } = render(
@@ -168,7 +204,7 @@ describe("useObserve", () => {
         }
       }, [renderCount])
 
-      return <>{data}</>
+      return <>{data.data}</>
     })
 
     const { findByText } = render(
@@ -212,7 +248,8 @@ describe("useObserve", () => {
 
     await waitForTimeout(10)
 
-    expect(numberOfRenders).toBe(2)
+    // now updated with success state
+    expect(numberOfRenders).toBe(3)
   })
 
   describe("Given a factory that may or may not return an observable", () => {
@@ -223,7 +260,7 @@ describe("useObserve", () => {
           [],
         )
 
-        expectTypeOf(value).toEqualTypeOf<number | undefined>()
+        expectTypeOf(value.data).toEqualTypeOf<number | undefined>()
       }, {})
 
       expect(true).toBe(true)
@@ -238,6 +275,7 @@ describe("useObserve", () => {
           undefined,
         )
 
+        // console.log("RENDER")
         values.push(useObserve(() => res, [res]))
 
         useEffect(() => {
@@ -249,7 +287,21 @@ describe("useObserve", () => {
 
       await waitForTimeout(10)
 
-      expect(values).toEqual([undefined, 1, 1])
+      expect(values).toEqual([
+        {
+          data: undefined,
+          status: "success",
+          observableState: "complete",
+          error: undefined,
+        },
+        // still live because not completed
+        {
+          data: 1,
+          status: "pending",
+          observableState: "live",
+          error: undefined,
+        },
+      ])
     })
   })
 })

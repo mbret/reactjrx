@@ -17,10 +17,12 @@ describe("useQuery", () => {
       describe("when the query finished and is marked as stale", () => {
         it("should refetch", async () => {
           let value = 0
+          let called = 0
 
-          const queryFnMock = vi.fn().mockImplementation(() => {
+          const queryFnMock = () => {
+            called++
             return of(++value)
-          })
+          }
 
           const staleTimeout = 1
 
@@ -71,7 +73,7 @@ describe("useQuery", () => {
             await findByText(printQuery({ data: 2, status: "success" })),
           ).toBeDefined()
 
-          expect(queryFnMock.mock.calls.length).toBe(2)
+          expect(called).toBe(2)
 
           act(() => {
             getByText("toggle").click()
@@ -86,7 +88,7 @@ describe("useQuery", () => {
             await findByText(printQuery({ data: 4, status: "success" })),
           ).toBeDefined()
 
-          expect(queryFnMock.mock.calls.length).toBe(4)
+          expect(called).toBe(4)
         })
       })
     })

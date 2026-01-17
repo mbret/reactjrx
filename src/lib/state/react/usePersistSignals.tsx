@@ -1,6 +1,6 @@
 import { concatMap, merge, of, scan, switchMap } from "rxjs"
 import { useLiveBehaviorSubject } from "../../binding/useLiveBehaviorSubject"
-import { useObserve } from "../../binding/useObserve"
+import { useObserve } from "../../binding/useObserve/useObserve"
 import { useLiveRef } from "../../utils/react/useLiveRef"
 import { isShallowEqual } from "../../utils/shallowEqual"
 import type { Adapter } from "../persistence/adapters/Adapter"
@@ -42,7 +42,7 @@ export function usePersistSignals({
   const adapterSubject = useLiveBehaviorSubject(adapter)
   const entriesSubject = useLiveBehaviorSubject(entries)
 
-  return useObserve(
+  const result = useObserve(
     () => {
       const persistence$ = adapterSubject.pipe(
         switchMap((adapter) => {
@@ -80,4 +80,6 @@ export function usePersistSignals({
     { defaultValue: { isHydrated: false }, compareFn: isShallowEqual },
     [adapterSubject, entriesSubject],
   )
+
+  return result.data
 }

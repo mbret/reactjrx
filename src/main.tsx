@@ -5,6 +5,8 @@ import {
 } from "@tanstack/react-query"
 import { memo, StrictMode, useState } from "react"
 import ReactDOM from "react-dom/client"
+import { map, tap, timer } from "rxjs"
+import { useObserve } from "./lib/binding/useObserve/useObserve"
 import { QueryClientProvider$ } from "./lib/queries/QueryClientProvider$"
 import { SignalContextProvider } from "./lib/state/react/SignalContextProvider"
 import { useSignal } from "./lib/state/react/useSignal"
@@ -43,16 +45,22 @@ const SubCom = memo(() => {
 const App = memo(() => {
   const [isVisible, setIsVisible] = useState(true)
 
+  const data = useObserve(() => timer(500).pipe(map((v) => v + 2)), { defaultValue: 8 }, [2])
+  const data2 = useObserve(() => timer(500).pipe(tap((v) => {throw new Error("test")})), { defaultValue: 8 }, [2])
+
+  console.log(data)
+  console.log(data2)
+
   return (
     <>
       <button type="button" onClick={() => setIsVisible(!isVisible)}>
         Toggle
       </button>
-      {isVisible && (
+      {/* {isVisible && (
         <SignalContextProvider>
           <SubCom />
         </SignalContextProvider>
-      )}
+      )} */}
     </>
   )
 })

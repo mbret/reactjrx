@@ -1,5 +1,5 @@
 import { distinctUntilChanged, map } from "rxjs"
-import { useObserve } from "../../binding/useObserve"
+import { useObserve } from "../../binding/useObserve/useObserve"
 import { useLiveRef } from "../../utils"
 import type { Signal, VirtualSignal } from "../Signal"
 import { useSignalReference } from "./useSignalReference"

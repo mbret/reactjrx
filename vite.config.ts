@@ -1,4 +1,5 @@
 import { resolve } from "node:path"
+import react from "@vitejs/plugin-react"
 import externals from "rollup-plugin-node-externals"
 import { defineConfig } from "vite"
 import dts from "vite-plugin-dts"
@@ -6,6 +7,11 @@ import { name } from "./package.json"
 
 export default defineConfig({
   plugins: [
+    react({
+      babel: {
+        plugins: ["babel-plugin-react-compiler"],
+      },
+    }),
     {
       enforce: "pre",
       ...externals({
