@@ -1,81 +1,53 @@
 import {
-  catchError,
+  BehaviorSubject,
   distinctUntilChanged,
-  EMPTY,
-  map,
   NEVER,
   type Observable,
+  type Subscription,
   share,
-  shareReplay,
   tap,
 } from "rxjs"
-import { filterObjectByKey } from "../../utils/filterObjectByKey"
-import { makeObservable } from "../../utils/makeObservable"
 
-export class ObservableStore<T> {
-  state: {
-    data: T | undefined
-    status: "pending" | "success" | "error"
-    observableState: "complete" | "error" | "live"
-    error: Error | undefined
-  } = {
-    data: undefined,
-    status: "pending",
-    observableState: "live",
-    error: undefined,
-  }
+export type State<T, DefaultValue, Error = unknown> = {
+  data: T | DefaultValue
+  status: "pending" | "success" | "error"
+  observableState: "complete" | "error" | "live"
+  error: Error | undefined
+}
 
+export interface ObservableStoreOptions<T, DefaultValue> {
+  defaultValue: DefaultValue
+  compareFn: ((a: T, b: T) => boolean) | undefined
+}
+
+export class ObservableStore<T, DefaultValue, Error = unknown> {
+  state: State<T, DefaultValue, Error>
   source$: Observable<T | undefined>
+  sub: Subscription
 
   constructor({
     source$: miscSource$,
     defaultValue,
-    selectorKeys,
     compareFn,
   }: {
     source$: Observable<T> | (() => Observable<T> | undefined)
-    defaultValue: T | undefined
-    selectorKeys: (keyof T)[] | undefined
-    compareFn: ((a: T, b: T) => boolean) | undefined
-  }) {
-    this.state.data = defaultValue
-
+  } & ObservableStoreOptions<T, DefaultValue>) {
     const source$ =
       typeof miscSource$ === "function" ? miscSource$() : miscSource$
 
-    console.log("source$", source$)
+    const hasNoDefinedSource = source$ === undefined
 
-    if (source$ === undefined) {
-      this.state = {
-        ...this.state,
-        status: "success",
-        observableState: "complete",
-      }
+    this.state = {
+      data: source$ instanceof BehaviorSubject ? source$.value : defaultValue,
+      status: hasNoDefinedSource ? "success" : "pending",
+      observableState: hasNoDefinedSource ? "complete" : "live",
+      error: undefined,
     }
 
     this.source$ = (source$ ?? NEVER).pipe(
-      // Maybe selector
-      map((v) => {
-        if (selectorKeys && typeof v === "object" && v !== null) {
-          return filterObjectByKey(v, selectorKeys) as T | undefined
-        }
-
-        return v
-      }),
-      // Maybe compareFn
-      distinctUntilChanged((a, b) => {
-        if (a === undefined || b === undefined) return false
-
-        if (compareFn) {
-          return compareFn(a as T, b as T)
-        }
-
-        return a === b
-      }),
+      distinctUntilChanged(compareFn),
       tap({
         complete: () => {
-          console.log("complete")
-
           this.state = {
             ...this.state,
             status: "success",
@@ -91,19 +63,31 @@ export class ObservableStore<T> {
           }
         },
         next: (data) => {
-          console.log("next", data)
-
           this.state = { ...this.state, data }
         },
       }),
-      shareReplay({ refCount: true, bufferSize: 1 }),
+      share(),
     )
 
-    // to clean up
-    this.source$.subscribe()
+    /**
+     * @important This eager subscription will optimistically update the state.
+     * Any observable that is non async (behavior, of(x), etc) will have in fact their state completed
+     * by the first render cycle.
+     * Although we only correctly type sync state for `BehaviorSubject` we can in fact get the value in sync
+     * for more than them.
+     * Technically the whole pipe chain runs "synchronously".
+     *
+     * This is not a guarantee, just that in best case scenario there will be only one render.
+     */
+    this.sub = this.source$.subscribe()
   }
 
   subscribe = (next: () => void) => {
+    // in some case the observable is already complete by the time we subscribe to it.
+    if (this.state.observableState === "complete") {
+      return () => {}
+    }
+
     const sub = this.source$.subscribe({
       complete: next,
       error: next,
@@ -115,11 +99,7 @@ export class ObservableStore<T> {
     }
   }
 
-  getSnapshot = (): typeof this.state => {
-    // console.log("getSnapshot", this.state)
-
+  getSnapshot = () => {
     return this.state
   }
 }
-
-export const storeMap = new Map<string, ObservableStore<unknown>>()

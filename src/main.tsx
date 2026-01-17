@@ -45,8 +45,21 @@ const SubCom = memo(() => {
 const App = memo(() => {
   const [isVisible, setIsVisible] = useState(true)
 
-  const data = useObserve(() => timer(500).pipe(map((v) => v + 2)), { defaultValue: 8 }, [2])
-  const data2 = useObserve(() => timer(500).pipe(tap((v) => {throw new Error("test")})), { defaultValue: 8 }, [2])
+  const data = useObserve(
+    () => timer(500).pipe(map((v) => v + 2)),
+    { defaultValue: "foo" as const },
+    [2],
+  )
+  const data2 = useObserve(
+    () =>
+      timer(500).pipe(
+        tap((v) => {
+          throw new Error("test")
+        }),
+      ),
+    { defaultValue: 8 },
+    [2],
+  )
 
   console.log(data)
   console.log(data2)

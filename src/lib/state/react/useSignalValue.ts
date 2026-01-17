@@ -48,5 +48,5 @@ export function useSignalValue(
         : finalSignal.value,
     },
     [finalSignal],
-  )
+  ).data
 }

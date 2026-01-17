@@ -1,25 +1,16 @@
-import { type DependencyList, useRef, useSyncExternalStore } from "react"
+import { type DependencyList, useSyncExternalStore } from "react"
 import type { BehaviorSubject, Observable } from "rxjs"
-import { useLiveRef } from "../../utils/react/useLiveRef"
 import type { UseObserveResult } from "./types"
 import { useStore } from "./useStore"
 
-interface Option<R = undefined> {
+interface Option<T, R = undefined> {
   defaultValue: R
-  compareFn?: (a: R, b: R) => boolean
+  compareFn?: (a: T, b: T) => boolean
 }
 
 export function useObserve<T>(
   source: BehaviorSubject<T>,
 ): UseObserveResult<T, T>
-
-export function useObserve<T extends object, SelectorKeys extends keyof T>(
-  source: BehaviorSubject<T>,
-  selector: SelectorKeys[],
-): UseObserveResult<
-  { [K in SelectorKeys]: T[K] },
-  { [K in SelectorKeys]: T[K] }
->
 
 export function useObserve<T>(
   source: BehaviorSubject<T>,
@@ -29,14 +20,6 @@ export function useObserve<T>(
 export function useObserve<T>(
   source: Observable<T>,
 ): UseObserveResult<T, undefined>
-
-export function useObserve<T extends object, SelectorKeys extends keyof T>(
-  source: Observable<T>,
-  selector: SelectorKeys[],
-): UseObserveResult<
-  { [K in SelectorKeys]: T[K] },
-  { [K in SelectorKeys]: T[K] } | undefined
->
 
 export function useObserve<T>(
   source: () => Observable<T>,
@@ -48,59 +31,37 @@ export function useObserve<T>(
   deps: DependencyList,
 ): UseObserveResult<T, undefined>
 
-export function useObserve<T>(
+export function useObserve<T, DefaultValue>(
   source: Observable<T>,
-  options: Option<T>,
-): UseObserveResult<T, undefined>
+  options: Option<T, DefaultValue>,
+): UseObserveResult<T, DefaultValue>
 
-export function useObserve<T>(
+export function useObserve<T, DefaultValue>(
   source: () => Observable<T>,
-  options: Option<T>,
+  options: Option<T, DefaultValue>,
   deps: DependencyList,
-): UseObserveResult<T, T>
+): UseObserveResult<T, DefaultValue>
 
-export function useObserve<T, SelectorKeys extends keyof T>(
+export function useObserve<T, DefaultValue = T>(
   source$: Observable<T> | (() => Observable<T> | undefined),
-  optionsOrDeps?: Partial<Option<T>> | DependencyList | SelectorKeys[],
+  optionsOrDeps?: Partial<Option<DefaultValue>> | DependencyList,
   maybeDeps?: DependencyList,
-): UseObserveResult<T, T | undefined> {
+): UseObserveResult<T, DefaultValue | undefined> {
   const options =
     optionsOrDeps != null && !Array.isArray(optionsOrDeps)
-      ? (optionsOrDeps as Partial<Option<T>>)
+      ? (optionsOrDeps as Partial<Option<T, DefaultValue>>)
       : ({
           defaultValue: undefined,
           compareFn: undefined,
-        } satisfies Partial<Option<T>>)
+        } satisfies Partial<Option<T, DefaultValue>>)
   const deps =
     !maybeDeps && Array.isArray(optionsOrDeps)
       ? optionsOrDeps
       : typeof source$ === "function"
         ? (maybeDeps ?? [])
         : [source$]
-  const initialDefaultValue = options.defaultValue
-  const valueRef = useRef<{ value: T | undefined }>({
-    value: initialDefaultValue,
-  })
-  const sourceRef = useLiveRef(source$)
-  const optionsRef = useLiveRef(options)
-  const selectorKey =
-    typeof source$ !== "function" && Array.isArray(optionsOrDeps)
-      ? JSON.stringify(optionsOrDeps)
-      : undefined
-  const selectorKeys =
-    typeof source$ !== "function" && Array.isArray(optionsOrDeps)
-      ? (optionsOrDeps as SelectorKeys[])
-      : undefined
 
-  const store = useStore<T>(
-    {
-      source$,
-      defaultValue: options.defaultValue,
-      selectorKeys,
-      compareFn: options.compareFn,
-    },
-    deps,
-  )
+  const store = useStore<T, DefaultValue | undefined>(source$, options, deps)
 
   const result = useSyncExternalStore(
     store.subscribe,

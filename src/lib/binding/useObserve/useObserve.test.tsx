@@ -4,6 +4,7 @@ import { BehaviorSubject, map, type Observable, of, Subject, timer } from "rxjs"
 import { afterEach, describe, expect, expectTypeOf, it } from "vitest"
 import { waitForTimeout } from "../../../tests/utils"
 import { useConstant } from "../../utils/react/useConstant"
+import type { UseObserveResult } from "./types"
 import { useObserve } from "./useObserve"
 
 afterEach(() => {
@@ -13,14 +14,17 @@ afterEach(() => {
 describe("useObserve", () => {
   describe("Given a non BehaviorSubject observable", () => {
     it("should return `foo` as first render cycle due to internal optimization and should only have one render cycle", async () => {
-      const values: Array<string | undefined> = []
+      const values: Array<UseObserveResult<string, undefined>> = []
       const source$ = of("foo")
 
       renderHook(() => {
-        values.push(useObserve(source$).data)
+        values.push(useObserve(source$))
       }, {})
 
-      expect(values[0]).toBe("foo")
+      expect(values[0]?.data).toBe("foo")
+
+      console.log("values", values)
+
       expect(values.length).toBe(1)
     })
   })
@@ -275,7 +279,6 @@ describe("useObserve", () => {
           undefined,
         )
 
-        // console.log("RENDER")
         values.push(useObserve(() => res, [res]))
 
         useEffect(() => {

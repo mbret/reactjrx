@@ -1,16 +1,21 @@
 import { renderHook } from "@testing-library/react"
 import { act, useEffect } from "react"
-import { BehaviorSubject, of } from "rxjs"
+import { BehaviorSubject, distinctUntilChanged, map, of } from "rxjs"
 import { expect, it } from "vitest"
+import { filterObjectByKey } from "../../utils/filterObjectByKey"
+import { isShallowEqual } from "../../utils/shallowEqual"
 import type { UseObserveResult } from "./types"
 import { useObserve } from "./useObserve"
 
 it("should return the selected keys", async () => {
   const values: Array<{ foo: string } | undefined> = []
-  const source$ = of({ foo: "foo" })
+  const source$ = of({ foo: "foo" }).pipe(
+    map((data) => filterObjectByKey(data, ["foo"])),
+    distinctUntilChanged(isShallowEqual),
+  )
 
   renderHook(() => {
-    const value = useObserve(source$, ["foo"])
+    const value = useObserve(source$)
 
     values.push(value.data)
   }, {})
@@ -19,12 +24,20 @@ it("should return the selected keys", async () => {
   expect(values.length).toBe(1)
 })
 
-it("should not re-render when the selected keys don't change foobar", async () => {
+it("should not re-render when the selected keys don't change", async () => {
   const values: Array<UseObserveResult<{ a: string }, { a: string }>> = []
   const source$ = new BehaviorSubject({ a: "a", b: "b" })
 
   renderHook(() => {
-    const value = useObserve(source$, ["a"])
+    const value = useObserve(
+      () =>
+        source$.pipe(
+          map((data) => filterObjectByKey(data, ["a"])),
+          distinctUntilChanged(isShallowEqual),
+        ),
+      { defaultValue: source$.value },
+      [],
+    )
 
     useEffect(() => {
       values.push(value)
@@ -42,13 +55,6 @@ it("should not re-render when the selected keys don't change foobar", async () =
     source$.next({ a: "a", b: "c" })
   })
 
-  expect(values[1]).toEqual({
-    data: { a: "a" },
-    error: undefined,
-    status: "pending",
-    observableState: "live",
-  })
-
   expect(values.length).toBe(1)
 })
 
@@ -57,7 +63,15 @@ it("should re-render when the selected keys change", async () => {
   const source$ = new BehaviorSubject({ a: "a", b: "b" })
 
   renderHook(() => {
-    const value = useObserve(source$, ["a"])
+    const value = useObserve(
+      () =>
+        source$.pipe(
+          map((data) => filterObjectByKey(data, ["a"])),
+          distinctUntilChanged(isShallowEqual),
+        ),
+      { defaultValue: source$.value },
+      [],
+    )
 
     useEffect(() => {
       values.push(value.data)
