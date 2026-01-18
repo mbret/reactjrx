@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, render } from "@testing-library/react"
-import React from "react"
+import React, { act } from "react"
 import { Subject } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
 import { printQuery } from "../../tests/testUtils"
@@ -40,7 +40,7 @@ describe("useQuery", () => {
 
           const client = new QueryClient()
 
-          const { findByText, rerender, debug } = render(
+          const { findByText, rerender } = render(
             <React.StrictMode>
               <QueryClientProvider client={client}>
                 <QueryClientProvider$>
@@ -50,7 +50,9 @@ describe("useQuery", () => {
             </React.StrictMode>,
           )
 
-          triggerSubject.next(2)
+          act(() => {
+            triggerSubject.next(2)
+          })
 
           expect(
             await findByText(
@@ -86,7 +88,9 @@ describe("useQuery", () => {
             ),
           ).toBeDefined()
 
-          triggerSubject.next(3)
+          act(() => {
+            triggerSubject.next(3)
+          })
 
           expect(
             await findByText(
@@ -100,11 +104,13 @@ describe("useQuery", () => {
             ),
           ).toBeDefined()
 
-          triggerSubject.complete()
+          await act(async () => {
+            triggerSubject.complete()
 
-          await waitForTimeout(100)
+            await waitForTimeout(100)
+          })
 
-          debug()
+          // debug()
 
           expect(
             await findByText(

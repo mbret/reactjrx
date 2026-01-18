@@ -1,6 +1,13 @@
-import { cleanup, render, renderHook, screen } from "@testing-library/react"
+import {
+  act,
+  cleanup,
+  render,
+  renderHook,
+  screen,
+} from "@testing-library/react"
 import { type FC, type PropsWithChildren, StrictMode, useEffect } from "react"
 import { afterEach, describe, expect, it, type MockInstance, vi } from "vitest"
+import { waitForTimeout } from "../../../tests/utils"
 import { virtualSignal } from "../Signal"
 import type { SignalContext } from "../SignalContext"
 import {
@@ -85,8 +92,10 @@ describe("SignalContextProvider", () => {
         </StrictMode>,
       )
 
-      // Wait for effects to run
-      await new Promise((resolve) => setTimeout(resolve, 0))
+      await act(async () => {
+        // Wait for effects to run
+        await waitForTimeout(0)
+      })
 
       // Check that we have two different context instances
       expect(firstContext).not.toBe(undefined)

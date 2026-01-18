@@ -23,8 +23,6 @@ describe("useObserve", () => {
 
       expect(values[0]?.data).toBe("foo")
 
-      console.log("values", values)
-
       expect(values.length).toBe(1)
     })
   })
@@ -63,7 +61,9 @@ describe("useObserve", () => {
 
     const { result } = renderHook(() => useObserve(source$), {})
 
-    await new Promise((resolve) => setTimeout(resolve, 1))
+    await act(async () => {
+      await waitForTimeout(1)
+    })
 
     expect(result.current).toEqual({
       data: 123,
@@ -78,7 +78,9 @@ describe("useObserve", () => {
 
     const { result } = renderHook(() => useObserve(source$), {})
 
-    await new Promise((resolve) => setTimeout(resolve, 1))
+    await act(async () => {
+      await waitForTimeout(1)
+    })
 
     expect(result.current).toEqual({
       data: undefined,
@@ -244,13 +246,17 @@ describe("useObserve", () => {
 
     expect(numberOfRenders).toBe(2)
 
-    await waitForTimeout(10)
+    await act(async () => {
+      await waitForTimeout(10)
+    })
 
     act(() => {
       subject.complete()
     })
 
-    await waitForTimeout(10)
+    await act(async () => {
+      await waitForTimeout(10)
+    })
 
     // now updated with success state
     expect(numberOfRenders).toBe(3)
@@ -288,7 +294,9 @@ describe("useObserve", () => {
         }, [])
       }, {})
 
-      await waitForTimeout(10)
+      await act(async () => {
+        await waitForTimeout(10)
+      })
 
       expect(values).toEqual([
         {

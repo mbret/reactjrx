@@ -1,4 +1,4 @@
-import { cleanup, renderHook } from "@testing-library/react"
+import { act, cleanup, renderHook } from "@testing-library/react"
 import { useEffect, useState } from "react"
 import { type Observable, of, tap } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
@@ -46,7 +46,9 @@ describe("Given a function that returns undefined", () => {
         }, [])
       }, {})
 
-      await waitForTimeout(20)
+      await act(async () => {
+        await waitForTimeout(20)
+      })
 
       expect(testValue).toBe(5)
     })

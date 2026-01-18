@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, render } from "@testing-library/react"
-import React from "react"
+import React, { act } from "react"
 import { interval, map, Subject, take, tap } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
 import { QueryClientProvider$ } from "./QueryClientProvider$"
@@ -47,16 +47,20 @@ describe("Given a query that takes time to finish", () => {
 
       expect(tapped).toBe(0)
 
-      trigger.next()
+      act(() => {
+        trigger.next()
+      })
 
       expect(tapped).toBe(1)
 
-      /**
-       * Because the stream never finished (subject).
-       * it should stay in the deduplication layer and always
-       * run once
-       */
-      trigger.next()
+      act(() => {
+        /**
+         * Because the stream never finished (subject).
+         * it should stay in the deduplication layer and always
+         * run once
+         */
+        trigger.next()
+      })
 
       expect(tapped).toBe(2)
     })

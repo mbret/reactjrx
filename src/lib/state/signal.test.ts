@@ -58,7 +58,7 @@ describe("signal", () => {
       expect(result.current).toBe(5)
 
       act(() => {
-        state.setValue(6)
+        state.update(6)
       })
 
       rerender()
@@ -66,7 +66,7 @@ describe("signal", () => {
       expect(result.current).toBe(6)
 
       act(() => {
-        state.setValue(SIGNAL_RESET)
+        state.update(SIGNAL_RESET)
       })
 
       rerender()
@@ -86,14 +86,16 @@ describe("signal", () => {
       expect(result.current).toBe(undefined)
 
       act(() => {
-        state.setValue(6)
+        state.update(6)
       })
 
       rerender()
 
       expect(result.current).toBe(6)
 
-      state.setValue(SIGNAL_RESET)
+      act(() => {
+        state.update(SIGNAL_RESET)
+      })
 
       rerender()
 

@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, render } from "@testing-library/react"
-import { StrictMode } from "react"
+import { act, StrictMode } from "react"
 import { finalize, timer } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
 import { waitForTimeout } from "../../tests/utils"
@@ -44,7 +44,9 @@ describe("Given a long observable", () => {
 
       unmount()
 
-      await waitForTimeout(15)
+      await act(async () => {
+        await waitForTimeout(15)
+      })
 
       // 2 because of strict mode
       expect(tapped).toBe(2)
@@ -60,7 +62,6 @@ describe("Given an observable that completes", () => {
       useQuery$({
         queryKey: ["foo"],
         queryFn: () => {
-          console.log("fn")
           return timer(10).pipe(
             finalize(() => {
               tapped++
@@ -85,7 +86,9 @@ describe("Given an observable that completes", () => {
       </StrictMode>,
     )
 
-    await waitForTimeout(15)
+    await act(async () => {
+      await waitForTimeout(15)
+    })
 
     expect(tapped).toBe(2)
     expect(reactJrxQueryClient.queryMap.size).toBe(0)

@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, render } from "@testing-library/react"
-import React, { memo, useEffect, useState } from "react"
-import { interval, merge, of, Subject, takeWhile, timer } from "rxjs"
+import React, { act, memo, useEffect, useState } from "react"
+import { interval, merge, NEVER, of, Subject, takeWhile, timer } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
 import { waitForTimeout } from "../../tests/utils"
 import { QueryClientProvider$ } from "./QueryClientProvider$"
@@ -49,7 +49,7 @@ describe("Given a query that returns a value synchronously but keep going", () =
     const Comp = () => {
       const { data } = useQuery$({
         queryKey: [],
-        queryFn: () => merge(of(1), timer(Number.POSITIVE_INFINITY)),
+        queryFn: () => merge(of(1), NEVER),
       })
 
       return <>{data}</>
@@ -166,15 +166,17 @@ it("should return consecutive results", async () => {
     </React.StrictMode>,
   )
 
-  source.next(3)
+  await act(async () => {
+    source.next(3)
 
-  await waitForTimeout(10)
+    await waitForTimeout(10)
 
-  source.next(2)
+    source.next(2)
 
-  await waitForTimeout(10)
+    await waitForTimeout(10)
 
-  source.next(1)
+    source.next(1)
+  })
 
   expect(await findByText(JSON.stringify([3, 2, 1]))).toBeDefined()
 })

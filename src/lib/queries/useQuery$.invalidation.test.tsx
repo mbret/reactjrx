@@ -29,7 +29,9 @@ describe("useQuery", () => {
           const Comp = () => {
             const result = useQuery$({
               queryKey: ["foo"],
-              queryFn: () => queryFnMock(),
+              queryFn: () => {
+                return queryFnMock()
+              },
               staleTime: staleTimeout,
             })
 

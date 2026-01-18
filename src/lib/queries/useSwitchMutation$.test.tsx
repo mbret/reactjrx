@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { fireEvent } from "@testing-library/dom"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
-import { useState } from "react"
+import { act, useState } from "react"
 import { delay, finalize, map, of, timer } from "rxjs"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { waitForTimeout } from "../../tests/utils"
@@ -57,7 +57,9 @@ describe("useSwitchMutation$", () => {
     )
 
     // Trigger the mutation
-    fireEvent.click(screen.getByText("Trigger Mutation"))
+    act(() => {
+      fireEvent.click(screen.getByText("Trigger Mutation"))
+    })
 
     // Wait for the result
     await waitFor(() => {
@@ -132,10 +134,14 @@ describe("useSwitchMutation$", () => {
     )
 
     // Trigger the first mutation
-    fireEvent.click(screen.getByTestId("btn-first"))
+    act(() => {
+      fireEvent.click(screen.getByTestId("btn-first"))
+    })
 
     // Immediately trigger the second mutation (before the first one completes)
-    fireEvent.click(screen.getByTestId("btn-second"))
+    act(() => {
+      fireEvent.click(screen.getByTestId("btn-second"))
+    })
 
     // Wait for the result - only the second mutation should complete
     await waitFor(() => {
@@ -228,22 +234,32 @@ describe("useSwitchMutation$", () => {
     )
 
     // Start the first long-running mutation
-    fireEvent.click(screen.getByTestId("run-first"))
+    act(() => {
+      fireEvent.click(screen.getByTestId("run-first"))
+    })
 
     // Wait a moment to ensure the first mutation is running
-    await waitForTimeout(50)
+    await act(async () => {
+      await waitForTimeout(50)
+    })
 
     // Start the second long-running mutation - this should cancel the first
-    fireEvent.click(screen.getByTestId("run-second"))
+    act(() => {
+      fireEvent.click(screen.getByTestId("run-second"))
+    })
 
     // Verify the first mutation was finalized (canceled)
     expect(onCompleteSpy1).toHaveBeenCalledTimes(1)
 
     // Wait a moment to ensure the second mutation is running
-    await waitForTimeout(50)
+    await act(async () => {
+      await waitForTimeout(50)
+    })
 
     // Start the third mutation (which completes quickly)
-    fireEvent.click(screen.getByTestId("run-third"))
+    act(() => {
+      fireEvent.click(screen.getByTestId("run-third"))
+    })
 
     // Verify the second mutation was finalized (canceled)
     expect(onCompleteSpy2).toHaveBeenCalledTimes(1)
