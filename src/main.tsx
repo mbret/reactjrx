@@ -53,7 +53,7 @@ const App = memo(() => {
   const data2 = useObserve(
     () =>
       timer(500).pipe(
-        tap((v) => {
+        tap(() => {
           throw new Error("test")
         }),
       ),
@@ -69,11 +69,11 @@ const App = memo(() => {
       <button type="button" onClick={() => setIsVisible(!isVisible)}>
         Toggle
       </button>
-      {/* {isVisible && (
+      {isVisible && (
         <SignalContextProvider>
           <SubCom />
         </SignalContextProvider>
-      )} */}
+      )}
     </>
   )
 })

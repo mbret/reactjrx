@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, render } from "@testing-library/react"
 import React, { act, StrictMode } from "react"
 import { of } from "rxjs"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 import { printQuery } from "../../tests/testUtils"
 import { QueryClientProvider$ } from "./QueryClientProvider$"
 import { useQuery$ } from "./useQuery$"
@@ -27,6 +27,8 @@ describe("useQuery", () => {
           const staleTimeout = 1
 
           const Comp = () => {
+            "use no memo"
+
             const result = useQuery$({
               queryKey: ["foo"],
               queryFn: () => {

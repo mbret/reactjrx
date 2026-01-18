@@ -34,8 +34,8 @@
   },
   "peerDependencies": {
     "@tanstack/react-query": "5.x",
-    "react": "^18 || ^19",
-    "react-dom": "^18 || ^19",
+    "react": "19.x",
+    "react-dom": "19.x",
     "rxjs": "*"
   },
   "devDependencies": {

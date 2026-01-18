@@ -1,5 +1,5 @@
 import type { DefaultError, QueryClient } from "@tanstack/react-query"
-import { useCallback, useRef } from "react"
+import { useCallback } from "react"
 import {
   defaultIfEmpty,
   first,
@@ -8,6 +8,7 @@ import {
   merge,
   tap,
 } from "rxjs"
+import { useRefOnce } from "../utils"
 import { type UseMutation$Options, useMutation$ } from "./useMutation$"
 
 export class SwitchMutationCancelError extends Error {
@@ -21,53 +22,70 @@ export function useSwitchMutation$<
   TData = unknown,
   TError = DefaultError,
   TVariables = void,
-  TContext = unknown,
+  TOnMutateResult = unknown,
 >(
-  options: UseMutation$Options<TData | null, TError, TVariables, TContext>,
+  {
+    mutationFn,
+    onMutate,
+    onError,
+    onSettled,
+    ...options
+  }: UseMutation$Options<TData | null, TError, TVariables, TOnMutateResult>,
   queryClient?: QueryClient,
 ) {
-  const previousMutationCancelRef = useRef(new AbortController())
+  const previousMutationCancelRef = useRefOnce(() => new AbortController())
   type TDataOrNull = TData | null
 
   const { mutate, mutateAsync, ...rest } = useMutation$<
     TDataOrNull,
     TError,
     { variables: TVariables; abort: AbortSignal },
-    TContext
+    TOnMutateResult
   >(
     {
       ...options,
-      mutationFn: ({ variables, abort }) => {
-        if (abort.aborted) {
-          throw new SwitchMutationCancelError()
-        }
+      mutationFn: useCallback(
+        ({
+          variables,
+          abort,
+        }: {
+          variables: TVariables
+          abort: AbortSignal
+        }) => {
+          if (abort.aborted) {
+            throw new SwitchMutationCancelError()
+          }
 
-        const source =
-          typeof options.mutationFn === "function"
-            ? options.mutationFn(variables)
-            : options.mutationFn
+          const source =
+            typeof mutationFn === "function"
+              ? mutationFn(variables)
+              : mutationFn
 
-        return merge(
-          source,
-          fromEvent(abort, "abort").pipe(
-            tap(() => {
-              throw new SwitchMutationCancelError()
-            }),
-            ignoreElements(),
-          ),
-        ).pipe(first(), defaultIfEmpty(null))
-      },
-      onMutate: ({ variables }, ...rest) => {
-        return options.onMutate?.(variables, ...rest)
-      },
+          return merge(
+            source,
+            fromEvent(abort, "abort").pipe(
+              tap(() => {
+                throw new SwitchMutationCancelError()
+              }),
+              ignoreElements(),
+            ),
+          ).pipe(first(), defaultIfEmpty(null))
+        },
+        [mutationFn],
+      ),
+      onMutate: onMutate
+        ? ({ variables }, ...rest) => {
+            return onMutate(variables, ...rest)
+          }
+        : undefined,
       onSuccess: (data, { variables }, ...rest) => {
         return options.onSuccess?.(data, variables, ...rest)
       },
       onError: (error, { variables }, ...rest) => {
-        return options.onError?.(error, variables, ...rest)
+        return onError?.(error, variables, ...rest)
       },
       onSettled: (data, error, { variables }, ...rest) => {
-        return options.onSettled?.(data, error, variables, ...rest)
+        return onSettled?.(data, error, variables, ...rest)
       },
     },
     queryClient,
@@ -83,7 +101,7 @@ export function useSwitchMutation$<
         abort: previousMutationCancelRef.current.signal,
       })
     },
-    [mutate],
+    [mutate, previousMutationCancelRef],
   )
 
   const mutateAsyncSwitch = useCallback(
@@ -96,7 +114,7 @@ export function useSwitchMutation$<
         abort: previousMutationCancelRef.current.signal,
       })
     },
-    [mutateAsync],
+    [mutateAsync, previousMutationCancelRef],
   )
 
   return { ...rest, mutate: mutateSwitch, mutateAsync: mutateAsyncSwitch }

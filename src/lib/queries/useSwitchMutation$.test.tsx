@@ -28,6 +28,8 @@ describe("useSwitchMutation$", () => {
     const finalizeSpy = vi.fn()
 
     const TestComponent = () => {
+      "use no memo"
+
       const [result, setResult] = useState<string | null>(null)
       const { mutate } = useSwitchMutation$<string, Error, string>({
         mutationFn: (variables: string) =>
@@ -76,16 +78,14 @@ describe("useSwitchMutation$", () => {
     const successSpy = vi.fn()
 
     const TestComponent = () => {
+      "use no memo"
+
       const [result, setResult] = useState<string | null>(null)
       const { mutate } = useSwitchMutation$<string, Error, string>({
         mutationFn: (variables: string) =>
           of(`result: ${variables}`).pipe(
             delay(50),
             finalize(() => {
-              //   if (variables === 'first') {
-              //     cancelSpy1();
-              //     return;
-              //   }
               cancelSpy2()
             }),
           ),
@@ -167,6 +167,8 @@ describe("useSwitchMutation$", () => {
 
     // Component with a long-running mutation
     const TestComponent = () => {
+      "use no memo"
+
       const [state, setState] = useState<string | null>(null)
       const { mutate } = useSwitchMutation$<string, Error, string>({
         mutationFn: (id: string) => {

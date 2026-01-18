@@ -17,7 +17,10 @@ export function useQuery$<
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey,
 >(
-  options: Omit<
+  {
+    queryFn,
+    ...options
+  }: Omit<
     UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
     "queryFn"
   > & {
@@ -34,9 +37,7 @@ export function useQuery$<
     return new Promise<TQueryFnData>((resolve, reject) => {
       const getSource = () =>
         defer(() =>
-          typeof options.queryFn === "function"
-            ? options.queryFn(context)
-            : options.queryFn,
+          typeof queryFn === "function" ? queryFn(context) : queryFn,
         )
 
       const queryHash = hashKey(context.queryKey)

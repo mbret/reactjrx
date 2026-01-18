@@ -13,9 +13,9 @@ export type UseMutation$Options<
   TData = unknown,
   TError = DefaultError,
   TVariables = void,
-  TContext = unknown,
+  TOnMutateResult = unknown,
 > = Omit<
-  UseMutationOptions<TData, TError, TVariables, TContext>,
+  UseMutationOptions<TData, TError, TVariables, TOnMutateResult>,
   "mutationFn"
 > & {
   mutationFn: ((variables: TVariables) => Observable<TData>) | Observable<TData>
@@ -25,16 +25,16 @@ export function useMutation$<
   TData = unknown,
   TError = DefaultError,
   TVariables = void,
-  TContext = unknown,
+  TOnMutateResult = unknown,
 >(
-  options: UseMutation$Options<TData, TError, TVariables, TContext>,
+  options: UseMutation$Options<TData, TError, TVariables, TOnMutateResult>,
   queryClient?: QueryClient,
 ) {
   const stateSubject = useConstant(
     () =>
       new BehaviorSubject<
         Pick<
-          UseMutationResult<TData, TError, TVariables, TContext>,
+          UseMutationResult<TData, TError, TVariables, TOnMutateResult>,
           "status" | "isPending" | "isError" | "isSuccess" | "isIdle"
         >
       >({
@@ -46,7 +46,7 @@ export function useMutation$<
       }),
   )
 
-  const result = useMutation<TData, TError, TVariables, TContext>(
+  const result = useMutation<TData, TError, TVariables, TOnMutateResult>(
     {
       ...options,
       mutationFn: (variables: TVariables) => {

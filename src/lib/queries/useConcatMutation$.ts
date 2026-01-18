@@ -21,7 +21,10 @@ export function useContactMutation$<
   TVariables = void,
   TContext = unknown,
 >(
-  options: UseMutation$Options<TData | null, TError, TVariables, TContext> & {
+  {
+    onMutate,
+    ...options
+  }: UseMutation$Options<TData | null, TError, TVariables, TContext> & {
     mutationKey: MutationKey
   },
   queryClient?: QueryClient,
@@ -38,9 +41,9 @@ export function useContactMutation$<
   >(
     {
       ...options,
-      onMutate({ variables }, ...rest) {
-        return options.onMutate?.(variables, ...rest)
-      },
+      onMutate: onMutate
+        ? ({ variables }, ...rest) => onMutate(variables, ...rest)
+        : undefined,
       onSuccess(data, { variables }, ...rest) {
         return options.onSuccess?.(data, variables, ...rest)
       },

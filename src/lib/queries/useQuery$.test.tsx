@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, render } from "@testing-library/react"
 import React, { act, memo, useEffect, useState } from "react"
-import { interval, merge, NEVER, of, Subject, takeWhile, timer } from "rxjs"
+import { interval, merge, NEVER, of, Subject, takeWhile } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
 import { waitForTimeout } from "../../tests/utils"
 import { QueryClientProvider$ } from "./QueryClientProvider$"

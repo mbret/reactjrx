@@ -20,6 +20,7 @@ describe("useQuery", () => {
           const triggerSubject = new Subject()
 
           const Comp = ({ queryKey }: { queryKey: string }) => {
+            "use no memo"
             const result = useQuery$({
               queryKey: [queryKey],
               queryFn: () => triggerSubject,
