@@ -3,6 +3,8 @@ import type { BehaviorSubject, Observable } from "rxjs"
 import type { UseObserveResult } from "./types"
 import { useStore } from "./useStore"
 
+export type { UseObserveOptions, UseObserveResult } from "./types"
+
 interface Option<T, R = undefined> {
   defaultValue: R
   compareFn?: (a: T, b: T) => boolean

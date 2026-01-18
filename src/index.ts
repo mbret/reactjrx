@@ -2,7 +2,7 @@
 
 export * from "./lib/binding/useLiveBehaviorSubject"
 export * from "./lib/binding/useObservableState"
-export * from "./lib/binding/useObserve/useObserve"
+export * from "./lib/binding/useObserve"
 export * from "./lib/binding/useSubscribe"
 export * from "./lib/binding/useSubscribeEffect"
 export * from "./lib/binding/useUnmountObservable"
