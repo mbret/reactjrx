@@ -21,7 +21,9 @@ export default defineConfig({
         devDeps: true,
       }),
     },
-    dts(),
+    dts({
+      staticImport: true,
+    }),
   ],
   build: {
     minify: "terser",

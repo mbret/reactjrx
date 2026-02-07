@@ -1,8 +1,8 @@
 import { act, cleanup, renderHook } from "@testing-library/react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { type Observable, of, tap } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
-import { waitForTimeout } from "../../tests/utils"
+import { waitForTimeout } from "../../../tests/utils"
 import { useSubscribe } from "./useSubscribe"
 
 afterEach(() => {
@@ -14,7 +14,7 @@ describe("Given a function that returns undefined", () => {
     const maybeObservableFn = () => undefined as Observable<number> | undefined
 
     renderHook(() => {
-      useSubscribe(maybeObservableFn, [])
+      useSubscribe(maybeObservableFn)
     }, {})
 
     expect(true).toBe(true)
@@ -29,7 +29,7 @@ describe("Given a function that returns undefined", () => {
           undefined,
         )
 
-        useSubscribe(
+        const source$ = useCallback(
           () =>
             value?.pipe(
               tap((v) => {
@@ -38,6 +38,8 @@ describe("Given a function that returns undefined", () => {
             ),
           [value],
         )
+
+        useSubscribe(source$)
 
         useEffect(() => {
           setTimeout(() => {
