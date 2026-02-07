@@ -1,4 +1,3 @@
-export * from "../../binding/useUnmountObservable"
 export * from "./useConstant"
 export * from "./useDebounced"
 export * from "./useEffectOnce"
