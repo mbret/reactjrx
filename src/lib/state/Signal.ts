@@ -3,14 +3,18 @@ import { SIGNAL_RESET } from "./constants"
 
 /**
  * Distributive helper to validate the shape of the updater function
- * and prevent covariance
+ * and prevent covariance. Distributes over both T and U so union state
+ * types work (updater can return any member of the union).
  */
-// biome-ignore lint/suspicious/noExplicitAny: Expected to prevent covariance
-type ValidateShape<T, U> = T extends any
-  ? U extends T
-    ? U extends object
-      ? { [K in keyof U]: K extends keyof T ? T[K] : never }
-      : U
+// biome-ignore lint/suspicious/noExplicitAny: distributive conditional over U and T for union support
+type ValidateShape<T, U> = U extends any
+  ? // biome-ignore lint/suspicious/noExplicitAny: distributive over T
+    T extends any
+    ? U extends T
+      ? U extends object
+        ? { [K in keyof U]: K extends keyof T ? T[K] : never }
+        : U
+      : never
     : never
   : never
 
