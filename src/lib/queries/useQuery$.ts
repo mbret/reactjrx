@@ -4,6 +4,7 @@ import {
   type QueryClient,
   type QueryFunctionContext,
   type QueryKey,
+  skipToken,
   type UseQueryOptions,
   useQuery,
   useQueryClient,
@@ -26,6 +27,7 @@ export function useQuery$<
   > & {
     queryFn:
       | ((context: QueryFunctionContext<TQueryKey>) => Observable<TQueryFnData>)
+      | typeof skipToken
       | Observable<TQueryFnData>
   },
   queryClient?: QueryClient,
@@ -34,6 +36,10 @@ export function useQuery$<
   const queryClient$ = useQueryClient$()
 
   const queryFnAsync = (context: QueryFunctionContext<TQueryKey>) => {
+    if (queryFn === skipToken) {
+      throw new Error("useQuery$: queryFnAsync called with skipToken")
+    }
+
     return new Promise<TQueryFnData>((resolve, reject) => {
       const getSource = () =>
         defer(() =>
@@ -114,7 +120,7 @@ export function useQuery$<
   const result = useQuery<TQueryFnData, TError, TData, TQueryKey>(
     {
       ...options,
-      queryFn: queryFnAsync,
+      queryFn: queryFn === skipToken ? skipToken : queryFnAsync,
     },
     queryClient,
   )
