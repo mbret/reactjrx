@@ -1,4 +1,5 @@
 import {
+  CancelledError,
   type DefaultError,
   hashKey,
   type QueryClient,
@@ -93,20 +94,15 @@ export function useQuery$<
           complete: () => {
             if (queryCacheEntry?.lastData === undefined) {
               if (queryCacheEntry.signal.aborted) {
-                return resolve(undefined as TQueryFnData)
+                // query naturally cancelled by external factors.
+                return reject(new CancelledError())
               }
 
-              console.log(
+              console.warn(
                 `cancelled due to stream completing without data for query ${queryHash}`,
-                queryCacheEntry?.lastData,
               )
 
-              _queryClient.cancelQueries({
-                queryKey: context.queryKey,
-                exact: true,
-              })
-
-              return resolve(undefined as TQueryFnData)
+              return reject(new CancelledError())
             }
 
             resolve(queryCacheEntry.lastData.value as TQueryFnData)

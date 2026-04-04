@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client"
 import { cleanup, render } from "@testing-library/react"
 import { act, StrictMode } from "react"
-import { finalize, timer } from "rxjs"
-import { afterEach, describe, expect, it } from "vitest"
+import { EMPTY, finalize, timer } from "rxjs"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { waitForTimeout } from "../../tests/utils"
 import { QueryClient$, QueryClientProvider$ } from "./QueryClientProvider$"
 import { useQuery$ } from "./useQuery$"
@@ -100,6 +101,94 @@ describe("Given a long observable", () => {
       // StrictMode mount / unmount / remount / final unmount → two shared streams torn down
       expect(finalizeCount).toBe(2)
     })
+  })
+})
+
+describe("Observable completes without emitting", () => {
+  /**
+   * Regression: calling `cancelQueries` from this path raced with TanStack’s own
+   * fetch lifecycle (persist restore + Strict Mode) and could leave queries stuck.
+   * Completing with no value still ends via `reject(CancelledError)` only.
+   */
+  it("does not call queryClient.cancelQueries", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const queryClient = new QueryClient()
+    const cancelQueriesSpy = vi.spyOn(queryClient, "cancelQueries")
+
+    const Comp = () => {
+      useQuery$({
+        queryKey: ["empty-complete"],
+        queryFn: () => EMPTY,
+        retry: false,
+      })
+
+      return null
+    }
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <QueryClientProvider$>
+          <Comp />
+        </QueryClientProvider$>
+      </QueryClientProvider>,
+    )
+
+    await act(async () => {
+      await waitForTimeout(50)
+    })
+
+    expect(cancelQueriesSpy).not.toHaveBeenCalled()
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('["empty-complete"]'),
+    )
+
+    cancelQueriesSpy.mockRestore()
+    warnSpy.mockRestore()
+  })
+
+  it("does not call cancelQueries under PersistQueryClientProvider (isRestoring window)", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+    const queryClient = new QueryClient()
+    const cancelQueriesSpy = vi.spyOn(queryClient, "cancelQueries")
+
+    const persister = {
+      persistClient: vi.fn(async () => {}),
+      restoreClient: vi.fn(async () => undefined),
+      removeClient: vi.fn(async () => {}),
+    }
+
+    const Comp = () => {
+      useQuery$({
+        queryKey: ["persist-empty"],
+        queryFn: () => EMPTY,
+        retry: false,
+      })
+
+      return null
+    }
+
+    render(
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{ persister, maxAge: 86_400_000 }}
+      >
+        <QueryClientProvider$>
+          <Comp />
+        </QueryClientProvider$>
+      </PersistQueryClientProvider>,
+    )
+
+    await act(async () => {
+      await waitForTimeout(100)
+    })
+
+    expect(cancelQueriesSpy).not.toHaveBeenCalled()
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('["persist-empty"]'),
+    )
+
+    cancelQueriesSpy.mockRestore()
+    warnSpy.mockRestore()
   })
 })
 
