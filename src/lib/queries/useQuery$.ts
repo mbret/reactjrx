@@ -102,6 +102,13 @@ export function useQuery$<
                 `cancelled due to stream completing without data for query ${queryHash}`,
               )
 
+              /**
+               * A stream that completes without data is considered cancelled.
+               * This is the expected behavior if someone for example adds a takeUntil().
+               * This also allow the query to be retried automatically instead of
+               * resolving as success with `undefined` (which is no-op for react-query)
+               * or erroring with arbitrary value.
+               */
               return reject(new CancelledError())
             }
 

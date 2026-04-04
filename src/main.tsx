@@ -14,7 +14,7 @@ import { QueryClientProvider$ } from "./lib/queries/QueryClientProvider$"
 import { useQuery$ } from "./lib/queries/useQuery$"
 import { SignalContextProvider } from "./lib/state/react/SignalContextProvider"
 import { useSignal } from "./lib/state/react/useSignal"
-import { literal, signal, virtualSignal } from "./lib/state/Signal"
+import { signal, virtualSignal } from "./lib/state/Signal"
 
 const PERSIST_KEY = "reactjrx-dev-query-cache"
 
@@ -51,7 +51,7 @@ const alternateSignal = signal<{ foo: "foo" } | { bar: number }>({
 
 alternateSignal.update((state) => ({
   ...state,
-  foo: literal("foo"),
+  foo: "foo" as const,
 }))
 
 const virtualSignal1 = virtualSignal({
