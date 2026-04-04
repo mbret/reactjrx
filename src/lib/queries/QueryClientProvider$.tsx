@@ -1,4 +1,4 @@
-import { hashKey, type QueryKey } from "@tanstack/react-query"
+import { hashKey, type QueryKey, useQueryClient } from "@tanstack/react-query"
 import { createContext, memo, useContext, useEffect, useState } from "react"
 import {
   fromEvent,
@@ -93,6 +93,12 @@ export class QueryClient$ {
 
 export const Context = createContext<QueryClient$ | undefined>(undefined)
 
+/**
+ * Must render **inside** TanStack `QueryClientProvider` (or equivalent).
+ * Subscribes to that client's query cache so when a query is removed
+ * (including via `queryClient.clear()`), matching `useQuery$` observable
+ * entries are dropped.
+ */
 export const QueryClientProvider$ = memo(
   ({
     children,
@@ -102,6 +108,15 @@ export const QueryClientProvider$ = memo(
     client?: QueryClient$
   }) => {
     const [client] = useState(() => _client ?? new QueryClient$())
+    const queryClient = useQueryClient()
+
+    useEffect(() => {
+      return queryClient.getQueryCache().subscribe((event) => {
+        if (event.type === "removed") {
+          client.deleteQuery(event.query.queryHash)
+        }
+      })
+    }, [queryClient, client])
 
     useEffect(() => {
       return () => {
