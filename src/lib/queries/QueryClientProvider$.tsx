@@ -110,13 +110,23 @@ export const QueryClientProvider$ = memo(
     const [client] = useState(() => _client ?? new QueryClient$())
     const queryClient = useQueryClient()
 
-    useEffect(() => {
-      return queryClient.getQueryCache().subscribe((event) => {
-        if (event.type === "removed") {
-          client.deleteQuery(event.query.queryHash)
-        }
-      })
-    }, [queryClient, client])
+    useEffect(
+      function subscribeToQueryCache() {
+        return queryClient.getQueryCache().subscribe((event) => {
+          const activeObservers = event.query.getObserversCount()
+
+          /**
+           * When observers unmount, we need to delete the query from the cache
+           * because if the query contains a stream, it will continue. Nothing stops it.
+           * However this is only valid when there is no more observers.
+           */
+          if (event.type === "observerRemoved" && activeObservers === 0) {
+            client.deleteQuery(event.query.queryHash)
+          }
+        })
+      },
+      [queryClient, client],
+    )
 
     useEffect(() => {
       return () => {

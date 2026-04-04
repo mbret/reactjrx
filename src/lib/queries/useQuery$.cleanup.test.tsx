@@ -51,6 +51,55 @@ describe("Given a long observable", () => {
       // 2 because of strict mode
       expect(tapped).toBe(2)
     })
+
+    it("clears QueryClient$ cache and stops the in-flight stream on unmount", async () => {
+      let finalizeCount = 0
+      const queryClient$ = new QueryClient$()
+
+      const Comp = () => {
+        useQuery$({
+          queryKey: ["long-running-cache"],
+          queryFn: () =>
+            timer(99999).pipe(
+              finalize(() => {
+                finalizeCount++
+              }),
+            ),
+        })
+
+        return null
+      }
+
+      const tanstackClient = new QueryClient()
+
+      const { unmount } = render(
+        <StrictMode>
+          <QueryClientProvider client={tanstackClient}>
+            <QueryClientProvider$ client={queryClient$}>
+              <Comp />
+            </QueryClientProvider$>
+          </QueryClientProvider>
+        </StrictMode>,
+      )
+
+      await act(async () => {
+        await waitForTimeout(15)
+      })
+
+      expect(queryClient$.queryMap.size).toBe(1)
+
+      await act(async () => {
+        unmount()
+      })
+
+      await act(async () => {
+        await waitForTimeout(15)
+      })
+
+      expect(queryClient$.queryMap.size).toBe(0)
+      // StrictMode mount / unmount / remount / final unmount → two shared streams torn down
+      expect(finalizeCount).toBe(2)
+    })
   })
 })
 
