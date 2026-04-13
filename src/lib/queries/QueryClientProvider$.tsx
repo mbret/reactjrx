@@ -74,7 +74,10 @@ export class QueryClient$ {
     return cacheEntry
   }
 
-  deleteQuery(queryHash: string) {
+  deleteQuery(
+    queryHash: string,
+    { cancelQuery = false }: { cancelQuery?: boolean } = {},
+  ) {
     const entry = this.queryMap.get(queryHash)
 
     if (!entry) return
@@ -95,8 +98,12 @@ export class QueryClient$ {
      * settles. One-shot observables (used like promises) that haven't
      * resolved yet should keep react-query's default behavior: stay
      * pending and resolve naturally even after unmount.
+     *
+     * Skipped on natural completion (cancelQuery=false) because the
+     * in-flight queryFnAsync promise is about to resolve with the
+     * final value — cancelling it would reject it prematurely.
      */
-    if (!entry.signal.aborted && entry.lastData !== undefined) {
+    if (cancelQuery && !entry.signal.aborted && entry.lastData !== undefined) {
       this.queryClient?.cancelQueries({
         queryKey: entry.queryKey,
         exact: true,
@@ -106,7 +113,7 @@ export class QueryClient$ {
 
   destroy() {
     this.queryMap.forEach((_, key) => {
-      this.deleteQuery(key)
+      this.deleteQuery(key, { cancelQuery: true })
     })
   }
 }
@@ -140,7 +147,7 @@ export const QueryClientProvider$ = memo(function QueryClientProvider$({
          * However this is only valid when there is no more observers.
          */
         if (event.type === "observerRemoved" && activeObservers === 0) {
-          client.deleteQuery(event.query.queryHash)
+          client.deleteQuery(event.query.queryHash, { cancelQuery: true })
         }
       })
     },
