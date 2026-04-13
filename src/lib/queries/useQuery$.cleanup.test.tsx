@@ -55,7 +55,7 @@ describe("Given a long observable", () => {
 
     it("clears QueryClient$ cache and stops the in-flight stream on unmount", async () => {
       let finalizeCount = 0
-      const queryClient$ = new QueryClient$()
+      const queryClient$ = new QueryClient$(new QueryClient())
 
       const Comp = () => {
         useQuery$({
@@ -212,7 +212,7 @@ describe("Given an observable that completes", () => {
     }
 
     const client = new QueryClient()
-    const reactJrxQueryClient = new QueryClient$()
+    const reactJrxQueryClient = new QueryClient$(client)
 
     render(
       <StrictMode>
