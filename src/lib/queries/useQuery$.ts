@@ -58,6 +58,19 @@ export function useQuery$<
       const refetchIfNeeded = () => {
         if (queryCacheEntry?.isCompleted === false) {
           setTimeout(() => {
+            /**
+             * Re-check at firing time: the entry may have been torn down
+             * (deleteQuery) between scheduling and execution. This happens
+             * when the component unmounts right after a synchronous resolve,
+             * because both refetchIfNeeded and the deferred deleteQuery use
+             * setTimeout(fn, 0) and their execution order is
+             * non-deterministic. Without this guard the stale callback
+             * would trigger queryFnAsync on a defunct entry, creating an
+             * orphaned take(1) subscriber that later resolves with
+             * accumulated old data.
+             */
+            if (queryCacheEntry?.isCompleted) return
+
             _queryClient?.refetchQueries({
               queryKey: context.queryKey,
               exact: true,
