@@ -14,7 +14,6 @@ import { QueryClientProvider$ } from "./lib/queries/QueryClientProvider$"
 import { useQuery$ } from "./lib/queries/useQuery$"
 import { SignalContextProvider } from "./lib/state/react/SignalContextProvider"
 import { useSignal } from "./lib/state/react/useSignal"
-import { useSignalValue } from "./lib/state/react/useSignalValue"
 import { signal, virtualSignal } from "./lib/state/Signal"
 
 const PERSIST_KEY = "reactjrx-dev-query-cache"
