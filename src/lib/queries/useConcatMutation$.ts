@@ -15,7 +15,7 @@ import {
 } from "rxjs"
 import { type UseMutation$Options, useMutation$ } from "./useMutation$"
 
-export function useContactMutation$<
+export function useConcatMutation$<
   TData = unknown,
   TError = DefaultError,
   TVariables = void,

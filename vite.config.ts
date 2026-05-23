@@ -1,6 +1,7 @@
 /// <reference types="vitest/config" />
 import { resolve } from "node:path"
-import react from "@vitejs/plugin-react"
+import babel from "@rolldown/plugin-babel"
+import react, { reactCompilerPreset } from "@vitejs/plugin-react"
 import externals from "rollup-plugin-node-externals"
 import { defineConfig } from "vite"
 import dts from "vite-plugin-dts"
@@ -8,10 +9,9 @@ import { name } from "./package.json"
 
 export default defineConfig({
   plugins: [
-    react({
-      babel: {
-        plugins: ["babel-plugin-react-compiler"],
-      },
+    react(),
+    babel({
+      presets: [reactCompilerPreset()],
     }),
     {
       enforce: "pre",
@@ -22,11 +22,12 @@ export default defineConfig({
       }),
     },
     dts({
-      staticImport: true,
+      entryRoot: "src",
     }),
   ],
   build: {
-    minify: "terser",
+    // minify: "terser",
+    minify: false,
     terserOptions: {
       format: {
         comments: false,
