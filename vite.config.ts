@@ -26,8 +26,7 @@ export default defineConfig({
     }),
   ],
   build: {
-    // minify: "terser",
-    minify: false,
+    minify: "terser",
     terserOptions: {
       format: {
         comments: false,
