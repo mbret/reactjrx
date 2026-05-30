@@ -9,6 +9,7 @@ export * from "./lib/queries/QueryClientProvider$"
 export * from "./lib/queries/useConcatMutation$"
 export * from "./lib/queries/useMutation$"
 // query
+export * from "./lib/queries/useQueries$"
 export * from "./lib/queries/useQuery$"
 export * from "./lib/queries/useSwitchMutation$"
 export * from "./lib/state/constants"
