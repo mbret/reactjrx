@@ -59,7 +59,7 @@
     "semantic-release": "^25.0.3",
     "terser": "^5.46.0",
     "typescript": "^6.0.2",
-    "vite": "^8.0.14",
+    "vite": "^8.0.16",
     "vite-plugin-babel": "^1.4.1",
     "vite-plugin-dts": "^5.0.1",
     "vitest": "^4.0.17"
