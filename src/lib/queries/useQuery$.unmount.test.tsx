@@ -4,6 +4,7 @@ import type React from "react"
 import { useState } from "react"
 import { BehaviorSubject, filter, map, switchMap } from "rxjs"
 import { describe, expect, it } from "vitest"
+import { waitForTimeout } from "../../tests/utils"
 import { QueryClientProvider$ } from "./QueryClientProvider$"
 import { useQuery$ } from "./useQuery$"
 
@@ -72,7 +73,7 @@ describe("useQuery$ unmount / remount", () => {
     render(<Host />, { wrapper: createWrapper(queryClient) })
 
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 100))
+      await waitForTimeout(100)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(
@@ -82,7 +83,7 @@ describe("useQuery$ unmount / remount", () => {
     await act(async () => {
       toggle()
       toggle()
-      await new Promise((r) => setTimeout(r, 200))
+      await waitForTimeout(200)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(
@@ -91,7 +92,7 @@ describe("useQuery$ unmount / remount", () => {
 
     await act(async () => {
       liveQuery$.next(["a", "b", "c"])
-      await new Promise((r) => setTimeout(r, 200))
+      await waitForTimeout(200)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(
@@ -133,7 +134,7 @@ describe("useQuery$ unmount / remount", () => {
     render(<Host />, { wrapper: createWrapper(queryClient) })
 
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 100))
+      await waitForTimeout(100)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(
@@ -143,12 +144,12 @@ describe("useQuery$ unmount / remount", () => {
     await act(async () => {
       toggle()
       toggle()
-      await new Promise((r) => setTimeout(r, 200))
+      await waitForTimeout(200)
     })
 
     await act(async () => {
       liveQuery$.next(["a", "c"])
-      await new Promise((r) => setTimeout(r, 200))
+      await waitForTimeout(200)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(
@@ -190,7 +191,7 @@ describe("useQuery$ unmount / remount", () => {
     render(<Host />, { wrapper: createWrapper(queryClient) })
 
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 100))
+      await waitForTimeout(100)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(JSON.stringify(["a"]))
@@ -199,7 +200,7 @@ describe("useQuery$ unmount / remount", () => {
       await act(async () => {
         toggle()
         toggle()
-        await new Promise((r) => setTimeout(r, 50))
+        await waitForTimeout(50)
       })
     }
 
@@ -207,7 +208,7 @@ describe("useQuery$ unmount / remount", () => {
 
     await act(async () => {
       liveQuery$.next(["a", "b"])
-      await new Promise((r) => setTimeout(r, 200))
+      await waitForTimeout(200)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(
@@ -258,14 +259,14 @@ describe("useQuery$ unmount / remount", () => {
     render(<Host />, { wrapper: createWrapper(queryClient) })
 
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 100))
+      await waitForTimeout(100)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(JSON.stringify(["a"]))
 
     await act(async () => {
       liveQuery$.next(["a", "b"])
-      await new Promise((r) => setTimeout(r, 100))
+      await waitForTimeout(100)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(
@@ -277,7 +278,7 @@ describe("useQuery$ unmount / remount", () => {
     await act(async () => {
       toggle()
       toggle()
-      await new Promise((r) => setTimeout(r, 200))
+      await waitForTimeout(200)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(
@@ -286,7 +287,7 @@ describe("useQuery$ unmount / remount", () => {
 
     await act(async () => {
       liveQuery$.next(["a", "b", "c", "d"])
-      await new Promise((r) => setTimeout(r, 200))
+      await waitForTimeout(200)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(
