@@ -3,6 +3,7 @@ import { act, render, screen } from "@testing-library/react"
 import type React from "react"
 import { BehaviorSubject, filter, map, switchMap } from "rxjs"
 import { describe, expect, it } from "vitest"
+import { waitForTimeout } from "../../tests/utils"
 import { QueryClientProvider$ } from "./QueryClientProvider$"
 import { useQuery$ } from "./useQuery$"
 
@@ -60,7 +61,7 @@ describe("useQuery$ live-query reactivity", () => {
     render(<Comp />, { wrapper: createWrapper(queryClient) })
 
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 100))
+      await waitForTimeout(100)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(
@@ -69,7 +70,7 @@ describe("useQuery$ live-query reactivity", () => {
 
     await act(async () => {
       liveQuery$.next(["a", "b", "c"])
-      await new Promise((r) => setTimeout(r, 200))
+      await waitForTimeout(200)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(
@@ -100,7 +101,7 @@ describe("useQuery$ live-query reactivity", () => {
     render(<Comp />, { wrapper: createWrapper(queryClient) })
 
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 100))
+      await waitForTimeout(100)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(
@@ -109,7 +110,7 @@ describe("useQuery$ live-query reactivity", () => {
 
     await act(async () => {
       liveQuery$.next(["a", "c"])
-      await new Promise((r) => setTimeout(r, 200))
+      await waitForTimeout(200)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(
@@ -145,7 +146,7 @@ describe("useQuery$ live-query reactivity", () => {
     render(<Comp />, { wrapper: createWrapper(queryClient) })
 
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 100))
+      await waitForTimeout(100)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(
@@ -154,7 +155,7 @@ describe("useQuery$ live-query reactivity", () => {
 
     await act(async () => {
       liveQuery$.next(["a", "b", "c"])
-      await new Promise((r) => setTimeout(r, 200))
+      await waitForTimeout(200)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(
@@ -185,7 +186,7 @@ describe("useQuery$ live-query reactivity", () => {
     render(<Comp />, { wrapper: createWrapper(queryClient) })
 
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 100))
+      await waitForTimeout(100)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(JSON.stringify(["a"]))
@@ -194,7 +195,7 @@ describe("useQuery$ live-query reactivity", () => {
       liveQuery$.next(["a", "b"])
       liveQuery$.next(["a", "b", "c"])
       liveQuery$.next(["a", "b", "c", "d"])
-      await new Promise((r) => setTimeout(r, 300))
+      await waitForTimeout(300)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(
@@ -226,7 +227,7 @@ describe("useQuery$ live-query reactivity", () => {
     render(<Comp />, { wrapper: createWrapper(queryClient) })
 
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 100))
+      await waitForTimeout(100)
     })
 
     await act(async () => {
@@ -234,12 +235,12 @@ describe("useQuery$ live-query reactivity", () => {
         queryKey: ["live", "external-refetch"],
         exact: true,
       })
-      await new Promise((r) => setTimeout(r, 100))
+      await waitForTimeout(100)
     })
 
     await act(async () => {
       liveQuery$.next(["a", "b", "c"])
-      await new Promise((r) => setTimeout(r, 200))
+      await waitForTimeout(200)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(
@@ -271,7 +272,7 @@ describe("useQuery$ live-query reactivity", () => {
     render(<Comp />, { wrapper: createWrapper(queryClient) })
 
     await act(async () => {
-      await new Promise((r) => setTimeout(r, 100))
+      await waitForTimeout(100)
     })
 
     await act(async () => {
@@ -279,12 +280,12 @@ describe("useQuery$ live-query reactivity", () => {
         queryKey: ["live", "invalidate"],
         exact: true,
       })
-      await new Promise((r) => setTimeout(r, 100))
+      await waitForTimeout(100)
     })
 
     await act(async () => {
       liveQuery$.next(["a", "b", "c"])
-      await new Promise((r) => setTimeout(r, 200))
+      await waitForTimeout(200)
     })
 
     expect(screen.getByTestId("data").textContent).toBe(
