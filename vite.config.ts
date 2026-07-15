@@ -1,10 +1,31 @@
 /// <reference types="vitest/config" />
-import { isAbsolute, resolve } from "node:path"
+import { builtinModules } from "node:module"
+import { resolve } from "node:path"
 import babel from "@rolldown/plugin-babel"
 import react, { reactCompilerPreset } from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import dts from "vite-plugin-dts"
-import { name } from "./package.json"
+import pkg from "./package.json"
+
+// Replicates the behaviour of the former rollup-plugin-node-externals
+// (peerDeps/deps/devDeps/optionalDeps + builtins), which is incompatible with
+// vite 8's rolldown bundler: externalize node built-ins (with or without the
+// "node:" prefix) and every package declared in package.json, plus their
+// subpaths (e.g. "react/jsx-runtime"). Only declared packages are externalized
+// — an undeclared bare import is left to the bundler exactly as before.
+const externalPackages = [
+  ...Object.keys(pkg.peerDependencies ?? {}),
+  ...Object.keys(pkg.dependencies ?? {}),
+  ...Object.keys(pkg.devDependencies ?? {}),
+  ...Object.keys(pkg.optionalDependencies ?? {}),
+]
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+const externalPattern = new RegExp(
+  `^(?:${externalPackages.map(escapeRegExp).join("|")})(?:/.+)?$`,
+)
+const builtins = new Set(builtinModules)
+const isExternal = (id: string) =>
+  builtins.has(id.replace(/^node:/, "")) || externalPattern.test(id)
 
 export default defineConfig({
   plugins: [
@@ -27,16 +48,13 @@ export default defineConfig({
     lib: {
       // Could also be a dictionary or array of multiple entry points
       entry: resolve(__dirname, "src/index.ts"),
-      name,
+      name: pkg.name,
       // the proper extensions will be added
       fileName: "index",
       formats: ["es", "cjs"],
     },
     rollupOptions: {
-      // Externalize node built-ins and every third-party package (all deps
-      // are peer deps) so the library bundles only its own source. Anything
-      // that is not a relative or absolute path is treated as external.
-      external: (id) => !id.startsWith(".") && !isAbsolute(id),
+      external: isExternal,
     },
     sourcemap: true,
   },
