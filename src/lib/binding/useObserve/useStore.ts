@@ -31,7 +31,7 @@ export const useStore = <T, DefaultValue>(
     undefined,
   )
 
-  if (!storeRef.current || !arrayEqual([...deps], [...storeRef.current.deps])) {
+  if (!storeRef.current || !arrayEqual(deps, storeRef.current.deps)) {
     storeRef.current = {
       deps,
       store: new ObservableStore({
