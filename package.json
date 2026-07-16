@@ -60,7 +60,7 @@
     "typescript": "^6.0.2",
     "vite": "^8.1.4",
     "vite-plugin-dts": "^5.0.1",
-    "vitest": "^4.0.17"
+    "vitest": "^4.1.10"
   },
   "repository": {
     "type": "git",
