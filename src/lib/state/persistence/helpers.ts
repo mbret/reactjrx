@@ -3,7 +3,7 @@ import type { Adapter } from "./adapters/Adapter"
 import { IDENTIFIER_PERSISTENCE_KEY } from "./constants"
 import type { PersistenceEntry, SignalPersistenceConfig } from "./types"
 
-export const getNormalizedPersistanceValue = (unknownValue: unknown) => {
+const getNormalizedPersistanceValue = (unknownValue: unknown) => {
   if (
     typeof unknownValue === "object" &&
     unknownValue !== null &&
