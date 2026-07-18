@@ -57,7 +57,7 @@
     "rxjs": "^7.8.0",
     "semantic-release": "^25.0.3",
     "terser": "^5.46.0",
-    "typescript": "^6.0.2",
+    "typescript": "^7.0.2",
     "vite": "^8.1.4",
     "vite-plugin-dts": "^5.0.1",
     "vitest": "^4.1.10"
