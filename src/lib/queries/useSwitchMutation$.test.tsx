@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { fireEvent } from "@testing-library/dom"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import { act, useState } from "react"
-import { delay, finalize, map, of, timer } from "rxjs"
+import { delay, EMPTY, finalize, map, of, timer } from "rxjs"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { waitForTimeout } from "../../tests/utils"
 import { QueryClientProvider$ } from "./QueryClientProvider$"
@@ -277,5 +277,59 @@ describe("useSwitchMutation$", () => {
 
     // The long-running mutations should not have called onSuccess with data
     expect(successSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it("should resolve with null when the mutation stream completes without emitting", async () => {
+    const onSuccess = vi.fn()
+    let mutateAsyncResult: Promise<string | null> | undefined
+
+    const TestComponent = () => {
+      "use no memo"
+
+      const { mutateAsync } = useSwitchMutation$<string, Error, string>({
+        mutationFn: () => EMPTY,
+        onSuccess,
+      })
+
+      return (
+        <button
+          type="button"
+          onClick={() => {
+            mutateAsyncResult = mutateAsync("test")
+          }}
+        >
+          Trigger Mutation
+        </button>
+      )
+    }
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <QueryClientProvider$>
+          <TestComponent />
+        </QueryClientProvider$>
+      </QueryClientProvider>,
+    )
+
+    act(() => {
+      fireEvent.click(screen.getByText("Trigger Mutation"))
+    })
+
+    const pendingSentinel = Symbol("pending")
+
+    // the promise must settle on its own (with null), not hang until
+    // a subsequent mutation aborts it
+    await waitFor(async () => {
+      expect(
+        await Promise.race([
+          mutateAsyncResult,
+          Promise.resolve(pendingSentinel),
+        ]),
+      ).toBe(null)
+    })
+
+    expect(onSuccess).toHaveBeenCalledTimes(1)
+    expect(onSuccess.mock.calls[0]?.[0]).toBe(null)
+    expect(onSuccess.mock.calls[0]?.[1]).toBe("test")
   })
 })
