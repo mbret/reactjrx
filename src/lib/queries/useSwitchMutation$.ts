@@ -61,15 +61,21 @@ export function useSwitchMutation$<
               ? mutationFn(variables)
               : mutationFn
 
+          /**
+           * `defaultIfEmpty` must sit on the source itself: the abort stream
+           * never completes, so the merged stream never completes either and
+           * a `defaultIfEmpty` placed after it would never fire — an empty
+           * source would leave the mutation pending forever.
+           */
           return merge(
-            source,
+            source.pipe(defaultIfEmpty(null)),
             fromEvent(abort, "abort").pipe(
               tap(() => {
                 throw new SwitchMutationCancelError()
               }),
               ignoreElements(),
             ),
-          ).pipe(first(), defaultIfEmpty(null))
+          ).pipe(first())
         },
         [mutationFn],
       ),
