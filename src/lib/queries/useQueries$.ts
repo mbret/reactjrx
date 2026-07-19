@@ -120,9 +120,9 @@ export function useQueries$<
   const _queryClient = useQueryClient(queryClient)
   const queryClient$ = useQueryClient$()
 
-  const transformedQueries = queries.map(({ queryFn, ...query }) => ({
+  const transformedQueries = queries.map((query) => ({
     ...query,
-    queryFn: createObservableQueryFn(queryClient$, _queryClient, queryFn),
+    queryFn: createObservableQueryFn(queryClient$, _queryClient, query.queryFn),
   }))
 
   return useQueries(
