@@ -1,41 +1,14 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { act, render, screen } from "@testing-library/react"
-import type React from "react"
 import { BehaviorSubject, filter, map, switchMap } from "rxjs"
 import { describe, expect, it } from "vitest"
+import {
+  createQueryClient,
+  createWrapper,
+  isDefined,
+  liveQueryOptions,
+} from "../../tests/liveQuery"
 import { waitForTimeout } from "../../tests/utils"
-import { QueryClientProvider$ } from "./QueryClientProvider$"
 import { useQuery$ } from "./useQuery$"
-
-function isDefined<T>(value: T | undefined | null): value is T {
-  return value != null
-}
-
-function createQueryClient() {
-  return new QueryClient({
-    defaultOptions: {
-      queries: {
-        gcTime: 0,
-      },
-    },
-  })
-}
-
-const liveQueryOptions = {
-  networkMode: "always" as const,
-  gcTime: 0,
-  staleTime: Number.POSITIVE_INFINITY,
-}
-
-function createWrapper(queryClient: QueryClient) {
-  return function Wrapper({ children }: { children: React.ReactNode }) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <QueryClientProvider$>{children}</QueryClientProvider$>
-      </QueryClientProvider>
-    )
-  }
-}
 
 describe("useQuery$ live-query reactivity", () => {
   it("re-renders when a new item is added", async () => {
