@@ -1,8 +1,5 @@
 import { type Signal, VirtualSignal } from "../Signal"
-import {
-  useMakeOrRetrieveSignal,
-  useSignalContext,
-} from "./SignalContextProvider"
+import { useSignalContext } from "./SignalContextProvider"
 
 export function useSignalReference<T>(
   signal: Signal<T> | VirtualSignal<T>,
@@ -15,7 +12,9 @@ export function useSignalReference<T>(
     )
   }
 
-  return (useMakeOrRetrieveSignal(
-    signal instanceof VirtualSignal ? signal : undefined,
-  ) ?? signal) as Signal<T>
+  return (
+    signal instanceof VirtualSignal
+      ? signalContext.getOrCreateSignal(signal)
+      : signal
+  ) as Signal<T>
 }
