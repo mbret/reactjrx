@@ -7,6 +7,6 @@ export function isPromiseLike<T>(value: T): value is T & Promise<any> {
       "then" in value &&
       typeof value.then === "function" &&
       "catch" in value &&
-      value.catch === "function")
+      typeof value.catch === "function")
   )
 }
