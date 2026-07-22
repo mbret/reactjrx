@@ -39,7 +39,7 @@
     "rxjs": "*"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.15",
+    "@biomejs/biome": "2.5.5",
     "@rolldown/plugin-babel": "^0.2.3",
     "@tanstack/react-query-persist-client": "^5.96.2",
     "@testing-library/jest-dom": "^6.2.0",
