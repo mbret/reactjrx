@@ -17,8 +17,6 @@ export function useSignal<T>(
 
 export function useSignal<T>(signal: Signal<T> | VirtualSignal<T>) {
   const finalSignal = useSignalReference(signal)
-  // Reuse the already-resolved signal so the value/setter hooks don't
-  // re-resolve the (virtual) signal through the context on every render.
   const value = useSignalValue(finalSignal)
   const setValue = useSetSignal(finalSignal)
 
