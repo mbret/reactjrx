@@ -17,8 +17,8 @@ export function useSignal<T>(
 
 export function useSignal<T>(signal: Signal<T> | VirtualSignal<T>) {
   const finalSignal = useSignalReference(signal)
-  const value = useSignalValue(signal)
-  const setValue = useSetSignal(signal)
+  const value = useSignalValue(finalSignal)
+  const setValue = useSetSignal(finalSignal)
 
   return [value, setValue, finalSignal] as const
 }
