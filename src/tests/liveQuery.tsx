@@ -2,10 +2,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type React from "react"
 import { QueryClientProvider$ } from "../lib/queries/QueryClientProvider$"
 
-export function isDefined<T>(value: T | undefined | null): value is T {
-  return value != null
-}
-
 export function createQueryClient() {
   return new QueryClient({
     defaultOptions: {
