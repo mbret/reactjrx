@@ -4,10 +4,10 @@ import { describe, expect, it } from "vitest"
 import {
   createQueryClient,
   createWrapper,
-  isDefined,
   liveQueryOptions,
 } from "../../tests/liveQuery"
 import { waitForTimeout } from "../../tests/utils"
+import { isDefined } from "../utils/isDefined"
 import { useQuery$ } from "./useQuery$"
 
 describe("useQuery$ live-query reactivity", () => {
