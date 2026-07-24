@@ -41,7 +41,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.15",
     "@rolldown/plugin-babel": "^0.2.3",
-    "@tanstack/react-query-persist-client": "^5.96.2",
+    "@tanstack/react-query-persist-client": "^5.101.4",
     "@testing-library/jest-dom": "^6.2.0",
     "@testing-library/react": "^16.1.0",
     "@types/node": "^25.9.5",
