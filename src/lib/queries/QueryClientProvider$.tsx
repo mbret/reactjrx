@@ -7,6 +7,7 @@ import {
 import { createContext, memo, useContext, useEffect, useState } from "react"
 import {
   fromEvent,
+  noop,
   type Observable,
   type Subscription,
   share,
@@ -55,12 +56,14 @@ export class QueryClient$ {
     this.queryMap.set(queryHash, cacheEntry)
 
     const sub = sharedQuery$.subscribe({
+      /**
+       * Write on the closed-over entry directly: this subscription is torn
+       * down by `deleteQuery` before the map slot can ever point to another
+       * entry, so a per-emission `queryMap.get(queryHash)` lookup would
+       * always resolve to `cacheEntry` anyway.
+       */
       next: (data) => {
-        const entry = this.queryMap.get(queryHash)
-
-        if (entry) {
-          entry.lastData = { value: data }
-        }
+        cacheEntry.lastData = { value: data }
       },
       complete: () => {
         if (this.queryMap.get(queryHash) === cacheEntry) {
@@ -104,10 +107,17 @@ export class QueryClient$ {
      * final value — cancelling it would reject it prematurely.
      */
     if (cancelQuery && !entry.signal.aborted && entry.lastData !== undefined) {
-      this.queryClient?.cancelQueries({
-        queryKey: entry.queryKey,
-        exact: true,
-      })
+      /**
+       * Cancel the single target query located directly by hash instead of
+       * `cancelQueries({ queryKey, exact: true })`, which scans the whole
+       * query cache and re-hashes the key against every entry. `revert` and
+       * the swallowed rejection mirror cancelQueries' defaults.
+       */
+      this.queryClient
+        ?.getQueryCache()
+        .get(queryHash)
+        ?.cancel({ revert: true })
+        .catch(noop)
     }
   }
 

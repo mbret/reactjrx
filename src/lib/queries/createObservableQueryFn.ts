@@ -6,7 +6,7 @@ import {
   type QueryKey,
   skipToken,
 } from "@tanstack/react-query"
-import { defer, delay, type Observable, take } from "rxjs"
+import { defer, delay, noop, type Observable, take } from "rxjs"
 import type { QueryClient$ } from "./QueryClientProvider$"
 
 export type ObservableQueryFn<
@@ -65,10 +65,19 @@ export function createObservableQueryFn<
              */
             if (queryCacheEntry?.isCompleted) return
 
-            queryClient?.refetchQueries({
-              queryKey: context.queryKey,
-              exact: true,
-            })
+            /**
+             * This runs once per emission of a live stream, so locate the
+             * single target query directly by hash instead of
+             * `refetchQueries({ queryKey, exact: true })`, which scans the
+             * whole query cache and re-hashes the key against every entry.
+             * Mirrors refetchQueries' per-query behavior (disabled/static
+             * skip, cancelRefetch, swallowed rejection) for one query.
+             */
+            const query = queryClient?.getQueryCache().get(queryHash)
+
+            if (query && !query.isDisabled() && !query.isStatic?.()) {
+              query.fetch(undefined, { cancelRefetch: true }).catch(noop)
+            }
           })
         }
       }
