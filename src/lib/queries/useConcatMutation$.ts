@@ -13,6 +13,10 @@ import {
   type Subject,
   switchMap,
 } from "rxjs"
+import {
+  adaptCallbacksToWrappedVariables,
+  resolveMutationFnSource,
+} from "./mutationOptions"
 import { type UseMutation$Options, useMutation$ } from "./useMutation$"
 
 export function useConcatMutation$<
@@ -21,10 +25,7 @@ export function useConcatMutation$<
   TVariables = void,
   TContext = unknown,
 >(
-  {
-    onMutate,
-    ...options
-  }: UseMutation$Options<TData | null, TError, TVariables, TContext> & {
+  options: UseMutation$Options<TData | null, TError, TVariables, TContext> & {
     mutationKey: MutationKey
   },
   queryClient?: QueryClient,
@@ -41,23 +42,9 @@ export function useConcatMutation$<
   >(
     {
       ...options,
-      onMutate: onMutate
-        ? ({ variables }, ...rest) => onMutate(variables, ...rest)
-        : undefined,
-      onSuccess(data, { variables }, ...rest) {
-        return options.onSuccess?.(data, variables, ...rest)
-      },
-      onError(error, { variables }, ...rest) {
-        return options.onError?.(error, variables, ...rest)
-      },
-      onSettled(data, error, { variables }, ...rest) {
-        return options.onSettled?.(data, error, variables, ...rest)
-      },
+      ...adaptCallbacksToWrappedVariables(options),
       mutationFn: ({ ready$, variables }) => {
-        const source =
-          typeof options.mutationFn === "function"
-            ? options.mutationFn(variables)
-            : options.mutationFn
+        const source = resolveMutationFnSource(options.mutationFn, variables)
 
         return ready$.pipe(
           filter((isReady) => isReady),

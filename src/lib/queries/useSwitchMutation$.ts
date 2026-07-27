@@ -9,6 +9,10 @@ import {
   tap,
 } from "rxjs"
 import { useRefOnce } from "../utils"
+import {
+  adaptCallbacksToWrappedVariables,
+  resolveMutationFnSource,
+} from "./mutationOptions"
 import { type UseMutation$Options, useMutation$ } from "./useMutation$"
 
 export class SwitchMutationCancelError extends Error {
@@ -26,9 +30,6 @@ export function useSwitchMutation$<
 >(
   {
     mutationFn,
-    onMutate,
-    onError,
-    onSettled,
     ...options
   }: UseMutation$Options<TData | null, TError, TVariables, TOnMutateResult>,
   queryClient?: QueryClient,
@@ -56,10 +57,7 @@ export function useSwitchMutation$<
             throw new SwitchMutationCancelError()
           }
 
-          const source =
-            typeof mutationFn === "function"
-              ? mutationFn(variables)
-              : mutationFn
+          const source = resolveMutationFnSource(mutationFn, variables)
 
           /**
            * `defaultIfEmpty` must sit on the source itself: the abort stream
@@ -79,20 +77,7 @@ export function useSwitchMutation$<
         },
         [mutationFn],
       ),
-      onMutate: onMutate
-        ? ({ variables }, ...rest) => {
-            return onMutate(variables, ...rest)
-          }
-        : undefined,
-      onSuccess: (data, { variables }, ...rest) => {
-        return options.onSuccess?.(data, variables, ...rest)
-      },
-      onError: (error, { variables }, ...rest) => {
-        return onError?.(error, variables, ...rest)
-      },
-      onSettled: (data, error, { variables }, ...rest) => {
-        return onSettled?.(data, error, variables, ...rest)
-      },
+      ...adaptCallbacksToWrappedVariables(options),
     },
     queryClient,
   )
