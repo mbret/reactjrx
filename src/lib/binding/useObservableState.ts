@@ -1,5 +1,10 @@
-import { type Dispatch, type SetStateAction, useCallback } from "react"
-import { BehaviorSubject } from "rxjs"
+import {
+  type Dispatch,
+  type SetStateAction,
+  useCallback,
+  useSyncExternalStore,
+} from "react"
+import { BehaviorSubject, skip } from "rxjs"
 import { useConstant } from "../utils/react/useConstant"
 
 export const useObservableState = <T>(
@@ -29,7 +34,26 @@ export const useObservableState = <T>(
     [subject],
   )
 
-  const value = subject.getValue()
+  const subscribe = useCallback(
+    (onChange: () => void) => {
+      /**
+       * `BehaviorSubject` synchronously replays its current value to new
+       * subscribers while `useSyncExternalStore` reads the initial value
+       * through `getSnapshot`, so the first emission is skipped to only
+       * notify React about actual changes.
+       */
+      const sub = subject.pipe(skip(1)).subscribe(onChange)
+
+      return () => {
+        sub.unsubscribe()
+      }
+    },
+    [subject],
+  )
+
+  const getSnapshot = useCallback(() => subject.getValue(), [subject])
+
+  const value = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 
   return [value, setState, subject]
 }
