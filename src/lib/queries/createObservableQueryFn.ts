@@ -1,6 +1,7 @@
 import {
   CancelledError,
   hashKey,
+  notifyManager,
   type QueryClient,
   type QueryFunctionContext,
   type QueryKey,
@@ -92,9 +93,18 @@ export function createObservableQueryFn<
               return
             }
 
-            if (!query.isDisabled() && !query.isStatic?.()) {
-              query.fetch(undefined, { cancelRefetch: true }).catch(noop)
-            }
+            /**
+             * `notifyManager.batch` is not optional: it defers observer
+             * notifications raised during the fetch and flushes them in a
+             * single React batched update, exactly as `refetchQueries`
+             * does. Calling `fetch` bare would notify per event and change
+             * how renders coalesce.
+             */
+            notifyManager.batch(() => {
+              if (!query.isDisabled() && !query.isStatic?.()) {
+                query.fetch(undefined, { cancelRefetch: true }).catch(noop)
+              }
+            })
           })
         }
       }

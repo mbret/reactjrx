@@ -1,5 +1,6 @@
 import {
   hashKey,
+  notifyManager,
   type QueryClient,
   type QueryKey,
   useQueryClient,
@@ -120,7 +121,12 @@ export class QueryClient$ {
       const query = this.queryClient?.getQueryCache().get(queryHash)
 
       if (query) {
-        query.cancel({ revert: true }).catch(noop)
+        /**
+         * Batched for the same reason as the refetch path: `cancelQueries`
+         * flushes the notifications raised by the cancel in one React
+         * update rather than one per event.
+         */
+        notifyManager.batch(() => query.cancel({ revert: true })).catch(noop)
       } else {
         this.queryClient?.cancelQueries({
           queryKey: entry.queryKey,
