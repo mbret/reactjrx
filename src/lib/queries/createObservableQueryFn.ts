@@ -75,7 +75,24 @@ export function createObservableQueryFn<
              */
             const query = queryClient?.getQueryCache().get(queryHash)
 
-            if (query && !query.isDisabled() && !query.isStatic?.()) {
+            /**
+             * `queryHash` is the default `hashKey` output, but a query
+             * configuring `queryKeyHashFn` (inline, via `setQueryDefaults`
+             * or via client `defaultOptions`) is stored under that custom
+             * hash instead, so the direct lookup misses it. Fall back to
+             * the scanning API rather than re-deriving the configured hash
+             * here, which would duplicate TanStack internals.
+             */
+            if (!query) {
+              queryClient?.refetchQueries({
+                queryKey: context.queryKey,
+                exact: true,
+              })
+
+              return
+            }
+
+            if (!query.isDisabled() && !query.isStatic?.()) {
               query.fetch(undefined, { cancelRefetch: true }).catch(noop)
             }
           })

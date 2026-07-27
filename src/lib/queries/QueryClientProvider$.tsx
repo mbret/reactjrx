@@ -112,12 +112,21 @@ export class QueryClient$ {
        * `cancelQueries({ queryKey, exact: true })`, which scans the whole
        * query cache and re-hashes the key against every entry. `revert` and
        * the swallowed rejection mirror cancelQueries' defaults.
+       *
+       * As in the refetch path, `queryHash` is the default `hashKey` output
+       * and misses queries configuring a custom `queryKeyHashFn`, so those
+       * fall back to the scanning API.
        */
-      this.queryClient
-        ?.getQueryCache()
-        .get(queryHash)
-        ?.cancel({ revert: true })
-        .catch(noop)
+      const query = this.queryClient?.getQueryCache().get(queryHash)
+
+      if (query) {
+        query.cancel({ revert: true }).catch(noop)
+      } else {
+        this.queryClient?.cancelQueries({
+          queryKey: entry.queryKey,
+          exact: true,
+        })
+      }
     }
   }
 

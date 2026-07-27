@@ -91,6 +91,51 @@ describe("useQuery$ live-query reactivity", () => {
     )
   })
 
+  it("re-renders when the query uses a custom queryKeyHashFn", async () => {
+    const liveQuery$ = new BehaviorSubject(["a", "b"])
+    const db$ = new BehaviorSubject<object | undefined>({})
+    const queryClient = createQueryClient()
+
+    function Comp() {
+      const { data } = useQuery$({
+        ...liveQueryOptions,
+        queryKey: ["live", "custom-hash"],
+        /**
+         * TanStack stores the query under the hash produced here, which
+         * differs from the default `hashKey` output.
+         */
+        queryKeyHashFn: (queryKey) => `custom:${JSON.stringify(queryKey)}`,
+        queryFn: () =>
+          db$.pipe(
+            filter(isDefined),
+            switchMap(() => liveQuery$),
+            map((items) => [...items]),
+          ),
+      })
+
+      return <span data-testid="data">{JSON.stringify(data)}</span>
+    }
+
+    render(<Comp />, { wrapper: createWrapper(queryClient) })
+
+    await act(async () => {
+      await waitForTimeout(100)
+    })
+
+    expect(screen.getByTestId("data").textContent).toBe(
+      JSON.stringify(["a", "b"]),
+    )
+
+    await act(async () => {
+      liveQuery$.next(["a", "b", "c"])
+      await waitForTimeout(200)
+    })
+
+    expect(screen.getByTestId("data").textContent).toBe(
+      JSON.stringify(["a", "b", "c"]),
+    )
+  })
+
   it("re-renders with two observers on the same key", async () => {
     const liveQuery$ = new BehaviorSubject(["a", "b"])
     const db$ = new BehaviorSubject<object | undefined>({})
