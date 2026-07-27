@@ -1,6 +1,5 @@
 import {
   hashKey,
-  notifyManager,
   type QueryClient,
   type QueryKey,
   useQueryClient,
@@ -8,7 +7,6 @@ import {
 import { createContext, memo, useContext, useEffect, useState } from "react"
 import {
   fromEvent,
-  noop,
   type Observable,
   type Subscription,
   share,
@@ -109,30 +107,14 @@ export class QueryClient$ {
      */
     if (cancelQuery && !entry.signal.aborted && entry.lastData !== undefined) {
       /**
-       * Cancel the single target query located directly by hash instead of
-       * `cancelQueries({ queryKey, exact: true })`, which scans the whole
-       * query cache and re-hashes the key against every entry. `revert` and
-       * the swallowed rejection mirror cancelQueries' defaults.
-       *
-       * As in the refetch path, `queryHash` is the default `hashKey` output
-       * and misses queries configuring a custom `queryKeyHashFn`, so those
-       * fall back to the scanning API.
+       * Matched by identity for the same reason as the refetch path: the
+       * `{ queryKey, exact: true }` filter re-hashes the key for every
+       * query in the cache, while an identity predicate skips hashing and
+       * keeps all cancel semantics inside `cancelQueries`.
        */
-      const query = this.queryClient?.getQueryCache().get(queryHash)
-
-      if (query) {
-        /**
-         * Batched for the same reason as the refetch path: `cancelQueries`
-         * flushes the notifications raised by the cancel in one React
-         * update rather than one per event.
-         */
-        notifyManager.batch(() => query.cancel({ revert: true })).catch(noop)
-      } else {
-        this.queryClient?.cancelQueries({
-          queryKey: entry.queryKey,
-          exact: true,
-        })
-      }
+      this.queryClient?.cancelQueries({
+        predicate: (query) => query.queryKey === entry.queryKey,
+      })
     }
   }
 

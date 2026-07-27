@@ -1,13 +1,12 @@
 import {
   CancelledError,
   hashKey,
-  notifyManager,
   type QueryClient,
   type QueryFunctionContext,
   type QueryKey,
   skipToken,
 } from "@tanstack/react-query"
-import { defer, delay, noop, type Observable, take } from "rxjs"
+import { defer, delay, type Observable, take } from "rxjs"
 import type { QueryClient$ } from "./QueryClientProvider$"
 
 export type ObservableQueryFn<
@@ -67,43 +66,17 @@ export function createObservableQueryFn<
             if (queryCacheEntry?.isCompleted) return
 
             /**
-             * This runs once per emission of a live stream, so locate the
-             * single target query directly by hash instead of
-             * `refetchQueries({ queryKey, exact: true })`, which scans the
-             * whole query cache and re-hashes the key against every entry.
-             * Mirrors refetchQueries' per-query behavior (disabled/static
-             * skip, cancelRefetch, swallowed rejection) for one query.
+             * This runs once per emission of a live stream. The cost of
+             * the equivalent `{ queryKey, exact: true }` filter is not the
+             * iteration but the re-hashing: it JSON.stringifies the key
+             * again for every query in the cache. Matching the query by
+             * identity instead skips hashing entirely — `context.queryKey`
+             * is the very array the target query holds — while leaving all
+             * refetch semantics (batching, disabled/static skip,
+             * cancelRefetch, error swallowing) inside `refetchQueries`.
              */
-            const query = queryClient?.getQueryCache().get(queryHash)
-
-            /**
-             * `queryHash` is the default `hashKey` output, but a query
-             * configuring `queryKeyHashFn` (inline, via `setQueryDefaults`
-             * or via client `defaultOptions`) is stored under that custom
-             * hash instead, so the direct lookup misses it. Fall back to
-             * the scanning API rather than re-deriving the configured hash
-             * here, which would duplicate TanStack internals.
-             */
-            if (!query) {
-              queryClient?.refetchQueries({
-                queryKey: context.queryKey,
-                exact: true,
-              })
-
-              return
-            }
-
-            /**
-             * `notifyManager.batch` is not optional: it defers observer
-             * notifications raised during the fetch and flushes them in a
-             * single React batched update, exactly as `refetchQueries`
-             * does. Calling `fetch` bare would notify per event and change
-             * how renders coalesce.
-             */
-            notifyManager.batch(() => {
-              if (!query.isDisabled() && !query.isStatic?.()) {
-                query.fetch(undefined, { cancelRefetch: true }).catch(noop)
-              }
+            queryClient?.refetchQueries({
+              predicate: (query) => query.queryKey === context.queryKey,
             })
           })
         }
