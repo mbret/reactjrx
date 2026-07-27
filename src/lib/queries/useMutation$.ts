@@ -8,6 +8,7 @@ import {
 import { useEffect } from "react"
 import { BehaviorSubject, type Observable, take } from "rxjs"
 import { useConstant } from "../utils/react/useConstant"
+import { resolveMutationFnSource } from "./mutationOptions"
 
 export type UseMutation$Options<
   TData = unknown,
@@ -53,10 +54,7 @@ export function useMutation$<
         let lastData: { value: TData } | undefined
 
         return new Promise<TData>((resolve, reject) => {
-          const source =
-            typeof options.mutationFn === "function"
-              ? options.mutationFn(variables)
-              : options.mutationFn
+          const source = resolveMutationFnSource(options.mutationFn, variables)
 
           source.pipe(take(1)).subscribe({
             next: (data) => {
