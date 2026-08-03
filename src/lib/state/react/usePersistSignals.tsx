@@ -1,4 +1,4 @@
-import { concatMap, merge, of, scan, switchMap } from "rxjs"
+import { merge, of, scan, switchMap } from "rxjs"
 import { useLiveBehaviorSubject } from "../../binding/useLiveBehaviorSubject"
 import { useObserve } from "../../binding/useObserve/useObserve"
 import { useLiveRef } from "../../utils/react/useLiveRef"
@@ -20,9 +20,8 @@ export function usePersistSignals({
   adapter,
 }: {
   /**
-   * Passing a new list of entries will start over the process
-   * once the current one is finished. Use a stable reference to avoid
-   * infinite loop.
+   * Passing a new list of entries will start over the process.
+   * Use a stable reference to avoid infinite loop.
    */
 
   // biome-ignore lint/suspicious/noExplicitAny: TODO
@@ -51,7 +50,13 @@ export function usePersistSignals({
           return merge(
             of({ type: "reset" }),
             entriesSubject.pipe(
-              concatMap((entries) =>
+              /**
+               * `persistSignals` never completes on its own (it keeps
+               * persisting signal updates), so a sequential operator would
+               * queue new entries forever. Restart the process instead
+               * whenever a new list is emitted.
+               */
+              switchMap((entries) =>
                 persistSignals({
                   adapter,
                   entries,
