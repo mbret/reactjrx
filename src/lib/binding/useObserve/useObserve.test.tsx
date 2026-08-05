@@ -367,6 +367,22 @@ describe("useObserve", () => {
       })
     })
 
+    it("should not subscribe to anything nor trigger an extra render", async () => {
+      let numberOfRenders = 0
+
+      renderHook(() => {
+        numberOfRenders++
+
+        useObserve(undefined)
+      }, {})
+
+      await act(async () => {
+        await waitForTimeout(10)
+      })
+
+      expect(numberOfRenders).toBe(1)
+    })
+
     it("should return custom default value", async () => {
       const { result } = renderHook(
         () => useObserve(undefined, { defaultValue: null }),
