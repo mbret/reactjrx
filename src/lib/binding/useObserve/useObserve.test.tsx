@@ -315,4 +315,109 @@ describe("useObserve", () => {
       ])
     })
   })
+
+  describe("Given a source that may or may not be an observable", () => {
+    it("should type return correctly", async () => {
+      renderHook(() => {
+        const value = useObserve(of(1) as Observable<number> | undefined)
+
+        expectTypeOf(value.data).toEqualTypeOf<number | undefined>()
+
+        const withDefaultValue = useObserve(
+          of(1) as Observable<number> | undefined,
+          { defaultValue: null },
+        )
+
+        expectTypeOf(withDefaultValue.data).toEqualTypeOf<number | null>()
+
+        const subject = useObserve(
+          new BehaviorSubject(1) as BehaviorSubject<number> | undefined,
+        )
+
+        expectTypeOf(subject.data).toEqualTypeOf<number | undefined>()
+      }, {})
+
+      expect(true).toBe(true)
+    })
+  })
+
+  describe("Given an undefined source", () => {
+    it("should type return correctly", async () => {
+      renderHook(() => {
+        const value = useObserve(undefined)
+
+        expectTypeOf(value.data).toEqualTypeOf<undefined>()
+
+        const withDefaultValue = useObserve(undefined, { defaultValue: null })
+
+        expectTypeOf(withDefaultValue.data).toEqualTypeOf<null>()
+      }, {})
+
+      expect(true).toBe(true)
+    })
+
+    it("should return the default value", async () => {
+      const { result } = renderHook(() => useObserve(undefined), {})
+
+      expect(result.current).toEqual({
+        data: undefined,
+        status: "success",
+        observableState: "complete",
+        error: undefined,
+      })
+    })
+
+    it("should return custom default value", async () => {
+      const { result } = renderHook(
+        () => useObserve(undefined, { defaultValue: null }),
+        {},
+      )
+
+      expect(result.current).toEqual({
+        data: null,
+        status: "success",
+        observableState: "complete",
+        error: undefined,
+      })
+    })
+
+    it("should return undefined and then the correct value once the source is defined", async () => {
+      // biome-ignore lint/suspicious/noExplicitAny: TODO
+      const values: any = []
+
+      renderHook(() => {
+        const [source$, setSource] = useState<
+          BehaviorSubject<number> | undefined
+        >(undefined)
+
+        values.push(useObserve(source$))
+
+        useEffect(() => {
+          setTimeout(() => {
+            setSource(new BehaviorSubject(1))
+          }, 1)
+        }, [])
+      }, {})
+
+      await act(async () => {
+        await waitForTimeout(10)
+      })
+
+      expect(values).toEqual([
+        {
+          data: undefined,
+          status: "success",
+          observableState: "complete",
+          error: undefined,
+        },
+        // still live because not completed
+        {
+          data: 1,
+          status: "pending",
+          observableState: "live",
+          error: undefined,
+        },
+      ])
+    })
+  })
 })

@@ -10,6 +10,22 @@ interface Option<T, R = undefined> {
   compareFn?: (a: T, b: T) => boolean
 }
 
+/**
+ * The source can be `undefined` (directly or returned from a factory). This is
+ * useful when the observable is not available yet (lazily created, coming from
+ * a state, a prop, etc). In that case the hook returns the default value with a
+ * `complete` observable state and will start observing as soon as an actual
+ * source is given.
+ */
+export function useObserve(
+  source: undefined,
+): UseObserveResult<never, undefined>
+
+export function useObserve<DefaultValue>(
+  source: undefined,
+  options: Option<unknown, DefaultValue>,
+): UseObserveResult<never, DefaultValue>
+
 export function useObserve<T>(
   source: BehaviorSubject<T>,
 ): UseObserveResult<T, T>
@@ -20,7 +36,7 @@ export function useObserve<T>(
 ): UseObserveResult<T, T>
 
 export function useObserve<T>(
-  source: Observable<T>,
+  source: Observable<T> | undefined,
 ): UseObserveResult<T, undefined>
 
 export function useObserve<T>(
@@ -34,9 +50,14 @@ export function useObserve<T>(
 ): UseObserveResult<T, undefined>
 
 export function useObserve<T, DefaultValue>(
-  source: Observable<T>,
+  source: Observable<T> | undefined,
   options: Option<T, DefaultValue>,
 ): UseObserveResult<T, DefaultValue>
+
+export function useObserve<T>(
+  source: Observable<T> | undefined,
+  options: Omit<Option<T>, "defaultValue">,
+): UseObserveResult<T, undefined>
 
 export function useObserve<T, DefaultValue>(
   source: () => Observable<T>,
@@ -44,9 +65,15 @@ export function useObserve<T, DefaultValue>(
   deps: DependencyList,
 ): UseObserveResult<T, DefaultValue>
 
+export function useObserve<T, DefaultValue>(
+  source: () => Observable<T> | undefined,
+  options: Option<T, DefaultValue>,
+  deps: DependencyList,
+): UseObserveResult<T, DefaultValue>
+
 export function useObserve<T, DefaultValue = T>(
-  source$: Observable<T> | (() => Observable<T> | undefined),
-  optionsOrDeps?: Partial<Option<DefaultValue>> | DependencyList,
+  source$: Observable<T> | undefined | (() => Observable<T> | undefined),
+  optionsOrDeps?: Partial<Option<T, DefaultValue>> | DependencyList,
   maybeDeps?: DependencyList,
 ): UseObserveResult<T, DefaultValue | undefined> {
   const options =

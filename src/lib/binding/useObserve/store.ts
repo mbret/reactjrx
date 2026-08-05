@@ -30,7 +30,7 @@ export class ObservableStore<T, DefaultValue, Error = unknown> {
     defaultValue,
     compareFn,
   }: {
-    source$: Observable<T> | (() => Observable<T> | undefined)
+    source$: Observable<T> | undefined | (() => Observable<T> | undefined)
   } & ObservableStoreOptions<T, DefaultValue>) {
     const source$ =
       typeof miscSource$ === "function" ? miscSource$() : miscSource$
