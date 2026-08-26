@@ -1,111 +1,89 @@
+import type { NetworkMode } from "@tanstack/react-query"
 import { act, render, screen } from "@testing-library/react"
-import { BehaviorSubject, filter, map, switchMap } from "rxjs"
 import { describe, expect, it } from "vitest"
 import {
+  createLiveQuerySource,
   createQueryClient,
   createWrapper,
   liveQueryOptions,
 } from "../../tests/liveQuery"
 import { waitForTimeout } from "../../tests/utils"
-import { isDefined } from "../utils/isDefined"
 import { useQuery$ } from "./useQuery$"
+
+function setup(
+  queryKey: string[],
+  initialItems: string[],
+  queryOptions: {
+    networkMode?: NetworkMode
+    gcTime?: number
+    staleTime?: number
+  } = liveQueryOptions,
+) {
+  const { liveQuery$, queryFn } = createLiveQuerySource(initialItems)
+  const queryClient = createQueryClient()
+
+  function Comp() {
+    const { data } = useQuery$({
+      ...queryOptions,
+      queryKey,
+      queryFn,
+    })
+
+    return <span data-testid="data">{JSON.stringify(data)}</span>
+  }
+
+  render(<Comp />, { wrapper: createWrapper(queryClient) })
+
+  return { liveQuery$, queryClient }
+}
+
+const expectData = (items: string[]) =>
+  expect(screen.getByTestId("data").textContent).toBe(JSON.stringify(items))
 
 describe("useQuery$ live-query reactivity", () => {
   it("re-renders when a new item is added", async () => {
-    const liveQuery$ = new BehaviorSubject(["a", "b"])
-    const db$ = new BehaviorSubject<object | undefined>({})
-    const queryClient = createQueryClient()
-
-    function Comp() {
-      const { data } = useQuery$({
-        ...liveQueryOptions,
-        queryKey: ["live", "add"],
-        queryFn: () =>
-          db$.pipe(
-            filter(isDefined),
-            switchMap(() => liveQuery$),
-            map((items) => [...items]),
-          ),
-      })
-
-      return <span data-testid="data">{JSON.stringify(data)}</span>
-    }
-
-    render(<Comp />, { wrapper: createWrapper(queryClient) })
+    const { liveQuery$ } = setup(["live", "add"], ["a", "b"])
 
     await act(async () => {
       await waitForTimeout(100)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(
-      JSON.stringify(["a", "b"]),
-    )
+    expectData(["a", "b"])
 
     await act(async () => {
       liveQuery$.next(["a", "b", "c"])
       await waitForTimeout(200)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(
-      JSON.stringify(["a", "b", "c"]),
-    )
+    expectData(["a", "b", "c"])
   })
 
   it("re-renders when an item is removed", async () => {
-    const liveQuery$ = new BehaviorSubject(["a", "b", "c"])
-    const db$ = new BehaviorSubject<object | undefined>({})
-    const queryClient = createQueryClient()
-
-    function Comp() {
-      const { data } = useQuery$({
-        ...liveQueryOptions,
-        queryKey: ["live", "remove"],
-        queryFn: () =>
-          db$.pipe(
-            filter(isDefined),
-            switchMap(() => liveQuery$),
-            map((items) => [...items]),
-          ),
-      })
-
-      return <span data-testid="data">{JSON.stringify(data)}</span>
-    }
-
-    render(<Comp />, { wrapper: createWrapper(queryClient) })
+    const { liveQuery$ } = setup(["live", "remove"], ["a", "b", "c"])
 
     await act(async () => {
       await waitForTimeout(100)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(
-      JSON.stringify(["a", "b", "c"]),
-    )
+    expectData(["a", "b", "c"])
 
     await act(async () => {
       liveQuery$.next(["a", "c"])
       await waitForTimeout(200)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(
-      JSON.stringify(["a", "c"]),
-    )
+    expectData(["a", "c"])
   })
 
   it("re-renders with two observers on the same key", async () => {
-    const liveQuery$ = new BehaviorSubject(["a", "b"])
-    const db$ = new BehaviorSubject<object | undefined>({})
+    const { liveQuery$, queryFn } = createLiveQuerySource(["a", "b"])
     const queryClient = createQueryClient()
 
     function useLive() {
       return useQuery$({
         ...liveQueryOptions,
         queryKey: ["live", "double"],
-        queryFn: () =>
-          db$.pipe(
-            filter(isDefined),
-            switchMap(() => liveQuery$),
-            map((items) => [...items]),
-          ),
+        queryFn,
       })
     }
 
@@ -122,47 +100,24 @@ describe("useQuery$ live-query reactivity", () => {
       await waitForTimeout(100)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(
-      JSON.stringify(["a", "b"]),
-    )
+    expectData(["a", "b"])
 
     await act(async () => {
       liveQuery$.next(["a", "b", "c"])
       await waitForTimeout(200)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(
-      JSON.stringify(["a", "b", "c"]),
-    )
+    expectData(["a", "b", "c"])
   })
 
   it("settles on the latest value after rapid emissions", async () => {
-    const liveQuery$ = new BehaviorSubject(["a"])
-    const db$ = new BehaviorSubject<object | undefined>({})
-    const queryClient = createQueryClient()
-
-    function Comp() {
-      const { data } = useQuery$({
-        ...liveQueryOptions,
-        queryKey: ["live", "rapid"],
-        queryFn: () =>
-          db$.pipe(
-            filter(isDefined),
-            switchMap(() => liveQuery$),
-            map((items) => [...items]),
-          ),
-      })
-
-      return <span data-testid="data">{JSON.stringify(data)}</span>
-    }
-
-    render(<Comp />, { wrapper: createWrapper(queryClient) })
+    const { liveQuery$ } = setup(["live", "rapid"], ["a"])
 
     await act(async () => {
       await waitForTimeout(100)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(JSON.stringify(["a"]))
+    expectData(["a"])
 
     await act(async () => {
       liveQuery$.next(["a", "b"])
@@ -171,33 +126,15 @@ describe("useQuery$ live-query reactivity", () => {
       await waitForTimeout(300)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(
-      JSON.stringify(["a", "b", "c", "d"]),
-    )
+    expectData(["a", "b", "c", "d"])
   })
 
   it("survives an external refetch racing with the internal loop", async () => {
-    const liveQuery$ = new BehaviorSubject(["a", "b"])
-    const db$ = new BehaviorSubject<object | undefined>({})
-    const queryClient = createQueryClient()
-
-    function Comp() {
-      const { data } = useQuery$({
-        networkMode: "always",
-        gcTime: 0,
-        queryKey: ["live", "external-refetch"],
-        queryFn: () =>
-          db$.pipe(
-            filter(isDefined),
-            switchMap(() => liveQuery$),
-            map((items) => [...items]),
-          ),
-      })
-
-      return <span data-testid="data">{JSON.stringify(data)}</span>
-    }
-
-    render(<Comp />, { wrapper: createWrapper(queryClient) })
+    const { liveQuery$, queryClient } = setup(
+      ["live", "external-refetch"],
+      ["a", "b"],
+      { networkMode: "always", gcTime: 0 },
+    )
 
     await act(async () => {
       await waitForTimeout(100)
@@ -216,33 +153,15 @@ describe("useQuery$ live-query reactivity", () => {
       await waitForTimeout(200)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(
-      JSON.stringify(["a", "b", "c"]),
-    )
+    expectData(["a", "b", "c"])
   })
 
   it("survives invalidateQueries followed by a data change", async () => {
-    const liveQuery$ = new BehaviorSubject(["a", "b"])
-    const db$ = new BehaviorSubject<object | undefined>({})
-    const queryClient = createQueryClient()
-
-    function Comp() {
-      const { data } = useQuery$({
-        networkMode: "always",
-        gcTime: 0,
-        queryKey: ["live", "invalidate"],
-        queryFn: () =>
-          db$.pipe(
-            filter(isDefined),
-            switchMap(() => liveQuery$),
-            map((items) => [...items]),
-          ),
-      })
-
-      return <span data-testid="data">{JSON.stringify(data)}</span>
-    }
-
-    render(<Comp />, { wrapper: createWrapper(queryClient) })
+    const { liveQuery$, queryClient } = setup(
+      ["live", "invalidate"],
+      ["a", "b"],
+      { networkMode: "always", gcTime: 0 },
+    )
 
     await act(async () => {
       await waitForTimeout(100)
@@ -261,8 +180,6 @@ describe("useQuery$ live-query reactivity", () => {
       await waitForTimeout(200)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(
-      JSON.stringify(["a", "b", "c"]),
-    )
+    expectData(["a", "b", "c"])
   })
 })

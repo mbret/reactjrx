@@ -1,57 +1,57 @@
 import { act, render, screen } from "@testing-library/react"
 import { useState } from "react"
-import { BehaviorSubject, filter, map, switchMap } from "rxjs"
 import { describe, expect, it } from "vitest"
 import {
+  createLiveQuerySource,
   createQueryClient,
   createWrapper,
   liveQueryOptions,
 } from "../../tests/liveQuery"
 import { waitForTimeout } from "../../tests/utils"
-import { isDefined } from "../utils/isDefined"
 import { useQuery$ } from "./useQuery$"
+
+function setup(queryKey: string[], initialItems: string[]) {
+  const { liveQuery$, queryFn } = createLiveQuerySource(initialItems)
+  const queryClient = createQueryClient()
+
+  function List() {
+    const { data } = useQuery$({
+      ...liveQueryOptions,
+      queryKey,
+      queryFn,
+    })
+
+    return <span data-testid="data">{JSON.stringify(data)}</span>
+  }
+
+  let toggle = () => {}
+
+  function Host() {
+    const [visible, setVisible] = useState(true)
+    toggle = () => setVisible((v) => !v)
+
+    return visible ? <List /> : <span data-testid="hidden" />
+  }
+
+  render(<Host />, { wrapper: createWrapper(queryClient) })
+
+  return { liveQuery$, toggle: () => toggle() }
+}
+
+const expectData = (items: string[]) =>
+  expect(screen.getByTestId("data").textContent).toBe(JSON.stringify(items))
 
 describe("useQuery$ unmount / remount", () => {
   it("stays reactive after hide/show then adding an item", {
     timeout: 3000,
   }, async () => {
-    const liveQuery$ = new BehaviorSubject(["a", "b"])
-    const db$ = new BehaviorSubject<object | undefined>({})
-    const queryClient = createQueryClient()
-
-    function List() {
-      const { data } = useQuery$({
-        ...liveQueryOptions,
-        queryKey: ["unmount", "add"],
-        queryFn: () =>
-          db$.pipe(
-            filter(isDefined),
-            switchMap(() => liveQuery$),
-            map((items) => [...items]),
-          ),
-      })
-
-      return <span data-testid="data">{JSON.stringify(data)}</span>
-    }
-
-    let toggle: () => void
-
-    function Host() {
-      const [visible, setVisible] = useState(true)
-      toggle = () => setVisible((v) => !v)
-
-      return visible ? <List /> : <span data-testid="hidden" />
-    }
-
-    render(<Host />, { wrapper: createWrapper(queryClient) })
+    const { liveQuery$, toggle } = setup(["unmount", "add"], ["a", "b"])
 
     await act(async () => {
       await waitForTimeout(100)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(
-      JSON.stringify(["a", "b"]),
-    )
+    expectData(["a", "b"])
 
     await act(async () => {
       toggle()
@@ -59,60 +59,26 @@ describe("useQuery$ unmount / remount", () => {
       await waitForTimeout(200)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(
-      JSON.stringify(["a", "b"]),
-    )
+    expectData(["a", "b"])
 
     await act(async () => {
       liveQuery$.next(["a", "b", "c"])
       await waitForTimeout(200)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(
-      JSON.stringify(["a", "b", "c"]),
-    )
+    expectData(["a", "b", "c"])
   })
 
   it("stays reactive after hide/show then removing an item", {
     timeout: 3000,
   }, async () => {
-    const liveQuery$ = new BehaviorSubject(["a", "b", "c"])
-    const db$ = new BehaviorSubject<object | undefined>({})
-    const queryClient = createQueryClient()
-
-    function List() {
-      const { data } = useQuery$({
-        ...liveQueryOptions,
-        queryKey: ["unmount", "remove"],
-        queryFn: () =>
-          db$.pipe(
-            filter(isDefined),
-            switchMap(() => liveQuery$),
-            map((items) => [...items]),
-          ),
-      })
-
-      return <span data-testid="data">{JSON.stringify(data)}</span>
-    }
-
-    let toggle: () => void
-
-    function Host() {
-      const [visible, setVisible] = useState(true)
-      toggle = () => setVisible((v) => !v)
-
-      return visible ? <List /> : <span data-testid="hidden" />
-    }
-
-    render(<Host />, { wrapper: createWrapper(queryClient) })
+    const { liveQuery$, toggle } = setup(["unmount", "remove"], ["a", "b", "c"])
 
     await act(async () => {
       await waitForTimeout(100)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(
-      JSON.stringify(["a", "b", "c"]),
-    )
+    expectData(["a", "b", "c"])
 
     await act(async () => {
       toggle()
@@ -125,49 +91,19 @@ describe("useQuery$ unmount / remount", () => {
       await waitForTimeout(200)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(
-      JSON.stringify(["a", "c"]),
-    )
+    expectData(["a", "c"])
   })
 
   it("stays reactive after multiple hide/show cycles", {
     timeout: 5000,
   }, async () => {
-    const liveQuery$ = new BehaviorSubject(["a"])
-    const db$ = new BehaviorSubject<object | undefined>({})
-    const queryClient = createQueryClient()
-
-    function List() {
-      const { data } = useQuery$({
-        ...liveQueryOptions,
-        queryKey: ["unmount", "multi"],
-        queryFn: () =>
-          db$.pipe(
-            filter(isDefined),
-            switchMap(() => liveQuery$),
-            map((items) => [...items]),
-          ),
-      })
-
-      return <span data-testid="data">{JSON.stringify(data)}</span>
-    }
-
-    let toggle: () => void
-
-    function Host() {
-      const [visible, setVisible] = useState(true)
-      toggle = () => setVisible((v) => !v)
-
-      return visible ? <List /> : <span data-testid="hidden" />
-    }
-
-    render(<Host />, { wrapper: createWrapper(queryClient) })
+    const { liveQuery$, toggle } = setup(["unmount", "multi"], ["a"])
 
     await act(async () => {
       await waitForTimeout(100)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(JSON.stringify(["a"]))
+    expectData(["a"])
 
     for (let i = 0; i < 5; i++) {
       await act(async () => {
@@ -177,16 +113,14 @@ describe("useQuery$ unmount / remount", () => {
       })
     }
 
-    expect(screen.getByTestId("data").textContent).toBe(JSON.stringify(["a"]))
+    expectData(["a"])
 
     await act(async () => {
       liveQuery$.next(["a", "b"])
       await waitForTimeout(200)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(
-      JSON.stringify(["a", "b"]),
-    )
+    expectData(["a", "b"])
   })
 
   /**
@@ -201,50 +135,20 @@ describe("useQuery$ unmount / remount", () => {
   it("does not create orphaned subscriptions when refetch races with hide/show", {
     timeout: 3000,
   }, async () => {
-    const liveQuery$ = new BehaviorSubject(["a"])
-    const db$ = new BehaviorSubject<object | undefined>({})
-    const queryClient = createQueryClient()
-
-    function List() {
-      const { data } = useQuery$({
-        ...liveQueryOptions,
-        queryKey: ["unmount", "stale-guard"],
-        queryFn: () =>
-          db$.pipe(
-            filter(isDefined),
-            switchMap(() => liveQuery$),
-            map((items) => [...items]),
-          ),
-      })
-
-      return <span data-testid="data">{JSON.stringify(data)}</span>
-    }
-
-    let toggle: () => void
-
-    function Host() {
-      const [visible, setVisible] = useState(true)
-      toggle = () => setVisible((v) => !v)
-
-      return visible ? <List /> : <span data-testid="hidden" />
-    }
-
-    render(<Host />, { wrapper: createWrapper(queryClient) })
+    const { liveQuery$, toggle } = setup(["unmount", "stale-guard"], ["a"])
 
     await act(async () => {
       await waitForTimeout(100)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(JSON.stringify(["a"]))
+    expectData(["a"])
 
     await act(async () => {
       liveQuery$.next(["a", "b"])
       await waitForTimeout(100)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(
-      JSON.stringify(["a", "b"]),
-    )
+    expectData(["a", "b"])
 
     liveQuery$.next(["a", "b", "c"])
 
@@ -254,17 +158,13 @@ describe("useQuery$ unmount / remount", () => {
       await waitForTimeout(200)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(
-      JSON.stringify(["a", "b", "c"]),
-    )
+    expectData(["a", "b", "c"])
 
     await act(async () => {
       liveQuery$.next(["a", "b", "c", "d"])
       await waitForTimeout(200)
     })
 
-    expect(screen.getByTestId("data").textContent).toBe(
-      JSON.stringify(["a", "b", "c", "d"]),
-    )
+    expectData(["a", "b", "c", "d"])
   })
 })
