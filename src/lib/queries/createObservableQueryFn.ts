@@ -65,9 +65,18 @@ export function createObservableQueryFn<
              */
             if (queryCacheEntry?.isCompleted) return
 
+            /**
+             * This runs once per emission of a live stream. The cost of
+             * the equivalent `{ queryKey, exact: true }` filter is not the
+             * iteration but the re-hashing: it JSON.stringifies the key
+             * again for every query in the cache. Matching the query by
+             * identity instead skips hashing entirely — `context.queryKey`
+             * is the very array the target query holds — while leaving all
+             * refetch semantics (batching, disabled/static skip,
+             * cancelRefetch, error swallowing) inside `refetchQueries`.
+             */
             queryClient?.refetchQueries({
-              queryKey: context.queryKey,
-              exact: true,
+              predicate: (query) => query.queryKey === context.queryKey,
             })
           })
         }

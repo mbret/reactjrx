@@ -55,12 +55,14 @@ export class QueryClient$ {
     this.queryMap.set(queryHash, cacheEntry)
 
     const sub = sharedQuery$.subscribe({
+      /**
+       * Write on the closed-over entry directly: this subscription is torn
+       * down by `deleteQuery` before the map slot can ever point to another
+       * entry, so a per-emission `queryMap.get(queryHash)` lookup would
+       * always resolve to `cacheEntry` anyway.
+       */
       next: (data) => {
-        const entry = this.queryMap.get(queryHash)
-
-        if (entry) {
-          entry.lastData = { value: data }
-        }
+        cacheEntry.lastData = { value: data }
       },
       complete: () => {
         if (this.queryMap.get(queryHash) === cacheEntry) {
@@ -104,9 +106,14 @@ export class QueryClient$ {
      * final value — cancelling it would reject it prematurely.
      */
     if (cancelQuery && !entry.signal.aborted && entry.lastData !== undefined) {
+      /**
+       * Matched by identity for the same reason as the refetch path: the
+       * `{ queryKey, exact: true }` filter re-hashes the key for every
+       * query in the cache, while an identity predicate skips hashing and
+       * keeps all cancel semantics inside `cancelQueries`.
+       */
       this.queryClient?.cancelQueries({
-        queryKey: entry.queryKey,
-        exact: true,
+        predicate: (query) => query.queryKey === entry.queryKey,
       })
     }
   }
