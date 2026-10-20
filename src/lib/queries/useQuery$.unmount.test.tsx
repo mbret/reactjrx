@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react"
+import { act, render, screen, waitFor } from "@testing-library/react"
 import { useState } from "react"
 import { describe, expect, it } from "vitest"
 import {
@@ -41,17 +41,18 @@ function setup(queryKey: string[], initialItems: string[]) {
 const expectData = (items: string[]) =>
   expect(screen.getByTestId("data").textContent).toBe(JSON.stringify(items))
 
+const waitForData = (items: string[]) =>
+  waitFor(() => {
+    expectData(items)
+  })
+
 describe("useQuery$ unmount / remount", () => {
   it("stays reactive after hide/show then adding an item", {
     timeout: 3000,
   }, async () => {
     const { liveQuery$, toggle } = setup(["unmount", "add"], ["a", "b"])
 
-    await act(async () => {
-      await waitForTimeout(100)
-    })
-
-    expectData(["a", "b"])
+    await waitForData(["a", "b"])
 
     await act(async () => {
       toggle()
@@ -61,12 +62,11 @@ describe("useQuery$ unmount / remount", () => {
 
     expectData(["a", "b"])
 
-    await act(async () => {
+    act(() => {
       liveQuery$.next(["a", "b", "c"])
-      await waitForTimeout(200)
     })
 
-    expectData(["a", "b", "c"])
+    await waitForData(["a", "b", "c"])
   })
 
   it("stays reactive after hide/show then removing an item", {
@@ -74,11 +74,7 @@ describe("useQuery$ unmount / remount", () => {
   }, async () => {
     const { liveQuery$, toggle } = setup(["unmount", "remove"], ["a", "b", "c"])
 
-    await act(async () => {
-      await waitForTimeout(100)
-    })
-
-    expectData(["a", "b", "c"])
+    await waitForData(["a", "b", "c"])
 
     await act(async () => {
       toggle()
@@ -86,12 +82,11 @@ describe("useQuery$ unmount / remount", () => {
       await waitForTimeout(200)
     })
 
-    await act(async () => {
+    act(() => {
       liveQuery$.next(["a", "c"])
-      await waitForTimeout(200)
     })
 
-    expectData(["a", "c"])
+    await waitForData(["a", "c"])
   })
 
   it("stays reactive after multiple hide/show cycles", {
@@ -99,11 +94,7 @@ describe("useQuery$ unmount / remount", () => {
   }, async () => {
     const { liveQuery$, toggle } = setup(["unmount", "multi"], ["a"])
 
-    await act(async () => {
-      await waitForTimeout(100)
-    })
-
-    expectData(["a"])
+    await waitForData(["a"])
 
     for (let i = 0; i < 5; i++) {
       await act(async () => {
@@ -115,12 +106,11 @@ describe("useQuery$ unmount / remount", () => {
 
     expectData(["a"])
 
-    await act(async () => {
+    act(() => {
       liveQuery$.next(["a", "b"])
-      await waitForTimeout(200)
     })
 
-    expectData(["a", "b"])
+    await waitForData(["a", "b"])
   })
 
   /**

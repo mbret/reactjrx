@@ -1,5 +1,5 @@
 import type { NetworkMode } from "@tanstack/react-query"
-import { act, render, screen } from "@testing-library/react"
+import { act, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import {
   createLiveQuerySource,
@@ -37,45 +37,39 @@ function setup(
   return { liveQuery$, queryClient }
 }
 
-const expectData = (items: string[]) =>
-  expect(screen.getByTestId("data").textContent).toBe(JSON.stringify(items))
+const waitForData = (items: string[]) =>
+  waitFor(() => {
+    expect(screen.getByTestId("data").textContent).toBe(JSON.stringify(items))
+  })
 
 describe("useQuery$ live-query reactivity", () => {
-  it("re-renders when a new item is added", async () => {
+  it("re-renders when a new item is added", { timeout: 3000 }, async () => {
     const { liveQuery$ } = setup(["live", "add"], ["a", "b"])
 
-    await act(async () => {
-      await waitForTimeout(100)
-    })
+    await waitForData(["a", "b"])
 
-    expectData(["a", "b"])
-
-    await act(async () => {
+    act(() => {
       liveQuery$.next(["a", "b", "c"])
-      await waitForTimeout(200)
     })
 
-    expectData(["a", "b", "c"])
+    await waitForData(["a", "b", "c"])
   })
 
-  it("re-renders when an item is removed", async () => {
+  it("re-renders when an item is removed", { timeout: 3000 }, async () => {
     const { liveQuery$ } = setup(["live", "remove"], ["a", "b", "c"])
 
-    await act(async () => {
-      await waitForTimeout(100)
-    })
+    await waitForData(["a", "b", "c"])
 
-    expectData(["a", "b", "c"])
-
-    await act(async () => {
+    act(() => {
       liveQuery$.next(["a", "c"])
-      await waitForTimeout(200)
     })
 
-    expectData(["a", "c"])
+    await waitForData(["a", "c"])
   })
 
-  it("re-renders with two observers on the same key", async () => {
+  it("re-renders with two observers on the same key", {
+    timeout: 3000,
+  }, async () => {
     const { liveQuery$, queryFn } = createLiveQuerySource(["a", "b"])
     const queryClient = createQueryClient()
 
@@ -96,50 +90,43 @@ describe("useQuery$ live-query reactivity", () => {
 
     render(<Comp />, { wrapper: createWrapper(queryClient) })
 
-    await act(async () => {
-      await waitForTimeout(100)
-    })
+    await waitForData(["a", "b"])
 
-    expectData(["a", "b"])
-
-    await act(async () => {
+    act(() => {
       liveQuery$.next(["a", "b", "c"])
-      await waitForTimeout(200)
     })
 
-    expectData(["a", "b", "c"])
+    await waitForData(["a", "b", "c"])
   })
 
-  it("settles on the latest value after rapid emissions", async () => {
+  it("settles on the latest value after rapid emissions", {
+    timeout: 3000,
+  }, async () => {
     const { liveQuery$ } = setup(["live", "rapid"], ["a"])
 
-    await act(async () => {
-      await waitForTimeout(100)
-    })
+    await waitForData(["a"])
 
-    expectData(["a"])
-
-    await act(async () => {
+    act(() => {
       liveQuery$.next(["a", "b"])
       liveQuery$.next(["a", "b", "c"])
       liveQuery$.next(["a", "b", "c", "d"])
-      await waitForTimeout(300)
     })
 
-    expectData(["a", "b", "c", "d"])
+    await waitForData(["a", "b", "c", "d"])
   })
 
-  it("survives an external refetch racing with the internal loop", async () => {
+  it("survives an external refetch racing with the internal loop", {
+    timeout: 3000,
+  }, async () => {
     const { liveQuery$, queryClient } = setup(
       ["live", "external-refetch"],
       ["a", "b"],
       { networkMode: "always", gcTime: 0 },
     )
 
-    await act(async () => {
-      await waitForTimeout(100)
-    })
+    await waitForData(["a", "b"])
 
+    // Let the external call race with the internal refetch loop.
     await act(async () => {
       queryClient.refetchQueries({
         queryKey: ["live", "external-refetch"],
@@ -148,25 +135,25 @@ describe("useQuery$ live-query reactivity", () => {
       await waitForTimeout(100)
     })
 
-    await act(async () => {
+    act(() => {
       liveQuery$.next(["a", "b", "c"])
-      await waitForTimeout(200)
     })
 
-    expectData(["a", "b", "c"])
+    await waitForData(["a", "b", "c"])
   })
 
-  it("survives invalidateQueries followed by a data change", async () => {
+  it("survives invalidateQueries followed by a data change", {
+    timeout: 3000,
+  }, async () => {
     const { liveQuery$, queryClient } = setup(
       ["live", "invalidate"],
       ["a", "b"],
       { networkMode: "always", gcTime: 0 },
     )
 
-    await act(async () => {
-      await waitForTimeout(100)
-    })
+    await waitForData(["a", "b"])
 
+    // Let the external call race with the internal refetch loop.
     await act(async () => {
       queryClient.invalidateQueries({
         queryKey: ["live", "invalidate"],
@@ -175,11 +162,10 @@ describe("useQuery$ live-query reactivity", () => {
       await waitForTimeout(100)
     })
 
-    await act(async () => {
+    act(() => {
       liveQuery$.next(["a", "b", "c"])
-      await waitForTimeout(200)
     })
 
-    expectData(["a", "b", "c"])
+    await waitForData(["a", "b", "c"])
   })
 })
