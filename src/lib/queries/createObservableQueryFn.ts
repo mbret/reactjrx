@@ -1,6 +1,5 @@
 import {
   CancelledError,
-  hashKey,
   type QueryClient,
   type QueryFunctionContext,
   type QueryKey,
@@ -41,9 +40,7 @@ export function createObservableQueryFn<
           typeof queryFn === "function" ? queryFn(context) : queryFn,
         )
 
-      const queryHash = hashKey(context.queryKey)
-
-      const queryAlreadyInCache = queryClient$.getQuery(queryHash)
+      const queryAlreadyInCache = queryClient$.getQuery(context.queryKey)
 
       const queryCacheEntry =
         queryAlreadyInCache ??
@@ -65,9 +62,18 @@ export function createObservableQueryFn<
              */
             if (queryCacheEntry?.isCompleted) return
 
+            /**
+             * This runs once per emission of a live stream. The cost of
+             * the equivalent `{ queryKey, exact: true }` filter is not the
+             * iteration but the re-hashing: it JSON.stringifies the key
+             * again for every query in the cache. Matching the query by
+             * identity instead skips hashing entirely — `context.queryKey`
+             * is the very array the target query holds — while leaving all
+             * refetch semantics (batching, disabled/static skip,
+             * cancelRefetch, error swallowing) inside `refetchQueries`.
+             */
             queryClient?.refetchQueries({
-              queryKey: context.queryKey,
-              exact: true,
+              predicate: (query) => query.queryKey === context.queryKey,
             })
           })
         }
@@ -82,9 +88,7 @@ export function createObservableQueryFn<
         return
       }
 
-      const query$ = queryCacheEntry.query$
-
-      query$
+      const subscription = queryCacheEntry.query$
         .pipe(
           take(1),
           /**
@@ -106,7 +110,7 @@ export function createObservableQueryFn<
               }
 
               console.warn(
-                `cancelled due to stream completing without data for query ${queryHash}`,
+                `cancelled due to stream completing without data for query ${JSON.stringify(context.queryKey)}`,
               )
 
               /**
@@ -124,6 +128,21 @@ export function createObservableQueryFn<
             refetchIfNeeded()
           },
         })
+
+      /**
+       * Each fetch has its own signal, aborted when TanStack cancels that
+       * fetch (for example when its last observer unmounts). Stop waiting on
+       * the shared stream then: on a refetch nothing else unsubscribes this,
+       * and it would keep the stream subscribed until its next value.
+       */
+      context.signal.addEventListener(
+        "abort",
+        () => {
+          subscription.unsubscribe()
+          reject(new CancelledError())
+        },
+        { once: true },
+      )
     })
   }
 }

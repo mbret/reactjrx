@@ -1,5 +1,4 @@
 import {
-  hashKey,
   type QueryClient,
   type QueryKey,
   useQueryClient,
@@ -23,12 +22,17 @@ type CacheEntry = {
 }
 
 export class QueryClient$ {
-  public readonly queryMap: Map<string, CacheEntry> = new Map()
+  /**
+   * Keyed by the query's own `queryKey` array: the one TanStack passes to
+   * `queryFn` and exposes as `query.queryKey`. Entries therefore match their
+   * query whatever its `queryKeyHashFn`, and nothing is hashed.
+   */
+  public readonly queryMap: Map<QueryKey, CacheEntry> = new Map()
 
   constructor(public readonly queryClient: QueryClient) {}
 
-  getQuery(queryHash: string) {
-    return this.queryMap.get(queryHash)
+  getQuery(queryKey: QueryKey) {
+    return this.queryMap.get(queryKey)
   }
 
   setQuery(
@@ -36,8 +40,6 @@ export class QueryClient$ {
     query$: Observable<unknown>,
     signal: AbortSignal,
   ) {
-    const queryHash = hashKey(queryKey)
-
     const sharedQuery$ = query$.pipe(
       takeUntil(fromEvent(signal, "abort")),
       share(),
@@ -52,19 +54,21 @@ export class QueryClient$ {
       lastData: undefined,
     }
 
-    this.queryMap.set(queryHash, cacheEntry)
+    this.queryMap.set(queryKey, cacheEntry)
 
     const sub = sharedQuery$.subscribe({
+      /**
+       * Write on the closed-over entry directly: this subscription is torn
+       * down by `deleteQuery` before the map slot can ever point to another
+       * entry, so a per-emission `queryMap.get(queryKey)` lookup would
+       * always resolve to `cacheEntry` anyway.
+       */
       next: (data) => {
-        const entry = this.queryMap.get(queryHash)
-
-        if (entry) {
-          entry.lastData = { value: data }
-        }
+        cacheEntry.lastData = { value: data }
       },
       complete: () => {
-        if (this.queryMap.get(queryHash) === cacheEntry) {
-          this.deleteQuery(queryHash)
+        if (this.queryMap.get(queryKey) === cacheEntry) {
+          this.deleteQuery(queryKey)
         }
       },
     })
@@ -75,16 +79,16 @@ export class QueryClient$ {
   }
 
   deleteQuery(
-    queryHash: string,
+    queryKey: QueryKey,
     { cancelQuery = false }: { cancelQuery?: boolean } = {},
   ) {
-    const entry = this.queryMap.get(queryHash)
+    const entry = this.queryMap.get(queryKey)
 
     if (!entry) return
 
     entry.isCompleted = true
 
-    this.queryMap.delete(queryHash)
+    this.queryMap.delete(queryKey)
 
     if (entry.sub) {
       entry.sub.unsubscribe()
@@ -104,9 +108,14 @@ export class QueryClient$ {
      * final value — cancelling it would reject it prematurely.
      */
     if (cancelQuery && !entry.signal.aborted && entry.lastData !== undefined) {
+      /**
+       * Matched by identity for the same reason as the refetch path: the
+       * `{ queryKey, exact: true }` filter re-hashes the key for every
+       * query in the cache, while an identity predicate skips hashing and
+       * keeps all cancel semantics inside `cancelQueries`.
+       */
       this.queryClient?.cancelQueries({
-        queryKey: entry.queryKey,
-        exact: true,
+        predicate: (query) => query.queryKey === entry.queryKey,
       })
     }
   }
@@ -147,7 +156,7 @@ export const QueryClientProvider$ = memo(function QueryClientProvider$({
          * However this is only valid when there is no more observers.
          */
         if (event.type === "observerRemoved" && activeObservers === 0) {
-          client.deleteQuery(event.query.queryHash, { cancelQuery: true })
+          client.deleteQuery(event.query.queryKey, { cancelQuery: true })
         }
       })
     },
