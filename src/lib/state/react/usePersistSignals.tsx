@@ -1,4 +1,4 @@
-import { merge, of, scan, switchMap } from "rxjs"
+import { map, merge, of, switchMap } from "rxjs"
 import { useLiveBehaviorSubject } from "../../binding/useLiveBehaviorSubject"
 import { useObserve } from "../../binding/useObserve/useObserve"
 import { useLiveRef } from "../../utils/react/useLiveRef"
@@ -6,14 +6,14 @@ import { isShallowEqual } from "../../utils/shallowEqual"
 import type { Adapter } from "../persistence/adapters/Adapter"
 import { persistSignals } from "../persistence/persistSignals"
 import type { SignalPersistenceConfig } from "../persistence/types"
-import type { Signal } from "../Signal"
 
 /**
- * Make sure to pass stable reference of entries and adapter if you don't
- * intentionally want to start over the process.
+ * Hydrates the signals of `entries` from `adapter`, then persists their
+ * updates to it.
  *
- * `isHydrated` will be `true` after the first successful hydration. This value
- * will be reset as soon as the adapter reference changes.
+ * `isHydrated` becomes `true` once the entries have been hydrated for the
+ * first time. Entries added later do not change it. It is reset when the
+ * adapter changes.
  */
 export function usePersistSignals({
   entries = [],
@@ -21,19 +21,21 @@ export function usePersistSignals({
   adapter,
 }: {
   /**
-   * Passing a new list of entries will start over the process.
-   * Use a stable reference to avoid infinite loop.
+   * Entries are matched by signal, so the array does not need a stable
+   * reference. A signal is hydrated when it is added, then persisted while it
+   * stays in the list. When it is removed, its pending value is saved and it
+   * stops being persisted.
    */
-
   // biome-ignore lint/suspicious/noExplicitAny: TODO
   entries?: Array<SignalPersistenceConfig<any>>
   /**
-   * Triggered after first successful hydrate
+   * Called once per adapter, when `isHydrated` becomes `true`.
    */
   onHydrated?: () => void
   /**
-   * Passing a new adapter reference will start over the process.
-   * Use a stable reference to avoid infinite loop.
+   * Passing a new adapter reference starts over: pending values are saved to
+   * the previous adapter, then every entry is hydrated from the new one. Use a
+   * stable reference to avoid infinite loop.
    */
   adapter?: Adapter
 }): { isHydrated: boolean } {
@@ -42,60 +44,24 @@ export function usePersistSignals({
   const entriesSubject = useLiveBehaviorSubject(entries)
 
   const result = useObserve(
-    () => {
-      const persistence$ = adapterSubject.pipe(
+    () =>
+      adapterSubject.pipe(
         switchMap((adapter) => {
-          if (!adapter) return of({ type: "reset" })
-
-          /**
-           * Signals already hydrated from this adapter. When the entries
-           * change, only the new ones are hydrated: hydrating the others
-           * again would overwrite their in-memory value with a stored one
-           * that may be older (e.g. a write still held by the throttle).
-           */
-          // biome-ignore lint/suspicious/noExplicitAny: TODO
-          const hydratedSignals = new WeakSet<Signal<any, string>>()
+          if (!adapter) return of({ type: "reset" as const })
 
           return merge(
-            of({ type: "reset" }),
-            entriesSubject.pipe(
-              /**
-               * `persistSignals` never completes on its own (it keeps
-               * persisting signal updates), so a sequential operator would
-               * queue new entries forever. Restart the process instead
-               * whenever a new list is emitted.
-               */
-              switchMap((entries) =>
-                persistSignals({
-                  adapter,
-                  entries,
-                  shouldHydrate: ({ signal }) => !hydratedSignals.has(signal),
-                  onHydrated: () => {
-                    for (const { signal } of entries) {
-                      hydratedSignals.add(signal)
-                    }
-
-                    onHydratedRef.current?.()
-                  },
-                }),
-              ),
-            ),
+            of({ type: "reset" as const }),
+            persistSignals({
+              adapter,
+              entries$: entriesSubject,
+              onHydrated: () => {
+                onHydratedRef.current?.()
+              },
+            }),
           )
         }),
-      )
-
-      return persistence$.pipe(
-        scan(
-          (acc, event) => {
-            if (event.type === "reset") return { isHydrated: false }
-            if (event.type === "hydrated") return { isHydrated: true }
-
-            return acc
-          },
-          { isHydrated: false as boolean },
-        ),
-      )
-    },
+        map((event) => ({ isHydrated: event.type === "hydrated" })),
+      ),
     { defaultValue: { isHydrated: false }, compareFn: isShallowEqual },
     [adapterSubject, entriesSubject],
   )
