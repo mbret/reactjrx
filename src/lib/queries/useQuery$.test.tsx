@@ -3,7 +3,6 @@ import { cleanup, render } from "@testing-library/react"
 import React, { act, memo, useEffect, useState } from "react"
 import { interval, merge, NEVER, of, Subject, takeWhile } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
-import { waitForTimeout } from "../../tests/utils"
 import { QueryClientProvider$ } from "./QueryClientProvider$"
 import { useQuery$ } from "./useQuery$"
 
@@ -166,17 +165,14 @@ it("should return consecutive results", async () => {
     </React.StrictMode>,
   )
 
-  await act(async () => {
-    source.next(3)
+  // Wait for each value to render before emitting the next one, so React
+  // cannot batch two emissions into one render and skip a value.
+  act(() => source.next(3))
+  expect(await findByText(JSON.stringify([3]))).toBeDefined()
 
-    await waitForTimeout(10)
+  act(() => source.next(2))
+  expect(await findByText(JSON.stringify([3, 2]))).toBeDefined()
 
-    source.next(2)
-
-    await waitForTimeout(10)
-
-    source.next(1)
-  })
-
+  act(() => source.next(1))
   expect(await findByText(JSON.stringify([3, 2, 1]))).toBeDefined()
 })

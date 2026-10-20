@@ -1,6 +1,6 @@
 import type { Observable } from "rxjs"
 
-export type SubscribeSourceFactory<Data> =
+type SubscribeSourceFactory<Data> =
   | (() => Observable<Data>)
   | (() => Observable<Data> | undefined)
   | (() => Promise<Data>)
