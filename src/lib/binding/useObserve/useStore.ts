@@ -22,7 +22,7 @@ type StoreReference<T, DefaultValue> = {
  * However this is "okay" since it is to be used inside a useSyncExternalStore and not directly in a render.
  */
 export const useStore = <T, DefaultValue>(
-  source$: Observable<T> | (() => Observable<T> | undefined),
+  source$: Observable<T> | undefined | (() => Observable<T> | undefined),
   options: UseObserveOptions<T, DefaultValue>,
   deps: DependencyList,
 ): ObservableStore<T, DefaultValue | undefined> => {
