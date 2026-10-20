@@ -64,8 +64,57 @@ const renderLiveQuery = ({
   }
 }
 
-describe("Given a live query whose last observer unmounts", () => {
-  it("should stop the stream once it has refetched", {
+/**
+ * TanStack stores the query under the hash produced here, which differs from
+ * the default `hashKey` output.
+ */
+const customQueryKeyHashFn = (queryKey: QueryKey) =>
+  `custom:${JSON.stringify(queryKey)}`
+
+describe("Given a live query with a custom queryKeyHashFn", () => {
+  it("should re-render with each new value", {
+    timeout: 3000,
+  }, async () => {
+    const { source, findByText } = renderLiveQuery({
+      queryKeyHashFn: customQueryKeyHashFn,
+    })
+
+    expect(await findByText("1")).toBeDefined()
+
+    act(() => {
+      source.next(2)
+    })
+
+    expect(await findByText("2")).toBeDefined()
+  })
+
+  it("should stop the stream when its last observer unmounts", {
+    timeout: 3000,
+  }, async () => {
+    const { source, queryClient$, findByText, hide } = renderLiveQuery({
+      queryKeyHashFn: customQueryKeyHashFn,
+    })
+
+    expect(await findByText("1")).toBeDefined()
+
+    await waitForTimeout(50)
+
+    expect(source.observed).toBe(true)
+
+    hide()
+
+    await waitFor(() => {
+      expect(queryClient$.queryMap.size).toBe(0)
+    })
+
+    await waitFor(() => {
+      expect(source.observed).toBe(false)
+    })
+  })
+})
+
+describe("Given a live query that has refetched", () => {
+  it("should stop the stream when its last observer unmounts", {
     timeout: 3000,
   }, async () => {
     const { source, queryClient$, findByText, hide } = renderLiveQuery()
@@ -84,29 +133,5 @@ describe("Given a live query whose last observer unmounts", () => {
     })
 
     expect(queryClient$.queryMap.size).toBe(0)
-  })
-
-  it("should stop the stream when the query uses a custom queryKeyHashFn", {
-    timeout: 3000,
-  }, async () => {
-    const { source, queryClient$, findByText, hide } = renderLiveQuery({
-      queryKeyHashFn: (queryKey) => `custom:${JSON.stringify(queryKey)}`,
-    })
-
-    expect(await findByText("1")).toBeDefined()
-
-    await waitForTimeout(50)
-
-    expect(source.observed).toBe(true)
-
-    hide()
-
-    await waitFor(() => {
-      expect(queryClient$.queryMap.size).toBe(0)
-    })
-
-    await waitFor(() => {
-      expect(source.observed).toBe(false)
-    })
   })
 })
