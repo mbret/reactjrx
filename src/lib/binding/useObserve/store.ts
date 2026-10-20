@@ -3,7 +3,7 @@ import {
   distinctUntilChanged,
   NEVER,
   type Observable,
-  type Subscription,
+  Subscription,
   share,
   tap,
 } from "rxjs"
@@ -30,7 +30,7 @@ export class ObservableStore<T, DefaultValue, Error = unknown> {
     defaultValue,
     compareFn,
   }: {
-    source$: Observable<T> | (() => Observable<T> | undefined)
+    source$: Observable<T> | undefined | (() => Observable<T> | undefined)
   } & ObservableStoreOptions<T, DefaultValue>) {
     const source$ =
       typeof miscSource$ === "function" ? miscSource$() : miscSource$
@@ -44,7 +44,20 @@ export class ObservableStore<T, DefaultValue, Error = unknown> {
       error: undefined,
     }
 
-    this.source$ = (source$ ?? NEVER).pipe(
+    /**
+     * There is nothing to observe without a source. The state above is already
+     * final (`complete`), which makes `subscribe` a no-op and therefore makes
+     * `source$` unreachable. We skip building the pipe chain and opening a
+     * subscription for a stream that can never emit.
+     */
+    if (hasNoDefinedSource) {
+      this.source$ = NEVER
+      this.sub = Subscription.EMPTY
+
+      return
+    }
+
+    this.source$ = source$.pipe(
       distinctUntilChanged(compareFn),
       tap({
         complete: () => {
