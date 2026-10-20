@@ -1,4 +1,4 @@
-import { map, merge, of, switchMap } from "rxjs"
+import { map, merge, of, scan, switchMap } from "rxjs"
 import { useLiveBehaviorSubject } from "../../binding/useLiveBehaviorSubject"
 import { useObserve } from "../../binding/useObserve/useObserve"
 import { useLiveRef } from "../../utils/react/useLiveRef"
@@ -34,8 +34,14 @@ export function usePersistSignals({
   onHydrated?: () => void
   /**
    * Passing a new adapter reference starts over: pending values are saved to
-   * the previous adapter, then every entry is hydrated from the new one. Use a
-   * stable reference to avoid infinite loop.
+   * the previous adapter, then every entry takes the value stored in the new
+   * one. When nothing is stored, or only an older version, the entry goes
+   * back to its default once the hook has had two different adapters, so it
+   * never carries another adapter's value over (another profile's, for
+   * example). Before that, including when the same adapter comes back after
+   * a gap without adapter, it keeps its current value. Adapters are compared
+   * by reference: a new object for the same storage counts as a different
+   * adapter. Use a stable reference to avoid infinite loop.
    */
   adapter?: Adapter
 }): { isHydrated: boolean } {
@@ -46,7 +52,31 @@ export function usePersistSignals({
   const result = useObserve(
     () =>
       adapterSubject.pipe(
-        switchMap((adapter) => {
+        /**
+         * Becomes true once a second, different adapter is passed, and stays
+         * true: from then on, a value in memory may come from another adapter
+         * than the current one. The same adapter coming back after a gap
+         * without adapter (a sign-out, for example) is not a different one.
+         */
+        scan(
+          (previous, adapter) => {
+            const firstAdapter = previous.firstAdapter ?? adapter
+
+            return {
+              adapter,
+              firstAdapter,
+              replacesAnother:
+                previous.replacesAnother ||
+                (!!adapter && adapter !== firstAdapter),
+            }
+          },
+          {
+            adapter: undefined as Adapter | undefined,
+            firstAdapter: undefined as Adapter | undefined,
+            replacesAnother: false,
+          },
+        ),
+        switchMap(({ adapter, replacesAnother }) => {
           if (!adapter) return of({ type: "reset" as const })
 
           return merge(
@@ -54,6 +84,7 @@ export function usePersistSignals({
             persistSignals({
               adapter,
               entries$: entriesSubject,
+              resetToDefault: replacesAnother,
               onHydrated: () => {
                 onHydratedRef.current?.()
               },

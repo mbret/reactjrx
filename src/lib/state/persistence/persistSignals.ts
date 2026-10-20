@@ -29,10 +29,12 @@ type Entry = SignalPersistenceConfig<AnySignal>
 const hydrateAndPersistEntry = ({
   adapter,
   entry,
+  resetToDefault,
   onHydrated,
 }: {
   adapter: Adapter
   entry: { config: Entry }
+  resetToDefault: boolean
   onHydrated: () => void
 }) => {
   const { signal } = entry.config
@@ -44,7 +46,11 @@ const hydrateAndPersistEntry = ({
     return persistValue({ adapter, config: entry.config })
   }
 
-  return hydrateValueToSignal({ adapter, config: entry.config }).pipe(
+  return hydrateValueToSignal({
+    adapter,
+    config: entry.config,
+    resetToDefault,
+  }).pipe(
     catchError((error) => {
       console.error(`Unable to hydrate signal ${signal.config.key}`, error)
 
@@ -84,6 +90,7 @@ export function persistSignals({
   entries$,
   onHydrated,
   adapter,
+  resetToDefault = false,
 }: {
   entries$: Observable<Entry[]>
   /**
@@ -91,6 +98,11 @@ export function persistSignals({
    */
   onHydrated?: () => void
   adapter: Adapter
+  /**
+   * When true, an entry with nothing usable stored goes back to its default
+   * instead of keeping its current value.
+   */
+  resetToDefault?: boolean
 }) {
   return new Observable<{ type: "hydrated" }>((subscriber) => {
     const running = new Map<
@@ -119,6 +131,7 @@ export function persistSignals({
         hydrateAndPersistEntry({
           adapter,
           entry,
+          resetToDefault,
           onHydrated: () => {
             hydrating.delete(config.signal)
             notifyIfHydrated()
