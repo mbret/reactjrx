@@ -32,9 +32,8 @@ export function usePersistSignals({
    */
   onHydrated?: () => void
   /**
-   * Passing a new adapter reference will start over the process
-   * once the current one is finished. Use a stable reference to avoid
-   * infinite loop.
+   * Passing a new adapter reference will start over the process.
+   * Use a stable reference to avoid infinite loop.
    */
   adapter?: Adapter
 }): { isHydrated: boolean } {
