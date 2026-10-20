@@ -224,6 +224,38 @@ describe("live query error", () => {
     await waitForData(["error", "a"])
     expect(queryClient.getQueryState(queryKey)?.error).toBe(error)
   })
+  it("puts the query in error when the stream emits undefined after its first value", {
+    timeout: 3000,
+  }, async () => {
+    const queryKey = ["live", "undefined"]
+    const source$ = new Subject<string | undefined>()
+    const queryClient = createQueryClient()
+
+    function Comp() {
+      const { data, status } = useQuery$({
+        ...liveQueryOptions,
+        retry: false,
+        queryKey,
+        queryFn: () => source$,
+      })
+
+      return <span data-testid="data">{JSON.stringify([status, data])}</span>
+    }
+
+    render(<Comp />, { wrapper: createWrapper(queryClient) })
+
+    act(() => source$.next("a"))
+
+    await waitForData(["success", "a"])
+
+    act(() => source$.next(undefined))
+
+    await waitForData(["error", "a"])
+    expect(queryClient.getQueryState(queryKey)?.error?.message).toBe(
+      `${JSON.stringify(queryKey)} data is undefined`,
+    )
+    expect(source$.observed).toBe(false)
+  })
 })
 
 describe("live query lifecycle", () => {

@@ -15,9 +15,9 @@ type CacheEntry = {
    */
   stop: (options?: { invalidate?: boolean }) => void
   /**
-   * Set when the stream errored after its first value. No fetch is in flight
-   * to carry the error then, so the entry starts one and that fetch rejects
-   * with it.
+   * Set when the stream errored, or emitted `undefined`, after its first
+   * value. No fetch is in flight to carry the error then, so the entry starts
+   * one and that fetch rejects with it.
    */
   error: { value: unknown } | undefined
 }
@@ -103,12 +103,13 @@ export class QueryClient$ {
       const entry: CacheEntry = { stop, error: undefined }
 
       /**
-       * Reports an error the stream raised after its first value through a
-       * fetch of its own, so it gets TanStack's retries and error state. The
-       * fetch runs the `queryFn`, which finds this entry and rejects with it.
+       * Reports an error raised after the first value through a fetch of its
+       * own, so it gets TanStack's retries and error state. That fetch runs
+       * the `queryFn`, which finds this entry and rejects with the error.
        */
-      const failLater = (error: unknown) => {
+      const reportError = (error: unknown) => {
         entry.error = { value: error }
+        isStreamDone = true
         subscription.unsubscribe()
 
         if (phase === "committed") {
@@ -133,6 +134,7 @@ export class QueryClient$ {
         if (isStreamDone) {
           stop()
         } else if (query?.getObserversCount() === 0) {
+          // Nothing observes the query (a refetch of an inactive one, say).
           stop({ invalidate: true })
         }
       }
@@ -140,24 +142,27 @@ export class QueryClient$ {
       const unsubscribeFromCache = queryCache.subscribe((event) => {
         if (event.query !== query) return
 
-        if (event.type === "removed") {
-          stop()
-        }
-
-        if (
-          event.type === "observerRemoved" &&
-          phase !== "resolved" &&
-          event.query.getObserversCount() === 0
-        ) {
-          stop({ invalidate: true })
-        }
-
-        if (event.type === "updated" && phase === "resolved") {
-          if (event.action.type === "success" && !event.action.manual) {
-            onCommit()
-          } else if (event.action.type === "error") {
+        switch (event.type) {
+          case "removed":
             stop()
-          }
+            break
+          case "observerRemoved":
+            /**
+             * Once resolved, the fetch either gets cancelled, which aborts
+             * the signal, or commits, and `onCommit` counts the observers.
+             */
+            if (phase !== "resolved" && query.getObserversCount() === 0) {
+              stop({ invalidate: true })
+            }
+            break
+          case "updated":
+            if (phase !== "resolved") break
+
+            if (event.action.type === "success" && !event.action.manual) {
+              onCommit()
+            } else if (event.action.type === "error") {
+              stop()
+            }
         }
       })
 
@@ -180,23 +185,26 @@ export class QueryClient$ {
 
               // Without the query there is nothing to write later values to.
               if (!query) stop()
-            } else if (value !== undefined) {
-              // `undefined` is not valid query data, as for `setQueryData`.
-              if (phase === "resolved") {
-                uncommitted = { value }
-              } else {
-                query?.setData(value, { manual: true })
-              }
+            } else if (value === undefined) {
+              /**
+               * `undefined` is not valid query data: TanStack fails a fetch
+               * that resolves with it, so a later value fails the query too.
+               */
+              reportError(
+                new Error(`${JSON.stringify(queryKey)} data is undefined`),
+              )
+            } else if (phase === "resolved") {
+              uncommitted = { value }
+            } else {
+              query?.setData(value, { manual: true })
             }
           },
           error: (error) => {
-            isStreamDone = true
-
             if (phase === "pending") {
               reject(error)
               stop()
             } else {
-              failLater(error)
+              reportError(error)
             }
           },
           complete: () => {
