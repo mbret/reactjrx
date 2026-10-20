@@ -9,7 +9,9 @@ import {
 } from "rxjs/operators"
 
 export interface RetryBackoffConfig<T, TError> {
-  // Initial interval. It will eventually go as high as maxInterval.
+  // Base delay of the backoff (default 100 ms), passed to backoffDelay. With
+  // the default exponential backoff, retry n waits 2^n * initialInterval, up
+  // to maxInterval.
   initialInterval?: number
   // Maximum delay between retries.
   maxInterval?: number
@@ -22,9 +24,10 @@ export interface RetryBackoffConfig<T, TError> {
   // for example if you want to pause retry due to connectivity issue
   // biome-ignore lint/suspicious/noExplicitAny: TODO
   retryAfter?: () => Observable<any>
-  retryDelay?: number | ((attempt: number, error: TError) => number)
   // Conditional retry.
   // shouldRetry?: (attempt: number, error: any) => Observable<boolean>
+  // Computes the delay before retry `iteration` (0-based) from
+  // initialInterval. Defaults to exponentialBackoffDelay.
   backoffDelay?: (iteration: number, initialInterval: number) => number
   // biome-ignore lint/suspicious/noExplicitAny: TODO
   caughtError?: (attempt: number, error: any) => undefined | Observable<T>
@@ -54,12 +57,7 @@ export function exponentialBackoffDelay(
  * shouldRetry returns false.
  */
 export function retryBackoff<T, TError>(config: RetryBackoffConfig<T, TError>) {
-  const {
-    retry,
-    retryDelay,
-    retryAfterDelay,
-    retryAfter = () => of(true),
-  } = config
+  const { retry, retryAfterDelay, retryAfter = () => of(true) } = config
 
   const maxRetries =
     typeof retry !== "function"
@@ -76,14 +74,13 @@ export function retryBackoff<T, TError>(config: RetryBackoffConfig<T, TError>) {
         retry
       : () => true
 
-  const initialInterval = typeof retryDelay === "number" ? retryDelay : 100
-
   const normalizedConfig = {
     shouldRetry,
     ...config,
   }
 
   const {
+    initialInterval = 100,
     maxInterval = Number.POSITIVE_INFINITY,
     resetOnSuccess = false,
     backoffDelay = exponentialBackoffDelay,
