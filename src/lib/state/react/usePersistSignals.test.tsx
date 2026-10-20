@@ -54,6 +54,16 @@ const storedValueOf = (
   key: string,
 ) => (adapter.storage[key] as PersistenceEntry | undefined)?.value
 
+const renderPersistSignals = (initialProps: {
+  entries: Entries
+  adapter: Adapter | undefined
+}) =>
+  renderHook(
+    ({ entries, adapter }: typeof initialProps) =>
+      usePersistSignals({ entries, adapter }),
+    { initialProps },
+  )
+
 describe("Given an entry added after the initial hydration", () => {
   it("should hydrate and persist the new entry", {
     timeout: 3000,
@@ -498,11 +508,10 @@ describe("Given an entry added after an adapter replaced another one", () => {
     ]
     const entriesWithoutB: Entries = [{ signal: signalA, version: 0 }]
 
-    const { result, rerender } = renderHook(
-      ({ entries, adapter }: { entries: Entries; adapter: Adapter }) =>
-        usePersistSignals({ entries, adapter }),
-      { initialProps: { entries: entriesWithB, adapter: previousAdapter } },
-    )
+    const { result, rerender } = renderPersistSignals({
+      entries: entriesWithB,
+      adapter: previousAdapter,
+    })
 
     await waitFor(() => {
       expect(result.current.isHydrated).toBe(true)
@@ -526,6 +535,138 @@ describe("Given an entry added after an adapter replaced another one", () => {
 
     await waitFor(() => {
       expect(storedValueOf(nextAdapter, "b")).toBe(0)
+    })
+  })
+})
+
+describe("Given the first adapter back after another one", () => {
+  it("should reset an entry with nothing stored to its default", {
+    timeout: 3000,
+  }, async () => {
+    const signalA = signal({ default: 0, key: "a" })
+    const signalB = signal({ default: 0, key: "b" })
+    const firstAdapter = createMemoryAdapter()
+    const otherAdapter = createMemoryAdapter({ b: storedValue(5) })
+    const entriesWithB: Entries = [
+      { signal: signalA, version: 0 },
+      { signal: signalB, version: 0 },
+    ]
+
+    const { result, rerender } = renderPersistSignals({
+      entries: [{ signal: signalA, version: 0 }],
+      adapter: firstAdapter,
+    })
+
+    await waitFor(() => {
+      expect(result.current.isHydrated).toBe(true)
+    })
+
+    rerender({ entries: entriesWithB, adapter: otherAdapter })
+
+    await waitFor(() => {
+      expect(signalB.getValue()).toBe(5)
+    })
+
+    rerender({ entries: entriesWithB, adapter: firstAdapter })
+
+    await waitFor(() => {
+      expect(result.current.isHydrated).toBe(true)
+    })
+
+    expect(signalB.getValue()).toBe(0)
+
+    await waitFor(() => {
+      expect(storedValueOf(firstAdapter, "b")).toBe(0)
+    })
+
+    expect(storedValueOf(otherAdapter, "b")).toBe(5)
+  })
+})
+
+describe("Given the same adapter back after a gap without adapter", () => {
+  it("should keep the in-memory value of an entry with nothing stored", {
+    timeout: 3000,
+  }, async () => {
+    const signalA = signal({ default: 0, key: "a" })
+    const signalB = signal({ default: 0, key: "b" })
+    const adapter = createMemoryAdapter()
+    const entriesWithB: Entries = [
+      { signal: signalA, version: 0 },
+      { signal: signalB, version: 0 },
+    ]
+    const entriesWithoutB: Entries = [{ signal: signalA, version: 0 }]
+
+    const { result, rerender } = renderPersistSignals({
+      entries: entriesWithoutB,
+      adapter,
+    })
+
+    await waitFor(() => {
+      expect(result.current.isHydrated).toBe(true)
+    })
+
+    // The adapter goes away, `b` changes, then the adapter comes back with `b`.
+    rerender({ entries: entriesWithoutB, adapter: undefined })
+
+    signalB.update(3)
+
+    rerender({ entries: entriesWithB, adapter })
+
+    await waitFor(() => {
+      expect(result.current.isHydrated).toBe(true)
+    })
+
+    expect(signalB.getValue()).toBe(3)
+
+    await waitFor(() => {
+      expect(storedValueOf(adapter, "b")).toBe(3)
+    })
+  })
+
+  it("should still reset an entry with nothing stored when that adapter replaced another one", {
+    timeout: 3000,
+  }, async () => {
+    const signalA = signal({ default: 0, key: "a" })
+    const signalB = signal({ default: 0, key: "b" })
+    const previousAdapter = createMemoryAdapter({ b: storedValue(5) })
+    const adapter = createMemoryAdapter()
+    const entriesWithB: Entries = [
+      { signal: signalA, version: 0 },
+      { signal: signalB, version: 0 },
+    ]
+    const entriesWithoutB: Entries = [{ signal: signalA, version: 0 }]
+
+    const { result, rerender } = renderPersistSignals({
+      entries: entriesWithB,
+      adapter: previousAdapter,
+    })
+
+    await waitFor(() => {
+      expect(result.current.isHydrated).toBe(true)
+    })
+
+    expect(signalB.getValue()).toBe(5)
+
+    // `b` leaves the list with the previous adapter's value, the adapter
+    // changes, goes away, then comes back with `b`.
+    rerender({ entries: entriesWithoutB, adapter: previousAdapter })
+    rerender({ entries: entriesWithoutB, adapter })
+
+    await waitFor(() => {
+      expect(result.current.isHydrated).toBe(true)
+    })
+
+    rerender({ entries: entriesWithoutB, adapter: undefined })
+    rerender({ entries: entriesWithB, adapter })
+
+    await waitFor(() => {
+      expect(result.current.isHydrated).toBe(true)
+    })
+
+    expect(signalB.getValue()).toBe(0)
+
+    await waitFor(() => {
+      expect(storedValueOf(adapter, "b")).toBe(0)
     })
   })
 })

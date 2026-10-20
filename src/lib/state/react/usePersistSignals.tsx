@@ -34,11 +34,14 @@ export function usePersistSignals({
   onHydrated?: () => void
   /**
    * Passing a new adapter reference starts over: pending values are saved to
-   * the previous adapter, then every entry is hydrated from the new one.
-   * Under an adapter that replaces another, an entry with nothing stored goes
-   * back to its default, so it never carries the previous adapter's value over
-   * (another profile's, for example). Under the first adapter, it keeps its
-   * current value. Use a stable reference to avoid infinite loop.
+   * the previous adapter, then every entry takes the value stored in the new
+   * one. When nothing is stored, or only an older version, the entry goes
+   * back to its default once the hook has had two different adapters, so it
+   * never carries another adapter's value over (another profile's, for
+   * example). Before that, including when the same adapter comes back after
+   * a gap without adapter, it keeps its current value. Adapters are compared
+   * by reference: a new object for the same storage counts as a different
+   * adapter. Use a stable reference to avoid infinite loop.
    */
   adapter?: Adapter
 }): { isHydrated: boolean } {
@@ -50,15 +53,28 @@ export function usePersistSignals({
     () =>
       adapterSubject.pipe(
         /**
-         * Tracks whether an adapter replaces a previous one, directly or after
-         * a gap without adapter (a sign-out, for example).
+         * Becomes true once a second, different adapter is passed, and stays
+         * true: from then on, a value in memory may come from another adapter
+         * than the current one. The same adapter coming back after a gap
+         * without adapter (a sign-out, for example) is not a different one.
          */
         scan(
-          (previous, adapter) => ({
-            adapter,
-            replacesAnother: previous.replacesAnother || !!previous.adapter,
-          }),
-          { adapter: undefined as Adapter | undefined, replacesAnother: false },
+          (previous, adapter) => {
+            const firstAdapter = previous.firstAdapter ?? adapter
+
+            return {
+              adapter,
+              firstAdapter,
+              replacesAnother:
+                previous.replacesAnother ||
+                (!!adapter && adapter !== firstAdapter),
+            }
+          },
+          {
+            adapter: undefined as Adapter | undefined,
+            firstAdapter: undefined as Adapter | undefined,
+            replacesAnother: false,
+          },
         ),
         switchMap(({ adapter, replacesAnother }) => {
           if (!adapter) return of({ type: "reset" as const })
