@@ -2,98 +2,173 @@ import {
   asyncScheduler,
   catchError,
   EMPTY,
-  from,
-  map,
-  merge,
-  of,
-  share,
+  finalize,
+  Observable,
+  Subscription,
   switchMap,
   tap,
   throttleTime,
-  zip,
 } from "rxjs"
 import type { Signal } from "../Signal"
 import type { Adapter } from "./adapters/Adapter"
 import { hydrateValueToSignal, persistValue } from "./helpers"
 import type { SignalPersistenceConfig } from "./types"
 
-export function persistSignals({
-  entries = [],
-  onHydrated,
-  adapter,
-}: {
-  // biome-ignore lint/suspicious/noExplicitAny: TODO
-  entries: Array<SignalPersistenceConfig<Signal<any, string>>>
-  /**
-   * Triggered after first successful hydrate
-   */
-  onHydrated?: () => void
-  /**
-   * Requires a stable instance otherwise the hydration
-   * process will start again. This is useful when you
-   * need to change adapter during runtime.
-   */
-  adapter: Adapter
-}) {
-  const signalsHydrated$ =
-    entries.length === 0
-      ? of([])
-      : zip(
-          ...entries.map((config) =>
-            hydrateValueToSignal({
-              adapter,
-              config,
-            }),
-          ),
-        )
+// biome-ignore lint/suspicious/noExplicitAny: TODO
+type AnySignal = Signal<any, string>
+type Entry = SignalPersistenceConfig<AnySignal>
 
-  const isHydrated$ = signalsHydrated$.pipe(
-    tap(onHydrated),
+/**
+ * Hydrates one signal from the adapter, then persists its updates (at most
+ * every 500 ms) until unsubscribed. On unsubscribe, a value still held by the
+ * throttle is saved right away instead of being dropped.
+ *
+ * `entry.config` is read at every write, so a changed config (e.g. a new
+ * `version`) applies to the next write.
+ */
+const hydrateAndPersistEntry = ({
+  adapter,
+  entry,
+  onHydrated,
+}: {
+  adapter: Adapter
+  entry: { config: Entry }
+  onHydrated: () => void
+}) => {
+  const { signal } = entry.config
+  let lastPersistedValue: unknown
+
+  const persist = () => {
+    lastPersistedValue = signal.getValue()
+
+    return persistValue({ adapter, config: entry.config })
+  }
+
+  return hydrateValueToSignal({ adapter, config: entry.config }).pipe(
     catchError((error) => {
-      console.error("Unable to hydrate", error)
+      console.error(`Unable to hydrate signal ${signal.config.key}`, error)
 
       return EMPTY
     }),
-    share(),
-  )
-
-  /**
-   * Start persisting to the current adapter
-   * as soon as signals are hydrated. Will stop
-   * whenever hydration process starts again
-   */
-  const persisted$ = isHydrated$.pipe(
+    tap(onHydrated),
     switchMap(() =>
-      merge(
-        ...entries.map((config) =>
-          config.signal.pipe(
-            throttleTime(500, asyncScheduler, {
-              trailing: true,
-            }),
-            switchMap(() =>
-              from(
-                persistValue({
-                  adapter,
-                  config,
-                }),
-              ),
-            ),
-          ),
-        ),
+      signal.pipe(
+        throttleTime(500, asyncScheduler, {
+          trailing: true,
+        }),
+        switchMap(() => persist()),
+        finalize(() => {
+          if (signal.getValue() !== lastPersistedValue) {
+            persist().subscribe()
+          }
+        }),
       ),
     ),
   )
+}
 
-  return merge(
-    isHydrated$.pipe(
-      map(() => ({
-        type: "hydrated" as const,
-      })),
-    ),
-    persisted$.pipe(
-      map(() => ({
-        type: "persisted" as const,
-      })),
-    ),
-  )
+/**
+ * Hydrates the signals of the latest `entries$` list from the adapter, then
+ * persists their updates to it. Entries are matched by signal, so a new array
+ * holding the same signals changes nothing:
+ * - an added signal is hydrated, then persisted;
+ * - a signal still in the list keeps running untouched;
+ * - a removed signal stops being persisted, after its pending value is saved.
+ *
+ * Emits `{ type: "hydrated" }` once, the first time every entry added so far
+ * has been hydrated (right away for an empty list). An entry that fails to
+ * hydrate is logged and never persisted, and holds back that emission until
+ * it is removed.
+ */
+export function persistSignals({
+  entries$,
+  onHydrated,
+  adapter,
+}: {
+  entries$: Observable<Entry[]>
+  /**
+   * Called when `{ type: "hydrated" }` is emitted.
+   */
+  onHydrated?: () => void
+  adapter: Adapter
+}) {
+  return new Observable<{ type: "hydrated" }>((subscriber) => {
+    const running = new Map<
+      AnySignal,
+      { config: Entry; subscription: Subscription }
+    >()
+    const hydrating = new Set<AnySignal>()
+    let isUpdatingEntries = false
+    let isHydrated = false
+
+    const notifyIfHydrated = () => {
+      if (isHydrated || isUpdatingEntries || hydrating.size > 0) return
+
+      isHydrated = true
+      onHydrated?.()
+      subscriber.next({ type: "hydrated" })
+    }
+
+    const start = (config: Entry) => {
+      const entry = { config, subscription: new Subscription() }
+
+      running.set(config.signal, entry)
+      hydrating.add(config.signal)
+
+      entry.subscription.add(
+        hydrateAndPersistEntry({
+          adapter,
+          entry,
+          onHydrated: () => {
+            hydrating.delete(config.signal)
+            notifyIfHydrated()
+          },
+        }).subscribe(),
+      )
+    }
+
+    const stop = (signal: AnySignal) => {
+      const entry = running.get(signal)
+
+      if (!entry) return
+
+      running.delete(signal)
+      hydrating.delete(signal)
+      entry.subscription.unsubscribe()
+    }
+
+    const entriesSubscription = entries$.subscribe({
+      next: (entries) => {
+        isUpdatingEntries = true
+
+        const signals = new Set(entries.map(({ signal }) => signal))
+
+        for (const signal of [...running.keys()]) {
+          if (!signals.has(signal)) stop(signal)
+        }
+
+        for (const config of entries) {
+          const entry = running.get(config.signal)
+
+          if (entry) {
+            entry.config = config
+          } else {
+            start(config)
+          }
+        }
+
+        isUpdatingEntries = false
+        notifyIfHydrated()
+      },
+      error: (error) => subscriber.error(error),
+    })
+
+    return () => {
+      entriesSubscription.unsubscribe()
+
+      for (const signal of [...running.keys()]) {
+        stop(signal)
+      }
+    }
+  })
 }

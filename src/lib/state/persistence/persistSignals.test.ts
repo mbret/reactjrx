@@ -1,4 +1,4 @@
-import { firstValueFrom } from "rxjs"
+import { firstValueFrom, of } from "rxjs"
 import { describe, expect, it } from "vitest"
 import { waitForTimeout } from "../../../tests/utils"
 import { signal } from "../Signal"
@@ -13,7 +13,7 @@ describe("Given a storage that never resolves", () => {
     const mySignal = signal({ default: 0, key: "key" })
 
     const persistance$ = persistSignals({
-      entries: [{ signal: mySignal, version: 0 }],
+      entries$: of([{ signal: mySignal, version: 0 }]),
       adapter: mockAdapter,
     })
 
@@ -32,7 +32,7 @@ describe("Given an empty storage", () => {
     const mySignal = signal({ default: 0, key: "key" })
 
     const persistance$ = persistSignals({
-      entries: [{ signal: mySignal, version: 0 }],
+      entries$: of([{ signal: mySignal, version: 0 }]),
       adapter: mockAdapter,
     })
 
@@ -49,7 +49,7 @@ describe("Given an invalid stored value", () => {
     const mySignal = signal({ default: 0, key: "key" })
 
     const persistance$ = persistSignals({
-      entries: [{ signal: mySignal, version: 0 }],
+      entries$: of([{ signal: mySignal, version: 0 }]),
       adapter: mockAdapter,
     })
 
@@ -71,7 +71,7 @@ describe("Given a valid stored value", () => {
     const mySignal = signal({ default: 0, key: "key" })
 
     const persistance$ = persistSignals({
-      entries: [{ signal: mySignal, version: 0 }],
+      entries$: of([{ signal: mySignal, version: 0 }]),
       adapter: mockAdapter,
     })
 
@@ -93,7 +93,7 @@ describe("Given a new signal version", () => {
       const mySignal = signal({ default: 0, key: "key" })
 
       const persistance$ = persistSignals({
-        entries: [{ signal: mySignal, version: 0 }],
+        entries$: of([{ signal: mySignal, version: 0 }]),
         adapter: mockAdapter,
       })
 
@@ -115,7 +115,7 @@ describe("Given a new signal version", () => {
       const mySignal = signal({ default: 0, key: "key" })
 
       const persistance$ = persistSignals({
-        entries: [{ signal: mySignal, version: 2 }],
+        entries$: of([{ signal: mySignal, version: 2 }]),
         adapter: mockAdapter,
       })
 
@@ -137,7 +137,7 @@ describe("Given a new signal version", () => {
       const mySignal = signal({ default: 0, key: "key" })
 
       const persistance$ = persistSignals({
-        entries: [{ signal: mySignal, version: 2 }],
+        entries$: of([{ signal: mySignal, version: 2 }]),
         adapter: mockAdapter,
       })
 
