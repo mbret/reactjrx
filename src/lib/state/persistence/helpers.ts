@@ -1,4 +1,5 @@
 import { catchError, from, of, switchMap } from "rxjs"
+import { SIGNAL_RESET } from "../constants"
 import type { Adapter } from "./adapters/Adapter"
 import { IDENTIFIER_PERSISTENCE_KEY } from "./constants"
 import type { PersistenceEntry, SignalPersistenceConfig } from "./types"
@@ -54,18 +55,30 @@ export const persistValue = ({
 export function hydrateValueToSignal({
   adapter,
   config,
+  resetToDefault = false,
 }: {
   adapter: Adapter
   // biome-ignore lint/suspicious/noExplicitAny: TODO
   config: SignalPersistenceConfig<any>
+  /**
+   * When nothing usable is stored, reset the signal to its default instead of
+   * leaving its current value in place.
+   */
+  resetToDefault?: boolean
 }) {
   const { hydrate = ({ value }) => value, signal, version } = config
+
+  const withoutStoredValue = (value: unknown) => {
+    if (resetToDefault) signal.update(SIGNAL_RESET)
+
+    return of(value)
+  }
 
   return from(adapter.getItem(signal.config.key)).pipe(
     switchMap((value) => {
       const normalizedValue = getNormalizedPersistanceValue(value)
 
-      if (!normalizedValue) return of(value)
+      if (!normalizedValue) return withoutStoredValue(value)
 
       const storedVersionIsInvalid =
         typeof normalizedValue.migrationVersion !== "number"
@@ -79,7 +92,7 @@ export function hydrateValueToSignal({
         signalVersionIsSuperior ||
         normalizedValue.value === undefined
       ) {
-        return of(value)
+        return withoutStoredValue(value)
       }
 
       const correctVersionValue = normalizedValue.value

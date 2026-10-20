@@ -1,4 +1,4 @@
-import { map, merge, of, switchMap } from "rxjs"
+import { map, merge, of, scan, switchMap } from "rxjs"
 import { useLiveBehaviorSubject } from "../../binding/useLiveBehaviorSubject"
 import { useObserve } from "../../binding/useObserve/useObserve"
 import { useLiveRef } from "../../utils/react/useLiveRef"
@@ -34,8 +34,11 @@ export function usePersistSignals({
   onHydrated?: () => void
   /**
    * Passing a new adapter reference starts over: pending values are saved to
-   * the previous adapter, then every entry is hydrated from the new one. Use a
-   * stable reference to avoid infinite loop.
+   * the previous adapter, then every entry is hydrated from the new one.
+   * Under an adapter that replaces another, an entry with nothing stored goes
+   * back to its default, so it never carries the previous adapter's value over
+   * (another profile's, for example). Under the first adapter, it keeps its
+   * current value. Use a stable reference to avoid infinite loop.
    */
   adapter?: Adapter
 }): { isHydrated: boolean } {
@@ -46,7 +49,18 @@ export function usePersistSignals({
   const result = useObserve(
     () =>
       adapterSubject.pipe(
-        switchMap((adapter) => {
+        /**
+         * Tracks whether an adapter replaces a previous one, directly or after
+         * a gap without adapter (a sign-out, for example).
+         */
+        scan(
+          (previous, adapter) => ({
+            adapter,
+            replacesAnother: previous.replacesAnother || !!previous.adapter,
+          }),
+          { adapter: undefined as Adapter | undefined, replacesAnother: false },
+        ),
+        switchMap(({ adapter, replacesAnother }) => {
           if (!adapter) return of({ type: "reset" as const })
 
           return merge(
@@ -54,6 +68,7 @@ export function usePersistSignals({
             persistSignals({
               adapter,
               entries$: entriesSubject,
+              resetToDefault: replacesAnother,
               onHydrated: () => {
                 onHydratedRef.current?.()
               },
