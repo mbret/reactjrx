@@ -6,7 +6,6 @@ import {
   type UseQueryOptions,
   type UseQueryResult,
   useQueries,
-  useQueryClient,
 } from "@tanstack/react-query"
 import {
   createObservableQueryFn,
@@ -117,12 +116,11 @@ export function useQueries$<
   },
   queryClient?: QueryClient,
 ): TCombinedResult {
-  const _queryClient = useQueryClient(queryClient)
   const queryClient$ = useQueryClient$()
 
   const transformedQueries = queries.map((query) => ({
     ...query,
-    queryFn: createObservableQueryFn(queryClient$, _queryClient, query.queryFn),
+    queryFn: createObservableQueryFn(queryClient$, query.queryFn),
   }))
 
   return useQueries(

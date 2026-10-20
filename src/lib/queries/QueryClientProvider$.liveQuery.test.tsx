@@ -22,7 +22,7 @@ const renderLiveQuery = ({
 } = {}) => {
   const source = new BehaviorSubject(1)
   const queryClient = new QueryClient()
-  const queryClient$ = new QueryClient$(queryClient)
+  const queryClient$ = new QueryClient$()
   let hide = () => {}
 
   const Consumer = () => {

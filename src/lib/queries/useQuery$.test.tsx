@@ -104,36 +104,17 @@ it("should return consecutive results", async () => {
     fetchStatus: "fetching",
   })
 
-  expect(states[1]).toMatchObject({
-    data: 0,
-    fetchStatus: "fetching",
-  })
-
-  expect(states[2]).toMatchObject({
-    data: 1,
-    fetchStatus: "fetching",
-  })
-
-  expect(states[3]).toMatchObject({
-    data: 2,
-    fetchStatus: "fetching",
-  })
-
-  expect(states[4]).toMatchObject({
-    data: 3,
-    fetchStatus: "fetching",
-  })
-
-  expect(states[5]).toMatchObject({
-    data: 4,
-    fetchStatus: "fetching",
-  })
-
-  expect(states[6]).toMatchObject({
-    data: 5,
-    fetchStatus: "idle",
-    status: "success",
-  })
+  /**
+   * The first value resolves the fetch; the later ones are written into the
+   * cache as the stream emits them, without starting a fetch.
+   */
+  expect(states.slice(1)).toMatchObject(
+    [0, 1, 2, 3, 4, 5].map((data) => ({
+      data,
+      fetchStatus: "idle",
+      status: "success",
+    })),
+  )
 })
 
 it("should return consecutive results", async () => {

@@ -4,7 +4,6 @@ import {
   type QueryKey,
   type UseQueryOptions,
   useQuery,
-  useQueryClient,
 } from "@tanstack/react-query"
 import {
   createObservableQueryFn,
@@ -29,13 +28,12 @@ export function useQuery$<
   },
   queryClient?: QueryClient,
 ) {
-  const _queryClient = useQueryClient(queryClient)
   const queryClient$ = useQueryClient$()
 
   const result = useQuery<TQueryFnData, TError, TData, TQueryKey>(
     {
       ...options,
-      queryFn: createObservableQueryFn(queryClient$, _queryClient, queryFn),
+      queryFn: createObservableQueryFn(queryClient$, queryFn),
     },
     queryClient,
   )

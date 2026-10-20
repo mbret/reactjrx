@@ -60,7 +60,7 @@ describe("useQuery", () => {
               printQuery({
                 data: 2,
                 error: null,
-                fetchStatus: "fetching",
+                fetchStatus: "idle",
                 isLoading: false,
                 status: "success",
               }),
@@ -98,7 +98,7 @@ describe("useQuery", () => {
               printQuery({
                 data: 3,
                 error: null,
-                fetchStatus: "fetching",
+                fetchStatus: "idle",
                 isLoading: false,
                 status: "success",
               }),

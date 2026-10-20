@@ -1,128 +1,232 @@
 import {
-  type QueryClient,
+  CancelledError,
+  type Query,
+  type QueryFunctionContext,
   type QueryKey,
-  useQueryClient,
 } from "@tanstack/react-query"
 import { createContext, memo, useContext, useEffect, useState } from "react"
-import {
-  fromEvent,
-  type Observable,
-  type Subscription,
-  share,
-  takeUntil,
-} from "rxjs"
+import { type Observable, Subscription } from "rxjs"
 
 type CacheEntry = {
-  queryKey: QueryKey
-  query$: Observable<unknown>
-  signal: AbortSignal
-  sub: Subscription | undefined
-  isCompleted: boolean
-  lastData: { value: unknown } | undefined
+  /**
+   * Tears the stream down and detaches the entry from the query cache.
+   * `invalidate` marks the query stale when it stops tracking a live stream,
+   * so the next observer refetches instead of trusting a frozen value.
+   */
+  stop: (options?: { invalidate?: boolean }) => void
+  /**
+   * Set when the stream errored after its first value. No fetch is in flight
+   * to carry the error then, so the entry starts one and that fetch rejects
+   * with it.
+   */
+  error: { value: unknown } | undefined
 }
 
 export class QueryClient$ {
   /**
-   * Keyed by the query's own `queryKey` array: the one TanStack passes to
-   * `queryFn` and exposes as `query.queryKey`. Entries therefore match their
-   * query whatever its `queryKeyHashFn`, and nothing is hashed.
+   * One entry per query whose stream is running, keyed by the query's own
+   * `queryKey` array: the one TanStack passes to `queryFn` and exposes as
+   * `query.queryKey`. Entries therefore match their query whatever its
+   * `queryKeyHashFn`, and nothing is hashed.
    */
   public readonly queryMap: Map<QueryKey, CacheEntry> = new Map()
 
-  constructor(public readonly queryClient: QueryClient) {}
+  /**
+   * Runs one fetch of a query backed by an Observable.
+   *
+   * The fetch resolves with the stream's first value. The stream then keeps
+   * running and writes every later value straight into the query, the same
+   * way `queryClient.setQueryData` does, so the cache always holds the
+   * latest value. It runs until it completes or errors, until the query
+   * loses its last observer or leaves the cache, or until another fetch of
+   * the same query replaces it: a refetch runs the `queryFn` again.
+   */
+  runQuery<TData>(
+    context: QueryFunctionContext,
+    source$: Observable<TData>,
+  ): Promise<TData> {
+    const { queryKey, signal } = context
+    const previous = this.queryMap.get(queryKey)
 
-  getQuery(queryKey: QueryKey) {
-    return this.queryMap.get(queryKey)
-  }
+    previous?.stop()
 
-  setQuery(
-    queryKey: QueryKey,
-    query$: Observable<unknown>,
-    signal: AbortSignal,
-  ) {
-    const sharedQuery$ = query$.pipe(
-      takeUntil(fromEvent(signal, "abort")),
-      share(),
-    )
-
-    const cacheEntry: CacheEntry = {
-      queryKey,
-      query$: sharedQuery$,
-      signal,
-      sub: undefined,
-      isCompleted: false,
-      lastData: undefined,
+    if (previous?.error) {
+      return Promise.reject(previous.error.value)
     }
 
-    this.queryMap.set(queryKey, cacheEntry)
-
-    const sub = sharedQuery$.subscribe({
-      /**
-       * Write on the closed-over entry directly: this subscription is torn
-       * down by `deleteQuery` before the map slot can ever point to another
-       * entry, so a per-emission `queryMap.get(queryKey)` lookup would
-       * always resolve to `cacheEntry` anyway.
-       */
-      next: (data) => {
-        cacheEntry.lastData = { value: data }
-      },
-      complete: () => {
-        if (this.queryMap.get(queryKey) === cacheEntry) {
-          this.deleteQuery(queryKey)
-        }
-      },
-    })
-
-    cacheEntry.sub = sub
-
-    return cacheEntry
-  }
-
-  deleteQuery(
-    queryKey: QueryKey,
-    { cancelQuery = false }: { cancelQuery?: boolean } = {},
-  ) {
-    const entry = this.queryMap.get(queryKey)
-
-    if (!entry) return
-
-    entry.isCompleted = true
-
-    this.queryMap.delete(queryKey)
-
-    if (entry.sub) {
-      entry.sub.unsubscribe()
-      entry.sub = undefined
-    }
-
+    const queryCache = context.client.getQueryCache()
     /**
-     * Only cancel queries whose stream already emitted at least once.
-     * Those are "live" streams stuck in the take(1) refetch loop and
-     * need an explicit cancel so the pending queryFnAsync promise
-     * settles. One-shot observables (used like promises) that haven't
-     * resolved yet should keep react-query's default behavior: stay
-     * pending and resolve naturally even after unmount.
-     *
-     * Skipped on natural completion (cancelQuery=false) because the
-     * in-flight queryFnAsync promise is about to resolve with the
-     * final value — cancelling it would reject it prematurely.
+     * Matched by identity: `context.queryKey` is the very array the query
+     * holds, so this skips the key hashing a `queryKey` filter would do and
+     * finds the query whatever its `queryKeyHashFn`.
      */
-    if (cancelQuery && !entry.signal.aborted && entry.lastData !== undefined) {
+    const query: Query | undefined = queryCache
+      .getAll()
+      .find((query) => query.queryKey === queryKey)
+
+    return new Promise<TData>((resolve, reject) => {
       /**
-       * Matched by identity for the same reason as the refetch path: the
-       * `{ queryKey, exact: true }` filter re-hashes the key for every
-       * query in the cache, while an identity predicate skips hashing and
-       * keeps all cancel semantics inside `cancelQueries`.
+       * - pending: waiting for the first value.
+       * - resolved: the fetch resolved with the first value, TanStack has not
+       *   written it into the query yet. Later values wait in `uncommitted`,
+       *   since writing them now would be overwritten by that commit.
+       * - committed: later values go straight into the query.
        */
-      this.queryClient?.cancelQueries({
-        predicate: (query) => query.queryKey === entry.queryKey,
+      let phase: "pending" | "resolved" | "committed" = "pending"
+      let uncommitted: { value: TData } | undefined
+      let isStreamDone = false
+      let isStopped = false
+
+      const subscription = new Subscription()
+
+      const stop: CacheEntry["stop"] = ({ invalidate = false } = {}) => {
+        if (isStopped) return
+
+        isStopped = true
+        subscription.unsubscribe()
+        unsubscribeFromCache()
+        signal.removeEventListener("abort", onAbort)
+
+        if (this.queryMap.get(queryKey) === entry) {
+          this.queryMap.delete(queryKey)
+        }
+
+        if (phase === "pending") {
+          reject(new CancelledError())
+        }
+
+        if (invalidate && phase === "committed" && !isStreamDone) {
+          query?.invalidate()
+        }
+      }
+
+      const entry: CacheEntry = { stop, error: undefined }
+
+      /**
+       * Reports an error the stream raised after its first value through a
+       * fetch of its own, so it gets TanStack's retries and error state. The
+       * fetch runs the `queryFn`, which finds this entry and rejects with it.
+       */
+      const failLater = (error: unknown) => {
+        entry.error = { value: error }
+        subscription.unsubscribe()
+
+        if (phase === "committed") {
+          query?.fetch().catch(() => {})
+        }
+      }
+
+      const onCommit = () => {
+        phase = "committed"
+
+        if (entry.error) {
+          query?.fetch().catch(() => {})
+
+          return
+        }
+
+        if (uncommitted) {
+          query?.setData(uncommitted.value, { manual: true })
+          uncommitted = undefined
+        }
+
+        if (isStreamDone) {
+          stop()
+        } else if (query?.getObserversCount() === 0) {
+          stop({ invalidate: true })
+        }
+      }
+
+      const unsubscribeFromCache = queryCache.subscribe((event) => {
+        if (event.query !== query) return
+
+        if (event.type === "removed") {
+          stop()
+        }
+
+        if (
+          event.type === "observerRemoved" &&
+          phase !== "resolved" &&
+          event.query.getObserversCount() === 0
+        ) {
+          stop({ invalidate: true })
+        }
+
+        if (event.type === "updated" && phase === "resolved") {
+          if (event.action.type === "success" && !event.action.manual) {
+            onCommit()
+          } else if (event.action.type === "error") {
+            stop()
+          }
+        }
       })
-    }
+
+      /**
+       * TanStack aborts the signal when it cancels this fetch, for example
+       * when the last observer unmounts before the first value.
+       */
+      const onAbort = () => stop()
+
+      signal.addEventListener("abort", onAbort, { once: true })
+
+      this.queryMap.set(queryKey, entry)
+
+      subscription.add(
+        source$.subscribe({
+          next: (value) => {
+            if (phase === "pending") {
+              phase = "resolved"
+              resolve(value)
+
+              // Without the query there is nothing to write later values to.
+              if (!query) stop()
+            } else if (value !== undefined) {
+              // `undefined` is not valid query data, as for `setQueryData`.
+              if (phase === "resolved") {
+                uncommitted = { value }
+              } else {
+                query?.setData(value, { manual: true })
+              }
+            }
+          },
+          error: (error) => {
+            isStreamDone = true
+
+            if (phase === "pending") {
+              reject(error)
+              stop()
+            } else {
+              failLater(error)
+            }
+          },
+          complete: () => {
+            isStreamDone = true
+
+            if (phase === "pending") {
+              console.warn(
+                `cancelled due to stream completing without data for query ${JSON.stringify(queryKey)}`,
+              )
+
+              /**
+               * A stream that completes without data is considered cancelled.
+               * This is the expected behavior if someone for example adds a takeUntil().
+               * This also allow the query to be retried automatically instead of
+               * resolving as success with `undefined` (which is no-op for react-query)
+               * or erroring with arbitrary value.
+               */
+              stop()
+            } else if (phase === "committed") {
+              stop()
+            }
+          },
+        }),
+      )
+    })
   }
 
   destroy() {
-    this.queryMap.forEach((_, key) => {
-      this.deleteQuery(key, { cancelQuery: true })
+    this.queryMap.forEach((entry) => {
+      entry.stop({ invalidate: true })
     })
   }
 }
@@ -130,10 +234,8 @@ export class QueryClient$ {
 export const Context = createContext<QueryClient$ | undefined>(undefined)
 
 /**
- * Must render **inside** TanStack `QueryClientProvider` (or equivalent).
- * Subscribes to that client's query cache so when a query is removed
- * (including via `queryClient.clear()`), matching `useQuery$` observable
- * entries are dropped.
+ * Holds the streams of the `useQuery$` and `useQueries$` queries rendered
+ * below it, and stops every stream it still runs when it unmounts.
  */
 export const QueryClientProvider$ = memo(function QueryClientProvider$({
   children,
@@ -142,26 +244,7 @@ export const QueryClientProvider$ = memo(function QueryClientProvider$({
   children: React.ReactNode
   client?: QueryClient$
 }) {
-  const queryClient = useQueryClient()
-  const [client] = useState(() => _client ?? new QueryClient$(queryClient))
-
-  useEffect(
-    function subscribeToQueryCache() {
-      return queryClient.getQueryCache().subscribe((event) => {
-        const activeObservers = event.query.getObserversCount()
-
-        /**
-         * When all observers unmount we need to delete the query from the cache
-         * because if the query contains a stream, it will continue. Nothing stops it.
-         * However this is only valid when there is no more observers.
-         */
-        if (event.type === "observerRemoved" && activeObservers === 0) {
-          client.deleteQuery(event.query.queryKey, { cancelQuery: true })
-        }
-      })
-    },
-    [queryClient, client],
-  )
+  const [client] = useState(() => _client ?? new QueryClient$())
 
   useEffect(() => {
     return () => {

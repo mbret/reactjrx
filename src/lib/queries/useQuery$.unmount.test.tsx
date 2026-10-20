@@ -114,13 +114,8 @@ describe("useQuery$ unmount / remount", () => {
   })
 
   /**
-   * Regression: a stale refetchIfNeeded setTimeout firing after
-   * deleteQuery would trigger queryFnAsync on a defunct cache entry,
-   * creating an orphaned take(1) subscriber that accumulates emissions
-   * and resolves with stale data in bulk.
-   *
-   * The guard `if (queryCacheEntry?.isCompleted) return` inside the
-   * setTimeout callback prevents this.
+   * Regression: a hide/show cycle around an emission must neither leave an
+   * orphaned subscription behind nor deliver stale values in bulk.
    */
   it("does not create orphaned subscriptions when refetch races with hide/show", {
     timeout: 3000,
