@@ -77,3 +77,59 @@ describe("Given an entry added after the initial hydration", () => {
     )
   })
 })
+
+describe("Given an entries change while a write is still throttled", () => {
+  it("should keep the newer in-memory value of an already hydrated entry", {
+    timeout: 3000,
+  }, async () => {
+    const signalA = signal({ default: 0, key: "a" })
+    const signalB = signal({ default: 0, key: "b" })
+
+    const adapter = createMemoryAdapter({
+      a: {
+        [IDENTIFIER_PERSISTENCE_KEY]: IDENTIFIER_PERSISTENCE_KEY,
+        value: 1,
+        migrationVersion: 0,
+      } satisfies PersistenceEntry,
+    })
+
+    // biome-ignore lint/suspicious/noExplicitAny: test
+    const initialEntries: Array<SignalPersistenceConfig<any>> = [
+      { signal: signalA, version: 0 },
+    ]
+    // biome-ignore lint/suspicious/noExplicitAny: test
+    const updatedEntries: Array<SignalPersistenceConfig<any>> = [
+      { signal: signalA, version: 0 },
+      { signal: signalB, version: 0 },
+    ]
+
+    const { result, rerender } = renderHook(
+      ({ entries }) => usePersistSignals({ entries, adapter }),
+      { initialProps: { entries: initialEntries } },
+    )
+
+    await waitFor(() => {
+      expect(result.current.isHydrated).toBe(true)
+    })
+
+    expect(signalA.getValue()).toBe(1)
+
+    // The first update is written right away, the second one is held by the
+    // 500 ms throttle when the entries change.
+    signalA.update(2)
+    signalA.update(3)
+
+    rerender({ entries: updatedEntries })
+
+    await waitFor(
+      () => {
+        expect((adapter.storage.a as PersistenceEntry | undefined)?.value).toBe(
+          3,
+        )
+      },
+      { timeout: 2000 },
+    )
+
+    expect(signalA.getValue()).toBe(3)
+  })
+})

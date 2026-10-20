@@ -6,6 +6,7 @@ import { isShallowEqual } from "../../utils/shallowEqual"
 import type { Adapter } from "../persistence/adapters/Adapter"
 import { persistSignals } from "../persistence/persistSignals"
 import type { SignalPersistenceConfig } from "../persistence/types"
+import type { Signal } from "../Signal"
 
 /**
  * Make sure to pass stable reference of entries and adapter if you don't
@@ -47,6 +48,15 @@ export function usePersistSignals({
         switchMap((adapter) => {
           if (!adapter) return of({ type: "reset" })
 
+          /**
+           * Signals already hydrated from this adapter. When the entries
+           * change, only the new ones are hydrated: hydrating the others
+           * again would overwrite their in-memory value with a stored one
+           * that may be older (e.g. a write still held by the throttle).
+           */
+          // biome-ignore lint/suspicious/noExplicitAny: TODO
+          const hydratedSignals = new WeakSet<Signal<any, string>>()
+
           return merge(
             of({ type: "reset" }),
             entriesSubject.pipe(
@@ -60,7 +70,12 @@ export function usePersistSignals({
                 persistSignals({
                   adapter,
                   entries,
+                  shouldHydrate: ({ signal }) => !hydratedSignals.has(signal),
                   onHydrated: () => {
+                    for (const { signal } of entries) {
+                      hydratedSignals.add(signal)
+                    }
+
                     onHydratedRef.current?.()
                   },
                 }),

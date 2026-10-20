@@ -21,6 +21,7 @@ export function persistSignals({
   entries = [],
   onHydrated,
   adapter,
+  shouldHydrate = () => true,
 }: {
   // biome-ignore lint/suspicious/noExplicitAny: TODO
   entries: Array<SignalPersistenceConfig<Signal<any, string>>>
@@ -34,12 +35,22 @@ export function persistSignals({
    * need to change adapter during runtime.
    */
   adapter: Adapter
+  /**
+   * Entries for which this returns `false` are not hydrated from the adapter
+   * (their in-memory value is kept) but are still persisted.
+   */
+  shouldHydrate?: (
+    // biome-ignore lint/suspicious/noExplicitAny: TODO
+    config: SignalPersistenceConfig<Signal<any, string>>,
+  ) => boolean
 }) {
+  const entriesToHydrate = entries.filter(shouldHydrate)
+
   const signalsHydrated$ =
-    entries.length === 0
+    entriesToHydrate.length === 0
       ? of([])
       : zip(
-          ...entries.map((config) =>
+          ...entriesToHydrate.map((config) =>
             hydrateValueToSignal({
               adapter,
               config,
