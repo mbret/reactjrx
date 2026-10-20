@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from "@testing-library/react"
 import { StrictMode } from "react"
+import { createRoot } from "react-dom/client"
 import { describe, expect, it, vi } from "vitest"
 import { waitForTimeout } from "../../../tests/utils"
 import type { Adapter } from "../persistence/adapters/Adapter"
@@ -336,5 +337,48 @@ describe("Given StrictMode", () => {
     expect(signalA.getValue()).toBe(1)
     expect(storedValues).not.toContain(0)
     expect(storedValueOf(adapter, "a")).toBe(1)
+  })
+})
+
+describe("Given a mount with browser timing", () => {
+  /**
+   * Outside `act`, effects run after pending promises resolve, as in a
+   * browser, so hydration can finish before the mount effects run.
+   */
+  it("should hydrate once and call onHydrated once", {
+    timeout: 3000,
+  }, async () => {
+    const actEnvironment = Reflect.get(globalThis, "IS_REACT_ACT_ENVIRONMENT")
+    Reflect.set(globalThis, "IS_REACT_ACT_ENVIRONMENT", false)
+
+    const root = createRoot(document.createElement("div"))
+
+    try {
+      const signalA = signal({ default: 0, key: "a" })
+      const adapter = createMemoryAdapter({ a: storedValue(1) })
+      const entries: Entries = [{ signal: signalA, version: 0 }]
+      const onHydrated = vi.fn()
+
+      function Component() {
+        usePersistSignals({ entries, adapter, onHydrated })
+
+        return null
+      }
+
+      root.render(<Component />)
+
+      await waitFor(() => {
+        expect(onHydrated).toHaveBeenCalled()
+      })
+
+      await waitForTimeout(100)
+
+      expect(signalA.getValue()).toBe(1)
+      expect(onHydrated).toHaveBeenCalledTimes(1)
+      expect(adapter.calls.getItem).toBe(1)
+    } finally {
+      root.unmount()
+      Reflect.set(globalThis, "IS_REACT_ACT_ENVIRONMENT", actEnvironment)
+    }
   })
 })
