@@ -1,6 +1,6 @@
 import { focusManager, MutationObserver } from "@tanstack/react-query"
 import { act, render, screen, waitFor } from "@testing-library/react"
-import { StrictMode, useState } from "react"
+import { useState } from "react"
 import { BehaviorSubject, concat, defer, NEVER, of, Subject } from "rxjs"
 import { describe, expect, it, vi } from "vitest"
 import {
@@ -654,12 +654,10 @@ describe("live query lifecycle", () => {
       return <span data-testid="data">{JSON.stringify(data)}</span>
     }
 
-    render(
-      <StrictMode>
-        <Comp />
-      </StrictMode>,
-      { wrapper: createWrapper(queryClient) },
-    )
+    render(<Comp />, {
+      wrapper: createWrapper(queryClient),
+      reactStrictMode: true,
+    })
 
     await waitForData(["a"])
 
