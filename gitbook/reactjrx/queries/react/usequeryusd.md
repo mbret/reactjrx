@@ -14,3 +14,5 @@ const MyComponent = ({ userId }) => {
 ```
 
 The query keeps fetching while the observable runs. See [Forever Query](../forever-query.md) for how refetching, invalidation and cancellation work with streams.
+
+For a stream meant to stay open, such as a live database query or a socket, use [useLiveQuery$](uselivequeryusd.md).

@@ -6,6 +6,8 @@ export * from "./lib/binding/useObserve"
 export * from "./lib/binding/useSubscribe"
 export * from "./lib/binding/useSubscribeEffect"
 export * from "./lib/queries/useConcatMutation$"
+export * from "./lib/queries/useLiveQueries$"
+export * from "./lib/queries/useLiveQuery$"
 export * from "./lib/queries/useMutation$"
 // query
 export * from "./lib/queries/useQueries$"
