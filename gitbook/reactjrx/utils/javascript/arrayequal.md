@@ -1,0 +1,3 @@
+# arrayEqual
+
+todo
