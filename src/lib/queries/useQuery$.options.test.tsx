@@ -1,6 +1,6 @@
 import { act, render, screen, waitFor } from "@testing-library/react"
 import { useState } from "react"
-import { BehaviorSubject } from "rxjs"
+import { BehaviorSubject, Subject } from "rxjs"
 import { describe, expect, it } from "vitest"
 import {
   countSubscriptions,
@@ -77,8 +77,10 @@ describe("live query key changes", () => {
 })
 
 describe("live query enabled option", () => {
-  function setup(initiallyEnabled: boolean) {
-    const source$ = new BehaviorSubject("a")
+  function setup(
+    initiallyEnabled: boolean,
+    source$: Subject<string> = new BehaviorSubject("a"),
+  ) {
     const { counted$, subscriptions } = countSubscriptions(source$)
     const queryClient = createQueryClient()
     const queryKey = ["live", "enabled"]
@@ -130,23 +132,116 @@ describe("live query enabled option", () => {
     expect(live.subscriptions).toEqual({ made: 1, open: 1 })
   })
 
-  it("keeps the stream running once disabled, as TanStack keeps a fetch in progress", {
+  it("stops the stream when disabled, and reopens it when enabled again", {
     timeout: 3000,
   }, async () => {
     const live = setup(true)
 
     await waitForData("a")
     await live.setEnabled(false)
-
-    act(() => live.source$.next("b"))
-
-    expect(live.queryClient.getQueryData(live.queryKey)).toBe("b")
-    expect(live.subscriptions).toEqual({ made: 1, open: 1 })
-
-    live.unmount()
     await act(() => waitForTimeout(20))
 
     expect(live.subscriptions).toEqual({ made: 1, open: 0 })
+    expect(live.queryClient.getQueryState(live.queryKey)).toMatchObject({
+      data: "a",
+      fetchStatus: "idle",
+      isInvalidated: true,
+    })
+
+    act(() => live.source$.next("b"))
+
+    expect(live.queryClient.getQueryData(live.queryKey)).toBe("a")
+
+    await live.setEnabled(true)
+    await waitForData("b")
+
+    expect(live.subscriptions).toEqual({ made: 2, open: 1 })
+  })
+
+  it("lets the first fetch finish when disabled meanwhile, then stops the stream", {
+    timeout: 3000,
+  }, async () => {
+    const live = setup(true, new Subject<string>())
+
+    await act(() => waitForTimeout(20))
+    await live.setEnabled(false)
+
+    // TanStack lets a fetch in progress finish.
+    expect(live.subscriptions).toEqual({ made: 1, open: 1 })
+
+    let fetchesStarted = 0
+
+    live.queryClient.getQueryCache().subscribe((event) => {
+      if (event.type === "updated" && event.action.type === "fetch") {
+        fetchesStarted++
+      }
+    })
+
+    act(() => live.source$.next("a"))
+
+    await waitForData("a")
+    await act(() => waitForTimeout(20))
+
+    // No fetch follows the stream once the first one finished.
+    expect(fetchesStarted).toBe(0)
+    expect(live.subscriptions).toEqual({ made: 1, open: 0 })
+    expect(live.queryClient.getQueryState(live.queryKey)).toMatchObject({
+      fetchStatus: "idle",
+      isInvalidated: true,
+    })
+  })
+
+  it("keeps the stream while another component has the query enabled", {
+    timeout: 3000,
+  }, async () => {
+    const source$ = new BehaviorSubject("a")
+    const { counted$, subscriptions } = countSubscriptions(source$)
+    const queryClient = createQueryClient()
+    const queryKey = ["live", "enabled-shared"]
+    const setEnabled: Array<(enabled: boolean) => void> = []
+
+    function Comp({ index }: { index: number }) {
+      "use no memo"
+
+      const [enabled, setEnabledState] = useState(true)
+
+      setEnabled[index] = setEnabledState
+
+      const { data } = useQuery$({
+        ...liveQueryOptions,
+        enabled,
+        queryKey,
+        queryFn: () => counted$,
+      })
+
+      return <span data-testid={`data-${index}`}>{JSON.stringify(data)}</span>
+    }
+
+    render(
+      <>
+        <Comp index={0} />
+        <Comp index={1} />
+      </>,
+      { wrapper: createWrapper(queryClient) },
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId("data-1").textContent).toBe('"a"')
+    })
+
+    act(() => setEnabled[0]?.(false))
+    await act(() => waitForTimeout(20))
+
+    expect(subscriptions).toEqual({ made: 1, open: 1 })
+
+    act(() => source$.next("b"))
+
+    expect(queryClient.getQueryData(queryKey)).toBe("b")
+
+    act(() => setEnabled[1]?.(false))
+    await act(() => waitForTimeout(20))
+
+    expect(subscriptions).toEqual({ made: 1, open: 0 })
   })
 })
 

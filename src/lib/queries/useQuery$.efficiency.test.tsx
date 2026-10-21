@@ -18,11 +18,7 @@ const settle = () => act(() => waitForTimeout(30))
  * Renders a component that reads a live query. `showSecond` mounts another
  * component reading the same query, and `toggle` hides and shows the first.
  */
-function setup({
-  staleTime = liveQueryOptions.staleTime,
-  readsIsFetching = false,
-  isStrictMode = false,
-} = {}) {
+function setup({ readsIsFetching = false, isStrictMode = false } = {}) {
   const source$ = new BehaviorSubject(0)
   const { counted$, subscriptions } = countSubscriptions(source$)
   const queryClient = createQueryClient()
@@ -36,7 +32,6 @@ function setup({
 
     return useQuery$({
       ...liveQueryOptions,
-      staleTime,
       queryKey,
       queryFn: () => counted$,
     })
@@ -132,7 +127,7 @@ describe("live query subscriptions", () => {
   it("shares one subscription between components using the query", {
     timeout: 3000,
   }, async () => {
-    const live = setup({ staleTime: 0 })
+    const live = setup()
 
     await settle()
     await live.showSecond()
@@ -146,7 +141,7 @@ describe("live query subscriptions", () => {
   it("keeps the subscription on window focus", {
     timeout: 3000,
   }, async () => {
-    const live = setup({ staleTime: 0 })
+    const live = setup()
 
     await settle()
 
@@ -184,7 +179,7 @@ describe("live query subscriptions", () => {
   it("subscribes again when the query is shown after being hidden", {
     timeout: 3000,
   }, async () => {
-    const live = setup({ staleTime: 0 })
+    const live = setup()
 
     await settle()
     await live.toggle()

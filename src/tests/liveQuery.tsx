@@ -12,10 +12,14 @@ export function createQueryClient() {
   })
 }
 
+/**
+ * Options for a live query. It keeps the default `staleTime`: automatic
+ * refetches join a running stream anyway, and a longer one would keep a
+ * stopped or restored query from reopening its stream.
+ */
 export const liveQueryOptions = {
   networkMode: "always" as const,
   gcTime: 0,
-  staleTime: Number.POSITIVE_INFINITY,
 }
 
 /**

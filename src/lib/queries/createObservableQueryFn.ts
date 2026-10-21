@@ -242,9 +242,13 @@ function startStream(
 
     if (stream.isComplete && !stream.error) {
       stream.stop()
-    } else if (!stream.error && query.getObserversCount() === 0) {
-      // Nothing observes the query (a refetch of an inactive one, say), so
-      // nothing would ever cancel the fetch that follows the stream.
+    } else if (!stream.error && !query.isActive()) {
+      /**
+       * No observer has the query enabled: none observes it (a refetch of an
+       * inactive one, say), or they all disabled it while this fetch was in
+       * progress. The fetch finished, as TanStack lets it, but the stream
+       * does not go on.
+       */
       stream.stop({ invalidate: true })
     } else {
       stream.isStartingFollow = true
@@ -262,6 +266,22 @@ function startStream(
       !event.action.manual
     ) {
       onCommit()
+    }
+
+    /**
+     * The fetch that follows the stream never finishes on its own, so once no
+     * observer has the query enabled, it is cancelled rather than let finish.
+     * The values stay in the cache, as for `cancelQueries`.
+     */
+    if (
+      (event.type === "observerOptionsUpdated" ||
+        event.type === "observerRemoved") &&
+      stream.phase === "live" &&
+      query.getObserversCount() > 0 &&
+      !query.isActive()
+    ) {
+      query.cancel({ revert: true })
+      stream.stop({ invalidate: true })
     }
 
     /**
