@@ -1,0 +1,11 @@
+$schema: https://api.gitbook.com/gitbook-docs.yaml
+site:
+  title: reactjrx
+  structure:
+    - type: space
+      key: space-1
+      title: reactjrx
+      path: reactjrx
+      default: true
+      content:
+        directory: ./reactjrx
