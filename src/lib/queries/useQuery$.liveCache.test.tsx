@@ -49,6 +49,46 @@ describe("live query cache", () => {
     expect(queryClient.getQueryData(queryKey)).toEqual(["a", "b"])
   })
 
+  it("holds a value as soon as the stream emits it while a fetch settles", {
+    timeout: 3000,
+  }, async () => {
+    const queryKey = ["live", "settling"]
+    const source$ = new Subject<string[]>()
+    const queryClient = createQueryClient()
+
+    function Comp() {
+      const { data } = useQuery$({
+        ...liveQueryOptions,
+        queryKey,
+        queryFn: () => source$,
+      })
+
+      return <span data-testid="data">{JSON.stringify(data)}</span>
+    }
+
+    render(<Comp />, { wrapper: createWrapper(queryClient) })
+
+    // The first value, before TanStack stores what the fetch resolved with.
+    act(() => {
+      source$.next(["a"])
+      expect(queryClient.getQueryData(queryKey)).toEqual(["a"])
+    })
+
+    await waitForData(["a"])
+
+    // A value right after an invalidation, which takes the stream over.
+    act(() => {
+      queryClient.invalidateQueries({ queryKey })
+      source$.next(["a", "b"])
+      expect(queryClient.getQueryData(queryKey)).toEqual(["a", "b"])
+    })
+
+    // TanStack then stores the refetch's value, which is older.
+    await act(() => waitForTimeout(50))
+
+    expect(queryClient.getQueryData(queryKey)).toEqual(["a", "b"])
+  })
+
   it("keeps a value emitted right after the previous one reached the cache", {
     timeout: 3000,
   }, async () => {

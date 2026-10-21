@@ -35,9 +35,10 @@ type Stream = {
   /**
    * - loading: the fetch that owns the stream waits for its first value.
    * - resolved: that fetch resolved, but TanStack has not stored its value
-   *   yet. Later values wait in `uncommitted`, since that commit would
-   *   overwrite them.
-   * - live: values go straight into the query.
+   *   yet. That commit overwrites the values written after it with the one
+   *   the fetch resolved with, so the latest is kept in `uncommitted` and
+   *   written again right after it.
+   * - live: the fetch that follows the stream owns it.
    */
   phase: "loading" | "resolved" | "live"
   last: { value: unknown } | undefined
@@ -214,7 +215,7 @@ function startStream(
 
       if (streams.get(query) === stream) streams.delete(query)
 
-      if (invalidate && stream.last && !stream.isComplete) query.invalidate()
+      if (invalidate && stream.last) query.invalidate()
     },
   }
 
@@ -290,15 +291,16 @@ function startStream(
 
         stream.last = { value }
 
-        if (stream.phase === "loading") {
-          if (!stream.fetch) return
+        // Cancelled: a refetch that takes the stream over settles with it.
+        if (!stream.fetch && !stream.isStartingFollow) return
 
+        query.setData(value, { manual: true })
+
+        if (stream.phase === "loading") {
           stream.phase = "resolved"
-          stream.fetch.resolve(value)
+          stream.fetch?.resolve(value)
         } else if (stream.phase === "resolved") {
           stream.uncommitted = { value }
-        } else if (stream.fetch || stream.isStartingFollow) {
-          query.setData(value, { manual: true })
         }
       },
       error: fail,
