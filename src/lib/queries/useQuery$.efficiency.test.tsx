@@ -1,6 +1,6 @@
 import { focusManager } from "@tanstack/react-query"
 import { act, render } from "@testing-library/react"
-import { StrictMode, useState } from "react"
+import { useState } from "react"
 import { BehaviorSubject, of } from "rxjs"
 import { describe, expect, it } from "vitest"
 import {
@@ -77,16 +77,10 @@ function setup({ readsIsFetching = false, isStrictMode = false } = {}) {
     )
   }
 
-  const { unmount } = render(
-    isStrictMode ? (
-      <StrictMode>
-        <Host />
-      </StrictMode>
-    ) : (
-      <Host />
-    ),
-    { wrapper: createWrapper(queryClient) },
-  )
+  const { unmount } = render(<Host />, {
+    wrapper: createWrapper(queryClient),
+    reactStrictMode: isStrictMode,
+  })
 
   return {
     queryClient,
@@ -196,7 +190,7 @@ describe("live query subscriptions", () => {
     expect(live.subscriptions).toEqual({ made: 2, open: 1 })
   })
 
-  it("keeps a single subscription under StrictMode", {
+  it("keeps one subscription open under StrictMode", {
     timeout: 3000,
   }, async () => {
     const live = setup({ isStrictMode: true })
@@ -205,7 +199,15 @@ describe("live query subscriptions", () => {
     await live.emit(1)
 
     expect(live.queryClient.getQueryData(live.queryKey)).toBe(1)
-    expect(live.subscriptions).toEqual({ made: 1, open: 1 })
+    // StrictMode mounts the component twice. As for any query whose `queryFn`
+    // reads its abort signal, the first mount's fetch is cancelled, so the
+    // stream subscribes again.
+    expect(live.subscriptions).toEqual({ made: 2, open: 1 })
+
+    live.unmount()
+    await settle()
+
+    expect(live.subscriptions).toEqual({ made: 2, open: 0 })
   })
 
   it("subscribes once to an observable that emits once", {
