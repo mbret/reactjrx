@@ -39,6 +39,8 @@ As for any query, `refetch()`, `queryClient.refetchQueries()`, `queryClient.inva
 
 They settle with the new stream's first value, so you can `await` them, or return one from a mutation's `onSuccess`, as with any query. A stream that emits its current value when subscribed, such as a `BehaviorSubject` or most live database queries, settles them right away. A stream that only emits on events settles them at its next event.
 
+Before the stream's first value, `refetch()`, `queryClient.refetchQueries()` and `queryClient.invalidateQueries()` join the fetch in progress instead, as TanStack does for any query that has no data yet: the stream keeps running, and they settle with its first value. `queryClient.resetQueries()` still restarts it.
+
 A refetch that joins the running fetch instead of replacing it, such as `refetch({ cancelRefetch: false })`, keeps the stream and waits for it to end.
 
 ### Stopping the stream

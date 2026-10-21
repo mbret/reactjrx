@@ -354,6 +354,39 @@ describe("live query refetch", () => {
     await waitForData("second")
   })
 
+  it("joins the stream on a refetch before its first value", {
+    timeout: 3000,
+  }, async () => {
+    const queryKey = ["live", "refetch-pending"]
+    const source$ = new Subject<string>()
+    const queryFn = vi.fn(() => source$)
+    const queryClient = createQueryClient()
+
+    function Comp() {
+      const { data } = useQuery$({ ...liveQueryOptions, queryKey, queryFn })
+
+      return <span data-testid="data">{JSON.stringify(data)}</span>
+    }
+
+    render(<Comp />, { wrapper: createWrapper(queryClient) })
+
+    const refetched = vi.fn()
+
+    act(() => {
+      queryClient.refetchQueries({ queryKey }).then(refetched)
+    })
+
+    // As for any query without data, the refetch joins the fetch in progress.
+    expect(queryFn).toHaveBeenCalledOnce()
+    expect(source$.observed).toBe(true)
+
+    act(() => source$.next("first"))
+
+    await waitForData("first")
+
+    expect(refetched).toHaveBeenCalledOnce()
+  })
+
   it("settles an awaited invalidation of a live query", {
     timeout: 3000,
   }, async () => {
