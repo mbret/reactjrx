@@ -68,11 +68,7 @@ describe("live query cache", () => {
 
     render(<Comp />, { wrapper: createWrapper(queryClient) })
 
-    // The first value, before TanStack stores what the fetch resolved with.
-    act(() => {
-      source$.next(["a"])
-      expect(queryClient.getQueryData(queryKey)).toEqual(["a"])
-    })
+    act(() => source$.next(["a"]))
 
     await waitForData(["a"])
 
@@ -203,6 +199,44 @@ describe("live query cache", () => {
 
     expect(queryClient.getQueryData(queryKey)).toBe(2)
     expect(queryClient.getQueryState(queryKey)?.fetchStatus).toBe("fetching")
+  })
+
+  it("renders once per value", { timeout: 3000 }, async () => {
+    const { liveQuery$, queryFn } = createLiveQuerySource(["a"])
+    const queryClient = createQueryClient()
+    let renders = 0
+
+    function Comp() {
+      renders++
+
+      const { data } = useQuery$({
+        ...liveQueryOptions,
+        queryKey: ["live", "renders"],
+        queryFn,
+      })
+
+      return <span data-testid="data">{JSON.stringify(data)}</span>
+    }
+
+    render(<Comp />, { wrapper: createWrapper(queryClient) })
+
+    await waitForData(["a"])
+    await act(() => waitForTimeout(50))
+
+    // One render while pending, one for the first value.
+    expect(renders).toBe(2)
+
+    for (const items of [
+      ["a", "b"],
+      ["a", "b", "c"],
+    ]) {
+      await act(async () => {
+        liveQuery$.next(items)
+        await waitForTimeout(20)
+      })
+    }
+
+    expect(renders).toBe(4)
   })
 
   it("holds a value as soon as the stream emits it with useQueries$", {
