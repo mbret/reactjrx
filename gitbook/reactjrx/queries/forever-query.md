@@ -47,10 +47,13 @@ A refetch that joins the running fetch instead of replacing it, such as `refetch
 The observable is unsubscribed when its fetch is cancelled:
 
 * when the last component using the query unmounts,
+* when no component using the query has it enabled any more (`enabled: false`),
 * with `queryClient.cancelQueries()`,
 * when the query is removed from the cache, for example with `queryClient.clear()`.
 
-The values already received stay in the cache, and the query is marked stale, so it refetches the next time a component needs it.
+The values already received stay in the cache, and the query is marked stale, so it refetches the next time a component needs it: enabling it again reopens the stream.
+
+As TanStack does with any fetch in progress, disabling a query lets a fetch that waits for the stream's first value finish: the stream stops once it has delivered that value.
 
 A fetch of a query that no component uses, such as `queryClient.refetchQueries()` on an inactive query, takes the stream's first value and stops, and the query is marked stale: nothing would ever cancel the stream otherwise.
 
