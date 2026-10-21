@@ -1,7 +1,7 @@
-import { focusManager } from "@tanstack/react-query"
+import { focusManager, MutationObserver } from "@tanstack/react-query"
 import { act, render, screen, waitFor } from "@testing-library/react"
 import { StrictMode, useState } from "react"
-import { concat, defer, of, Subject } from "rxjs"
+import { concat, defer, NEVER, of, Subject } from "rxjs"
 import { describe, expect, it, vi } from "vitest"
 import {
   createLiveQuerySource,
@@ -45,6 +45,46 @@ describe("live query cache", () => {
     act(() => {
       liveQuery$.next(["a", "b"])
     })
+
+    expect(queryClient.getQueryData(queryKey)).toEqual(["a", "b"])
+  })
+
+  it("holds a value as soon as the stream emits it while a fetch settles", {
+    timeout: 3000,
+  }, async () => {
+    const queryKey = ["live", "settling"]
+    const source$ = new Subject<string[]>()
+    const queryClient = createQueryClient()
+
+    function Comp() {
+      const { data } = useQuery$({
+        ...liveQueryOptions,
+        queryKey,
+        queryFn: () => source$,
+      })
+
+      return <span data-testid="data">{JSON.stringify(data)}</span>
+    }
+
+    render(<Comp />, { wrapper: createWrapper(queryClient) })
+
+    // The first value, before TanStack stores what the fetch resolved with.
+    act(() => {
+      source$.next(["a"])
+      expect(queryClient.getQueryData(queryKey)).toEqual(["a"])
+    })
+
+    await waitForData(["a"])
+
+    // A value right after an invalidation, which takes the stream over.
+    act(() => {
+      queryClient.invalidateQueries({ queryKey })
+      source$.next(["a", "b"])
+      expect(queryClient.getQueryData(queryKey)).toEqual(["a", "b"])
+    })
+
+    // TanStack then stores the refetch's value, which is older.
+    await act(() => waitForTimeout(50))
 
     expect(queryClient.getQueryData(queryKey)).toEqual(["a", "b"])
   })
@@ -135,6 +175,36 @@ describe("live query cache", () => {
     expect(queryClient.getQueryData(queryKey)).toBe(3)
   })
 
+  it("keeps a value emitted before TanStack stores the first one", {
+    timeout: 3000,
+  }, async () => {
+    const queryKey = ["live", "before-commit"]
+    const queryClient = createQueryClient()
+
+    function Comp() {
+      const { data } = useQuery$({
+        ...liveQueryOptions,
+        queryKey,
+        queryFn: () =>
+          concat(
+            of(1),
+            defer(() => Promise.resolve(2)),
+            NEVER,
+          ),
+      })
+
+      return <span data-testid="data">{JSON.stringify(data)}</span>
+    }
+
+    render(<Comp />, { wrapper: createWrapper(queryClient) })
+
+    await waitForData(2)
+    await act(() => waitForTimeout(50))
+
+    expect(queryClient.getQueryData(queryKey)).toBe(2)
+    expect(queryClient.getQueryState(queryKey)?.fetchStatus).toBe("fetching")
+  })
+
   it("holds a value as soon as the stream emits it with useQueries$", {
     timeout: 3000,
   }, async () => {
@@ -164,10 +234,74 @@ describe("live query cache", () => {
 })
 
 describe("live query refetch", () => {
-  it("replaces the stream and settles when the new one completes", {
+  it("takes over the running stream and settles with its current value", {
     timeout: 3000,
   }, async () => {
     const queryKey = ["live", "refetch"]
+    const source$ = new Subject<string>()
+    const queryFn = vi.fn(() => source$)
+    const queryClient = createQueryClient()
+
+    function Comp() {
+      const { data } = useQuery$({ ...liveQueryOptions, queryKey, queryFn })
+
+      return <span data-testid="data">{JSON.stringify(data)}</span>
+    }
+
+    render(<Comp />, { wrapper: createWrapper(queryClient) })
+
+    act(() => source$.next("first"))
+
+    await waitForData("first")
+
+    await act(() => queryClient.refetchQueries({ queryKey }))
+
+    expect(queryFn).toHaveBeenCalledOnce()
+    expect(source$.observed).toBe(true)
+    expect(queryClient.getQueryState(queryKey)?.fetchStatus).toBe("fetching")
+
+    act(() => source$.next("second"))
+
+    expect(queryClient.getQueryData(queryKey)).toBe("second")
+  })
+
+  it("settles an awaited invalidation of a live query", {
+    timeout: 3000,
+  }, async () => {
+    const queryKey = ["live", "invalidate"]
+    const { liveQuery$, queryClient } = setup(queryKey)
+
+    await waitForData(["a"])
+
+    await act(() => queryClient.invalidateQueries({ queryKey }))
+
+    act(() => liveQuery$.next(["a", "b"]))
+
+    expect(queryClient.getQueryData(queryKey)).toEqual(["a", "b"])
+  })
+
+  it("lets a mutation that invalidates a live query settle", {
+    timeout: 3000,
+  }, async () => {
+    const queryKey = ["live", "mutation"]
+    const { queryClient } = setup(queryKey)
+
+    await waitForData(["a"])
+
+    const mutation = new MutationObserver(queryClient, {
+      mutationFn: async () => "written",
+      onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    })
+
+    await act(() => mutation.mutate())
+
+    expect(mutation.getCurrentResult().status).toBe("success")
+  })
+
+  it("restarts the stream when it is cancelled before refetching", {
+    timeout: 3000,
+  }, async () => {
+    const queryKey = ["live", "restart"]
     const first$ = new Subject<string>()
     const second$ = new Subject<string>()
     const queryFn = vi
@@ -188,12 +322,9 @@ describe("live query refetch", () => {
 
     await waitForData("first")
 
-    let isRefetched = false
-
+    await act(() => queryClient.cancelQueries({ queryKey }))
     act(() => {
-      queryClient.refetchQueries({ queryKey }).then(() => {
-        isRefetched = true
-      })
+      queryClient.refetchQueries({ queryKey })
     })
 
     expect(queryFn).toHaveBeenCalledTimes(2)
@@ -202,17 +333,6 @@ describe("live query refetch", () => {
     act(() => second$.next("second"))
 
     await waitForData("second")
-    await act(() => waitForTimeout(50))
-
-    expect(isRefetched).toBe(false)
-    expect(queryClient.getQueryState(queryKey)?.fetchStatus).toBe("fetching")
-
-    act(() => second$.complete())
-
-    await waitFor(() => {
-      expect(isRefetched).toBe(true)
-    })
-    expect(queryClient.getQueryState(queryKey)?.fetchStatus).toBe("idle")
   })
 
   it("does not restart the stream on window focus", {
@@ -455,8 +575,11 @@ describe("live query lifecycle", () => {
 
     await act(() => queryClient.refetchQueries({ queryKey }))
 
-    expect(queryClient.getQueryData(queryKey)).toEqual(["a", "b"])
-    expect(queryClient.getQueryState(queryKey)?.fetchStatus).toBe("idle")
+    expect(queryClient.getQueryState(queryKey)).toMatchObject({
+      data: ["a", "b"],
+      fetchStatus: "idle",
+      isInvalidated: true,
+    })
     expect(liveQuery$.observed).toBe(false)
   })
 

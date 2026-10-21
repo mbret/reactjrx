@@ -28,4 +28,4 @@ const MyComponent = ({ userId }) => {
 
 The API is minimal, uses [https://tanstack.com/query/latest](https://tanstack.com/query/latest) behind the hood and provide a full typing passthrough. They are meant to be used together with other components of the tanstack library.
 
-Each stream runs as a single TanStack Query fetch: every value is written into the query as soon as the stream emits it, and the query keeps fetching until the stream completes. This makes the wrapper minimal and takes advantage of react-query power. See [Forever Query](forever-query.md) for streams that never complete.
+Every value is written into the query as soon as the stream emits it, and the query keeps fetching until the stream completes. This makes the wrapper minimal and takes advantage of react-query power. See [Forever Query](forever-query.md) for streams that never complete.
