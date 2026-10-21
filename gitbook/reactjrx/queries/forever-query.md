@@ -4,31 +4,55 @@ description: How to deal with never ending observables
 
 # Forever Query
 
-Because observable can emit several values before emitting, your query is a bit different than a regular async promise.
+An observable can emit several values, and may never complete. reactjrx runs the whole stream as a single TanStack Query fetch.
 
 Consider this example:
 
 ```typescript
-const MyComponent = ({ userId }) => {
-  const { data: name } = useQuery$({
+const MyComponent = () => {
+  const { data } = useQuery$({
     queryKey: ["interval"],
     queryFn: () => interval(1000)
   })
 
-  return <div>{name}</div>
+  return <div>{data}</div>
 }
 ```
 
-In this situation the query never finish and will emit new data every second.
+This query never completes and emits a new value every second:
 
-Internally we handle it by providing a never ending promise to the query and updating the data when the observable emit.
+* Each value is written into the query as soon as the observable emits it, so `queryClient.getQueryData(["interval"])` always returns the latest one.
+* The query is `pending` until the first value, then `success`.
+* It stays `fetching` (`isFetching` is `true`) until the observable completes, the way a query is fetching until its promise resolves.
 
-The resulting query will always be in a `fetching` state (as long as the observable does not complete) but in a `success` state as soon as the first value is emitted.
+### Automatic refetches join the running stream
 
-### Queries are never re-executed
+TanStack refetches queries in several situations: window focus, network reconnection, another component mounting the query, `refetchInterval`. While the stream runs, these join the running fetch: the observable is not subscribed again.
 
-By default queries are refetched in different scenario such as network change, components re-mount, etc. In this situation, the query will not be re-executed since it's still in a fetching state. This is usually the expected behavior but it's good to remember it.
+### Explicit refetches restart the stream
 
-### Queries will restart normally
+`refetch()`, `queryClient.refetchQueries()` and `queryClient.invalidateQueries()` cancel the running fetch, as they do for any query, and run your `queryFn` again. The data stays on screen until the new stream emits.
 
-If the observable fail or finish, the query will behave normally following your options (or default options).
+{% hint style="warning" %}
+The promise they return settles when the **new** stream completes. For a stream that never completes, it only settles once that stream is stopped (see below), for example when the last component using the query unmounts. So don't `await` an invalidation that matches a live query, and don't return one from a mutation's `onSuccess` or `onSettled`, or the mutation stays pending. A live query updates itself: it doesn't need invalidating.
+{% endhint %}
+
+### Stopping the stream
+
+The observable is unsubscribed when its fetch is cancelled:
+
+* when the last component using the query unmounts,
+* with `queryClient.cancelQueries()`,
+* when the query is removed from the cache, for example with `queryClient.clear()`.
+
+The values already received stay in the cache, and the query is marked stale, so it refetches the next time a component needs it.
+
+A fetch of a query that no component uses, such as `queryClient.refetchQueries()` on an inactive query, takes the stream's current value and stops: nothing would ever cancel it otherwise.
+
+### Completion and errors
+
+When the observable completes, the query stops fetching and keeps the last value.
+
+If the observable errors, or emits `undefined` (which is not valid query data), the query fails like any fetch: it goes to `error`, keeps its data, and `retry` applies, each retry subscribing again.
+
+`QueryCache`-level `onSuccess` and `onSettled` callbacks run when the fetch completes, like for any query. For a stream that never completes, they never run.

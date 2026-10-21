@@ -13,3 +13,4 @@ const MyComponent = ({ userId }) => {
 }
 ```
 
+The query keeps fetching while the observable runs. See [Forever Query](../forever-query.md) for how refetching, invalidation and cancellation work with streams.

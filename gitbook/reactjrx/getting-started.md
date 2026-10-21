@@ -10,10 +10,14 @@ npm install reactjrx rxjs
 
 ## React
 
-If you are using React and plan on using the queries you should wrap your app with the provider.
+The queries (`useQuery$`, `useMutation$`...) run on [TanStack Query](https://tanstack.com/query/latest), version 5.85.1 or later. If you plan on using them, install it and wrap your app with its `QueryClientProvider`.
+
+```bash
+npm install @tanstack/react-query
+```
 
 ```tsx
-import { QueryClientProvider, QueryClient } from "reactjrx"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 const client = new QueryClient()
 
@@ -22,6 +26,4 @@ export const App = () => (
         ...
     </QueryClientProvider>
 )
-
 ```
-
