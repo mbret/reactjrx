@@ -5,7 +5,7 @@ import babel from "@rolldown/plugin-babel"
 import react, { reactCompilerPreset } from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import dts from "vite-plugin-dts"
-import pkg from "./package.json"
+import pkg from "./package.json" with { type: "json" }
 
 // Replicates the behaviour of the former rollup-plugin-node-externals
 // (peerDeps/deps/devDeps/optionalDeps + builtins), which is incompatible with
@@ -47,7 +47,7 @@ export default defineConfig({
     },
     lib: {
       // Could also be a dictionary or array of multiple entry points
-      entry: resolve(__dirname, "src/index.ts"),
+      entry: resolve(import.meta.dirname, "src/index.ts"),
       name: pkg.name,
       // the proper extensions will be added
       fileName: "index",
