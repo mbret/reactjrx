@@ -3,7 +3,6 @@ import { cleanup, render } from "@testing-library/react"
 import React from "react"
 import { of } from "rxjs"
 import { afterEach, describe, expect, expectTypeOf, it } from "vitest"
-import { QueryClientProvider$ } from "./QueryClientProvider$"
 import { useQueries$ } from "./useQueries$"
 
 afterEach(() => {
@@ -15,9 +14,7 @@ const wrap = (ui: React.ReactNode) => {
 
   return render(
     <React.StrictMode>
-      <QueryClientProvider client={client}>
-        <QueryClientProvider$>{ui}</QueryClientProvider$>
-      </QueryClientProvider>
+      <QueryClientProvider client={client}>{ui}</QueryClientProvider>
     </React.StrictMode>,
   )
 }

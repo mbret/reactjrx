@@ -3,7 +3,6 @@ import { cleanup, render } from "@testing-library/react"
 import React, { act, memo, useEffect, useState } from "react"
 import { interval, merge, NEVER, of, Subject, takeWhile } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
-import { QueryClientProvider$ } from "./QueryClientProvider$"
 import { useQuery$ } from "./useQuery$"
 
 afterEach(() => {
@@ -32,9 +31,7 @@ describe("Given a query that returns an interval stream", () => {
     const { findByText } = render(
       <React.StrictMode>
         <QueryClientProvider client={client}>
-          <QueryClientProvider$>
-            <Comp />
-          </QueryClientProvider$>
+          <Comp />
         </QueryClientProvider>
       </React.StrictMode>,
     )
@@ -59,9 +56,7 @@ describe("Given a query that returns a value synchronously but keep going", () =
     const { findByText } = render(
       <React.StrictMode>
         <QueryClientProvider client={client}>
-          <QueryClientProvider$>
-            <Comp />
-          </QueryClientProvider$>
+          <Comp />
         </QueryClientProvider>
       </React.StrictMode>,
     )
@@ -90,9 +85,7 @@ it("should return consecutive results", async () => {
 
   const { findByText } = render(
     <QueryClientProvider client={client}>
-      <QueryClientProvider$>
-        <Comp />
-      </QueryClientProvider$>
+      <Comp />
     </QueryClientProvider>,
   )
 
@@ -104,17 +97,36 @@ it("should return consecutive results", async () => {
     fetchStatus: "fetching",
   })
 
-  /**
-   * The first value resolves the fetch; the later ones are written into the
-   * cache as the stream emits them, without starting a fetch.
-   */
-  expect(states.slice(1)).toMatchObject(
-    [0, 1, 2, 3, 4, 5].map((data) => ({
-      data,
-      fetchStatus: "idle",
-      status: "success",
-    })),
-  )
+  expect(states[1]).toMatchObject({
+    data: 0,
+    fetchStatus: "fetching",
+  })
+
+  expect(states[2]).toMatchObject({
+    data: 1,
+    fetchStatus: "fetching",
+  })
+
+  expect(states[3]).toMatchObject({
+    data: 2,
+    fetchStatus: "fetching",
+  })
+
+  expect(states[4]).toMatchObject({
+    data: 3,
+    fetchStatus: "fetching",
+  })
+
+  expect(states[5]).toMatchObject({
+    data: 4,
+    fetchStatus: "fetching",
+  })
+
+  expect(states[6]).toMatchObject({
+    data: 5,
+    fetchStatus: "idle",
+    status: "success",
+  })
 })
 
 it("should return consecutive results", async () => {
@@ -139,9 +151,7 @@ it("should return consecutive results", async () => {
   const { findByText } = render(
     <React.StrictMode>
       <QueryClientProvider client={client}>
-        <QueryClientProvider$>
-          <Comp />
-        </QueryClientProvider$>
+        <Comp />
       </QueryClientProvider>
     </React.StrictMode>,
   )

@@ -11,7 +11,6 @@ import {
   createObservableQueryFn,
   type ObservableQueryFn,
 } from "./createObservableQueryFn"
-import { useQueryClient$ } from "./QueryClientProvider$"
 
 type MAXIMUM_DEPTH = 20
 
@@ -116,11 +115,9 @@ export function useQueries$<
   },
   queryClient?: QueryClient,
 ): TCombinedResult {
-  const queryClient$ = useQueryClient$()
-
   const transformedQueries = queries.map((query) => ({
     ...query,
-    queryFn: createObservableQueryFn(queryClient$, query.queryFn),
+    queryFn: createObservableQueryFn(query.queryFn),
   }))
 
   return useQueries(

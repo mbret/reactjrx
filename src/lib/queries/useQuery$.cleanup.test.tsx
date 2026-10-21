@@ -5,7 +5,6 @@ import { act, StrictMode } from "react"
 import { EMPTY, finalize, timer } from "rxjs"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { waitForTimeout } from "../../tests/utils"
-import { QueryClient$, QueryClientProvider$ } from "./QueryClientProvider$"
 import { useQuery$ } from "./useQuery$"
 
 afterEach(() => {
@@ -36,9 +35,7 @@ describe("Given a long observable", () => {
       const { unmount } = render(
         <StrictMode>
           <QueryClientProvider client={client}>
-            <QueryClientProvider$>
-              <Comp />
-            </QueryClientProvider$>
+            <Comp />
           </QueryClientProvider>
         </StrictMode>,
       )
@@ -53,9 +50,8 @@ describe("Given a long observable", () => {
       expect(tapped).toBe(2)
     })
 
-    it("clears QueryClient$ cache and stops the in-flight stream on unmount", async () => {
+    it("stops the in-flight stream on unmount", async () => {
       let finalizeCount = 0
-      const queryClient$ = new QueryClient$()
 
       const Comp = () => {
         useQuery$({
@@ -76,9 +72,7 @@ describe("Given a long observable", () => {
       const { unmount } = render(
         <StrictMode>
           <QueryClientProvider client={tanstackClient}>
-            <QueryClientProvider$ client={queryClient$}>
-              <Comp />
-            </QueryClientProvider$>
+            <Comp />
           </QueryClientProvider>
         </StrictMode>,
       )
@@ -87,7 +81,8 @@ describe("Given a long observable", () => {
         await waitForTimeout(15)
       })
 
-      expect(queryClient$.queryMap.size).toBe(1)
+      // StrictMode's extra unmount already tore the first stream down
+      expect(finalizeCount).toBe(1)
 
       await act(async () => {
         unmount()
@@ -97,8 +92,7 @@ describe("Given a long observable", () => {
         await waitForTimeout(15)
       })
 
-      expect(queryClient$.queryMap.size).toBe(0)
-      // StrictMode mount / unmount / remount / final unmount → two shared streams torn down
+      // StrictMode mount / unmount / remount / final unmount → two streams torn down
       expect(finalizeCount).toBe(2)
     })
   })
@@ -127,9 +121,7 @@ describe("Observable completes without emitting", () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <QueryClientProvider$>
-          <Comp />
-        </QueryClientProvider$>
+        <Comp />
       </QueryClientProvider>,
     )
 
@@ -172,9 +164,7 @@ describe("Observable completes without emitting", () => {
         client={queryClient}
         persistOptions={{ persister, maxAge: 86_400_000 }}
       >
-        <QueryClientProvider$>
-          <Comp />
-        </QueryClientProvider$>
+        <Comp />
       </PersistQueryClientProvider>,
     )
 
@@ -193,7 +183,7 @@ describe("Observable completes without emitting", () => {
 })
 
 describe("Given an observable that completes", () => {
-  it("should remove it from cache and finalize the subscription", async () => {
+  it("should finalize the subscription", async () => {
     let tapped = 0
 
     const Comp = () => {
@@ -212,14 +202,11 @@ describe("Given an observable that completes", () => {
     }
 
     const client = new QueryClient()
-    const reactJrxQueryClient = new QueryClient$()
 
     render(
       <StrictMode>
         <QueryClientProvider client={client}>
-          <QueryClientProvider$ client={reactJrxQueryClient}>
-            <Comp />
-          </QueryClientProvider$>
+          <Comp />
         </QueryClientProvider>
       </StrictMode>,
     )
@@ -229,6 +216,5 @@ describe("Given an observable that completes", () => {
     })
 
     expect(tapped).toBe(2)
-    expect(reactJrxQueryClient.queryMap.size).toBe(0)
   })
 })

@@ -2,7 +2,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { act, render } from "@testing-library/react"
 import { Subject } from "rxjs"
 import { afterAll, expect, it } from "vitest"
-import { QueryClientProvider$ } from "../lib/queries/QueryClientProvider$"
 import { useQuery$ } from "../lib/queries/useQuery$"
 
 /**
@@ -23,9 +22,7 @@ it("lets queued TanStack updates run before jsdom is torn down", async () => {
 
   const { findByText } = render(
     <QueryClientProvider client={client}>
-      <QueryClientProvider$>
-        <Comp />
-      </QueryClientProvider$>
+      <Comp />
     </QueryClientProvider>,
   )
 

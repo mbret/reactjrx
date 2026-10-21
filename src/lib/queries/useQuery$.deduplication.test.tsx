@@ -3,7 +3,6 @@ import { cleanup, render } from "@testing-library/react"
 import React, { act } from "react"
 import { interval, map, Subject, take, tap } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
-import { QueryClientProvider$ } from "./QueryClientProvider$"
 import { useQuery$ } from "./useQuery$"
 
 afterEach(() => {
@@ -39,9 +38,7 @@ describe("Given a query that takes time to finish", () => {
 
       render(
         <QueryClientProvider client={client}>
-          <QueryClientProvider$>
-            <Comp />
-          </QueryClientProvider$>
+          <Comp />
         </QueryClientProvider>,
       )
 
@@ -98,9 +95,7 @@ describe("Given a query that takes time to finish", () => {
         const { findByText } = render(
           <React.StrictMode>
             <QueryClientProvider client={client}>
-              <QueryClientProvider$>
-                <Comp />
-              </QueryClientProvider$>
+              <Comp />
             </QueryClientProvider>
           </React.StrictMode>,
         )

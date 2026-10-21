@@ -9,7 +9,6 @@ import {
   createObservableQueryFn,
   type ObservableQueryFn,
 } from "./createObservableQueryFn"
-import { useQueryClient$ } from "./QueryClientProvider$"
 
 export function useQuery$<
   TQueryFnData = unknown,
@@ -28,12 +27,10 @@ export function useQuery$<
   },
   queryClient?: QueryClient,
 ) {
-  const queryClient$ = useQueryClient$()
-
   const result = useQuery<TQueryFnData, TError, TData, TQueryKey>(
     {
       ...options,
-      queryFn: createObservableQueryFn(queryClient$, queryFn),
+      queryFn: createObservableQueryFn(queryFn),
     },
     queryClient,
   )
