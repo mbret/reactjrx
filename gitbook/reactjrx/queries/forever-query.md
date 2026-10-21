@@ -33,18 +33,13 @@ TanStack refetches queries in several situations: window focus, network reconnec
 
 A running stream keeps its query up to date, and automatic refetches join it, so a longer `staleTime` saves nothing for a live query. It can even keep the stream from opening: data that a running stream doesn't back, such as `initialData`, a cache restored from storage, or the last value of a stream that stopped when its component unmounted, then counts as fresh, so the query doesn't fetch and its stream doesn't start.
 
-### Refetching a running stream keeps it
+### Explicit refetches restart the stream
 
-`refetch()`, `queryClient.refetchQueries()` and `queryClient.invalidateQueries()` don't restart a stream that is running, since it already keeps the data up to date. They settle right away with its current value, so you can `await` them, or return one from a mutation's `onSuccess`, as with any query.
+As for any query, `refetch()`, `queryClient.refetchQueries()`, `queryClient.invalidateQueries()` and `queryClient.resetQueries()` cancel the fetch in progress and run the `queryFn` again: the running stream stops and a new one starts. The data stays until the new stream emits, except after `resetQueries()`, which first puts the query back in its initial state.
 
-To restart a stream from scratch, cancel it first, then refetch:
+They settle with the new stream's first value, so you can `await` them, or return one from a mutation's `onSuccess`, as with any query. A stream that emits its current value when subscribed, such as a `BehaviorSubject` or most live database queries, settles them right away. A stream that only emits on events settles them at its next event.
 
-```typescript
-await queryClient.cancelQueries({ queryKey: ["interval"] })
-await queryClient.refetchQueries({ queryKey: ["interval"] })
-```
-
-A refetch that joins the running fetch instead of replacing it, such as `refetch({ cancelRefetch: false })`, waits for the stream to end.
+A refetch that joins the running fetch instead of replacing it, such as `refetch({ cancelRefetch: false })`, keeps the stream and waits for it to end.
 
 ### Stopping the stream
 

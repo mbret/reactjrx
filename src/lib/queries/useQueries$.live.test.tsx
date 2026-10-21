@@ -81,7 +81,7 @@ describe("useQueries$ with live queries", () => {
     expect(live.queryClient.getQueryData(live.firstKey)).toBe("b")
   })
 
-  it("keeps both streams when the queries are invalidated", {
+  it("restarts both streams when the queries are invalidated", {
     timeout: 3000,
   }, async () => {
     const live = await renderLiveQueries()
@@ -91,8 +91,8 @@ describe("useQueries$ with live queries", () => {
     act(() => live.first$.next("b"))
 
     expect(live.queryClient.getQueryData(live.firstKey)).toBe("b")
-    expect(live.first).toEqual({ made: 1, open: 1 })
-    expect(live.second).toEqual({ made: 1, open: 1 })
+    expect(live.first).toEqual({ made: 2, open: 1 })
+    expect(live.second).toEqual({ made: 2, open: 1 })
   })
 
   it("stops only the stream of the cancelled query", {
