@@ -1,6 +1,6 @@
 # useObserve
 
-The `useObserve` hook subscribe to an observable and return the latest value. This hook is the building block of higher order hooks such as the ones used in [Queries](https://app.gitbook.com/s/uE1Z7PHuhXh0NunQ33Mr/queries "mention").&#x20;
+The `useObserve` hook subscribes to an observable and returns its latest value, along with the state of the stream. It is the building block of higher order hooks such as the ones used in [Queries](https://app.gitbook.com/s/uE1Z7PHuhXh0NunQ33Mr/queries "mention").&#x20;
 
 ```typescript
 useObserve(source, optionsOrDeps?, deps?)
@@ -10,8 +10,8 @@ useObserve(source, optionsOrDeps?, deps?)
 
 ```typescript
 function App () {
-    const user = useObserve(user$)
-    
+    const { data: user } = useObserve(user$)
+
     return <div>current user: { user?.name }</div>
 }
 ```
@@ -19,103 +19,119 @@ function App () {
 ***
 
 ```typescript
-function useObserve<T>(
-  source: Observable<T> | (() => Observable<T>),
-  optionsOrDeps?: Option<T> | DependencyList,
+function useObserve<T, DefaultValue>(
+  source: Observable<T> | (() => Observable<T> | undefined) | undefined,
+  optionsOrDeps?: Options<T, DefaultValue> | DependencyList,
   deps?: DependencyList
-): T
+): {
+  data: T | DefaultValue
+  status: "pending" | "success" | "error"
+  observableState: "live" | "complete" | "error"
+  error: unknown
+}
 ```
 
 ```typescript
-interface Option<R = undefined> {
-  defaultValue: R
-  unsubscribeOnUnmount?: boolean
+interface Options<T, DefaultValue> {
+  defaultValue?: DefaultValue
+  compareFn?: (a: T, b: T) => boolean
 }
 ```
 
 ### Parameters
 
-* `source` : Observable or a function returning an observable. If you have a stable reference to an observable you can pass it directly, otherwise you should use the factory function to avoid unwanted re-render. Deps can be used to optimise re-render further.
-* **optional** `options` : options lets you define a default value to use and control the subscription on unmount. By default the observable will be unsubscribed on unmount. `defaultValue` can be used to prevent returning `undefined` until your observable emit its first value. You don't need `defaultValue` with `BehaviorSubject`
-* **optional** `deps` : The list of all reactive values referenced inside of the `fn` code. Reactive values include props, state, and all the variables and functions declared directly inside your component body. The list of dependencies must have a constant number of items and be written inline like `[dep1, dep2, dep3]`. React will compare each dependency with its previous value using the [`Object.is`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is) comparison algorithm.
+* `source`: An observable, a function returning one, or `undefined`. Pass a stable observable directly: the hook subscribes to it again when its reference changes. Otherwise pass a function with `deps`, so the observable is only created again when a dependency changes. With `undefined`, nothing is observed and the default value is returned.
+* **optional** `options`:
+  * `defaultValue`: returned until the source emits its first value. A `BehaviorSubject`, or any source that emits synchronously when subscribed, doesn't need it: its value is there on the first render.
+  * `compareFn`: tells whether a new value equals the previous one. An equal value doesn't re-render. Defaults to strict equality (`===`). Pass your own function, for example a shallow comparison, to compare objects by content.
+* **optional** `deps`: The values the function depends on. When one of them changes (compared with [`Object.is`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is)), the function is called again and its observable replaces the previous one.
 
 ### Returns
 
-Will return `undefined` until a value is provided to your observable. If you are using a `BehaviorSubject` or `defaultValue` option, it will return this value first. There is a shallow comparison internally which will prevent re-render if a new value is equal to the previous one.
+An object with:
+
+* `data`: the latest value. Before the first emission, it's the `BehaviorSubject`'s value or `defaultValue` (`undefined` otherwise).
+* `status`: `"pending"` while the source is live, `"success"` once it completes, `"error"` once it errors.
+* `observableState`: `"live"`, `"complete"` or `"error"`.
+* `error`: the error the source failed with, when `status` is `"error"`.
 
 ### **Caveats**&#x20;
 
-* Due to the nature of observable the first value will be undefined until the hook can subscribe to the source. Once the subscription done and if a value is emitted a new render will occurs. You can use a `BehaviorSubject` or `defaultValue` to mitigate it. We will bring support to Suspense in the future.
-* Due to internal optimization if your observable emit a new value, it will not re-render if the value is shallow equal to the previous one.
-* The hook will log and swallow any error caught. You should handle it on your side if needed.
+* The hook subscribes while rendering, so a source that emits synchronously (`of(x)`, a `BehaviorSubject`, a `ReplaySubject` holding a value) has its value on the first render. A source that emits later returns the default value until it does.
+* A new value that `compareFn` considers equal to the previous one doesn't re-render. By default that's strict equality, so a new object with the same content does re-render.
+* An error doesn't throw: the hook returns `status: "error"` with the `error`, keeps the last `data`, and doesn't report the error as unhandled.
+* Once the source has completed or errored, the hook doesn't subscribe to it again. Pass a new source, or change `deps`, to start over.
 
 ## Usages
 
 #### Displaying a timer
 
-Here we display an infinite timer which start at `0`. We take advantage of `defaultValue` since our observable cannot emit a value synchronously on first render. The map make sure to have `1` instead of `0` as first emitted value from the source.
+Here we display an infinite timer which starts at `0`. The timer can't emit on the first render, so `defaultValue` provides a value until it does. The `map` makes `1` the first value the source emits.
 
 ```typescript
 function App () {
-    const currentTime = useObserve(
-      () => {
-        return interval(1000).pipe(map((value) => value + 1))
-      },
+    const { data: currentTime } = useObserve(
+      () => interval(1000).pipe(map((value) => value + 1)),
       { defaultValue: 0 },
       []
     )
-    
+
     return <div>{ currentTime }</div>
 }
 ```
 
 #### Subscribing to an external subject
 
-Because our subject is a `BehaviorSubject` we can get the right value from the first render.
+A `BehaviorSubject` always holds a value, so it's there on the first render.
 
-<pre class="language-typescript"><code class="lang-typescript"><strong>const clickedSubject = new BehaviorSubject(0)
-</strong><strong>
-</strong><strong>function App () {
-</strong>    const clicked = useObserve(clickedSubject)
-    
+```typescript
+const clickedSubject = new BehaviorSubject(0)
+
+function App () {
+    const { data: clicked } = useObserve(clickedSubject)
+
     return (
-        &#x3C;div>
-            &#x3C;div>User clicked { clicked } times&#x3C;/div>
-            &#x3C;button onClick={() => clickedSubject.next(clicked + 1) }>click me!&#x3C;/button>
-        &#x3C;/div>
+        <div>
+            <div>User clicked { clicked } times</div>
+            <button onClick={() => clickedSubject.next(clicked + 1)}>click me!</button>
+        </div>
     )
 }
-</code></pre>
+```
 
-In a situation where you cannot have a `BehaviorSubject` but you know your observable will emit a value as soon as being subscribed you can either check for undefined or use a different defaultValue to handle the situation.
+Any source that emits synchronously when subscribed, such as a `ReplaySubject` that already holds a value, is there on the first render too. Its type doesn't say so, though, so handle `undefined` or pass a `defaultValue`:
 
-<pre class="language-typescript"><code class="lang-typescript"><strong>const clickedSubject = new ReplaySubject(1)
-</strong><strong>
-</strong><strong>function App () {
-</strong>    const clicked = useObserve(clickedSubject)
-    
+```typescript
+const clickedSubject = new ReplaySubject<number>(1)
+
+function App () {
+    const { data: clicked } = useObserve(clickedSubject)
+
     if (clicked === undefined) return null
-    
+
     return (
-        &#x3C;div>
-            &#x3C;div>User clicked { clicked } times&#x3C;/div>
-            &#x3C;button onClick={() => clickedSubject.next(clicked + 1) }>click me!&#x3C;/button>
-        &#x3C;/div>
+        <div>
+            <div>User clicked { clicked } times</div>
+            <button onClick={() => clickedSubject.next(clicked + 1)}>click me!</button>
+        </div>
     )
 }
-</code></pre>
+```
 
-This limitation is due to the fact the hook will subscribe to the observable after the first render. If you know your observable emit a value on subscription you don't need a skeleton or loading state since it will be re-rendered immediately. You can return null or deal with undefined object access and it will be virtually impossible for the user to see it.
+#### Selecting part of a value
 
-### Selector
-
-You can use the selector option to observe only a subset of your object. This will also use a shallow comparison by default to prevent unnecessary re-render since we are not. just subscribing to the observable raw value.
-
-When using a factory, selectors are not available. It would conflict with the function signature expecting DependencyList. In this situation you are best suited to customize your returned observable anyway.
+There is no selector option: map the source to the part you need, and skip values whose selected part didn't change with `distinctUntilChanged`.
 
 ```typescript
 const value$ = new BehaviorSubject({ foo: "bar", bar: "foo" })
 
 // in your component
-const { foo } = useObserve(value$, ["foo"]) // -> Return type is { foo: string }
+const { data: foo } = useObserve(
+  () =>
+    value$.pipe(
+      map(({ foo }) => foo),
+      distinctUntilChanged()
+    ),
+  []
+)
 ```

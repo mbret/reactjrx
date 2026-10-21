@@ -91,13 +91,20 @@ export class ObservableStore<T, DefaultValue, Error = unknown> {
      * Technically the whole pipe chain runs "synchronously".
      *
      * This is not a guarantee, just that in best case scenario there will be only one render.
+     *
+     * An error is returned in the state, so it is handled here rather than
+     * reported to RxJS as unhandled.
      */
-    this.sub = this.source$.subscribe()
+    this.sub = this.source$.subscribe({ error: () => {} })
   }
 
   subscribe = (next: () => void) => {
-    // in some case the observable is already complete by the time we subscribe to it.
-    if (this.state.observableState === "complete") {
+    /**
+     * The stream may already have completed or errored by the time React
+     * subscribes. It won't emit again, and subscribing to the shared source
+     * would only run it a second time.
+     */
+    if (this.state.observableState !== "live") {
       return () => {}
     }
 
