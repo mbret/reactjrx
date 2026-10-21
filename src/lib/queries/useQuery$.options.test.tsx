@@ -57,10 +57,9 @@ describe("live query key changes", () => {
     await waitForData("b1")
     await act(() => waitForTimeout(20))
 
-    // The previous key's query stopped its stream and is marked stale.
+    // The previous key's query stopped its stream.
     expect(counted.a.subscriptions).toEqual({ made: 1, open: 0 })
     expect(counted.b.subscriptions).toEqual({ made: 1, open: 1 })
-    expect(queryClient.getQueryState(["live", "a"])?.isInvalidated).toBe(true)
 
     sources.a.next("a2")
 
@@ -145,7 +144,6 @@ describe("live query enabled option", () => {
     expect(live.queryClient.getQueryState(live.queryKey)).toMatchObject({
       data: "a",
       fetchStatus: "idle",
-      isInvalidated: true,
     })
 
     act(() => live.source$.next("b"))
@@ -185,10 +183,9 @@ describe("live query enabled option", () => {
     // No fetch follows the stream once the first one finished.
     expect(fetchesStarted).toBe(0)
     expect(live.subscriptions).toEqual({ made: 1, open: 0 })
-    expect(live.queryClient.getQueryState(live.queryKey)).toMatchObject({
-      fetchStatus: "idle",
-      isInvalidated: true,
-    })
+    expect(live.queryClient.getQueryState(live.queryKey)?.fetchStatus).toBe(
+      "idle",
+    )
   })
 
   it("keeps the stream while another component has the query enabled", {

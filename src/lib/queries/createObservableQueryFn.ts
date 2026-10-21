@@ -49,7 +49,7 @@ type Stream = {
   fetch: StreamFetch | undefined
   /** Set while the bridge starts the fetch that follows the stream. */
   isStartingFollow: boolean
-  stop: (options?: { invalidate?: boolean }) => void
+  stop: () => void
 }
 
 const streams = new WeakMap<Query, Stream>()
@@ -168,8 +168,8 @@ function takeOver(stream: Stream, fetch: StreamFetch) {
  * fetch in progress and starts its own right away, which takes the stream
  * over. Anything else that cancels it (the last observer leaving,
  * `cancelQueries`, the query leaving the cache) stops the stream. The values
- * it wrote stay in the cache but no longer follow it, so the query is marked
- * stale: the next observer that needs it refetches, whatever its `staleTime`.
+ * it wrote stay in the cache, and `staleTime` decides when the query
+ * refetches, as for any query.
  */
 function watchAbort(stream: Stream, fetch: StreamFetch, signal: AbortSignal) {
   signal.addEventListener(
@@ -181,9 +181,7 @@ function watchAbort(stream: Stream, fetch: StreamFetch, signal: AbortSignal) {
       fetch.reject(new CancelledError())
 
       queueMicrotask(() => {
-        if (!stream.fetch && !stream.isStartingFollow) {
-          stream.stop({ invalidate: true })
-        }
+        if (!stream.fetch && !stream.isStartingFollow) stream.stop()
       })
     },
     { once: true },
@@ -207,7 +205,7 @@ function startStream(
     isComplete: false,
     fetch,
     isStartingFollow: false,
-    stop: ({ invalidate = false } = {}) => {
+    stop: () => {
       if (isStopped) return
 
       isStopped = true
@@ -215,8 +213,6 @@ function startStream(
       unsubscribeFromCache()
 
       if (streams.get(query) === stream) streams.delete(query)
-
-      if (invalidate && stream.last) query.invalidate()
     },
   }
 
@@ -249,7 +245,7 @@ function startStream(
        * progress. The fetch finished, as TanStack lets it, but the stream
        * does not go on.
        */
-      stream.stop({ invalidate: true })
+      stream.stop()
     } else {
       stream.isStartingFollow = true
       query.fetch().catch(() => {})
@@ -281,7 +277,7 @@ function startStream(
       !query.isActive()
     ) {
       query.cancel({ revert: true })
-      stream.stop({ invalidate: true })
+      stream.stop()
     }
 
     /**
@@ -294,7 +290,7 @@ function startStream(
         query.getObserversCount() === 0) ||
       event.type === "removed"
     ) {
-      stream.stop({ invalidate: event.type === "observerRemoved" })
+      stream.stop()
     }
   })
 

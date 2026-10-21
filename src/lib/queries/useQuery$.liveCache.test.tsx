@@ -1,9 +1,10 @@
 import { focusManager, MutationObserver } from "@tanstack/react-query"
 import { act, render, screen, waitFor } from "@testing-library/react"
 import { StrictMode, useState } from "react"
-import { concat, defer, NEVER, of, Subject } from "rxjs"
+import { BehaviorSubject, concat, defer, NEVER, of, Subject } from "rxjs"
 import { describe, expect, it, vi } from "vitest"
 import {
+  countSubscriptions,
   createLiveQuerySource,
   createQueryClient,
   createWrapper,
@@ -406,7 +407,7 @@ describe("live query refetch", () => {
 })
 
 describe("live query cancellation", () => {
-  it("stops the stream on cancelQueries and marks the query stale", {
+  it("stops the stream on cancelQueries", {
     timeout: 3000,
   }, async () => {
     const queryKey = ["live", "cancel"]
@@ -420,7 +421,6 @@ describe("live query cancellation", () => {
     expect(queryClient.getQueryState(queryKey)).toMatchObject({
       data: ["a"],
       fetchStatus: "idle",
-      isInvalidated: true,
       status: "success",
     })
 
@@ -531,7 +531,6 @@ describe("live query lifecycle", () => {
     act(() => toggle())
 
     expect(liveQuery$.observed).toBe(false)
-    expect(queryClient.getQueryState(queryKey)?.isInvalidated).toBe(true)
 
     liveQuery$.next(["a", "b"])
 
@@ -542,6 +541,54 @@ describe("live query lifecycle", () => {
     act(() => liveQuery$.next(["a", "b", "c"]))
 
     expect(queryClient.getQueryData(queryKey)).toEqual(["a", "b", "c"])
+  })
+
+  it("leaves it to staleTime whether a remount reopens the stream", {
+    timeout: 3000,
+  }, async () => {
+    const queryKey = ["live", "remount-fresh"]
+    const source$ = new BehaviorSubject(["a"])
+    const { counted$, subscriptions } = countSubscriptions(source$)
+    const queryClient = createQueryClient()
+    let toggle = () => {}
+
+    function List() {
+      "use no memo"
+
+      const { data } = useQuery$({
+        ...liveQueryOptions,
+        gcTime: Number.POSITIVE_INFINITY,
+        staleTime: Number.POSITIVE_INFINITY,
+        queryKey,
+        queryFn: () => counted$,
+      })
+
+      return <span data-testid="data">{JSON.stringify(data)}</span>
+    }
+
+    function Host() {
+      "use no memo"
+
+      const [isVisible, setIsVisible] = useState(true)
+
+      toggle = () => setIsVisible((value) => !value)
+
+      return isVisible ? <List /> : null
+    }
+
+    render(<Host />, { wrapper: createWrapper(queryClient) })
+
+    await waitForData(["a"])
+
+    act(() => toggle())
+    act(() => source$.next(["a", "b"]))
+    act(() => toggle())
+
+    await act(() => waitForTimeout(20))
+
+    // As for any query, a value still fresh is shown without fetching again.
+    expect(screen.getByTestId("data").textContent).toBe('["a"]')
+    expect(subscriptions).toEqual({ made: 1, open: 0 })
   })
 
   it("keeps the stream open under StrictMode", {
@@ -611,7 +658,6 @@ describe("live query lifecycle", () => {
     expect(queryClient.getQueryState(queryKey)).toMatchObject({
       data: ["a", "b"],
       fetchStatus: "idle",
-      isInvalidated: true,
     })
     expect(liveQuery$.observed).toBe(false)
   })

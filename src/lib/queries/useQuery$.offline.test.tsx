@@ -83,13 +83,11 @@ describe("live query while offline", () => {
   it("stops the stream when its last observer unmounts while offline", {
     timeout: 3000,
   }, async () => {
-    const { subscriptions, queryClient, queryKey, unmount } =
-      await renderPausedLiveQuery()
+    const { subscriptions, unmount } = await renderPausedLiveQuery()
 
     unmount()
     await act(() => waitForTimeout(20))
 
     expect(subscriptions).toEqual({ made: 1, open: 0 })
-    expect(queryClient.getQueryState(queryKey)?.isInvalidated).toBe(true)
   })
 })

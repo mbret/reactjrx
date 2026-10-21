@@ -31,7 +31,7 @@ TanStack refetches queries in several situations: window focus, network reconnec
 
 ### Keep the default `staleTime`
 
-A running stream keeps its query up to date, and automatic refetches join it, so a longer `staleTime` saves nothing for a live query. It can even keep the stream from opening: data that arrives without a running stream, such as `initialData` or a cache restored from storage, then counts as fresh, so the query doesn't fetch and its stream never starts.
+A running stream keeps its query up to date, and automatic refetches join it, so a longer `staleTime` saves nothing for a live query. It can even keep the stream from opening: data that a running stream doesn't back, such as `initialData`, a cache restored from storage, or the last value of a stream that stopped when its component unmounted, then counts as fresh, so the query doesn't fetch and its stream doesn't start.
 
 ### Refetching a running stream keeps it
 
@@ -55,11 +55,11 @@ The observable is unsubscribed when its fetch is cancelled:
 * with `queryClient.cancelQueries()`,
 * when the query is removed from the cache, for example with `queryClient.clear()`.
 
-The values already received stay in the cache, and the query is marked stale, so it refetches the next time a component needs it: enabling it again reopens the stream.
+The values already received stay in the cache. As for any query, `staleTime` decides when it refetches, which reopens the stream: with the default, the next time a component needs it, for example when it mounts again or is enabled again.
 
 As TanStack does with any fetch in progress, disabling a query lets a fetch that waits for the stream's first value finish: the stream stops once it has delivered that value.
 
-A fetch of a query that no component uses, such as `queryClient.refetchQueries()` on an inactive query, takes the stream's first value and stops, and the query is marked stale: nothing would ever cancel the stream otherwise.
+A fetch of a query that no component uses, such as `queryClient.refetchQueries()` on an inactive query, takes the stream's first value and stops: nothing would ever cancel the stream otherwise.
 
 ### Completion and errors
 
