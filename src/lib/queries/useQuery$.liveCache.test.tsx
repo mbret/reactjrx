@@ -380,7 +380,6 @@ describe("live query refetch", () => {
     function Comp() {
       const { data } = useQuery$({
         ...liveQueryOptions,
-        staleTime: 0,
         queryKey,
         queryFn: spiedQueryFn,
       })

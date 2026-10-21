@@ -29,6 +29,10 @@ This query never completes and emits a new value every second:
 
 TanStack refetches queries in several situations: window focus, network reconnection, another component mounting the query, `refetchInterval`. While the stream runs, these join the running fetch: the observable is not subscribed again.
 
+### Keep the default `staleTime`
+
+A running stream keeps its query up to date, and automatic refetches join it, so a longer `staleTime` saves nothing for a live query. It can even keep the stream from opening: data that arrives without a running stream, such as `initialData` or a cache restored from storage, then counts as fresh, so the query doesn't fetch and its stream never starts.
+
 ### Refetching a running stream keeps it
 
 `refetch()`, `queryClient.refetchQueries()` and `queryClient.invalidateQueries()` don't restart a stream that is running, since it already keeps the data up to date. They settle right away with its current value, so you can `await` them, or return one from a mutation's `onSuccess`, as with any query.
