@@ -4,7 +4,6 @@ import React, { act, StrictMode } from "react"
 import { of } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
 import { printQuery } from "../../tests/testUtils"
-import { QueryClientProvider$ } from "./QueryClientProvider$"
 import { useQuery$ } from "./useQuery$"
 
 afterEach(() => {
@@ -65,9 +64,7 @@ describe("useQuery", () => {
           const { findByText, getByText } = render(
             <StrictMode>
               <QueryClientProvider client={client}>
-                <QueryClientProvider$>
-                  <Main />
-                </QueryClientProvider$>
+                <Main />
               </QueryClientProvider>
             </StrictMode>,
           )

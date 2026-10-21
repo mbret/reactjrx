@@ -3,7 +3,6 @@ import { cleanup, render } from "@testing-library/react"
 import React, { act, memo, useEffect, useState } from "react"
 import { interval, merge, NEVER, of, Subject, takeWhile } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
-import { QueryClientProvider$ } from "./QueryClientProvider$"
 import { useQuery$ } from "./useQuery$"
 
 afterEach(() => {
@@ -32,9 +31,7 @@ describe("Given a query that returns an interval stream", () => {
     const { findByText } = render(
       <React.StrictMode>
         <QueryClientProvider client={client}>
-          <QueryClientProvider$>
-            <Comp />
-          </QueryClientProvider$>
+          <Comp />
         </QueryClientProvider>
       </React.StrictMode>,
     )
@@ -59,9 +56,7 @@ describe("Given a query that returns a value synchronously but keep going", () =
     const { findByText } = render(
       <React.StrictMode>
         <QueryClientProvider client={client}>
-          <QueryClientProvider$>
-            <Comp />
-          </QueryClientProvider$>
+          <Comp />
         </QueryClientProvider>
       </React.StrictMode>,
     )
@@ -90,9 +85,7 @@ it("should return consecutive results", async () => {
 
   const { findByText } = render(
     <QueryClientProvider client={client}>
-      <QueryClientProvider$>
-        <Comp />
-      </QueryClientProvider$>
+      <Comp />
     </QueryClientProvider>,
   )
 
@@ -158,9 +151,7 @@ it("should return consecutive results", async () => {
   const { findByText } = render(
     <React.StrictMode>
       <QueryClientProvider client={client}>
-        <QueryClientProvider$>
-          <Comp />
-        </QueryClientProvider$>
+        <Comp />
       </QueryClientProvider>
     </React.StrictMode>,
   )

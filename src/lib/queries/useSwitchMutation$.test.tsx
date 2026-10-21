@@ -5,7 +5,6 @@ import { act, useState } from "react"
 import { delay, EMPTY, finalize, map, of, timer } from "rxjs"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { waitForTimeout } from "../../tests/utils"
-import { QueryClientProvider$ } from "./QueryClientProvider$"
 import {
   SwitchMutationCancelError,
   useSwitchMutation$,
@@ -52,9 +51,7 @@ describe("useSwitchMutation$", () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <QueryClientProvider$>
-          <TestComponent />
-        </QueryClientProvider$>
+        <TestComponent />
       </QueryClientProvider>,
     )
 
@@ -127,9 +124,7 @@ describe("useSwitchMutation$", () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <QueryClientProvider$>
-          <TestComponent />
-        </QueryClientProvider$>
+        <TestComponent />
       </QueryClientProvider>,
     )
 
@@ -229,9 +224,7 @@ describe("useSwitchMutation$", () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <QueryClientProvider$>
-          <TestComponent />
-        </QueryClientProvider$>
+        <TestComponent />
       </QueryClientProvider>,
     )
 
@@ -305,9 +298,7 @@ describe("useSwitchMutation$", () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <QueryClientProvider$>
-          <TestComponent />
-        </QueryClientProvider$>
+        <TestComponent />
       </QueryClientProvider>,
     )
 

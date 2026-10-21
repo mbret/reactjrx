@@ -8,12 +8,11 @@ import { useState } from "react"
 import { BehaviorSubject } from "rxjs"
 import { describe, expect, it } from "vitest"
 import { waitForTimeout } from "../../tests/utils"
-import { QueryClient$, QueryClientProvider$ } from "./QueryClientProvider$"
 import { useQuery$ } from "./useQuery$"
 
 /**
  * Renders one consumer of a live query (a stream that never completes) and
- * returns a way to unmount it while the providers stay mounted.
+ * returns a way to unmount it while the provider stays mounted.
  */
 const renderLiveQuery = ({
   queryKeyHashFn,
@@ -22,7 +21,6 @@ const renderLiveQuery = ({
 } = {}) => {
   const source = new BehaviorSubject(1)
   const queryClient = new QueryClient()
-  const queryClient$ = new QueryClient$(queryClient)
   let hide = () => {}
 
   const Consumer = () => {
@@ -50,15 +48,12 @@ const renderLiveQuery = ({
 
   const { findByText } = render(
     <QueryClientProvider client={queryClient}>
-      <QueryClientProvider$ client={queryClient$}>
-        <Host />
-      </QueryClientProvider$>
+      <Host />
     </QueryClientProvider>,
   )
 
   return {
     source,
-    queryClient$,
     findByText,
     hide: () => act(() => hide()),
   }
@@ -91,7 +86,7 @@ describe("Given a live query with a custom queryKeyHashFn", () => {
   it("should stop the stream when its last observer unmounts", {
     timeout: 3000,
   }, async () => {
-    const { source, queryClient$, findByText, hide } = renderLiveQuery({
+    const { source, findByText, hide } = renderLiveQuery({
       queryKeyHashFn: customQueryKeyHashFn,
     })
 
@@ -104,24 +99,20 @@ describe("Given a live query with a custom queryKeyHashFn", () => {
     hide()
 
     await waitFor(() => {
-      expect(queryClient$.queryMap.size).toBe(0)
-    })
-
-    await waitFor(() => {
       expect(source.observed).toBe(false)
     })
   })
 })
 
-describe("Given a live query that has refetched", () => {
+describe("Given a live query with the default queryKeyHashFn", () => {
   it("should stop the stream when its last observer unmounts", {
     timeout: 3000,
   }, async () => {
-    const { source, queryClient$, findByText, hide } = renderLiveQuery()
+    const { source, findByText, hide } = renderLiveQuery()
 
     expect(await findByText("1")).toBeDefined()
 
-    // Let the refetch loop start waiting for the next value.
+    // Let the stream run before unmounting.
     await waitForTimeout(50)
 
     expect(source.observed).toBe(true)
@@ -131,7 +122,5 @@ describe("Given a live query that has refetched", () => {
     await waitFor(() => {
       expect(source.observed).toBe(false)
     })
-
-    expect(queryClient$.queryMap.size).toBe(0)
   })
 })

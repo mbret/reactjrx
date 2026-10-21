@@ -10,7 +10,6 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { memo, StrictMode, useState } from "react"
 import ReactDOM from "react-dom/client"
 import { interval } from "rxjs"
-import { QueryClientProvider$ } from "./lib/queries/QueryClientProvider$"
 import { useQuery$ } from "./lib/queries/useQuery$"
 import { SignalContextProvider } from "./lib/state/react/SignalContextProvider"
 import { useSignal } from "./lib/state/react/useSignal"
@@ -122,11 +121,9 @@ ReactDOM.createRoot(document.getElementById("app") as HTMLElement).render(
         maxAge: 1000 * 60 * 60 * 24,
       }}
     >
-      <QueryClientProvider$>
-        <SignalContextProvider>
-          <App />
-        </SignalContextProvider>
-      </QueryClientProvider$>
+      <SignalContextProvider>
+        <App />
+      </SignalContextProvider>
     </PersistQueryClientProvider>
   </StrictMode>,
 )

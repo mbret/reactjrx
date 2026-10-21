@@ -1,7 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type React from "react"
 import { BehaviorSubject, map } from "rxjs"
-import { QueryClientProvider$ } from "../lib/queries/QueryClientProvider$"
 
 export function createQueryClient() {
   return new QueryClient({
@@ -34,9 +33,7 @@ export function createLiveQuerySource(initialItems: string[]) {
 export function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: React.ReactNode }) {
     return (
-      <QueryClientProvider client={queryClient}>
-        <QueryClientProvider$>{children}</QueryClientProvider$>
-      </QueryClientProvider>
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
     )
   }
 }

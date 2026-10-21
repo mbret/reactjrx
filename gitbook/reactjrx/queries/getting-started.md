@@ -1,26 +1,32 @@
 ---
 description: >-
-  Start by wrapping your app with our Provider. The provider needs to be under
-  QueryClientProvider.
+  Queries run on TanStack Query: wrap your app with its QueryClientProvider and
+  you're ready.
 ---
 
 # Getting Started
 
+Queries need [TanStack Query](https://tanstack.com/query/latest) 5.85.1 or later. Wrap your app with its `QueryClientProvider`, as for any TanStack query.
+
 ```tsx
-import { QueryClientProvider$ } from "reactjrx"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+
+const client = new QueryClient()
 
 export const Main = () => {
     return (
       <StrictMode>
         <QueryClientProvider client={client}>
-          <QueryClientProvider$>
-            <App />
-          </QueryClientProvider$>
+          <App />
         </QueryClientProvider>
       </StrictMode>
     )
 }
 ```
+
+{% hint style="info" %}
+Earlier versions of reactjrx also needed a `QueryClientProvider$` wrapper. It no longer exists: remove it.
+{% endhint %}
 
 You can then start using our custom hooks.
 

@@ -5,7 +5,6 @@ import { Subject } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
 import { printQuery } from "../../tests/testUtils"
 import { waitForTimeout } from "../../tests/utils"
-import { QueryClientProvider$ } from "./QueryClientProvider$"
 import { useQuery$ } from "./useQuery$"
 
 afterEach(() => {
@@ -44,9 +43,7 @@ describe("useQuery", () => {
           const { findByText, rerender } = render(
             <React.StrictMode>
               <QueryClientProvider client={client}>
-                <QueryClientProvider$>
-                  <Comp queryKey="1" />
-                </QueryClientProvider$>
+                <Comp queryKey="1" />
               </QueryClientProvider>
             </React.StrictMode>,
           )
@@ -70,9 +67,7 @@ describe("useQuery", () => {
           rerender(
             <React.StrictMode>
               <QueryClientProvider client={client}>
-                <QueryClientProvider$>
-                  <Comp queryKey="2" />
-                </QueryClientProvider$>
+                <Comp queryKey="2" />
               </QueryClientProvider>
             </React.StrictMode>,
           )

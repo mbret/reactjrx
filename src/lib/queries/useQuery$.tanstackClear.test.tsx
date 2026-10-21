@@ -4,15 +4,14 @@ import { act, StrictMode } from "react"
 import { of } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
 import { printQuery } from "../../tests/testUtils"
-import { QueryClientProvider$ } from "./QueryClientProvider$"
 import { useQuery$ } from "./useQuery$"
 
 afterEach(() => {
   cleanup()
 })
 
-describe("QueryClientProvider$ TanStack cache sync", () => {
-  it("drops observable cache when TanStack removes a query so a remounted observer refetches", async () => {
+describe("Given a query removed from the TanStack cache", () => {
+  it("should refetch when an observer mounts again", async () => {
     let calls = 0
 
     const Comp = () => {
@@ -34,9 +33,7 @@ describe("QueryClientProvider$ TanStack cache sync", () => {
     const tree = (
       <StrictMode>
         <QueryClientProvider client={tanstackClient}>
-          <QueryClientProvider$>
-            <Comp />
-          </QueryClientProvider$>
+          <Comp />
         </QueryClientProvider>
       </StrictMode>
     )

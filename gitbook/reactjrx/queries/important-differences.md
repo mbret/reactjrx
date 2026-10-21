@@ -2,40 +2,40 @@
 
 Due to the nature of observables and  reactjrx is based on the React Query API there are some important differences to note.
 
-## Delayed `success` fetchStatus
+## `status` and `fetchStatus` do not change together
 
-After a successful query, the query return its data and a `success` fetchStatus. Normally you would expect the status to be updated at the same time as the result. Something like that:
-
-```typescript
-const { data, fetchStatus } = useQuery({ queryFn: () => 2 })
-
-console.log(data, fetchStatus)
-
-Renders:
-// undefined, "loading"
-// 2, "success"
-```
-
-However, because observables return data first and then later complete we cannot know if a request is a success until its observable completes. The biggest benefit of this library is to be able to have long living observable as a query, which means you can receive data before a query succeed (if ever). This is not a bug but it's important to be aware of this behavior and not rely of the synchronisation of `data` and fetchStatus per render.
-
-This is how it looks with reactjrx:
+With a promise, a query gets its data and stops fetching at the same time:
 
 ```typescript
-const { data, fetchStatus } = useQuery({ queryFn: () => 2 })
+const { data, status, fetchStatus } = useQuery({
+  queryKey: ["count"],
+  queryFn: async () => 2
+})
 
-console.log(data, fetchStatus)
-
-Renders:
-// undefined, "loading"
-// 2, "loading"
-// 2, "success"
+// Renders:
+// undefined, "pending", "fetching"
+// 2, "success", "idle"
 ```
+
+An observable can emit before it completes, and its query keeps fetching until it completes. With reactjrx, the query gets its data, and becomes `success`, as soon as the observable emits:
+
+```typescript
+const { data, status, fetchStatus } = useQuery$({
+  queryKey: ["count"],
+  queryFn: () => interval(1000).pipe(take(2))
+})
+
+// Renders:
+// undefined, "pending", "fetching"
+// 0, "success", "fetching"
+// 1, "success", "idle"
+```
+
+This is the biggest benefit of this library: a long living observable delivers data before its query finishes, if it ever does. It's important to be aware of it and not rely on `data` and `fetchStatus` changing in the same render.
 
 ## Query cancellation
 
-By default, stream queries will be unsubscribed to when there are no more [query observers](https://tanstack.com/query/latest/docs/reference/QueryObserver). This ensure that no queries run forever.
-
-When a stream is not completed when unsubscribed, the query will be [cancelled](https://tanstack.com/query/latest/docs/framework/react/guides/query-cancellation#manual-cancellation). Similar to how you would manually cancel your query.
+A stream is unsubscribed when its fetch is [cancelled](https://tanstack.com/query/latest/docs/framework/react/guides/query-cancellation): when the last component using the query unmounts, when you call `queryClient.cancelQueries()`, or when the query is removed from the cache. This ensures that no stream runs forever.
 
 ```tsx
 const MyComponent = () => {
@@ -51,3 +51,5 @@ const MyComponent = () => {
     return null
 }
 ```
+
+The values already received stay in the cache, and the query is marked stale, so it refetches the next time a component needs it.

@@ -4,7 +4,6 @@ import React, { useEffect } from "react"
 import { finalize, ReplaySubject, takeUntil, timer } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
 import { waitForTimeout } from "../../tests/utils"
-import { QueryClientProvider$ } from "./QueryClientProvider$"
 import { useMutation$ } from "./useMutation$"
 
 afterEach(() => {
@@ -51,9 +50,7 @@ describe("useMutation", () => {
         const { unmount } = render(
           <React.StrictMode>
             <QueryClientProvider client={client}>
-              <QueryClientProvider$>
-                <Comp />
-              </QueryClientProvider$>
+              <Comp />
             </QueryClientProvider>
           </React.StrictMode>,
         )

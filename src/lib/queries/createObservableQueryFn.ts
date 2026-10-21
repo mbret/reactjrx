@@ -1,12 +1,10 @@
 import {
   CancelledError,
-  type QueryClient,
   type QueryFunctionContext,
   type QueryKey,
   skipToken,
 } from "@tanstack/react-query"
-import { defer, delay, type Observable, take } from "rxjs"
-import type { QueryClient$ } from "./QueryClientProvider$"
+import { defer, type Observable, Subscription } from "rxjs"
 
 export type ObservableQueryFn<
   TQueryFnData = unknown,
@@ -18,131 +16,125 @@ export type ObservableQueryFn<
 
 /**
  * Bridges an Observable-based `queryFn` to the Promise-based `queryFn`
- * expected by TanStack Query. Shared by `useQuery$` and `useQueries$` so
- * both rely on the exact same subscription, caching and cancellation logic.
+ * expected by TanStack Query. Shared by `useQuery$` and `useQueries$`.
+ *
+ * As with TanStack's `streamedQuery`, the whole stream is one fetch: every
+ * value is written into the query as soon as the stream emits it, the query
+ * stays `fetching` until the stream completes, and the fetch then resolves
+ * with the last value. Cancelling the fetch (the last observer unmounting,
+ * `cancelQueries`, a refetch, the query leaving the cache) unsubscribes from
+ * the stream.
  */
 export function createObservableQueryFn<
   TQueryFnData = unknown,
   TQueryKey extends QueryKey = QueryKey,
->(
-  queryClient$: QueryClient$,
-  queryClient: QueryClient | undefined,
-  queryFn: ObservableQueryFn<TQueryFnData, TQueryKey> | undefined,
-) {
+>(queryFn: ObservableQueryFn<TQueryFnData, TQueryKey> | undefined) {
   if (queryFn === skipToken || queryFn === undefined) {
     return queryFn
   }
 
-  return (context: QueryFunctionContext<TQueryKey>) => {
-    return new Promise<TQueryFnData>((resolve, reject) => {
-      const getSource = () =>
-        defer(() =>
-          typeof queryFn === "function" ? queryFn(context) : queryFn,
-        )
-
-      const queryAlreadyInCache = queryClient$.getQuery(context.queryKey)
-
-      const queryCacheEntry =
-        queryAlreadyInCache ??
-        queryClient$.setQuery(context.queryKey, getSource(), context.signal)
-
-      const refetchIfNeeded = () => {
-        if (queryCacheEntry?.isCompleted === false) {
-          setTimeout(() => {
-            /**
-             * Re-check at firing time: the entry may have been torn down
-             * (deleteQuery) between scheduling and execution. This happens
-             * when the component unmounts right after a synchronous resolve,
-             * because both refetchIfNeeded and the deferred deleteQuery use
-             * setTimeout(fn, 0) and their execution order is
-             * non-deterministic. Without this guard the stale callback
-             * would trigger queryFnAsync on a defunct entry, creating an
-             * orphaned take(1) subscriber that later resolves with
-             * accumulated old data.
-             */
-            if (queryCacheEntry?.isCompleted) return
-
-            /**
-             * This runs once per emission of a live stream. The cost of
-             * the equivalent `{ queryKey, exact: true }` filter is not the
-             * iteration but the re-hashing: it JSON.stringifies the key
-             * again for every query in the cache. Matching the query by
-             * identity instead skips hashing entirely — `context.queryKey`
-             * is the very array the target query holds — while leaving all
-             * refetch semantics (batching, disabled/static skip,
-             * cancelRefetch, error swallowing) inside `refetchQueries`.
-             */
-            queryClient?.refetchQueries({
-              predicate: (query) => query.queryKey === context.queryKey,
-            })
-          })
-        }
-      }
-
-      // if the observable returns results synchronously
-      if (!queryAlreadyInCache && queryCacheEntry.lastData !== undefined) {
-        resolve(queryCacheEntry.lastData.value as TQueryFnData)
-
-        refetchIfNeeded()
-
-        return
-      }
-
-      const subscription = queryCacheEntry.query$
-        .pipe(
-          take(1),
-          /**
-           * If several values are emitted during this delay, we will only
-           * keep the last value. This is unfortunate but it's the best we can do
-           * for now.
-           */
-          delay(1),
-        )
-        .subscribe({
-          error: (error) => {
-            return reject(error)
-          },
-          complete: () => {
-            if (queryCacheEntry?.lastData === undefined) {
-              if (queryCacheEntry.signal.aborted) {
-                // query naturally cancelled by external factors.
-                return reject(new CancelledError())
-              }
-
-              console.warn(
-                `cancelled due to stream completing without data for query ${JSON.stringify(context.queryKey)}`,
-              )
-
-              /**
-               * A stream that completes without data is considered cancelled.
-               * This is the expected behavior if someone for example adds a takeUntil().
-               * This also allow the query to be retried automatically instead of
-               * resolving as success with `undefined` (which is no-op for react-query)
-               * or erroring with arbitrary value.
-               */
-              return reject(new CancelledError())
-            }
-
-            resolve(queryCacheEntry.lastData.value as TQueryFnData)
-
-            refetchIfNeeded()
-          },
-        })
+  return (context: QueryFunctionContext<TQueryKey>) =>
+    new Promise<TQueryFnData>((resolve, reject) => {
+      const { queryKey, signal } = context
+      /**
+       * Matched by identity: `context.queryKey` is the very array the query
+       * holds, so nothing is hashed and the query is found whatever its
+       * `queryKeyHashFn`.
+       */
+      const query = context.client
+        .getQueryCache()
+        .getAll()
+        .find((query) => query.queryKey === queryKey)
+      const subscription = new Subscription()
+      let last: { value: TQueryFnData } | undefined
+      let isSubscribing = true
 
       /**
-       * Each fetch has its own signal, aborted when TanStack cancels that
-       * fetch (for example when its last observer unmounts). Stop waiting on
-       * the shared stream then: on a refetch nothing else unsubscribes this,
-       * and it would keep the stream subscribed until its next value.
+       * TanStack aborts the signal when it cancels the fetch, which it can
+       * still do after the stream completed, until it has settled the fetch.
+       * The values the stream wrote stay in the cache but no longer follow
+       * it, so the query is marked stale: the next observer that needs it
+       * refetches, whatever its `staleTime`.
        */
-      context.signal.addEventListener(
-        "abort",
-        () => {
-          subscription.unsubscribe()
-          reject(new CancelledError())
-        },
-        { once: true },
+      const onAbort = () => {
+        subscription.unsubscribe()
+
+        if (last) query?.invalidate()
+
+        reject(new CancelledError())
+      }
+
+      /**
+       * TanStack only cancels a fetch when the last observer of its query
+       * leaves, so nothing would ever stop the stream of a query without
+       * observers (a `refetchQueries` of an inactive one, say). Such a fetch
+       * takes the stream's current value and finishes.
+       */
+      const isObserved = () =>
+        query !== undefined && query.getObserversCount() > 0
+
+      const resolveWithLast = () => {
+        if (!last) return
+
+        subscription.unsubscribe()
+        resolve(last.value)
+      }
+
+      signal.addEventListener("abort", onAbort, { once: true })
+
+      subscription.add(
+        defer(() =>
+          typeof queryFn === "function" ? queryFn(context) : queryFn,
+        ).subscribe({
+          next: (value) => {
+            if (value === undefined) {
+              // `undefined` is not valid query data, as for any fetch result.
+              subscription.unsubscribe()
+              reject(new Error(`${JSON.stringify(queryKey)} data is undefined`))
+
+              return
+            }
+
+            last = { value }
+
+            if (isObserved()) {
+              query?.setData(value, { manual: true })
+            } else if (!isSubscribing) {
+              resolveWithLast()
+            }
+          },
+          error: (error) => {
+            subscription.unsubscribe()
+            reject(error)
+          },
+          complete: () => {
+            subscription.unsubscribe()
+
+            if (last) {
+              resolve(last.value)
+
+              return
+            }
+
+            console.warn(
+              `cancelled due to stream completing without data for query ${JSON.stringify(queryKey)}`,
+            )
+
+            /**
+             * A stream that completes without data is considered cancelled.
+             * This is the expected behavior if someone for example adds a takeUntil().
+             * This also allow the query to be retried automatically instead of
+             * resolving as success with `undefined` (which is no-op for react-query)
+             * or erroring with arbitrary value.
+             */
+            reject(new CancelledError())
+          },
+        }),
       )
+
+      isSubscribing = false
+
+      // An unobserved query keeps the last of the values emitted on subscribe.
+      if (!subscription.closed && !isObserved()) resolveWithLast()
     })
-  }
 }
