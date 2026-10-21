@@ -4,16 +4,20 @@
 
 This recipe let you queue subsequent mutation calls until the current mutation is done. Additionally, it will buffer mutations calls to only trigger once. It is equivalent to a `concatMap` with buffering.
 
-<pre class="language-tsx"><code class="lang-tsx">import { useMutation$, useObservableCallback, useSubscribe } from "reactjrx"
+```tsx
+import { useCallback, useEffect } from "react"
+import { useConstant, useMutation$, useSubscribe } from "reactjrx"
+import { from, noop, Subject, throttle } from "rxjs"
 
 export const MyComp = () => {
-    const [mutate$, mutate] = useObservableCallback()
-    
+    // a stream of mutation requests
+    const mutate$ = useConstant(() => new Subject<void>())
+
     const { mutateAsync } = useMutation$({
         mutationFn: () => longRunningObservable()
     })
-    
-    useSubscribe(
+
+    const queueMutations = useCallback(
         () =>
             // triggers will be throttled (therefore skipped)
             // until the current mutation is done.
@@ -23,14 +27,13 @@ export const MyComp = () => {
             ),
         [mutateAsync, mutate$]
     )
-  
+
+    useSubscribe(queueMutations)
+
     // mutate when needed
-<strong>    useEffect(() => {
-</strong>        mutate()
-    }, [mutate, /** ... */])
+    useEffect(() => {
+        mutate$.next()
+    }, [mutate$, /** ... */])
 }
-
-
-
-</code></pre>
+```
 
