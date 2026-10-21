@@ -4,92 +4,48 @@ description: Because nothing is perfect!
 
 # Important considerations
 
-## Asynchronous nature of observables
+## First render of an observable
 
-Because of the nature of observable, getting a value out of them (subscribing) is asynchronous. Except for `behaviorSubject` which can be accessed statically, subscribing to an observable will yield a result asynchronously. It is obvious with an observable like this `timer(10)` but this is also the case for something like this `of(1).`
+`useObserve` subscribes to its source while rendering. A source that emits synchronously when subscribed, such as `of(1)`, a `BehaviorSubject` or a `ReplaySubject` holding a value, therefore has its value on the very first render.
 
-In the context of react it means that you cannot do something like this:
+A source that emits later, such as a timer or a request, has no value on the first render:
 
 ```typescript
-const value$ = of(1)
+const value$ = timer(10)
 
 const MyComponent = () => {
-    const value = useObserve(value$)
-    
-    // value will be 1 on mount --> FALSE
-    
-    console.log(value)
-    
-    // yield undefined on first render
-    // yield 1 on subsequent renders
+    const { data } = useObserve(value$)
+
+    // data is undefined on the first render, then 0 once the timer fires
 }
 ```
 
-This is a consideration but not an actual problem as it is expected.&#x20;
-
-You have several options to handle it:
+This is expected, and there are two ways to handle it.
 
 ### Handle `undefined`
 
-If it's possible you just need to handle the `undefined` case. Wheter you use it in your jsx, effects or to derive other states, as long as you handle `undefined` you are good to go.
+Handle the `undefined` case wherever you use the value: in your JSX, in effects, or when deriving other state.
 
 ```typescript
-const value$ = of(1)
-
 const MyComponent = () => {
-    const value = useObserve(value$)
-    
+    const { data } = useObserve(value$)
+
     useEffect(() => {
-        if (value === undefined) {
-            // handle the case
+        if (data === undefined) {
+            // nothing was emitted yet
         }
-    }, [value])
+    }, [data])
 }
 ```
 
-### Use default value when possible to mitigate
+### Pass a default value
 
-Some hooks such as `useObserve` allow you to pass a default value so that you can avoid the first render yielding `undefined.` If you happen to know the value statically beforehand you can mitigate the issue.
+If you know a sensible value before the source emits, pass it as `defaultValue`. The hook returns it until the first emission.
 
 ```typescript
-const value$ = new BehaviorSubject(1)
-
 const MyComponent = () => {
-    const value = useObserve(value$, { defaultValue: value.getValue() })
-    
-    // rest
+    const { data } = useObserve(value$, { defaultValue: -1 })
+
+    // data is -1 on the first render, then 0 once the timer fires
 }
 ```
-
-However useObserve has some internal optimisation and will already return the value at first render if you pass a behaviorSubject
-
-```typescript
-const value$ = new BehaviorSubject(1)
-
-const MyComponent = () => {
-    const value = useObserve(value$)
-    
-    // will yield 1 on first render, useObserve infer the fact that value$
-    // is a BehaviorSubject
-}
-```
-
-Of course, you cannot always have a `BehaviorSubject.` but it's still convenient to remember that.
-
-### Use suspense
-
-The new suspense API is dedicated to solve these kind of issues. It helps you defer the first render until some things are done. In this case you can use specific version of hooks to take advantage of suspense. Hooks that yield a value usually have a suspense counterpart that you can use:
-
-```typescript
-const value$ = of(1)
-
-const MyComponent = () => {
-    const value = useObserveSuspense(value$)
-    
-    // will yield 1 on first render
-}
-```
-
-{% hint style="warning" %}
-Remember that subscribing to the first value of an observable (if they yield a value instantly) just take one tick. The user will not see a blank page or loading screen. It is really just a matter of subscribing and then emiting the value in the next tick. If you use suspense, you do not need to worry about creating a loading state for that matter.
-{% endhint %}
