@@ -19,15 +19,16 @@ type UseQuery$OptionsForUseQueries<
   TError = DefaultError,
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey,
+  TOmitted extends PropertyKey = never,
 > = Omit<
   UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
-  "queryFn" | "placeholderData"
+  "queryFn" | "placeholderData" | TOmitted
 > & {
   queryFn?: ObservableQueryFn<TQueryFnData, TQueryKey>
   placeholderData?: TQueryFnData | QueriesPlaceholderDataFunction<TQueryFnData>
 }
 
-type GetUseQuery$Options<T> = T extends {
+type GetUseQuery$Options<T, TOmitted extends PropertyKey> = T extends {
   queryFn?: ObservableQueryFn<infer TQueryFnData, infer TQueryKey>
   // biome-ignore lint/suspicious/noExplicitAny: select can narrow from any source shape
   select?: (data: any) => infer TData
@@ -36,9 +37,16 @@ type GetUseQuery$Options<T> = T extends {
       TQueryFnData,
       DefaultError,
       unknown extends TData ? TQueryFnData : TData,
-      TQueryKey extends QueryKey ? TQueryKey : QueryKey
+      TQueryKey extends QueryKey ? TQueryKey : QueryKey,
+      TOmitted
     >
-  : UseQuery$OptionsForUseQueries
+  : UseQuery$OptionsForUseQueries<
+      unknown,
+      DefaultError,
+      unknown,
+      QueryKey,
+      TOmitted
+    >
 
 type GetUseQuery$Result<T> = T extends {
   // biome-ignore lint/suspicious/noExplicitAny: queryFnData is inferred from the source shape
@@ -53,6 +61,7 @@ type GetUseQuery$Result<T> = T extends {
  * Mirrors TanStack's `QueriesOptions`, but each query takes an Observable-based
  * `queryFn` (see {@link ObservableQueryFn}) instead of a Promise-based one. The
  * recursion preserves per-element tuple inference at the call site.
+ * `TOmitted` leaves options out of every query.
  */
 export type QueriesOptions$<
   // biome-ignore lint/suspicious/noExplicitAny: mirrors TanStack's QueriesOptions constraint
@@ -60,21 +69,39 @@ export type QueriesOptions$<
   // biome-ignore lint/suspicious/noExplicitAny: mirrors TanStack's QueriesOptions constraint
   TResults extends Array<any> = [],
   TDepth extends ReadonlyArray<number> = [],
+  TOmitted extends PropertyKey = never,
 > = TDepth["length"] extends MAXIMUM_DEPTH
-  ? Array<UseQuery$OptionsForUseQueries>
+  ? Array<
+      UseQuery$OptionsForUseQueries<
+        unknown,
+        DefaultError,
+        unknown,
+        QueryKey,
+        TOmitted
+      >
+    >
   : T extends []
     ? []
     : T extends [infer Head]
-      ? [...TResults, GetUseQuery$Options<Head>]
+      ? [...TResults, GetUseQuery$Options<Head, TOmitted>]
       : T extends [infer Head, ...infer Tails]
         ? QueriesOptions$<
             [...Tails],
-            [...TResults, GetUseQuery$Options<Head>],
-            [...TDepth, 1]
+            [...TResults, GetUseQuery$Options<Head, TOmitted>],
+            [...TDepth, 1],
+            TOmitted
           >
         : ReadonlyArray<unknown> extends T
           ? T
-          : Array<UseQuery$OptionsForUseQueries>
+          : Array<
+              UseQuery$OptionsForUseQueries<
+                unknown,
+                DefaultError,
+                unknown,
+                QueryKey,
+                TOmitted
+              >
+            >
 
 /**
  * Mirrors TanStack's `QueriesResults`, mapping each Observable-based query

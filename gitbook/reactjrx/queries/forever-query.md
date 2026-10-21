@@ -25,13 +25,17 @@ This query never completes and emits a new value every second:
 * The query is `pending` until the first value, then `success`.
 * It stays `fetching` (`isFetching` is `true`) until the observable completes, the way a query is fetching until its promise resolves.
 
+### Use `useLiveQuery$` for streams that stay open
+
+For a stream meant to stay open, such as a live database query or a socket, use [`useLiveQuery$`](react/uselivequeryusd.md), or `useLiveQueries$` in place of `useQueries$`. They work like `useQuery$` and `useQueries$`, but lock the two options that could keep a component from reopening the stream: `staleTime` and `refetchOnMount`. Everything on this page applies to both.
+
 ### Automatic refetches join the running stream
 
 TanStack refetches queries in several situations: window focus, network reconnection, another component mounting the query, `refetchInterval`. While the stream runs, these join the running fetch: the observable is not subscribed again.
 
-### Keep the default `staleTime`
+### With `useQuery$`, keep the default `staleTime`
 
-A running stream keeps its query up to date, and automatic refetches join it, so a longer `staleTime` saves nothing for a live query. It can even keep the stream from opening: data that a running stream doesn't back, such as `initialData`, a cache restored from storage, or the last value of a stream that stopped when its component unmounted, then counts as fresh, so the query doesn't fetch and its stream doesn't start.
+A running stream keeps its query up to date, and automatic refetches join it, so a longer `staleTime` saves nothing for a live query. It can even keep the stream from opening: data that a running stream doesn't back, such as `initialData`, a cache restored from storage, or the last value of a stream that stopped when its component unmounted, then counts as fresh, so the query doesn't fetch and its stream doesn't start. `refetchOnMount: false` does the same when a component mounts. Both apply when they are set for every query in the `QueryClient`'s `defaultOptions`, too. `useLiveQuery$` locks them, so none of this happens with it.
 
 ### Explicit refetches restart the stream
 

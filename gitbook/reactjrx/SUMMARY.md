@@ -27,6 +27,7 @@
 * [Recipes](queries/recipes.md)
 * [React](queries/react/README.md)
   * [useQuery$](queries/react/usequeryusd.md)
+  * [useLiveQuery$](queries/react/uselivequeryusd.md)
   * [useMutation$](queries/react/usemutationusd.md)
   * [useSwitchMutation$](queries/react/useswitchmutationusd.md)
 
