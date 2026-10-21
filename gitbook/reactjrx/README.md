@@ -28,68 +28,73 @@ Before using the low level api you may want to ensure whether [signals](state-si
 
 The low level API provide all the building blocks to bind rxjs to react and the higher API. For example let's assume you have a package that expose observables, you can bind them easily:
 
-<pre class="language-typescript"><code class="lang-typescript">const interval$ = interval(100)
+```typescript
+const interval$ = interval(100)
+
+// useSubscribe needs a stable source, or it subscribes again at every render
+const logInterval$ = interval$.pipe(
+  tap((value) => {
+    console.log("counter update", value)
+  })
+)
 
 const App = () => {
-  // observe the returned value of an observable
-  const counter = useObserve(interval$)
+  // observe the latest value of an observable
+  const { data: counter } = useObserve(interval$)
 
-  const [vote$, vote] = useObserveCallback()
+  // a stream of vote clicks
+  const vote$ = useConstant(() => new Subject<void>())
 
-  // subscribe to an observable. Similar to observe but
-  // does not sync nor return the observable output with react.
-<strong>  useSubscribe(
-</strong>    () =>
-      interval$.pipe(
-        tap((value) => {
-          console.log("counter update", value)
-        })
-      ),
-    []
-  )
+  // subscribe to an observable without rendering its values
+  useSubscribe(logInterval$)
 
   /**
    * Here we handle API request and its status on user click.
    * Note that queries are more appropriate for such things.
    * Again this is to show how the low level API can be used.
    */
-  const { data, error, status } = useObserve(
+  const { data: voting } = useObserve(
     () =>
       vote$.pipe(
         switchMap(() =>
-          merge(
-            of({ error: undefined, status: "fetching" }),
-            from(fetch("/api/vote", { method: "post" }))
+          concat(
+            of({ status: "fetching" }),
+            from(
+              fetch("/api/vote", { method: "post" }).then((response) =>
+                response.json()
+              )
+            ).pipe(
+              map(({ numberOfVotes }) => ({
+                status: "success",
+                votes: numberOfVotes
+              })),
+              catchError((error) => of({ status: "error", error }))
+            )
           )
         ),
-        map((response) => ({
-          data: response.numberOfVotes,
-          status: "success"
-        })),
-        catchError((error) => of({ data: undefined, error, status: "error" })),
-<strong>        scan((acc, state) => ({ ...acc, ...state }), {
-</strong>          data: undefined,
-          error: undefined,
-          status: "idle"
+        scan((state, update) => ({ ...state, ...update }), {
+          status: "idle",
+          votes: 0
         })
       ),
-    {
-      defaultValue: { data: undefined, error: undefined, status: "idle" }
-    },
+    { defaultValue: { status: "idle", votes: 0 } },
     [vote$]
   )
 
   return (
-    &#x3C;>
+    <>
       Counter {counter}
-      &#x3C;button onClick={() => vote()} disabled={status === "fetching"}>
+      <button
+        onClick={() => vote$.next()}
+        disabled={voting.status === "fetching"}
+      >
         Vote!
-      &#x3C;/button>
-      &#x3C;div>You voted {data ?? 0} times!&#x3C;/div>
-    &#x3C;/>
+      </button>
+      <div>You voted {voting.votes} times!</div>
+    </>
   )
 }
-</code></pre>
+```
 
 ### State management (signals)
 
@@ -102,11 +107,15 @@ const voteSignal = signal({
   key: "vote"
 })
 
+// a stable adapter, created once
+const adapter = createLocalStorageAdapter()
+
 const App = () => {
   const vote = useSignalValue(voteSignal)
 
   // persist and hydrate your signals easily
   const { isHydrated } = usePersistSignals({
+    adapter,
     entries: [{ signal: voteSignal, version: 0 }]
   })
 
@@ -117,9 +126,8 @@ const App = () => {
     <>
       <button
         onClick={() =>
-          // setValue can take a single value or a function that returns
-          // previous state
-          voteSignal.setValue((previousVotes) => previousVotes + 1)
+          // update takes a value, or a function of the previous one
+          voteSignal.update((previousVotes) => previousVotes + 1)
         }
       >
         Vote!
@@ -151,8 +159,9 @@ const App = () => {
     mutate: addNewUser,
     status: addUserStatus,
     data: newUser
-  } = useMutation({
-    mutationFn: (user) => db.users.add(user)
+  } = useMutation$({
+    // an observable as well: the mutation resolves with its first value
+    mutationFn: (user) => from(db.users.add(user))
   })
 
   return (

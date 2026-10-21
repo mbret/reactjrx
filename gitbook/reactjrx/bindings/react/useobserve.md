@@ -43,7 +43,7 @@ interface Options<T, DefaultValue> {
 * `source`: An observable, a function returning one, or `undefined`. Pass a stable observable directly: the hook subscribes to it again when its reference changes. Otherwise pass a function with `deps`, so the observable is only created again when a dependency changes. With `undefined`, nothing is observed and the default value is returned.
 * **optional** `options`:
   * `defaultValue`: returned until the source emits its first value. A `BehaviorSubject`, or any source that emits synchronously when subscribed, doesn't need it: its value is there on the first render.
-  * `compareFn`: tells whether a new value equals the previous one. An equal value doesn't re-render. Defaults to strict equality (`===`). Pass your own function, for example a shallow comparison, to compare objects by content.
+  * `compareFn`: tells whether a new value equals the previous one. An equal value doesn't re-render. Defaults to strict equality (`===`). Pass `isShallowEqual` (exported by reactjrx), or your own function, to compare objects by content.
 * **optional** `deps`: The values the function depends on. When one of them changes (compared with [`Object.is`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/is)), the function is called again and its observable replaces the previous one.
 
 ### Returns

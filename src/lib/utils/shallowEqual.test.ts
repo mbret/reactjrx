@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest"
+import * as reactjrx from "../../index"
 import { isShallowEqual } from "./shallowEqual"
 
 describe("shallowEqual", () => {
+  it("is exported by the package", () => {
+    expect(reactjrx).toHaveProperty("isShallowEqual", isShallowEqual)
+  })
+
   it("returns true for two null values", () => {
     expect(isShallowEqual(null, null)).toBe(true)
   })

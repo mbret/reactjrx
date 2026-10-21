@@ -15,12 +15,15 @@ const [value, setValue, value$] = useObservableState(2)
 ```typescript
 const MyComponent = () => {
   const [value, setValue, state$] = useObservableState(1);
-  
-  useSubscribe(() => state$.pipe(
+
+  // a stable source, so it is not subscribed again at every render
+  const logState = useCallback(() => state$.pipe(
     tap((value) => {
       console.log(value)
     })
-  ))
+  ), [state$])
+
+  useSubscribe(logState)
 
   return (
     <div>
