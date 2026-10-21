@@ -17,23 +17,23 @@ export type ObservableQueryFn<
   | Observable<TQueryFnData>
 
 /**
- * A fetch of the query whose stream it settles: either a fetch TanStack
- * started, which ends with the stream's first value, or the fetch that
- * follows the stream while it runs.
+ * A fetch of the query whose stream it settles: either the fetch TanStack
+ * started the stream with, which ends with its first value, or the fetch
+ * that follows the stream while it runs.
  */
 type StreamFetch = {
-  isFollow: boolean
   resolve: (value: unknown) => void
   reject: (error: unknown) => void
 }
 
 /**
- * A query's stream while it runs. It outlives the fetches it settles, so a
- * refetch takes it over instead of subscribing to the source again.
+ * A query's stream while it runs. It outlives the fetch TanStack started it
+ * with: the fetch that follows the stream takes it over once that one
+ * settles.
  */
 type Stream = {
   /**
-   * - loading: the fetch that owns the stream waits for its first value,
+   * - loading: the fetch that started the stream waits for its first value,
    *   which it resolves with.
    * - resolved: that fetch resolved, but TanStack has not stored its value
    *   yet. That commit overwrites the values written after it with the one
@@ -47,9 +47,12 @@ type Stream = {
   error: { value: unknown } | undefined
   isComplete: boolean
   fetch: StreamFetch | undefined
-  /** Set while the bridge starts the fetch that follows the stream. */
+  /**
+   * Set while the bridge starts the fetch that follows the stream, which
+   * waits for the network first when it is offline.
+   */
   isStartingFollow: boolean
-  stop: (options?: { invalidate?: boolean }) => void
+  stop: () => void
 }
 
 const streams = new WeakMap<Query, Stream>()
@@ -58,15 +61,14 @@ const streams = new WeakMap<Query, Stream>()
  * Bridges an Observable-based `queryFn` to the Promise-based `queryFn`
  * expected by TanStack Query. Shared by `useQuery$` and `useQueries$`.
  *
- * Every value is written into the query as soon as the stream emits it. A
- * fetch TanStack starts (mount, `refetch()`, `invalidateQueries()`...) ends
- * once the stream has a value in the cache, like a regular query, so awaiting
- * it settles. Right after it, the bridge starts a fetch that follows the
- * stream: it keeps the query `fetching` while the stream runs and ends when
- * the stream completes or errors. A refetch takes over a running stream and
- * settles with its current value. Cancelling the fetch in progress (the last
- * observer unmounting, `cancelQueries`, the query leaving the cache) stops
- * the stream.
+ * Every value is written into the query as soon as the stream emits it. Each
+ * fetch TanStack starts (mount, `refetch()`, `invalidateQueries()`...) runs
+ * the `queryFn` and ends once the stream has a value in the cache, like a
+ * regular query, so awaiting it settles. Right after it, the bridge starts a
+ * fetch that follows the stream: it keeps the query `fetching` while the
+ * stream runs and ends when the stream completes or errors. Cancelling the
+ * fetch in progress (a refetch replacing it, the last observer unmounting,
+ * `cancelQueries`, the query leaving the cache) stops the stream.
  */
 export function createObservableQueryFn<
   TQueryFnData = unknown,
@@ -90,7 +92,7 @@ export function createObservableQueryFn<
       const source$: Observable<unknown> = defer(() =>
         typeof queryFn === "function" ? queryFn(context) : queryFn,
       )
-      const settle = {
+      const fetch: StreamFetch = {
         resolve: resolve as (value: unknown) => void,
         reject,
       }
@@ -98,21 +100,20 @@ export function createObservableQueryFn<
       if (!query) {
         // The query left the cache while an observer still fetches it, so
         // nothing holds later values: the fetch takes the first one.
-        settleWithFirstValue(source$, context.signal, settle)
+        settleWithFirstValue(source$, context.signal, fetch)
 
         return
       }
 
       const running = streams.get(query)
-      const fetch: StreamFetch = {
-        isFollow: running?.isStartingFollow ?? false,
-        ...settle,
-      }
 
-      if (running) {
+      if (running?.isStartingFollow) {
         running.isStartingFollow = false
-        takeOver(running, fetch)
+        follow(running, fetch)
       } else {
+        // As for any query, a fetch TanStack starts runs the `queryFn` again,
+        // replacing any stream that still runs.
+        running?.stop()
         startStream(query, queryCache, source$, fetch)
       }
 
@@ -125,7 +126,7 @@ export function createObservableQueryFn<
 function settleWithFirstValue(
   source$: Observable<unknown>,
   signal: AbortSignal,
-  { resolve, reject }: Pick<StreamFetch, "resolve" | "reject">,
+  { resolve, reject }: StreamFetch,
 ) {
   const subscription = source$.pipe(take(1)).subscribe({
     next: resolve,
@@ -143,33 +144,27 @@ function settleWithFirstValue(
   )
 }
 
-function takeOver(stream: Stream, fetch: StreamFetch) {
+/**
+ * Hands the stream over to the fetch that follows it, which settles right
+ * away if the stream ended while it was starting.
+ */
+function follow(stream: Stream, fetch: StreamFetch) {
   stream.fetch = fetch
 
   if (stream.error) {
     fetch.reject(stream.error.value)
     stream.stop()
-  } else if (fetch.isFollow) {
-    if (stream.isComplete) {
-      fetch.resolve(stream.last?.value)
-      stream.stop()
-    }
-  } else if (stream.last) {
-    // A refetch of a running stream settles with its current value.
-    stream.phase = "resolved"
-    fetch.resolve(stream.last.value)
-  } else {
-    stream.phase = "loading"
+  } else if (stream.isComplete) {
+    fetch.resolve(stream.last?.value)
+    stream.stop()
   }
 }
 
 /**
- * TanStack aborts the signal when it cancels the fetch. A refetch cancels the
- * fetch in progress and starts its own right away, which takes the stream
- * over. Anything else that cancels it (the last observer leaving,
- * `cancelQueries`, the query leaving the cache) stops the stream. The values
- * it wrote stay in the cache but no longer follow it, so the query is marked
- * stale: the next observer that needs it refetches, whatever its `staleTime`.
+ * TanStack aborts the signal when it cancels the fetch (a refetch replacing
+ * it, the last observer leaving, `cancelQueries`, the query leaving the
+ * cache), which stops the stream. The values it wrote stay in the cache, and
+ * `staleTime` decides when the query refetches, as for any query.
  */
 function watchAbort(stream: Stream, fetch: StreamFetch, signal: AbortSignal) {
   signal.addEventListener(
@@ -177,14 +172,8 @@ function watchAbort(stream: Stream, fetch: StreamFetch, signal: AbortSignal) {
     () => {
       if (stream.fetch !== fetch) return
 
-      stream.fetch = undefined
       fetch.reject(new CancelledError())
-
-      queueMicrotask(() => {
-        if (!stream.fetch && !stream.isStartingFollow) {
-          stream.stop({ invalidate: true })
-        }
-      })
+      stream.stop()
     },
     { once: true },
   )
@@ -207,7 +196,7 @@ function startStream(
     isComplete: false,
     fetch,
     isStartingFollow: false,
-    stop: ({ invalidate = false } = {}) => {
+    stop: () => {
       if (isStopped) return
 
       isStopped = true
@@ -215,8 +204,6 @@ function startStream(
       unsubscribeFromCache()
 
       if (streams.get(query) === stream) streams.delete(query)
-
-      if (invalidate && stream.last) query.invalidate()
     },
   }
 
@@ -249,10 +236,21 @@ function startStream(
        * progress. The fetch finished, as TanStack lets it, but the stream
        * does not go on.
        */
-      stream.stop({ invalidate: true })
+      stream.stop()
     } else {
       stream.isStartingFollow = true
       query.fetch().catch(() => {})
+
+      /**
+       * The fetch that follows waits for the network: TanStack cancelling it
+       * before it runs (a refetch, `cancelQueries`) aborts no signal of the
+       * stream, so its rejection stops the stream instead.
+       */
+      if (stream.isStartingFollow) {
+        query.promise?.catch(() => {
+          if (stream.isStartingFollow) stream.stop()
+        })
+      }
     }
   }
 
@@ -281,7 +279,7 @@ function startStream(
       !query.isActive()
     ) {
       query.cancel({ revert: true })
-      stream.stop({ invalidate: true })
+      stream.stop()
     }
 
     /**
@@ -294,7 +292,7 @@ function startStream(
         query.getObserversCount() === 0) ||
       event.type === "removed"
     ) {
-      stream.stop({ invalidate: event.type === "observerRemoved" })
+      stream.stop()
     }
   })
 
@@ -311,9 +309,6 @@ function startStream(
         }
 
         stream.last = { value }
-
-        // Cancelled: a refetch that takes the stream over settles with it.
-        if (!stream.fetch && !stream.isStartingFollow) return
 
         if (stream.phase === "loading") {
           // TanStack stores it as the value the fetch resolves with.

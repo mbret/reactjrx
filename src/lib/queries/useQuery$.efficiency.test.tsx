@@ -161,7 +161,7 @@ describe("live query subscriptions", () => {
     expect(live.subscriptions).toEqual({ made: 1, open: 1 })
   })
 
-  it("keeps the subscription when the query is invalidated", {
+  it("subscribes again when the query is invalidated", {
     timeout: 3000,
   }, async () => {
     const live = setup()
@@ -173,7 +173,8 @@ describe("live query subscriptions", () => {
     await live.emit(1)
 
     expect(live.queryClient.getQueryData(live.queryKey)).toBe(1)
-    expect(live.subscriptions).toEqual({ made: 1, open: 1 })
+    // As for any query, the invalidation runs the `queryFn` again.
+    expect(live.subscriptions).toEqual({ made: 2, open: 1 })
   })
 
   it("subscribes again when the query is shown after being hidden", {
@@ -266,6 +267,23 @@ describe("live query renders", () => {
 
     expect(live.queryClient.getQueryData(live.queryKey)).toBe(3)
     expect(live.stats.renders - rendersBefore).toBe(1)
+  })
+
+  it("does not render for an invalidation that brings the same value", {
+    timeout: 3000,
+  }, async () => {
+    const live = setup()
+
+    await settle()
+
+    const rendersBefore = live.stats.renders
+
+    await act(() =>
+      live.queryClient.invalidateQueries({ queryKey: live.queryKey }),
+    )
+    await settle()
+
+    expect(live.stats.renders - rendersBefore).toBe(0)
   })
 
   it("renders each component render twice, and no more, under StrictMode", {

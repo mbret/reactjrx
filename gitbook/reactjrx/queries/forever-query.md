@@ -31,20 +31,17 @@ TanStack refetches queries in several situations: window focus, network reconnec
 
 ### Keep the default `staleTime`
 
-A running stream keeps its query up to date, and automatic refetches join it, so a longer `staleTime` saves nothing for a live query. It can even keep the stream from opening: data that arrives without a running stream, such as `initialData` or a cache restored from storage, then counts as fresh, so the query doesn't fetch and its stream never starts.
+A running stream keeps its query up to date, and automatic refetches join it, so a longer `staleTime` saves nothing for a live query. It can even keep the stream from opening: data that a running stream doesn't back, such as `initialData`, a cache restored from storage, or the last value of a stream that stopped when its component unmounted, then counts as fresh, so the query doesn't fetch and its stream doesn't start.
 
-### Refetching a running stream keeps it
+### Explicit refetches restart the stream
 
-`refetch()`, `queryClient.refetchQueries()` and `queryClient.invalidateQueries()` don't restart a stream that is running, since it already keeps the data up to date. They settle right away with its current value, so you can `await` them, or return one from a mutation's `onSuccess`, as with any query.
+As for any query, `refetch()`, `queryClient.refetchQueries()`, `queryClient.invalidateQueries()` and `queryClient.resetQueries()` cancel the fetch in progress and run the `queryFn` again: the running stream stops and a new one starts. The data stays until the new stream emits, except after `resetQueries()`, which first puts the query back in its initial state.
 
-To restart a stream from scratch, cancel it first, then refetch:
+They settle with the new stream's first value, so you can `await` them, or return one from a mutation's `onSuccess`, as with any query. A stream that emits its current value when subscribed, such as a `BehaviorSubject` or most live database queries, settles them right away. A stream that only emits on events settles them at its next event.
 
-```typescript
-await queryClient.cancelQueries({ queryKey: ["interval"] })
-await queryClient.refetchQueries({ queryKey: ["interval"] })
-```
+Before the stream's first value, `refetch()`, `queryClient.refetchQueries()` and `queryClient.invalidateQueries()` join the fetch in progress instead, as TanStack does for any query that has no data yet: the stream keeps running, and they settle with its first value. `queryClient.resetQueries()` still restarts it.
 
-A refetch that joins the running fetch instead of replacing it, such as `refetch({ cancelRefetch: false })`, waits for the stream to end.
+A refetch that joins the running fetch instead of replacing it, such as `refetch({ cancelRefetch: false })`, keeps the stream and waits for it to end.
 
 ### Stopping the stream
 
@@ -55,11 +52,11 @@ The observable is unsubscribed when its fetch is cancelled:
 * with `queryClient.cancelQueries()`,
 * when the query is removed from the cache, for example with `queryClient.clear()`.
 
-The values already received stay in the cache, and the query is marked stale, so it refetches the next time a component needs it: enabling it again reopens the stream.
+The values already received stay in the cache. As for any query, `staleTime` decides when it refetches, which reopens the stream: with the default, the next time a component needs it, for example when it mounts again or is enabled again.
 
 As TanStack does with any fetch in progress, disabling a query lets a fetch that waits for the stream's first value finish: the stream stops once it has delivered that value.
 
-A fetch of a query that no component uses, such as `queryClient.refetchQueries()` on an inactive query, takes the stream's first value and stops, and the query is marked stale: nothing would ever cancel the stream otherwise.
+A fetch of a query that no component uses, such as `queryClient.refetchQueries()` on an inactive query, takes the stream's first value and stops: nothing would ever cancel the stream otherwise.
 
 ### Completion and errors
 

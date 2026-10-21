@@ -52,4 +52,4 @@ const MyComponent = () => {
 }
 ```
 
-The values already received stay in the cache, and the query is marked stale, so it refetches the next time a component needs it.
+The values already received stay in the cache, and `staleTime` decides when the query refetches, as for any query.
