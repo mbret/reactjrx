@@ -33,7 +33,8 @@ type StreamFetch = {
  */
 type Stream = {
   /**
-   * - loading: the fetch that owns the stream waits for its first value.
+   * - loading: the fetch that owns the stream waits for its first value,
+   *   which it resolves with.
    * - resolved: that fetch resolved, but TanStack has not stored its value
    *   yet. That commit overwrites the values written after it with the one
    *   the fetch resolved with, so the latest is kept in `uncommitted` and
@@ -294,14 +295,17 @@ function startStream(
         // Cancelled: a refetch that takes the stream over settles with it.
         if (!stream.fetch && !stream.isStartingFollow) return
 
-        query.setData(value, { manual: true })
-
         if (stream.phase === "loading") {
+          // TanStack stores it as the value the fetch resolves with.
           stream.phase = "resolved"
           stream.fetch?.resolve(value)
-        } else if (stream.phase === "resolved") {
-          stream.uncommitted = { value }
+
+          return
         }
+
+        query.setData(value, { manual: true })
+
+        if (stream.phase === "resolved") stream.uncommitted = { value }
       },
       error: fail,
       complete: () => {
