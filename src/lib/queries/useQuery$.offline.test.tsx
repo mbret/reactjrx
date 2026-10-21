@@ -80,6 +80,51 @@ describe("live query while offline", () => {
     expect(subscriptions).toEqual({ made: 1, open: 1 })
   })
 
+  it("restarts the stream on a refetch while the fetch that follows it waits for the network", {
+    timeout: 3000,
+  }, async () => {
+    const { source$, subscriptions, queryClient, queryKey } =
+      await renderPausedLiveQuery()
+
+    await act(() => queryClient.refetchQueries({ queryKey }))
+
+    // As for any query, the refetch waits for the network to run.
+    expect(subscriptions).toEqual({ made: 1, open: 0 })
+
+    act(() => onlineManager.setOnline(true))
+    await act(() => waitForTimeout(20))
+
+    expect(subscriptions).toEqual({ made: 2, open: 1 })
+
+    act(() => source$.next("b"))
+
+    await waitFor(() => {
+      expect(queryClient.getQueryState(queryKey)).toMatchObject({
+        data: "b",
+        fetchStatus: "fetching",
+      })
+    })
+  })
+
+  it("stops the stream on cancelQueries while the fetch that follows it waits for the network", {
+    timeout: 3000,
+  }, async () => {
+    const { source$, subscriptions, queryClient, queryKey } =
+      await renderPausedLiveQuery()
+
+    await act(() => queryClient.cancelQueries({ queryKey }))
+
+    expect(subscriptions).toEqual({ made: 1, open: 0 })
+    expect(queryClient.getQueryState(queryKey)).toMatchObject({
+      data: "a",
+      fetchStatus: "idle",
+    })
+
+    act(() => source$.next("b"))
+
+    expect(queryClient.getQueryData(queryKey)).toBe("a")
+  })
+
   it("stops the stream when its last observer unmounts while offline", {
     timeout: 3000,
   }, async () => {
