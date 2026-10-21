@@ -10,7 +10,7 @@ import {
 } from "../../tests/liveQuery"
 import { waitForTimeout } from "../../tests/utils"
 import { useLiveQueries$ } from "./useLiveQueries$"
-import { useLiveQuery$ } from "./useLiveQuery$"
+import { type UseLiveQuery$Options, useLiveQuery$ } from "./useLiveQuery$"
 
 const waitForData = (data: unknown) =>
   waitFor(() => {
@@ -251,6 +251,17 @@ describe("live query hook types", () => {
     }
 
     render(<Comp />, { wrapper: createWrapper(createQueryClient()) })
+  })
+
+  it("export the options of useLiveQuery$ without the ones it locks", () => {
+    expectTypeOf<UseLiveQuery$Options<number>>().not.toHaveProperty("staleTime")
+    expectTypeOf<UseLiveQuery$Options<number>>().not.toHaveProperty(
+      "refetchOnMount",
+    )
+    expectTypeOf<UseLiveQuery$Options<number>>().toHaveProperty("gcTime")
+    expectTypeOf<
+      UseLiveQuery$Options<number, Error, string>["select"]
+    >().toEqualTypeOf<((data: number) => string) | undefined>()
   })
 
   it("infer data as useQuery$ and useQueries$ do", () => {
