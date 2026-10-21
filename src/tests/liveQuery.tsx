@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type React from "react"
-import { BehaviorSubject, map } from "rxjs"
+import { BehaviorSubject, map, Observable } from "rxjs"
 
 export function createQueryClient() {
   return new QueryClient({
@@ -28,6 +28,28 @@ export function createLiveQuerySource(initialItems: string[]) {
   const queryFn = () => liveQuery$.pipe(map((items) => [...items]))
 
   return { liveQuery$, queryFn }
+}
+
+/**
+ * Wraps `source` to count its subscriptions: how many were made, and how
+ * many are still open.
+ */
+export function countSubscriptions<T>(source: Observable<T>) {
+  const subscriptions = { made: 0, open: 0 }
+
+  const counted$ = new Observable<T>((subscriber) => {
+    subscriptions.made++
+    subscriptions.open++
+
+    const subscription = source.subscribe(subscriber)
+
+    return () => {
+      subscriptions.open--
+      subscription.unsubscribe()
+    }
+  })
+
+  return { counted$, subscriptions }
 }
 
 export function createWrapper(queryClient: QueryClient) {
