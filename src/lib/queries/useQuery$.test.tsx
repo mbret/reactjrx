@@ -65,7 +65,7 @@ describe("Given a query that returns a value synchronously but keep going", () =
   })
 })
 
-it("should return consecutive results", async () => {
+it("should keep fetching while the stream emits, then settle when it completes", async () => {
   // interval big enough so react does not skip some render
   const source = interval(5).pipe(takeWhile((value) => value < 5, true))
   // biome-ignore lint/suspicious/noExplicitAny: TODO
@@ -129,7 +129,7 @@ it("should return consecutive results", async () => {
   })
 })
 
-it("should return consecutive results", async () => {
+it("should render every value a subject emits, in StrictMode", async () => {
   const source = new Subject<number>()
 
   const Comp = () => {
