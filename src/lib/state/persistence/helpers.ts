@@ -106,7 +106,7 @@ export function hydrateValueToSignal({
         )
       }
 
-      signal.setValue(hydrate({ value: correctVersionValue, version }))
+      signal.next(hydrate({ value: correctVersionValue, version }))
 
       return of(value)
     }),
