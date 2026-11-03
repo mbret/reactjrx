@@ -1,6 +1,6 @@
 import { renderHook } from "@testing-library/react"
 import { act, useEffect, useState } from "react"
-import { BehaviorSubject } from "rxjs"
+import { BehaviorSubject, of } from "rxjs"
 import { describe, expect, it } from "vitest"
 import { isShallowEqual } from "../../utils/shallowEqual"
 import type { UseObserveResult } from "./types"
@@ -179,6 +179,22 @@ describe("Given a forever true compareFn", () => {
         expect(values.length).toBe(2)
         expect(values.at(-1)?.data).toBe(2)
       })
+    })
+  })
+
+  describe("when the render that recreates the store passes a forever false compareFn", () => {
+    it("should compare the synchronous values with the new compareFn", () => {
+      const { result, rerender } = renderHook(
+        ({ compareFn, dep }) =>
+          useObserve(() => of(1, 2), { defaultValue: 0, compareFn }, [dep]),
+        { initialProps: { compareFn: () => true, dep: 1 } },
+      )
+
+      expect(result.current.data).toBe(1)
+
+      rerender({ compareFn: () => false, dep: 2 })
+
+      expect(result.current.data).toBe(2)
     })
   })
 })

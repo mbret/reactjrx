@@ -1,6 +1,8 @@
 # useLiveRef
 
-Returns a ref that holds the value passed on the latest render. A callback or a subscription that outlives the render reads the current value from it, without listing that value as a dependency.
+Returns a ref that holds the value of the last committed render. A callback or a subscription that outlives the render reads the current value from it, without listing that value as a dependency.
+
+The ref updates in a layout effect, after commit. So a render that React drops, such as a suspended transition, never changes it. During render, the ref still holds the previous committed value: give code that runs during render the value itself.
 
 ### Usage
 

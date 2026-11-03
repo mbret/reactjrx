@@ -32,14 +32,24 @@ export const useStore = <T, DefaultValue>(
   )
 
   if (!storeRef.current || !arrayEqual(deps, storeRef.current.deps)) {
-    storeRef.current = {
-      deps,
-      store: new ObservableStore({
-        source$,
-        defaultValue: optionsRef.current.defaultValue,
-        compareFn: (a, b) => optionsRef.current?.compareFn?.(a, b) ?? a === b,
-      }),
-    }
+    /**
+     * The store subscribes in its constructor, during render, while the ref
+     * still holds the last committed options. The values that a synchronous
+     * source emits then go through the `compareFn` of this render.
+     */
+    let isCreating = true
+    const store = new ObservableStore<T, DefaultValue | undefined>({
+      source$,
+      defaultValue: options.defaultValue,
+      compareFn: (a, b) => {
+        const { compareFn } = isCreating ? options : optionsRef.current
+
+        return compareFn?.(a, b) ?? a === b
+      },
+    })
+    isCreating = false
+
+    storeRef.current = { deps, store }
   }
 
   const store = storeRef.current.store
