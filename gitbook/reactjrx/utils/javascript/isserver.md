@@ -7,7 +7,7 @@ Tells you whether the current script is running on a server or browser environme
 ```typescript
 import { isServer } from "reactjrx"
 
-if (!isServer()) {
+if (!isServer) {
     // only access browser API when not on server
     console.log(`Your device is using ${ navigator.language } languages`)
 }
@@ -16,5 +16,5 @@ if (!isServer()) {
 ### Reference
 
 ```typescript
-isServer(): boolean
+const isServer: boolean
 ```

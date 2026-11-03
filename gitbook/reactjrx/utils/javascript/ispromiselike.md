@@ -23,5 +23,5 @@ if (isPromiseLike(maybePromise)) {
 ### Reference
 
 ```typescript
-function isPromiseLike(value: any): boolean
+function isPromiseLike<T>(value: T): value is T & Promise<any>
 ```
