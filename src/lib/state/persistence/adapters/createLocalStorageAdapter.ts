@@ -1,55 +1,48 @@
 import type { Adapter } from "./Adapter"
 import { parseJson } from "./parseJson"
 
-const normalizeStore = (store: unknown) => {
-  if (!store || typeof store !== "object") {
-    return undefined
-  }
+type Store = Record<string, unknown>
 
-  return store
+const isStore = (value: unknown): value is Store =>
+  typeof value === "object" && value !== null
+
+const readStore = (key: string): Store => {
+  const store = parseJson(localStorage.getItem(key))
+
+  return isStore(store) ? store : {}
+}
+
+const writeStore = (key: string, store: Store) => {
+  localStorage.setItem(key, JSON.stringify(store))
 }
 
 /**
  * Create an adapter which use one unique store entry to store all
  * state. When using many signals it can help with maintenance to keep things
  * tidy.
+ *
+ * Each call reads and writes the entry synchronously, with no `await` in
+ * between, so two calls that overlap do not lose a write.
  */
-const createSharedStoreAdapter = ({
-  adapter,
-  key,
-}: {
-  adapter: Adapter
-  key: string
-}): Adapter => ({
+const createSharedStoreAdapter = (key: string): Adapter => ({
   clear: async () => {
-    return await adapter.removeItem(key)
+    localStorage.removeItem(key)
   },
 
   removeItem: async (keyToDelete) => {
-    const unsafeStore = await adapter.getItem(key)
-    const { [keyToDelete]: toRemove, ...rest } =
-      // biome-ignore lint/suspicious/noExplicitAny: TODO
-      normalizeStore(unsafeStore) ?? ({} as any)
+    const { [keyToDelete]: _removed, ...rest } = readStore(key)
 
-    await adapter.setItem(key, rest)
+    writeStore(key, rest)
   },
 
   getItem: async (itemKey: string) => {
-    const unsafeStore = await adapter.getItem(key)
-    const store = normalizeStore(unsafeStore) ?? {}
+    const store = readStore(key)
 
-    if (itemKey in store) {
-      return store[itemKey as keyof typeof store]
-    }
-
-    return undefined
+    return Object.hasOwn(store, itemKey) ? store[itemKey] : undefined
   },
 
   setItem: async (itemKey: string, value: unknown) => {
-    const unsafeStore = await adapter.getItem(key)
-    const store = normalizeStore(unsafeStore) ?? {}
-
-    await adapter.setItem(key, { ...store, [itemKey]: value })
+    writeStore(key, { ...readStore(key), [itemKey]: value })
   },
 })
 
@@ -59,10 +52,7 @@ export const createLocalStorageAdapter = ({
   key?: string
 } = {}): Adapter => {
   if (key) {
-    return createSharedStoreAdapter({
-      adapter: createLocalStorageAdapter(),
-      key,
-    })
+    return createSharedStoreAdapter(key)
   }
 
   return {

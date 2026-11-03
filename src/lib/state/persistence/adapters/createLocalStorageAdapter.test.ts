@@ -13,6 +13,26 @@ describe("createLocalStorageAdapter", () => {
   })
 
   describe("with a shared key", () => {
+    it("should keep both of two overlapping setItem calls", async () => {
+      const adapter = createLocalStorageAdapter({ key: "app" })
+
+      await Promise.all([adapter.setItem("a", 1), adapter.setItem("b", 2)])
+
+      expect(JSON.parse(localStorage.getItem("app") ?? "")).toEqual({
+        a: 1,
+        b: 2,
+      })
+    })
+
+    it("should apply both of an overlapping setItem and removeItem", async () => {
+      const adapter = createLocalStorageAdapter({ key: "app" })
+      await adapter.setItem("a", 1)
+
+      await Promise.all([adapter.setItem("b", 2), adapter.removeItem("a")])
+
+      expect(JSON.parse(localStorage.getItem("app") ?? "")).toEqual({ b: 2 })
+    })
+
     it("should read a shared entry that is not JSON as an empty store", async () => {
       localStorage.setItem("app", "not json")
       const adapter = createLocalStorageAdapter({ key: "app" })
