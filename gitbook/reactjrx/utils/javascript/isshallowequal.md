@@ -1,6 +1,6 @@
 # isShallowEqual
 
-Returns true when two values are equal one level deep: the same primitive, or two objects with the same prototype and the same own keys holding `===` values.
+Returns true when two values are equal one level deep: the same primitive, or two objects with the same `constructor` and the same own enumerable string keys holding `===` values. Symbol and non-enumerable properties are not compared.
 
 ### Usage
 
