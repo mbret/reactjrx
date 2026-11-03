@@ -67,14 +67,21 @@ The `key` property enables powerful extensions like persistence:
 const theme = signal({ default: 'light', key: 'settings.theme' });
 const volume = signal({ default: 75, key: 'settings.volume' });
 
+// A stable reference: a new adapter starts persistence over
+const adapter = createLocalStorageAdapter();
+
 // Set up persistence for these signals
-persistSignals({
-  entries: [
-    { signal: theme, version: 1 },
-    { signal: volume, version: 1 }
-  ],
-  adapter: localStorageAdapter
-});
+const App = () => {
+  const { isHydrated } = usePersistSignals({
+    entries: [
+      { signal: theme, version: 1 },
+      { signal: volume, version: 1 }
+    ],
+    adapter
+  });
+
+  // ...
+};
 ```
 
 This configuration-based approach allows you to add functionality like persistence, logging, or synchronization without complicating your state management code.
