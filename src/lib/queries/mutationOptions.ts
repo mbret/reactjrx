@@ -36,10 +36,9 @@ type AdaptedMutationCallbacks<TData, TError, TVariables, TOnMutateResult> = {
 }
 
 /**
- * Hooks built on top of `useMutation$` (`useSwitchMutation$`,
- * `useConcatMutation$`) run their inner mutation with the user variables
- * wrapped in an envelope (`{ variables, ... }`). This adapts the user-facing
- * callbacks, which expect the raw variables, to that envelope.
+ * `useSwitchMutation$` runs its inner mutation with the user variables
+ * wrapped in an envelope (`{ variables, abort }`). This adapts the
+ * user-facing callbacks, which expect the raw variables, to that envelope.
  */
 export function adaptCallbacksToWrappedVariables<
   TData,

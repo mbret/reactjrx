@@ -1,8 +1,15 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { cleanup, render } from "@testing-library/react"
+import {
+  act,
+  cleanup,
+  render,
+  renderHook,
+  waitFor,
+} from "@testing-library/react"
 import React, { useEffect } from "react"
-import { finalize, ReplaySubject, takeUntil, timer } from "rxjs"
+import { finalize, ReplaySubject, Subject, takeUntil, timer } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
+import { createWrapper } from "../../tests/liveQuery"
 import { waitForTimeout } from "../../tests/utils"
 import { useMutation$ } from "./useMutation$"
 
@@ -67,6 +74,59 @@ describe("useMutation", () => {
 
         expect(finalized).toBe(unmountTime)
       })
+    })
+  })
+
+  describe("Given mutations that share a scope", () => {
+    it("should start each one once the previous one has failed or emitted", async () => {
+      const sources = {
+        first: new Subject<string>(),
+        second: new Subject<string>(),
+        third: new Subject<string>(),
+      }
+      const failure = new Error("first failed")
+      const started: string[] = []
+
+      const { result } = renderHook(
+        () =>
+          useMutation$({
+            scope: { id: "save" },
+            mutationFn: (name: keyof typeof sources) => {
+              started.push(name)
+
+              return sources[name]
+            },
+          }),
+        { wrapper: createWrapper(new QueryClient()) },
+      )
+
+      let settled!: Promise<PromiseSettledResult<string>[]>
+
+      act(() => {
+        settled = Promise.allSettled([
+          result.current.mutateAsync("first"),
+          result.current.mutateAsync("second"),
+          result.current.mutateAsync("third"),
+        ])
+      })
+
+      await waitFor(() => expect(started).toEqual(["first"]))
+
+      act(() => sources.first.error(failure))
+
+      await waitFor(() => expect(started).toEqual(["first", "second"]))
+
+      act(() => sources.second.next("second saved"))
+
+      await waitFor(() => expect(started).toEqual(["first", "second", "third"]))
+
+      act(() => sources.third.next("third saved"))
+
+      expect(await settled).toEqual([
+        { status: "rejected", reason: failure },
+        { status: "fulfilled", value: "second saved" },
+        { status: "fulfilled", value: "third saved" },
+      ])
     })
   })
 })
