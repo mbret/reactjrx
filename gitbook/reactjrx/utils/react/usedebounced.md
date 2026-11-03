@@ -16,7 +16,7 @@ const Search = ({ onSearch }: { onSearch: (text: string) => void }) => {
 
 When the delay ends, the call runs the latest `func`. So a new `onSearch` from a later render applies to a pending call. The returned function changes only when `wait` changes.
 
-If the component unmounts, a pending call does not run. Pass `cancelOnUnmount: false` to run it after the unmount.
+If the component unmounts, a pending call still runs when the delay ends, so a save is not lost. Pass `cancelOnUnmount: true` to cancel it.
 
 ### Reference
 
