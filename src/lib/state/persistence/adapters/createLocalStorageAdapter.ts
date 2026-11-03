@@ -1,4 +1,5 @@
 import type { Adapter } from "./Adapter"
+import { parseJson } from "./parseJson"
 
 const normalizeStore = (store: unknown) => {
   if (!store || typeof store !== "object") {
@@ -73,13 +74,7 @@ export const createLocalStorageAdapter = ({
       localStorage.removeItem(key)
     },
 
-    getItem: async (key) => {
-      const serializedValue = localStorage.getItem(key)
-
-      if (!serializedValue) return undefined
-
-      return JSON.parse(serializedValue)
-    },
+    getItem: async (key) => parseJson(localStorage.getItem(key)),
 
     setItem: async (key, value) => {
       localStorage.setItem(key, JSON.stringify(value))
