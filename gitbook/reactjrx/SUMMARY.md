@@ -45,5 +45,6 @@
   * [useEffectOnce](utils/react/useeffectonce.md)
   * [useConstant](utils/react/useconstant.md)
   * [useLiveRef](utils/react/useliveref.md)
+  * [useDebounced](utils/react/usedebounced.md)
 * [RxJS](utils/rxjs/README.md)
   * [retryBackoff](utils/rxjs/retrybackoff.md)
