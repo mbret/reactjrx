@@ -43,6 +43,7 @@
 * [React](utils/react/README.md)
   * [useMount](utils/react/usemount.md)
   * [useEffectOnce](utils/react/useeffectonce.md)
+  * [useUnmount](utils/react/useunmount.md)
   * [useConstant](utils/react/useconstant.md)
   * [useLiveRef](utils/react/useliveref.md)
   * [useDebounced](utils/react/usedebounced.md)
