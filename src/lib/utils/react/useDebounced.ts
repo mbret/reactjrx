@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useRef } from "react"
-import { useLiveRef } from "./useLiveRef"
+import { useCallback, useRef } from "react"
+import { useUnmount } from "./useUnmount"
 
 /**
- * @param func Function to be debounced. The latest `func` runs when the delay ends.
- * @param wait Delay in ms, restarted by each call.
- * @param options.cancelOnUnmount Cancels a pending call when the component unmounts. Defaults to `true`.
+ * @param func Function to be debounced
+ * @param wait time in ms to debounce function, default to 300
  * @returns the debounced callback function
  */
 export const useDebounced = <T>(
@@ -14,27 +13,22 @@ export const useDebounced = <T>(
     cancelOnUnmount?: boolean
   } = {},
 ) => {
-  const { cancelOnUnmount = true } = options
-  const funcRef = useLiveRef(func)
-  const cancelOnUnmountRef = useLiveRef(cancelOnUnmount)
+  const { cancelOnUnmount = false } = options
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const callback = useCallback(
     (arg: T) => {
       timeout.current !== null && clearTimeout(timeout.current)
-      timeout.current = setTimeout(() => funcRef.current(arg), wait)
+      timeout.current = setTimeout(() => func(arg), wait)
     },
-    [funcRef, wait],
+    [func, wait],
   )
 
-  useEffect(
-    () => () => {
-      if (cancelOnUnmountRef.current && timeout.current !== null) {
-        clearTimeout(timeout.current)
-      }
-    },
-    [cancelOnUnmountRef],
-  )
+  useUnmount(() => {
+    if (cancelOnUnmount) {
+      timeout.current && clearTimeout(timeout.current)
+    }
+  })
 
   return callback
 }
