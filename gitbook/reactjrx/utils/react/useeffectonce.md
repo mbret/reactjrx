@@ -1,6 +1,10 @@
 # useEffectOnce
 
-React lifecycle hook that runs an effect only once.
+React lifecycle hook that runs an effect once, when the component mounts.
+
+{% hint style="warning" %}
+In development, under `<StrictMode>`, React mounts each component twice. So the effect runs twice, with its cleanup between the two runs. Make the cleanup undo the effect.
+{% endhint %}
 
 ### Usage <a href="#usage" id="usage"></a>
 
