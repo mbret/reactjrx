@@ -36,7 +36,7 @@ export const useStore = <T, DefaultValue>(
       deps,
       store: new ObservableStore({
         source$,
-        defaultValue: optionsRef.current.defaultValue,
+        defaultValue: options.defaultValue,
         compareFn: (a, b) => optionsRef.current?.compareFn?.(a, b) ?? a === b,
       }),
     }
