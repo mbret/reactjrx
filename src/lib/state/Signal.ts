@@ -56,18 +56,6 @@ export class Signal<
     }
   }
 
-  /**
-   * @deprecated Use `next` instead
-   */
-  setValue = this.update.bind(this)
-
-  /**
-   * @deprecated Use `this` instead
-   */
-  get subject() {
-    return this
-  }
-
   get key() {
     return this.config.key
   }
