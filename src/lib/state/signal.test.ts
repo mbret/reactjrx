@@ -75,6 +75,20 @@ describe("signal", () => {
     })
   })
 
+  describe("Given a signal with a null default", () => {
+    it("should hold null, and reset to null", () => {
+      const user = signal<{ name: string } | null>({ default: null })
+
+      expect(user.value).toBe(null)
+      expect(user.config.default).toBe(null)
+
+      user.update({ name: "Ada" })
+      user.update(SIGNAL_RESET)
+
+      expect(user.value).toBe(null)
+    })
+  })
+
   describe("Given a number signal with non default value", () => {
     it("should reset to undefined", () => {
       const state = signal<number | undefined>({})

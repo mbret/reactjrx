@@ -95,8 +95,8 @@ export function signal<T, K extends string | undefined = undefined>(
 ) {
   return new Signal({
     key: undefined,
+    default: undefined,
     ...config,
-    default: config.default ?? undefined,
   })
 }
 
