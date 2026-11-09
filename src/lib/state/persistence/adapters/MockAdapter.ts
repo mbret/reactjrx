@@ -19,12 +19,4 @@ export class MockAdapter implements Adapter {
   setItem(_: string, __: any) {
     return new Promise(() => {})
   }
-
-  removeItem(_: string) {
-    return new Promise(() => {})
-  }
-
-  clear() {
-    return new Promise(() => {})
-  }
 }

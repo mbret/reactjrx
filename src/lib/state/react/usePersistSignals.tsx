@@ -35,13 +35,14 @@ export function usePersistSignals({
   /**
    * Passing a new adapter reference starts over: pending values are saved to
    * the previous adapter, then every entry takes the value stored in the new
-   * one. When nothing is stored, or only an older version, the entry goes
-   * back to its default once the hook has had two different adapters, so it
-   * never carries another adapter's value over (another profile's, for
-   * example). Before that, including when the same adapter comes back after
-   * a gap without adapter, it keeps its current value. Adapters are compared
-   * by reference: a new object for the same storage counts as a different
-   * adapter. Use a stable reference to avoid infinite loop.
+   * one. When nothing is stored, or only an older version that the entry has
+   * no `hydrate` for, the entry goes back to its default once the hook has
+   * had two different adapters, so it never carries another adapter's value
+   * over (another profile's, for example). Before that, including when the
+   * same adapter comes back after a gap without adapter, it keeps its current
+   * value. Adapters are compared by reference: a new object for the same
+   * storage counts as a different adapter. Use a stable reference to avoid
+   * infinite loop.
    */
   adapter?: Adapter
 }): { isHydrated: boolean } {

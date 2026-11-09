@@ -10,8 +10,4 @@ export const createLocalforageAdapter = (forage: {
   setItem: async (key: string, value: unknown) => {
     await forage.setItem(key, JSON.stringify(value))
   },
-
-  removeItem: async (_: string) => {},
-
-  clear: async () => {},
 })

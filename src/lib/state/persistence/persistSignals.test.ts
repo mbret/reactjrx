@@ -1,5 +1,5 @@
 import { firstValueFrom, of, type Subscription } from "rxjs"
-import { afterEach, describe, expect, it, onTestFinished } from "vitest"
+import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest"
 import { waitForTimeout } from "../../../tests/utils"
 import { signal } from "../Signal"
 import type { Adapter } from "./adapters/Adapter"
@@ -30,7 +30,10 @@ const storedUndefinedEntry = (migrationVersion: number) =>
 const persistUntilStopped = async (
   // biome-ignore lint/suspicious/noExplicitAny: any signal can be persisted
   entries: SignalPersistenceConfig<any>[],
-  adapter: Adapter = createLocalStorageAdapter(),
+  {
+    adapter = createLocalStorageAdapter(),
+    resetToDefault = false,
+  }: { adapter?: Adapter; resetToDefault?: boolean } = {},
 ) => {
   let subscription: Subscription | undefined
 
@@ -38,6 +41,7 @@ const persistUntilStopped = async (
     subscription = persistSignals({
       entries$: of(entries),
       adapter,
+      resetToDefault,
       onHydrated: resolve,
     }).subscribe()
   })
@@ -142,7 +146,7 @@ describe("Given a new signal version", () => {
   })
 
   describe("when a storage value already exist with inferior version", () => {
-    it("should hydrate and overwrite", async () => {
+    it("should discard it without a hydrate", async () => {
       const mockAdapter = new MockAdapter({
         key: {
           [IDENTIFIER_PERSISTENCE_KEY]: IDENTIFIER_PERSISTENCE_KEY,
@@ -204,6 +208,152 @@ describe("Given a new signal version", () => {
   })
 })
 
+describe("Given a stored value with an older version and a hydrate", () => {
+  it("should call hydrate with the version the value was stored with", async () => {
+    const mockAdapter = new MockAdapter({ key: JSON.parse(storedEntry(5, 1)) })
+    const mySignal = signal({ default: 0, key: "key" })
+    const hydrate = vi.fn(({ value }: { value: unknown }) => Number(value) * 10)
+
+    await firstValueFrom(
+      persistSignals({
+        entries$: of([{ signal: mySignal, version: 2, hydrate }]),
+        adapter: mockAdapter,
+      }),
+    )
+
+    expect(hydrate).toHaveBeenCalledWith({ value: 5, version: 1 })
+    expect(mySignal.getValue()).toBe(50)
+  })
+
+  it("should save the migrated value with the entry's version", async () => {
+    localStorage.setItem("key", storedEntry("light", 1))
+    const theme = signal({ default: "dark", key: "key" })
+
+    const stop = await persistUntilStopped([
+      {
+        signal: theme,
+        version: 2,
+        hydrate: ({ value, version }) =>
+          version < 2 ? `${String(value)}-v2` : String(value),
+      },
+    ])
+    stop()
+
+    expect(JSON.parse(localStorage.getItem("key") ?? "null")).toEqual(
+      JSON.parse(storedEntry("light-v2", 2)),
+    )
+  })
+})
+
+describe("Given a stored value with an older version, a hydrate and resetToDefault", () => {
+  it("should migrate the value, not reset it", async () => {
+    localStorage.setItem("key", storedEntry("light", 1))
+    const theme = signal({ default: "dark", key: "key" })
+
+    const stop = await persistUntilStopped(
+      [
+        {
+          signal: theme,
+          version: 2,
+          hydrate: ({ value, version }) =>
+            version < 2 ? `${String(value)}-v2` : String(value),
+        },
+      ],
+      { resetToDefault: true },
+    )
+    onTestFinished(stop)
+
+    expect(theme.getValue()).toBe("light-v2")
+    expect(JSON.parse(localStorage.getItem("key") ?? "null")).toEqual(
+      JSON.parse(storedEntry("light-v2", 2)),
+    )
+  })
+})
+
+describe("Given a stored value with a newer version and a hydrate", () => {
+  it("should call hydrate with the version the value was stored with", async () => {
+    const mockAdapter = new MockAdapter({ key: JSON.parse(storedEntry(5, 3)) })
+    const mySignal = signal({ default: 0, key: "key" })
+    const hydrate = vi.fn(({ value }: { value: unknown }) => Number(value))
+
+    await firstValueFrom(
+      persistSignals({
+        entries$: of([{ signal: mySignal, version: 2, hydrate }]),
+        adapter: mockAdapter,
+      }),
+    )
+
+    expect(hydrate).toHaveBeenCalledWith({ value: 5, version: 3 })
+  })
+})
+
+describe("Given a stored value with a newer version, read through a hydrate", () => {
+  it("should leave it as stored", async () => {
+    const entry = storedEntry({ theme: "light" }, 3)
+    localStorage.setItem("key", entry)
+    const settings = signal({ default: { theme: "dark" }, key: "key" })
+
+    const stop = await persistUntilStopped([
+      {
+        signal: settings,
+        version: 2,
+        hydrate: ({ value }) => ({ ...(value as { theme: string }) }),
+      },
+    ])
+    stop()
+
+    expect(settings.getValue()).toEqual({ theme: "light" })
+    expect(JSON.parse(localStorage.getItem("key") ?? "null")).toEqual(
+      JSON.parse(entry),
+    )
+  })
+})
+
+describe("Given a hydrate that throws", () => {
+  const throwingEntry = (theme: ReturnType<typeof signal<string, "key">>) => ({
+    signal: theme,
+    version: 2,
+    hydrate: () => {
+      throw new Error("unknown shape")
+    },
+  })
+
+  it("should hydrate, keep the stored value, and save the next change", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    const entry = storedEntry({ shade: "light" }, 1)
+    localStorage.setItem("key", entry)
+    const theme = signal({ default: "dark", key: "key" })
+
+    const stop = await persistUntilStopped([throwingEntry(theme)])
+
+    expect(theme.getValue()).toBe("dark")
+    expect(JSON.parse(localStorage.getItem("key") ?? "null")).toEqual(
+      JSON.parse(entry),
+    )
+
+    theme.update("blue")
+    stop()
+
+    expect(JSON.parse(localStorage.getItem("key") ?? "null")).toEqual(
+      JSON.parse(storedEntry("blue", 2)),
+    )
+  })
+
+  it("should reset the signal when resetToDefault is set", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {})
+    localStorage.setItem("key", storedEntry({ shade: "light" }, 1))
+    const theme = signal({ default: "dark", key: "key" })
+    theme.update("another profile's theme")
+
+    const stop = await persistUntilStopped([throwingEntry(theme)], {
+      resetToDefault: true,
+    })
+    onTestFinished(stop)
+
+    expect(theme.getValue()).toBe("dark")
+  })
+})
+
 describe("Given a stored NaN with a newer version, in an adapter that keeps values as they are", () => {
   it("should leave it as stored when an older version hydrates from it", async () => {
     const entry = {
@@ -215,14 +365,12 @@ describe("Given a stored NaN with a newer version, in an adapter that keeps valu
     const adapter: Adapter = {
       getItem: async (key) => storage.get(key),
       setItem: async (key, value) => storage.set(key, value),
-      removeItem: async (key) => storage.delete(key),
-      clear: async () => storage.clear(),
     }
     const olderSignal = signal({ default: 0, key: "key" })
 
     const stop = await persistUntilStopped(
       [{ signal: olderSignal, version: 2 }],
-      adapter,
+      { adapter },
     )
     stop()
 

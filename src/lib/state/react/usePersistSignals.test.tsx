@@ -42,10 +42,6 @@ const createMemoryAdapter = (
       calls.setItem++
       storage[key] = value
     },
-    removeItem: async (key: string) => {
-      delete storage[key]
-    },
-    clear: async () => {},
   }
 }
 

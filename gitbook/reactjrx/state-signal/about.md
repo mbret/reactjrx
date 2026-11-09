@@ -84,6 +84,22 @@ const App = () => {
 };
 ```
 
+When the shape of a persisted value changes, raise its entry's `version`. A value stored with an older version is discarded, unless the entry has a `hydrate` function.
+
+`hydrate` receives every stored value, older versions included, with the version it was stored with. It returns the signal's value: the stored one, a migration of it, or the signal's default, such as `settings.config.default` for the signal below, for a version it does not migrate. A value it migrates from an older version is saved again with the new version. `value` is typed `unknown`, since the storage can hold any shape: narrow it, or cast it for a version your app wrote. In reactjrx 4, `hydrate` received the entry's version, never saw an older value, and had `value` typed as the signal's value: a `hydrate` written for it now checks `version` before it reads `value`.
+
+```typescript
+const settings = signal({ default: { theme: 'light' }, key: 'settings' });
+
+const entry: SignalPersistenceConfig<typeof settings> = {
+  signal: settings,
+  version: 2,
+  // version 1 stored the theme alone, as a string
+  hydrate: ({ value, version }) =>
+    version < 2 ? { theme: String(value) } : (value as { theme: string }),
+};
+```
+
 This configuration-based approach allows you to add functionality like persistence, logging, or synchronization without complicating your state management code.
 
 ### Full Observable Compatibility
