@@ -116,4 +116,35 @@ describe("signal", () => {
       expect(result.current).toBe(undefined)
     })
   })
+
+  describe("update", () => {
+    it("should accept an updater that returns a member of a union", () => {
+      type State = { status: "idle" } | { status: "done"; data: number }
+      const state = signal<State>({ default: { status: "idle" } })
+
+      state.update(() => ({ status: "idle" }))
+      state.update((prev) =>
+        prev.status === "idle" ? { status: "done", data: 2 } : prev,
+      )
+
+      expect(state.value).toEqual({ status: "done", data: 2 })
+    })
+
+    it("should accept an updater that narrows a property to one literal", () => {
+      const settings = signal<{ theme: "light" | "dark"; size: number }>({
+        default: { theme: "light", size: 1 },
+      })
+
+      settings.update((prev) => ({ ...prev, theme: "dark" }))
+
+      expect(settings.value).toEqual({ theme: "dark", size: 1 })
+    })
+
+    it("should reject an updater that adds a key", () => {
+      const settings = signal<{ size: number }>({ default: { size: 1 } })
+
+      // @ts-expect-error `extra` is not a key of the state
+      settings.update((prev) => ({ ...prev, extra: true }))
+    })
+  })
 })
