@@ -2,6 +2,7 @@ import {
   asyncScheduler,
   catchError,
   EMPTY,
+  filter,
   finalize,
   Observable,
   Subscription,
@@ -23,6 +24,13 @@ type Entry = SignalPersistenceConfig<AnySignal>
  * every 500 ms) until unsubscribed. On unsubscribe, a value still held by the
  * throttle is saved right away instead of being dropped.
  *
+ * The signal replays the value it was hydrated with, and that replay is not
+ * written back: the write would tag the value with this entry's version,
+ * which can be older than the stored one, and a newer app would then discard
+ * it. So a change made in place to the hydrated object before the
+ * persistence subscribes, in `onHydrated` for example, is saved only once the
+ * signal changes again.
+ *
  * `entry.config` is read at every write, so a changed config (e.g. a new
  * `version`) applies to the next write.
  */
@@ -38,13 +46,6 @@ const hydrateAndPersistEntry = ({
   onHydrated: () => void
 }) => {
   const { signal } = entry.config
-  let lastPersistedValue: unknown
-
-  const persist = () => {
-    lastPersistedValue = signal.getValue()
-
-    return persistValue({ adapter, config: entry.config })
-  }
 
   return hydrateValueToSignal({
     adapter,
@@ -57,19 +58,28 @@ const hydrateAndPersistEntry = ({
       return EMPTY
     }),
     tap(onHydrated),
-    switchMap(() =>
-      signal.pipe(
+    switchMap((hydratedValue) => {
+      let lastPersistedValue = hydratedValue
+
+      const persist = () => {
+        lastPersistedValue = signal.getValue()
+
+        return persistValue({ adapter, config: entry.config })
+      }
+
+      return signal.pipe(
         throttleTime(500, asyncScheduler, {
           trailing: true,
         }),
-        switchMap(() => persist()),
+        filter((value, index) => index > 0 || !Object.is(value, hydratedValue)),
+        switchMap(persist),
         finalize(() => {
-          if (signal.getValue() !== lastPersistedValue) {
+          if (!Object.is(signal.getValue(), lastPersistedValue)) {
             persist().subscribe()
           }
         }),
-      ),
-    ),
+      )
+    }),
   )
 }
 
