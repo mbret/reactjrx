@@ -53,8 +53,8 @@ export const persistValue = ({
 }
 
 /**
- * Hydrates the signal from the adapter. Emits the value the signal was
- * hydrated with, or `undefined` when nothing usable is stored.
+ * Emits `{ value }` with the value the signal was hydrated with, which can be
+ * `undefined`, or `undefined` when nothing usable is stored.
  */
 export function hydrateValueToSignal({
   adapter,
@@ -104,10 +104,6 @@ export function hydrateValueToSignal({
         )
       }
 
-      /**
-       * An entry without `value` stores `undefined`: JSON drops a key whose
-       * value is `undefined`.
-       */
       const hydratedValue = hydrate({ value: normalizedValue.value, version })
 
       signal.next(hydratedValue)

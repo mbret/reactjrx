@@ -19,10 +19,6 @@ const storedEntry = (value: unknown, migrationVersion: number) =>
     migrationVersion,
   } satisfies PersistenceEntry)
 
-/**
- * Persists the entries until the returned function is called, once they are
- * hydrated.
- */
 const persistUntilStopped = async (
   // biome-ignore lint/suspicious/noExplicitAny: any signal can be persisted
   entries: SignalPersistenceConfig<any>[],
@@ -233,5 +229,26 @@ describe("Given a signal set to undefined", () => {
     )
 
     expect(reloaded.getValue()).toBe(undefined)
+  })
+})
+
+describe("Given a signal changed when it is hydrated", () => {
+  it("should save its new value at once", async () => {
+    localStorage.setItem("key", storedEntry(5, 0))
+    const mySignal = signal({ default: 0, key: "key" })
+
+    const subscription = persistSignals({
+      entries$: of([{ signal: mySignal, version: 0 }]),
+      adapter: createLocalStorageAdapter(),
+      onHydrated: () => mySignal.update(7),
+    }).subscribe()
+
+    await waitForTimeout(20)
+
+    expect(JSON.parse(localStorage.getItem("key") ?? "")).toEqual(
+      JSON.parse(storedEntry(7, 0)),
+    )
+
+    subscription.unsubscribe()
   })
 })

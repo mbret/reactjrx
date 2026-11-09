@@ -5,7 +5,6 @@ import {
   finalize,
   Observable,
   Subscription,
-  skip,
   switchMap,
   tap,
   throttleTime,
@@ -19,10 +18,16 @@ import type { SignalPersistenceConfig } from "./types"
 type AnySignal = Signal<any, string>
 type Entry = SignalPersistenceConfig<AnySignal>
 
+const NOTHING_STORED = Symbol("nothing stored")
+
 /**
- * Hydrates one signal from the adapter, then persists its updates (at most
+ * Hydrates one signal from the adapter, then persists each new value (at most
  * every 500 ms) until unsubscribed. On unsubscribe, a value still held by the
  * throttle is saved right away instead of being dropped.
+ *
+ * A value the adapter already holds is not written again, the hydrated one
+ * included: writing it would tag it with this entry's version, which can be
+ * older than the stored one, and a newer app would then discard it.
  *
  * `entry.config` is read at every write, so a changed config (e.g. a new
  * `version`) applies to the next write.
@@ -39,13 +44,6 @@ const hydrateAndPersistEntry = ({
   onHydrated: () => void
 }) => {
   const { signal } = entry.config
-  let lastPersistedValue: unknown
-
-  const persist = () => {
-    lastPersistedValue = signal.getValue()
-
-    return persistValue({ adapter, config: entry.config })
-  }
 
   return hydrateValueToSignal({
     adapter,
@@ -59,27 +57,24 @@ const hydrateAndPersistEntry = ({
     }),
     tap(onHydrated),
     switchMap((hydrated) => {
-      /**
-       * The storage already holds the value the signal was hydrated with.
-       * Writing it back would tag it with this entry's version, which can be
-       * older than the stored one, and a newer app would then discard it.
-       */
-      const isHoldingHydratedValue =
-        hydrated !== undefined && signal.getValue() === hydrated.value
+      let storedValue: unknown = hydrated ? hydrated.value : NOTHING_STORED
 
-      if (isHoldingHydratedValue) lastPersistedValue = hydrated.value
+      const persistIfChanged = () => {
+        const value = signal.getValue()
+
+        if (value === storedValue) return EMPTY
+
+        storedValue = value
+
+        return persistValue({ adapter, config: entry.config })
+      }
 
       return signal.pipe(
-        skip(isHoldingHydratedValue ? 1 : 0),
         throttleTime(500, asyncScheduler, {
           trailing: true,
         }),
-        switchMap(() => persist()),
-        finalize(() => {
-          if (signal.getValue() !== lastPersistedValue) {
-            persist().subscribe()
-          }
-        }),
+        switchMap(persistIfChanged),
+        finalize(() => persistIfChanged().subscribe()),
       )
     }),
   )
