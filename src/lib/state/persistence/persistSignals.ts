@@ -27,7 +27,9 @@ type Entry = SignalPersistenceConfig<AnySignal>
  * The signal replays the value it was hydrated with, and that replay is not
  * written back: the write would tag the value with this entry's version,
  * which can be older than the stored one, and a newer app would then discard
- * it.
+ * it. So a change made in place to the hydrated object before the
+ * persistence subscribes, in `onHydrated` for example, is saved only once the
+ * signal changes again.
  *
  * `entry.config` is read at every write, so a changed config (e.g. a new
  * `version`) applies to the next write.
@@ -69,7 +71,7 @@ const hydrateAndPersistEntry = ({
         throttleTime(500, asyncScheduler, {
           trailing: true,
         }),
-        filter((value, index) => index > 0 || value !== lastPersistedValue),
+        filter((value, index) => index > 0 || value !== hydratedValue),
         switchMap(persist),
         finalize(() => {
           if (signal.getValue() !== lastPersistedValue) {

@@ -229,6 +229,31 @@ describe("Given a signal set to undefined", () => {
   })
 })
 
+describe("Given a signal set to undefined before it is hydrated", () => {
+  it("should save undefined when nothing is stored", async () => {
+    const lang = signal<string | undefined, "lang">({
+      key: "lang",
+      default: "en",
+    })
+    let subscription: Subscription | undefined
+
+    onTestFinished(() => subscription?.unsubscribe())
+
+    await new Promise<void>((resolve) => {
+      subscription = persistSignals({
+        entries$: of([{ signal: lang, version: 0 }]),
+        adapter: createLocalStorageAdapter(),
+        onHydrated: resolve,
+      }).subscribe()
+      lang.update(undefined)
+    })
+
+    expect(JSON.parse(localStorage.getItem("lang") ?? "null")).toEqual(
+      JSON.parse(storedUndefinedEntry(0)),
+    )
+  })
+})
+
 describe("Given an entry without a value from an earlier version", () => {
   it("should keep the default", async () => {
     localStorage.setItem(
