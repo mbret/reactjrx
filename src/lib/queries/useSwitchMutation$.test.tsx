@@ -9,7 +9,15 @@ import {
 } from "@testing-library/react"
 import { act, useState } from "react"
 import { delay, EMPTY, finalize, map, NEVER, of, throwError, timer } from "rxjs"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  expectTypeOf,
+  it,
+  vi,
+} from "vitest"
 import { createWrapper } from "../../tests/liveQuery"
 import { waitForTimeout } from "../../tests/utils"
 import {
@@ -389,6 +397,25 @@ describe("useSwitchMutation$", () => {
 
       expect(onSuccess).toHaveBeenCalledTimes(1)
       expect(defaultOnSuccess).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("result.variables", () => {
+    it("should be the variables given to mutate", async () => {
+      const { result } = renderHook(
+        () => useSwitchMutation$({ mutationFn: (value: number) => of(value) }),
+        { wrapper: createWrapper(new QueryClient()) },
+      )
+
+      await act(() => result.current.mutateAsync(7))
+      await waitFor(() => expect(result.current.isSuccess).toBe(true))
+
+      expectTypeOf(result.current.variables).toEqualTypeOf<number | undefined>()
+      expect(result.current.variables).toBe(7)
+
+      if (result.current.isSuccess) {
+        expectTypeOf(result.current.variables).toEqualTypeOf<number>()
+      }
     })
   })
 
