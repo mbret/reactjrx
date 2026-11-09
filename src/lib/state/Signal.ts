@@ -38,7 +38,7 @@ export class Signal<
     super(config.default)
   }
 
-  update = <U>(
+  update = <U extends T>(
     valueOrUpdater:
       | ((prev: T) => U & ValidateShape<T, U>)
       // biome-ignore lint/complexity/noBannedTypes: TODO
