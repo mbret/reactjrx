@@ -2,6 +2,7 @@ import { firstValueFrom, of, type Subscription } from "rxjs"
 import { afterEach, describe, expect, it, onTestFinished } from "vitest"
 import { waitForTimeout } from "../../../tests/utils"
 import { signal } from "../Signal"
+import type { Adapter } from "./adapters/Adapter"
 import { createLocalStorageAdapter } from "./adapters/createLocalStorageAdapter"
 import { MockAdapter } from "./adapters/MockAdapter"
 import { IDENTIFIER_PERSISTENCE_KEY } from "./constants"
@@ -29,13 +30,14 @@ const storedUndefinedEntry = (migrationVersion: number) =>
 const persistUntilStopped = async (
   // biome-ignore lint/suspicious/noExplicitAny: any signal can be persisted
   entries: SignalPersistenceConfig<any>[],
+  adapter: Adapter = createLocalStorageAdapter(),
 ) => {
   let subscription: Subscription | undefined
 
   await new Promise<void>((resolve) => {
     subscription = persistSignals({
       entries$: of(entries),
-      adapter: createLocalStorageAdapter(),
+      adapter,
       onHydrated: resolve,
     }).subscribe()
   })
@@ -199,6 +201,33 @@ describe("Given a new signal version", () => {
         expect(newerSignal.getValue()).toBe(stored)
       },
     )
+  })
+})
+
+describe("Given a stored NaN with a newer version, in an adapter that keeps values as they are", () => {
+  it("should leave it as stored when an older version hydrates from it", async () => {
+    const entry = {
+      [IDENTIFIER_PERSISTENCE_KEY]: IDENTIFIER_PERSISTENCE_KEY,
+      value: Number.NaN,
+      migrationVersion: 3,
+    } satisfies PersistenceEntry
+    const storage = new Map<string, unknown>([["key", entry]])
+    const adapter: Adapter = {
+      getItem: async (key) => storage.get(key),
+      setItem: async (key, value) => storage.set(key, value),
+      removeItem: async (key) => storage.delete(key),
+      clear: async () => storage.clear(),
+    }
+    const olderSignal = signal({ default: 0, key: "key" })
+
+    const stop = await persistUntilStopped(
+      [{ signal: olderSignal, version: 2 }],
+      adapter,
+    )
+    stop()
+
+    expect(olderSignal.getValue()).toBe(Number.NaN)
+    expect(storage.get("key")).toEqual(entry)
   })
 })
 

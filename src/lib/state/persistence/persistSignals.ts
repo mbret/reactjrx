@@ -71,10 +71,10 @@ const hydrateAndPersistEntry = ({
         throttleTime(500, asyncScheduler, {
           trailing: true,
         }),
-        filter((value, index) => index > 0 || value !== hydratedValue),
+        filter((value, index) => index > 0 || !Object.is(value, hydratedValue)),
         switchMap(persist),
         finalize(() => {
-          if (signal.getValue() !== lastPersistedValue) {
+          if (!Object.is(signal.getValue(), lastPersistedValue)) {
             persist().subscribe()
           }
         }),
