@@ -142,10 +142,11 @@ export function useQueries$<
   },
   queryClient?: QueryClient,
 ): TCombinedResult {
-  const transformedQueries = queries.map((query) => ({
-    ...query,
-    queryFn: createObservableQueryFn(query.queryFn),
-  }))
+  const transformedQueries = queries.map((query) =>
+    query.queryFn === undefined
+      ? query
+      : { ...query, queryFn: createObservableQueryFn(query.queryFn) },
+  )
 
   return useQueries(
     {

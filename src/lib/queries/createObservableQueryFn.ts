@@ -73,8 +73,8 @@ const streams = new WeakMap<Query, Stream>()
 export function createObservableQueryFn<
   TQueryFnData = unknown,
   TQueryKey extends QueryKey = QueryKey,
->(queryFn: ObservableQueryFn<TQueryFnData, TQueryKey> | undefined) {
-  if (queryFn === skipToken || queryFn === undefined) {
+>(queryFn: ObservableQueryFn<TQueryFnData, TQueryKey>) {
+  if (queryFn === skipToken) {
     return queryFn
   }
 
