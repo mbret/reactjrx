@@ -418,6 +418,37 @@ describe("useSwitchMutation$", () => {
       expect(cancelled?.state.failureCount).toBe(1)
     })
 
+    it("should settle a call cancelled during a retry wait once the wait ends, without another attempt", async () => {
+      const client = new QueryClient()
+      const mutationFn = vi.fn((value: string) =>
+        value === "first" ? throwError(() => new Error("failed")) : of(value),
+      )
+      const { result } = renderHook(
+        () =>
+          useSwitchMutation$({
+            scope: { id: "save" },
+            retry: 3,
+            retryDelay: 150,
+            mutationFn,
+          }),
+        { wrapper: createWrapper(client) },
+      )
+
+      act(() => result.current.mutate("first"))
+
+      const [cancelled] = client.getMutationCache().getAll()
+
+      await waitFor(() => expect(cancelled?.state.failureCount).toBe(1))
+      await act(() => result.current.mutateAsync("second"))
+
+      expect(cancelled?.state.error).toBeInstanceOf(SwitchMutationCancelError)
+      expect(cancelled?.state.failureCount).toBe(2)
+      expect(mutationFn.mock.calls.map(([value]) => value)).toEqual([
+        "first",
+        "second",
+      ])
+    })
+
     it("should retry another error as its retry option says", async () => {
       const mutationFn = vi.fn((_value: number) =>
         throwError(() => new Error("failed")),
