@@ -1,7 +1,7 @@
 import { catchError, from, type Observable, of, switchMap } from "rxjs"
 import { SIGNAL_RESET } from "../constants"
 import type { Adapter } from "./adapters/Adapter"
-import { IDENTIFIER_PERSISTENCE_KEY } from "./constants"
+import { IDENTIFIER_PERSISTENCE_KEY, NOTHING_STORED } from "./constants"
 import type { PersistenceEntry, SignalPersistenceConfig } from "./types"
 
 const getNormalizedPersistanceValue = (unknownValue: unknown) => {
@@ -30,6 +30,7 @@ export const persistValue = ({
 
   const value = {
     value: state,
+    ...(state === undefined ? { isUndefined: true as const } : {}),
     [IDENTIFIER_PERSISTENCE_KEY]: IDENTIFIER_PERSISTENCE_KEY,
     migrationVersion: version,
   } satisfies PersistenceEntry
@@ -53,8 +54,8 @@ export const persistValue = ({
 }
 
 /**
- * Emits `{ value }` with the value the signal was hydrated with, which can be
- * `undefined`, or `undefined` when nothing usable is stored.
+ * Emits the value the signal was hydrated with, or `NOTHING_STORED` when
+ * nothing usable is stored.
  */
 export function hydrateValueToSignal({
   adapter,
@@ -69,13 +70,13 @@ export function hydrateValueToSignal({
    * leaving its current value in place.
    */
   resetToDefault?: boolean
-}): Observable<{ value: unknown } | undefined> {
+}): Observable<unknown> {
   const { hydrate = ({ value }) => value, signal, version } = config
 
   const withoutStoredValue = () => {
     if (resetToDefault) signal.update(SIGNAL_RESET)
 
-    return of(undefined)
+    return of(NOTHING_STORED)
   }
 
   return from(adapter.getItem(signal.config.key)).pipe(
@@ -91,7 +92,10 @@ export function hydrateValueToSignal({
         normalizedValue.migrationVersion !== undefined &&
         version > normalizedValue.migrationVersion
 
-      if (storedVersionIsInvalid || signalVersionIsSuperior) {
+      const hasValue =
+        normalizedValue.value !== undefined || normalizedValue.isUndefined
+
+      if (storedVersionIsInvalid || signalVersionIsSuperior || !hasValue) {
         return withoutStoredValue()
       }
 
@@ -108,7 +112,7 @@ export function hydrateValueToSignal({
 
       signal.next(hydratedValue)
 
-      return of({ value: hydratedValue })
+      return of(hydratedValue)
     }),
   )
 }

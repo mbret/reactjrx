@@ -1,5 +1,5 @@
 import { firstValueFrom, of, type Subscription } from "rxjs"
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, onTestFinished } from "vitest"
 import { waitForTimeout } from "../../../tests/utils"
 import { signal } from "../Signal"
 import { createLocalStorageAdapter } from "./adapters/createLocalStorageAdapter"
@@ -16,6 +16,13 @@ const storedEntry = (value: unknown, migrationVersion: number) =>
   JSON.stringify({
     [IDENTIFIER_PERSISTENCE_KEY]: IDENTIFIER_PERSISTENCE_KEY,
     value,
+    migrationVersion,
+  } satisfies PersistenceEntry)
+
+const storedUndefinedEntry = (migrationVersion: number) =>
+  JSON.stringify({
+    [IDENTIFIER_PERSISTENCE_KEY]: IDENTIFIER_PERSISTENCE_KEY,
+    isUndefined: true,
     migrationVersion,
   } satisfies PersistenceEntry)
 
@@ -155,53 +162,43 @@ describe("Given a new signal version", () => {
   })
 
   describe("when a storage value already exist with superior version", () => {
-    it("should hydrate and overwrite", async () => {
-      const mockAdapter = new MockAdapter({
-        key: {
-          [IDENTIFIER_PERSISTENCE_KEY]: IDENTIFIER_PERSISTENCE_KEY,
-          value: 5,
-          migrationVersion: 3,
-        } satisfies PersistenceEntry,
-      })
-      const mySignal = signal({ default: 0, key: "key" })
+    it.each([
+      { stored: 5, entry: storedEntry(5, 3) },
+      { stored: undefined, entry: storedUndefinedEntry(3) },
+    ])(
+      "should hydrate $stored, and leave it as stored",
+      async ({ stored, entry }) => {
+        localStorage.setItem("key", entry)
+        const olderSignal = signal<number | undefined, "key">({
+          default: 0,
+          key: "key",
+        })
 
-      const persistance$ = persistSignals({
-        entries$: of([{ signal: mySignal, version: 2 }]),
-        adapter: mockAdapter,
-      })
+        const stop = await persistUntilStopped([
+          { signal: olderSignal, version: 2 },
+        ])
+        stop()
 
-      await firstValueFrom(persistance$)
+        expect(olderSignal.getValue()).toBe(stored)
+        expect(JSON.parse(localStorage.getItem("key") ?? "")).toEqual(
+          JSON.parse(entry),
+        )
 
-      expect(mySignal.getValue()).toEqual(5)
-    })
-  })
-})
+        const newerSignal = signal<number | undefined, "key">({
+          default: 0,
+          key: "key",
+        })
 
-describe("Given a stored value with a newer version", () => {
-  it("should leave it as stored when an older version hydrates from it", async () => {
-    localStorage.setItem("key", storedEntry(5, 3))
-    const olderSignal = signal({ default: 0, key: "key" })
+        await firstValueFrom(
+          persistSignals({
+            entries$: of([{ signal: newerSignal, version: 3 }]),
+            adapter: createLocalStorageAdapter(),
+          }),
+        )
 
-    const stop = await persistUntilStopped([
-      { signal: olderSignal, version: 2 },
-    ])
-    stop()
-
-    expect(olderSignal.getValue()).toBe(5)
-    expect(JSON.parse(localStorage.getItem("key") ?? "")).toEqual(
-      JSON.parse(storedEntry(5, 3)),
+        expect(newerSignal.getValue()).toBe(stored)
+      },
     )
-
-    const newerSignal = signal({ default: 0, key: "key" })
-
-    await firstValueFrom(
-      persistSignals({
-        entries$: of([{ signal: newerSignal, version: 3 }]),
-        adapter: createLocalStorageAdapter(),
-      }),
-    )
-
-    expect(newerSignal.getValue()).toBe(5)
   })
 })
 
@@ -232,23 +229,76 @@ describe("Given a signal set to undefined", () => {
   })
 })
 
+describe("Given an entry without a value from an earlier version", () => {
+  it("should keep the default", async () => {
+    localStorage.setItem(
+      "lang",
+      JSON.stringify({
+        [IDENTIFIER_PERSISTENCE_KEY]: IDENTIFIER_PERSISTENCE_KEY,
+        migrationVersion: 0,
+      } satisfies PersistenceEntry),
+    )
+    const lang = signal<string | undefined, "lang">({
+      key: "lang",
+      default: "en",
+    })
+
+    await firstValueFrom(
+      persistSignals({
+        entries$: of([{ signal: lang, version: 0 }]),
+        adapter: createLocalStorageAdapter(),
+      }),
+    )
+
+    expect(lang.getValue()).toBe("en")
+  })
+})
+
 describe("Given a signal changed when it is hydrated", () => {
   it("should save its new value at once", async () => {
     localStorage.setItem("key", storedEntry(5, 0))
     const mySignal = signal({ default: 0, key: "key" })
+    let subscription: Subscription | undefined
 
-    const subscription = persistSignals({
-      entries$: of([{ signal: mySignal, version: 0 }]),
-      adapter: createLocalStorageAdapter(),
-      onHydrated: () => mySignal.update(7),
-    }).subscribe()
+    onTestFinished(() => subscription?.unsubscribe())
 
-    await waitForTimeout(20)
+    await new Promise<void>((resolve) => {
+      subscription = persistSignals({
+        entries$: of([{ signal: mySignal, version: 0 }]),
+        adapter: createLocalStorageAdapter(),
+        onHydrated: () => {
+          mySignal.update(7)
+          resolve()
+        },
+      }).subscribe()
+    })
 
     expect(JSON.parse(localStorage.getItem("key") ?? "")).toEqual(
       JSON.parse(storedEntry(7, 0)),
     )
+  })
+})
 
-    subscription.unsubscribe()
+describe("Given a value changed in place after hydration", () => {
+  it("should save it", { timeout: 2000 }, async () => {
+    localStorage.setItem("key", storedEntry({ list: [] }, 0))
+    const mySignal = signal<{ list: number[] }, "key">({
+      default: { list: [] },
+      key: "key",
+    })
+
+    const stop = await persistUntilStopped([{ signal: mySignal, version: 0 }])
+    onTestFinished(stop)
+
+    mySignal.update((value) => {
+      value.list.push(1)
+
+      return value
+    })
+    await waitForTimeout(600)
+
+    expect(JSON.parse(localStorage.getItem("key") ?? "")).toEqual(
+      JSON.parse(storedEntry({ list: [1] }, 0)),
+    )
   })
 })

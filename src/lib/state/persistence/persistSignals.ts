@@ -2,6 +2,7 @@ import {
   asyncScheduler,
   catchError,
   EMPTY,
+  filter,
   finalize,
   Observable,
   Subscription,
@@ -18,16 +19,15 @@ import type { SignalPersistenceConfig } from "./types"
 type AnySignal = Signal<any, string>
 type Entry = SignalPersistenceConfig<AnySignal>
 
-const NOTHING_STORED = Symbol("nothing stored")
-
 /**
- * Hydrates one signal from the adapter, then persists each new value (at most
+ * Hydrates one signal from the adapter, then persists its updates (at most
  * every 500 ms) until unsubscribed. On unsubscribe, a value still held by the
  * throttle is saved right away instead of being dropped.
  *
- * A value the adapter already holds is not written again, the hydrated one
- * included: writing it would tag it with this entry's version, which can be
- * older than the stored one, and a newer app would then discard it.
+ * The signal replays the value it was hydrated with, and that replay is not
+ * written back: the write would tag the value with this entry's version,
+ * which can be older than the stored one, and a newer app would then discard
+ * it.
  *
  * `entry.config` is read at every write, so a changed config (e.g. a new
  * `version`) applies to the next write.
@@ -56,15 +56,11 @@ const hydrateAndPersistEntry = ({
       return EMPTY
     }),
     tap(onHydrated),
-    switchMap((hydrated) => {
-      let storedValue: unknown = hydrated ? hydrated.value : NOTHING_STORED
+    switchMap((hydratedValue) => {
+      let lastPersistedValue = hydratedValue
 
-      const persistIfChanged = () => {
-        const value = signal.getValue()
-
-        if (value === storedValue) return EMPTY
-
-        storedValue = value
+      const persist = () => {
+        lastPersistedValue = signal.getValue()
 
         return persistValue({ adapter, config: entry.config })
       }
@@ -73,8 +69,13 @@ const hydrateAndPersistEntry = ({
         throttleTime(500, asyncScheduler, {
           trailing: true,
         }),
-        switchMap(persistIfChanged),
-        finalize(() => persistIfChanged().subscribe()),
+        filter((value, index) => index > 0 || value !== lastPersistedValue),
+        switchMap(persist),
+        finalize(() => {
+          if (signal.getValue() !== lastPersistedValue) {
+            persist().subscribe()
+          }
+        }),
       )
     }),
   )

@@ -135,9 +135,8 @@ describe("Given an entries change while a write is still throttled", () => {
 
     expect(signalA.getValue()).toBe(1)
 
-    // Both updates fall in the 500 ms throttle window opened by the write
-    // that follows hydration, so they are still pending when the entries
-    // change.
+    // Both updates fall in the 500 ms throttle window opened by the replay of
+    // the hydrated value, so they are still pending when the entries change.
     signalA.update(2)
     signalA.update(3)
 

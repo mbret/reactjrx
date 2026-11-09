@@ -2,10 +2,13 @@ import type { Signal, SignalValue } from "../Signal"
 import type { IDENTIFIER_PERSISTENCE_KEY } from "./constants"
 
 export interface PersistenceEntry {
-  /**
-   * Missing when the signal held `undefined`, since JSON drops the key.
-   */
   value?: unknown
+  /**
+   * Set when the signal held `undefined`, which JSON drops from `value`. An
+   * entry with neither stores nothing, as entries written before this flag
+   * do.
+   */
+  isUndefined?: true
   migrationVersion?: number
   [IDENTIFIER_PERSISTENCE_KEY]: typeof IDENTIFIER_PERSISTENCE_KEY
 }
