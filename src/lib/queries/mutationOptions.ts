@@ -1,4 +1,4 @@
-import type { UseMutationOptions } from "@tanstack/react-query"
+import type { MutationOptions, UseMutationOptions } from "@tanstack/react-query"
 import type { Observable } from "rxjs"
 
 /**
@@ -12,6 +12,23 @@ export function resolveMutationFnSource<TData, TVariables>(
   variables: TVariables,
 ) {
   return typeof mutationFn === "function" ? mutationFn(variables) : mutationFn
+}
+
+/**
+ * Reads a `retry` option as TanStack Query does: `true` retries without
+ * limit, a number caps the retries, a function decides, and no value does
+ * not retry.
+ */
+export function shouldRetry<TError>(
+  retry: MutationOptions<unknown, TError>["retry"],
+  failureCount: number,
+  error: TError,
+) {
+  return (
+    retry === true ||
+    (typeof retry === "number" && failureCount < retry) ||
+    (typeof retry === "function" && retry(failureCount, error))
+  )
 }
 
 type MutationCallbacks<TData, TError, TVariables, TOnMutateResult> = Pick<

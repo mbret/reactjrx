@@ -1,4 +1,9 @@
-import type { DefaultError, QueryClient } from "@tanstack/react-query"
+import {
+  type DefaultError,
+  type MutationOptions,
+  type QueryClient,
+  useQueryClient,
+} from "@tanstack/react-query"
 import { useCallback } from "react"
 import {
   defaultIfEmpty,
@@ -12,6 +17,7 @@ import { useRefOnce } from "../utils"
 import {
   adaptCallbacksToWrappedVariables,
   resolveMutationFnSource,
+  shouldRetry,
 } from "./mutationOptions"
 import { type UseMutation$Options, useMutation$ } from "./useMutation$"
 
@@ -36,6 +42,20 @@ export function useSwitchMutation$<
 ) {
   const previousMutationCancelRef = useRefOnce(() => new AbortController())
   type TDataOrNull = TData | null
+
+  const client = useQueryClient(queryClient)
+
+  /**
+   * The adapted callbacks and `retry` below replace the client's defaults
+   * when TanStack merges the options, so they are merged here first, in
+   * TanStack's order.
+   */
+  const { onMutate, onSuccess, onError, onSettled, retry } = {
+    ...client.defaultMutationOptions<
+      MutationOptions<TDataOrNull, TError, TVariables, TOnMutateResult>
+    >({ mutationKey: options.mutationKey }),
+    ...options,
+  }
 
   const { mutate, mutateAsync, ...rest } = useMutation$<
     TDataOrNull,
@@ -77,7 +97,15 @@ export function useSwitchMutation$<
         },
         [mutationFn],
       ),
-      ...adaptCallbacksToWrappedVariables(options),
+      ...adaptCallbacksToWrappedVariables({
+        onMutate,
+        onSuccess,
+        onError,
+        onSettled,
+      }),
+      retry: (failureCount, error) =>
+        !(error instanceof SwitchMutationCancelError) &&
+        shouldRetry(retry, failureCount, error),
     },
     queryClient,
   )
