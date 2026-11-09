@@ -100,9 +100,6 @@ export function signal<T, K extends string | undefined = undefined>(
   })
 }
 
-export function virtualSignal<T>(config: {
-  default: T
-  key?: string
-}): VirtualSignal<T> {
+export function virtualSignal<T>(config: { default: T }): VirtualSignal<T> {
   return new VirtualSignal(config)
 }

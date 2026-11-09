@@ -17,11 +17,9 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { isShallowEqual } from "../../utils/shallowEqual"
 import { SIGNAL_RESET } from "../constants"
-import { signal, virtualSignal } from "../Signal"
-import {
-  SignalContextProvider,
-  useMakeOrRetrieveSignal,
-} from "./SignalContextProvider"
+import { type Signal, signal, virtualSignal } from "../Signal"
+import { SignalContextProvider } from "./SignalContextProvider"
+import { useSignalReference } from "./useSignalReference"
 import { useSignalValue } from "./useSignalValue"
 
 afterEach(() => {
@@ -836,7 +834,7 @@ describe("useSignalValue", () => {
     )
 
     it("should resolve a virtual signal through context", () => {
-      const vSignal = virtualSignal({ key: "v1", default: 42 })
+      const vSignal = virtualSignal({ default: 42 })
 
       const { result } = renderHook(() => useSignalValue(vSignal), {
         wrapper: Wrapper,
@@ -846,10 +844,7 @@ describe("useSignalValue", () => {
     })
 
     it("should apply selector to virtual signal value", () => {
-      const vSignal = virtualSignal({
-        key: "v2",
-        default: { count: 3 },
-      })
+      const vSignal = virtualSignal({ default: { count: 3 } })
 
       const { result } = renderHook(
         () => useSignalValue(vSignal, (v) => v.count * 2),
@@ -860,12 +855,12 @@ describe("useSignalValue", () => {
     })
 
     it("should re-render when the underlying virtual signal value changes", () => {
-      const vSignal = virtualSignal({ key: "v3", default: { count: 0 } })
+      const vSignal = virtualSignal({ default: { count: 0 } })
 
-      let captured: ReturnType<typeof useMakeOrRetrieveSignal> | undefined
+      let captured: Signal<{ count: number }> | undefined
 
       const Probe: FC = () => {
-        captured = useMakeOrRetrieveSignal(vSignal)
+        captured = useSignalReference(vSignal)
         return null
       }
 

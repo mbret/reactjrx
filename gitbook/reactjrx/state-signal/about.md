@@ -116,13 +116,15 @@ const counterSignal = virtualSignal({ default: 0 });
 const [counter, setCounter] = useSignal(counterSignal)
 ```
 
+A component that uses a VirtualSignal must sit under a `SignalContextProvider`, which creates its Signal. Outside a provider, the hook throws. For state the whole app shares, use a `signal()` instead.
+
 ### Beyond Global Singletons
 
 When you export a Signal from a module, it behaves as a singleton shared across your entire application. VirtualSignals break this pattern by:
 
 1. **Deferring Instantiation**: A VirtualSignal is just a reference until it's resolved within a context
 2. **Enabling Scoped State**: Multiple instances of the same VirtualSignal can exist in different contexts
-3. **Controlling Lifecycle**: VirtualSignals are created and destroyed with their context
+3. **Controlling Lifecycle**: A provider creates the Signal of a VirtualSignal the first time it is used under it, and keeps it while the provider is mounted. The Signal never completes, even when the provider unmounts (it did in reactjrx 4): unsubscribe what you subscribe to it
 
 ### Library Author's Tool
 
@@ -140,7 +142,7 @@ export const userPreferencesRef = virtualSignal({
 
 This approach allows library users to have multiple instances of your state, each scoped to different parts of their application.
 
-The VirtualSignal pattern is conceptually similar to libraries like [Jotai](https://jotai.org/), where atoms are references to state that must be used within a provider context. This creates a clear separation between state definition and state instantiation.
+The VirtualSignal pattern is conceptually similar to [Jotai](https://jotai.org/)'s atoms, which are references to state that a store holds. Unlike Jotai, there is no default store: a VirtualSignal must be used under a provider. This creates a clear separation between state definition and state instantiation.
 
 When a VirtualSignal is used within its appropriate context, it resolves to a real Signal:
 
@@ -150,7 +152,16 @@ const [theme, setTheme, themeSignal] = useSignal(themeRef);  // Now a full Signa
 
 // Use like any other Signal
 setTheme('dark');
-themeSignal.subscribe(value => console.log(`Theme changed to ${value}`));
+// A stable factory: useSubscribe subscribes again when it changes
+const logTheme = useCallback(
+  () =>
+    themeSignal.pipe(
+      skip(1),
+      tap((value) => console.log(`Theme changed to ${value}`)),
+    ),
+  [themeSignal],
+);
+useSubscribe(logTheme);
 ```
 
 This pattern combines the flexibility of context-based state with the power and simplicity of Signals, giving library authors fine-grained control over state lifecycle while maintaining a familiar reactive API for consumers.
