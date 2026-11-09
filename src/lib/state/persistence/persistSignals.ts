@@ -5,6 +5,7 @@ import {
   finalize,
   Observable,
   Subscription,
+  skip,
   switchMap,
   tap,
   throttleTime,
@@ -57,8 +58,19 @@ const hydrateAndPersistEntry = ({
       return EMPTY
     }),
     tap(onHydrated),
-    switchMap(() =>
-      signal.pipe(
+    switchMap((hydrated) => {
+      /**
+       * The storage already holds the value the signal was hydrated with.
+       * Writing it back would tag it with this entry's version, which can be
+       * older than the stored one, and a newer app would then discard it.
+       */
+      const isHoldingHydratedValue =
+        hydrated !== undefined && signal.getValue() === hydrated.value
+
+      if (isHoldingHydratedValue) lastPersistedValue = hydrated.value
+
+      return signal.pipe(
+        skip(isHoldingHydratedValue ? 1 : 0),
         throttleTime(500, asyncScheduler, {
           trailing: true,
         }),
@@ -68,8 +80,8 @@ const hydrateAndPersistEntry = ({
             persist().subscribe()
           }
         }),
-      ),
-    ),
+      )
+    }),
   )
 }
 

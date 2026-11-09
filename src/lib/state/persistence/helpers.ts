@@ -1,4 +1,4 @@
-import { catchError, from, of, switchMap } from "rxjs"
+import { catchError, from, type Observable, of, switchMap } from "rxjs"
 import { SIGNAL_RESET } from "../constants"
 import type { Adapter } from "./adapters/Adapter"
 import { IDENTIFIER_PERSISTENCE_KEY } from "./constants"
@@ -52,6 +52,10 @@ export const persistValue = ({
   )
 }
 
+/**
+ * Hydrates the signal from the adapter. Emits the value the signal was
+ * hydrated with, or `undefined` when nothing usable is stored.
+ */
 export function hydrateValueToSignal({
   adapter,
   config,
@@ -65,20 +69,20 @@ export function hydrateValueToSignal({
    * leaving its current value in place.
    */
   resetToDefault?: boolean
-}) {
+}): Observable<{ value: unknown } | undefined> {
   const { hydrate = ({ value }) => value, signal, version } = config
 
-  const withoutStoredValue = (value: unknown) => {
+  const withoutStoredValue = () => {
     if (resetToDefault) signal.update(SIGNAL_RESET)
 
-    return of(value)
+    return of(undefined)
   }
 
   return from(adapter.getItem(signal.config.key)).pipe(
     switchMap((value) => {
       const normalizedValue = getNormalizedPersistanceValue(value)
 
-      if (!normalizedValue) return withoutStoredValue(value)
+      if (!normalizedValue) return withoutStoredValue()
 
       const storedVersionIsInvalid =
         typeof normalizedValue.migrationVersion !== "number"
@@ -87,15 +91,9 @@ export function hydrateValueToSignal({
         normalizedValue.migrationVersion !== undefined &&
         version > normalizedValue.migrationVersion
 
-      if (
-        storedVersionIsInvalid ||
-        signalVersionIsSuperior ||
-        normalizedValue.value === undefined
-      ) {
-        return withoutStoredValue(value)
+      if (storedVersionIsInvalid || signalVersionIsSuperior) {
+        return withoutStoredValue()
       }
-
-      const correctVersionValue = normalizedValue.value
 
       if (process.env.NODE_ENV === "development") {
         console.log(
@@ -106,9 +104,15 @@ export function hydrateValueToSignal({
         )
       }
 
-      signal.next(hydrate({ value: correctVersionValue, version }))
+      /**
+       * An entry without `value` stores `undefined`: JSON drops a key whose
+       * value is `undefined`.
+       */
+      const hydratedValue = hydrate({ value: normalizedValue.value, version })
 
-      return of(value)
+      signal.next(hydratedValue)
+
+      return of({ value: hydratedValue })
     }),
   )
 }
