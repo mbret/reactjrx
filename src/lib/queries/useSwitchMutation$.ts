@@ -1,4 +1,9 @@
-import type { DefaultError, QueryClient } from "@tanstack/react-query"
+import {
+  type DefaultError,
+  type QueryClient,
+  type UseMutationOptions,
+  useQueryClient,
+} from "@tanstack/react-query"
 import { useCallback } from "react"
 import {
   defaultIfEmpty,
@@ -9,10 +14,8 @@ import {
   tap,
 } from "rxjs"
 import { useRefOnce } from "../utils"
-import {
-  adaptCallbacksToWrappedVariables,
-  resolveMutationFnSource,
-} from "./mutationOptions"
+import { shouldRetry } from "../utils/shouldRetry"
+import { resolveMutationFnSource } from "./mutationOptions"
 import { type UseMutation$Options, useMutation$ } from "./useMutation$"
 
 export class SwitchMutationCancelError extends Error {
@@ -22,6 +25,74 @@ export class SwitchMutationCancelError extends Error {
   }
 }
 
+type SwitchVariables<TVariables> = {
+  variables: TVariables
+  abort: AbortSignal
+}
+
+/**
+ * Keyed as required, so that spreading them after the caller's options
+ * replaces the caller's callbacks, which take the raw variables.
+ */
+type SwitchOverrides<TData, TError, TVariables, TOnMutateResult> = {
+  [K in
+    | "onMutate"
+    | "onSuccess"
+    | "onError"
+    | "onSettled"
+    | "retry"]: UseMutationOptions<
+    TData,
+    TError,
+    SwitchVariables<TVariables>,
+    TOnMutateResult
+  >[K]
+}
+
+/**
+ * The options the hook passes over the caller's: the callbacks, adapted to
+ * the `{ variables, abort }` the hook runs the mutation with, and a `retry`
+ * that never retries a cancelled call. They replace the client's defaults,
+ * so they are built from the options merged with those defaults.
+ */
+function createSwitchOverrides<TData, TError, TVariables, TOnMutateResult>(
+  client: QueryClient,
+  options: Omit<
+    UseMutation$Options<TData, TError, TVariables, TOnMutateResult>,
+    "mutationFn"
+  >,
+): SwitchOverrides<TData, TError, TVariables, TOnMutateResult> {
+  const { onMutate, onSuccess, onError, onSettled, retry } =
+    client.defaultMutationOptions(options)
+
+  return {
+    onMutate:
+      onMutate && (({ variables }, ...rest) => onMutate(variables, ...rest)),
+    onSuccess:
+      onSuccess &&
+      ((data, { variables }, ...rest) => onSuccess(data, variables, ...rest)),
+    onError:
+      onError &&
+      ((error, { variables }, ...rest) => onError(error, variables, ...rest)),
+    onSettled:
+      onSettled &&
+      ((data, error, { variables }, ...rest) =>
+        onSettled(data, error, variables, ...rest)),
+    retry: (failureCount, error) =>
+      !(error instanceof SwitchMutationCancelError) &&
+      shouldRetry(retry, failureCount, error),
+  }
+}
+
+/**
+ * Runs a mutation, and cancels the call still running when a new one starts.
+ * A cancelled call fails with `SwitchMutationCancelError` and is not retried.
+ * A call cancelled while TanStack waits to retry it settles once that wait
+ * ends.
+ *
+ * The callbacks, the client's defaults included, receive the variables given
+ * to `mutate`. A `MutationCache`, `result.variables` and `useMutationState`
+ * see the `{ variables, abort }` the hook runs the mutation with.
+ */
 export function useSwitchMutation$<
   TData = unknown,
   TError = DefaultError,
@@ -37,22 +108,18 @@ export function useSwitchMutation$<
   const previousMutationCancelRef = useRefOnce(() => new AbortController())
   type TDataOrNull = TData | null
 
+  const client = useQueryClient(queryClient)
+
   const { mutate, mutateAsync, ...rest } = useMutation$<
     TDataOrNull,
     TError,
-    { variables: TVariables; abort: AbortSignal },
+    SwitchVariables<TVariables>,
     TOnMutateResult
   >(
     {
       ...options,
       mutationFn: useCallback(
-        ({
-          variables,
-          abort,
-        }: {
-          variables: TVariables
-          abort: AbortSignal
-        }) => {
+        ({ variables, abort }: SwitchVariables<TVariables>) => {
           if (abort.aborted) {
             throw new SwitchMutationCancelError()
           }
@@ -77,9 +144,9 @@ export function useSwitchMutation$<
         },
         [mutationFn],
       ),
-      ...adaptCallbacksToWrappedVariables(options),
+      ...createSwitchOverrides(client, options),
     },
-    queryClient,
+    client,
   )
 
   const mutateSwitch = useCallback(

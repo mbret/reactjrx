@@ -6,6 +6,7 @@ import {
   getDelay,
 } from "../utils/operators/retryBackoff"
 import { useLiveRef } from "../utils/react/useLiveRef"
+import { shouldRetry } from "../utils/shouldRetry"
 import type { SubscribeSource } from "./useSubscribe/types"
 import { useSubscribe } from "./useSubscribe/useSubscribe"
 
@@ -37,18 +38,6 @@ export interface UseSubscribeEffectOptions {
 
 const defaultRetryDelay = (attempt: number) =>
   getDelay(exponentialBackoffDelay(attempt, 1000), 30_000)
-
-const shouldRetry = (
-  retryOption: UseSubscribeEffectOptions["retry"],
-  attempt: number,
-  error: unknown,
-) => {
-  if (typeof retryOption === "function") return retryOption(attempt, error)
-
-  if (typeof retryOption === "number") return attempt < retryOption
-
-  return retryOption === true
-}
 
 /**
  * Subscribes to `source` while the component is mounted. Options are read
