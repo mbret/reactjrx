@@ -32,6 +32,8 @@ Three things differ from TanStack Query:
 - A `retry` function runs twice for each failure: once in the hook, to know whether to wait, and once in TanStack Query.
 - A change to `retry` or `retryDelay` applies to the calls already running. TanStack Query keeps the values that a call started with.
 
+As in TanStack Query, `retryDelay` must not throw. Here, its error replaces the attempt's error, and the retry starts at once.
+
 ## Variables
 
 The callbacks, the client's default callbacks included, receive the variables given to `mutate`, and `result.variables` holds them. The hook runs each call with `{ variables, abort }` as TanStack Query's variables, so a `MutationCache` and `useMutationState` see that object.

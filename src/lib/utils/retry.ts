@@ -1,3 +1,5 @@
+import { exponentialBackoffDelay, getDelay } from "./operators/retryBackoff"
+
 /**
  * The retry options, read the way TanStack Query reads a mutation's, in
  * checks it does not export. `attempt` counts the retries already made: 0
@@ -28,7 +30,7 @@ export const shouldRetry = <TError>(
  * 1 s, doubled at each retry, up to 30 s.
  */
 const defaultRetryDelay = (attempt: number) =>
-  Math.min(1000 * 2 ** attempt, 30_000)
+  getDelay(exponentialBackoffDelay(attempt, 1000), 30_000)
 
 /**
  * The time to wait before a retry, in milliseconds: a number, or a function

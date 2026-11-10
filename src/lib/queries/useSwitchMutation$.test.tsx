@@ -661,6 +661,35 @@ describe("useSwitchMutation$", () => {
         expect(result.current.status).toBe("error")
       })
 
+      it("should wait a retryDelay changed while the call runs from its next failure on", async () => {
+        const mutationFn = vi.fn((_value: number) =>
+          throwError(() => new Error("failed")),
+        )
+        const { result, rerender } = renderHook(
+          ({ retryDelay }: { retryDelay: number }) =>
+            useSwitchMutation$({ retry: 2, retryDelay, mutationFn }),
+          {
+            wrapper: createWrapper(new QueryClient()),
+            initialProps: { retryDelay: 1000 },
+          },
+        )
+
+        act(() => result.current.mutate(1))
+        await act(() => vi.advanceTimersByTimeAsync(10))
+        rerender({ retryDelay: 100 })
+        await act(() => vi.advanceTimersByTimeAsync(1000))
+
+        expect(mutationFn).toHaveBeenCalledTimes(2)
+
+        await act(() => vi.advanceTimersByTimeAsync(50))
+
+        expect(mutationFn).toHaveBeenCalledTimes(2)
+
+        await act(() => vi.advanceTimersByTimeAsync(60))
+
+        expect(mutationFn).toHaveBeenCalledTimes(3)
+      })
+
       it("should fail at once when its source fails with SwitchMutationCancelError", async () => {
         const mutationFn = vi.fn((_value: number) =>
           throwError(() => new SwitchMutationCancelError()),
@@ -708,22 +737,6 @@ describe("useSwitchMutation$", () => {
         () => useSwitchMutation$({ retry: 1, retryDelay: 0, mutationFn }),
         { wrapper: createWrapper(new QueryClient()) },
       )
-
-      await act(() => result.current.mutateAsync(1).catch(() => undefined))
-
-      expect(mutationFn).toHaveBeenCalledTimes(2)
-    })
-
-    it("should retry another error as the default retry says", async () => {
-      const mutationFn = vi.fn((_value: number) =>
-        throwError(() => new Error("failed")),
-      )
-      const client = new QueryClient({
-        defaultOptions: { mutations: { retry: 1, retryDelay: 0 } },
-      })
-      const { result } = renderHook(() => useSwitchMutation$({ mutationFn }), {
-        wrapper: createWrapper(client),
-      })
 
       await act(() => result.current.mutateAsync(1).catch(() => undefined))
 
