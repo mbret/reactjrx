@@ -445,7 +445,7 @@ describe("useSwitchMutation$", () => {
       expect(cancelled?.state.failureCount).toBe(1)
     })
 
-    it("should settle a call cancelled during a retry wait once the wait ends, without another attempt", async () => {
+    it("should fail a call cancelled during a retry wait at once, without another attempt", async () => {
       const client = new QueryClient()
       const mutationFn = vi.fn((value: string) =>
         value === "first" ? throwError(() => new Error("failed")) : of(value),
@@ -455,7 +455,7 @@ describe("useSwitchMutation$", () => {
           useSwitchMutation$({
             scope: { id: "save" },
             retry: 3,
-            retryDelay: 150,
+            retryDelay: 10_000,
             mutationFn,
           }),
         { wrapper: createWrapper(client) },
@@ -468,12 +468,88 @@ describe("useSwitchMutation$", () => {
       await waitFor(() => expect(cancelled?.state.failureCount).toBe(1))
       await act(() => result.current.mutateAsync("second"))
 
+      expect(cancelled?.state.status).toBe("error")
       expect(cancelled?.state.error).toBeInstanceOf(SwitchMutationCancelError)
-      expect(cancelled?.state.failureCount).toBe(2)
       expect(mutationFn.mock.calls.map(([value]) => value)).toEqual([
         "first",
         "second",
       ])
+    })
+
+    describe("Given a call that fails", () => {
+      beforeEach(() => {
+        vi.useFakeTimers()
+      })
+
+      afterEach(() => {
+        vi.useRealTimers()
+      })
+
+      it.each([
+        {
+          source: "its retryDelay",
+          options: { retryDelay: 300 },
+          defaults: {},
+          delay: 300,
+        },
+        {
+          source: "the client's default retryDelay",
+          options: {},
+          defaults: { retryDelay: 300 },
+          delay: 300,
+        },
+        {
+          source: "TanStack Query's default delay",
+          options: {},
+          defaults: {},
+          delay: 1000,
+        },
+      ])(
+        "should wait $source before it retries",
+        async ({ options, defaults, delay }) => {
+          const mutationFn = vi.fn((_value: number) =>
+            throwError(() => new Error("failed")),
+          )
+          const client = new QueryClient({
+            defaultOptions: { mutations: { retry: 1, ...defaults } },
+          })
+          const { result } = renderHook(
+            () => useSwitchMutation$({ ...options, mutationFn }),
+            { wrapper: createWrapper(client) },
+          )
+
+          act(() => result.current.mutate(1))
+          await act(() => vi.advanceTimersByTimeAsync(delay - 1))
+
+          expect(mutationFn).toHaveBeenCalledTimes(1)
+          expect(result.current.failureCount).toBe(1)
+
+          await act(() => vi.advanceTimersByTimeAsync(1))
+
+          expect(mutationFn).toHaveBeenCalledTimes(2)
+        },
+      )
+
+      it("should give retryDelay the failure count and the error of the failure it retries", async () => {
+        const errors = [new Error("first"), new Error("second")]
+        const mutationFn = vi.fn((_value: number) =>
+          throwError(() => errors[mutationFn.mock.calls.length - 1]),
+        )
+        const retryDelay = vi.fn((_failureCount: number, _error: Error) => 100)
+        const { result } = renderHook(
+          () => useSwitchMutation$({ retry: 2, retryDelay, mutationFn }),
+          { wrapper: createWrapper(new QueryClient()) },
+        )
+
+        act(() => result.current.mutate(1))
+        await act(() => vi.advanceTimersByTimeAsync(1000))
+
+        expect(mutationFn).toHaveBeenCalledTimes(3)
+        expect(retryDelay.mock.calls).toEqual([
+          [0, errors[0]],
+          [1, errors[1]],
+        ])
+      })
     })
 
     it("should retry another error as its retry option says", async () => {

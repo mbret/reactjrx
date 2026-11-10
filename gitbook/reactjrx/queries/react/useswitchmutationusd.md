@@ -20,7 +20,11 @@ onError: (error) => {
 }
 ```
 
-A cancelled call is not retried, whatever `retry` says. A call cancelled while TanStack Query waits to retry it settles once that wait ends.
+A cancelled call is not retried, whatever `retry` says. A call cancelled while it waits to be retried fails at once.
+
+## Retries
+
+`retry` and `retryDelay` work as in TanStack Query, the client's defaults included. TanStack Query cannot stop its wait between two attempts, so the hook waits `retryDelay` at the start of the next attempt instead, and a cancel ends that wait. A `MutationCache` sees a `retryDelay` of 0.
 
 ## Variables
 
