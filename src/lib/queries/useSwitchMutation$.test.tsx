@@ -1,4 +1,9 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import {
+  focusManager,
+  onlineManager,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query"
 import { fireEvent } from "@testing-library/dom"
 import {
   cleanup,
@@ -445,37 +450,6 @@ describe("useSwitchMutation$", () => {
       expect(cancelled?.state.failureCount).toBe(1)
     })
 
-    it("should fail a call cancelled during a retry wait at once, without another attempt", async () => {
-      const client = new QueryClient()
-      const mutationFn = vi.fn((value: string) =>
-        value === "first" ? throwError(() => new Error("failed")) : of(value),
-      )
-      const { result } = renderHook(
-        () =>
-          useSwitchMutation$({
-            scope: { id: "save" },
-            retry: 3,
-            retryDelay: 10_000,
-            mutationFn,
-          }),
-        { wrapper: createWrapper(client) },
-      )
-
-      act(() => result.current.mutate("first"))
-
-      const [cancelled] = client.getMutationCache().getAll()
-
-      await waitFor(() => expect(cancelled?.state.failureCount).toBe(1))
-      await act(() => result.current.mutateAsync("second"))
-
-      expect(cancelled?.state.status).toBe("error")
-      expect(cancelled?.state.error).toBeInstanceOf(SwitchMutationCancelError)
-      expect(mutationFn.mock.calls.map(([value]) => value)).toEqual([
-        "first",
-        "second",
-      ])
-    })
-
     describe("Given a call that fails", () => {
       beforeEach(() => {
         vi.useFakeTimers()
@@ -483,6 +457,113 @@ describe("useSwitchMutation$", () => {
 
       afterEach(() => {
         vi.useRealTimers()
+        onlineManager.setOnline(true)
+        focusManager.setFocused(undefined)
+      })
+
+      it("should fail at once when it is cancelled while it waits retryDelay, without another attempt", async () => {
+        const client = new QueryClient()
+        const mutationFn = vi.fn((value: string) =>
+          value === "first" ? throwError(() => new Error("failed")) : of(value),
+        )
+        const { result } = renderHook(
+          () =>
+            useSwitchMutation$({
+              scope: { id: "save" },
+              retry: 3,
+              retryDelay: 10_000,
+              mutationFn,
+            }),
+          { wrapper: createWrapper(client) },
+        )
+
+        act(() => result.current.mutate("first"))
+        await act(() => vi.advanceTimersByTimeAsync(1))
+        act(() => result.current.mutate("second"))
+        await act(() => vi.advanceTimersByTimeAsync(1))
+
+        const [cancelled, next] = client.getMutationCache().getAll()
+
+        expect(cancelled?.state.error).toBeInstanceOf(SwitchMutationCancelError)
+        expect(next?.state.status).toBe("success")
+        expect(mutationFn.mock.calls.map(([value]) => value)).toEqual([
+          "first",
+          "second",
+        ])
+      })
+
+      it.each([
+        {
+          change: "the device goes offline",
+          leave: () => onlineManager.setOnline(false),
+          comeBack: () => onlineManager.setOnline(true),
+        },
+        {
+          change: "the page is hidden",
+          leave: () => focusManager.setFocused(false),
+          comeBack: () => focusManager.setFocused(true),
+        },
+      ])(
+        "should hold the retry when $change during the wait, until it comes back",
+        async ({ leave, comeBack }) => {
+          const client = new QueryClient()
+          const mutationFn = vi.fn((_value: number) =>
+            mutationFn.mock.calls.length === 1
+              ? throwError(() => new Error("failed"))
+              : of("saved"),
+          )
+          const { result } = renderHook(
+            () =>
+              useSwitchMutation$({ retry: 1, retryDelay: 1000, mutationFn }),
+            { wrapper: createWrapper(client) },
+          )
+
+          act(() => result.current.mutate(1))
+          await act(() => vi.advanceTimersByTimeAsync(10))
+          act(leave)
+          await act(() => vi.advanceTimersByTimeAsync(2000))
+
+          expect(mutationFn).toHaveBeenCalledTimes(1)
+          expect(result.current.isPaused).toBe(true)
+
+          act(comeBack)
+          await act(() => vi.advanceTimersByTimeAsync(0))
+
+          expect(mutationFn).toHaveBeenCalledTimes(2)
+          expect(result.current.data).toBe("saved")
+        },
+      )
+
+      it("should fail once it resumes when it is cancelled while TanStack Query holds its retry", async () => {
+        const client = new QueryClient()
+        const mutationFn = vi.fn((value: string) =>
+          value === "first" ? throwError(() => new Error("failed")) : of(value),
+        )
+        const { result } = renderHook(
+          () => useSwitchMutation$({ retry: 1, retryDelay: 100, mutationFn }),
+          { wrapper: createWrapper(client) },
+        )
+
+        act(() => result.current.mutate("first"))
+        await act(() => vi.advanceTimersByTimeAsync(10))
+        act(() => onlineManager.setOnline(false))
+        await act(() => vi.advanceTimersByTimeAsync(200))
+        act(() => result.current.mutate("second"))
+        await act(() => vi.advanceTimersByTimeAsync(200))
+
+        const [cancelled] = client.getMutationCache().getAll()
+
+        expect(cancelled?.state.status).toBe("pending")
+        expect(cancelled?.state.isPaused).toBe(true)
+
+        act(() => onlineManager.setOnline(true))
+        await act(() => vi.advanceTimersByTimeAsync(0))
+
+        expect(cancelled?.state.error).toBeInstanceOf(SwitchMutationCancelError)
+        expect(mutationFn.mock.calls.map(([value]) => value)).toEqual([
+          "first",
+          "second",
+        ])
       })
 
       it.each([
@@ -522,9 +603,8 @@ describe("useSwitchMutation$", () => {
           await act(() => vi.advanceTimersByTimeAsync(delay - 1))
 
           expect(mutationFn).toHaveBeenCalledTimes(1)
-          expect(result.current.failureCount).toBe(1)
 
-          await act(() => vi.advanceTimersByTimeAsync(1))
+          await act(() => vi.advanceTimersByTimeAsync(10))
 
           expect(mutationFn).toHaveBeenCalledTimes(2)
         },
