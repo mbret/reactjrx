@@ -4,17 +4,24 @@ import {
   type UseMutationOptions,
   useQueryClient,
 } from "@tanstack/react-query"
-import { useCallback } from "react"
+import { type RefObject, useCallback } from "react"
 import {
+  catchError,
   defaultIfEmpty,
+  defer,
   first,
   fromEvent,
   ignoreElements,
   merge,
+  of,
+  switchMap,
   tap,
+  throwError,
+  timer,
 } from "rxjs"
 import { useRefOnce } from "../utils"
-import { shouldRetry } from "../utils/shouldRetry"
+import { useLiveRef } from "../utils/react/useLiveRef"
+import { getRetryDelay, shouldRetry } from "../utils/retry"
 import { resolveMutationFnSource } from "./mutationOptions"
 import { type UseMutation$Options, useMutation$ } from "./useMutation$"
 
@@ -46,39 +53,111 @@ type WithCallerVariables<TResult, TVariables> = TResult extends {
 
 /**
  * Keyed as required, so that spreading them after the caller's options
- * replaces the caller's callbacks, which take the raw variables.
+ * replaces the caller's options of the same name.
  */
 type SwitchOverrides<TData, TError, TVariables, TOnMutateResult> = {
   [K in
+    | "mutationFn"
     | "onMutate"
     | "onSuccess"
     | "onError"
     | "onSettled"
-    | "retry"]: UseMutationOptions<
-    TData,
+    | "retry"
+    | "retryDelay"]: UseMutation$Options<
+    TData | null,
     TError,
     SwitchVariables<TVariables>,
     TOnMutateResult
   >[K]
 }
 
+type RetryOptions<TError> = Pick<
+  UseMutationOptions<unknown, TError>,
+  "retry" | "retryDelay"
+>
+
 /**
- * The options the hook passes over the caller's: the callbacks, adapted to
- * the `{ variables, abort }` the hook runs the mutation with, and a `retry`
- * that never retries a cancelled call. They replace the client's defaults,
- * so they are built from the options merged with those defaults.
+ * The options the hook passes over the caller's, built from the caller's
+ * options merged with the client's defaults.
+ *
+ * TanStack Query waits between two attempts with a timer that nothing outside
+ * it can stop. So it gets a `retryDelay` of 0, and a failed attempt waits the
+ * delay before it hands its error over, where a cancel ends the wait. TanStack
+ * Query then checks, as after its own wait, that the device is online and the
+ * page visible before it retries.
+ *
+ * The wait and TanStack Query's `retry` must agree on whether a failure is
+ * retried. TanStack Query keeps the `retry` of the render that started the
+ * call, while each attempt runs the latest render's `mutationFn`, so both
+ * read `retryOptions`, the latest render's `retry` and `retryDelay`.
  */
 function createSwitchOverrides<TData, TError, TVariables, TOnMutateResult>(
   client: QueryClient,
-  options: Omit<
-    UseMutation$Options<TData, TError, TVariables, TOnMutateResult>,
-    "mutationFn"
-  >,
+  {
+    mutationFn,
+    onMutate,
+    onSuccess,
+    onError,
+    onSettled,
+  }: UseMutation$Options<TData | null, TError, TVariables, TOnMutateResult>,
+  retryOptions: RefObject<RetryOptions<TError>>,
 ): SwitchOverrides<TData, TError, TVariables, TOnMutateResult> {
-  const { onMutate, onSuccess, onError, onSettled, retry } =
-    client.defaultMutationOptions(options)
+  const willRetry = (failureCount: number, error: TError) =>
+    !(error instanceof SwitchMutationCancelError) &&
+    shouldRetry(retryOptions.current.retry, failureCount, error)
+
+  /**
+   * Waits `retryDelay` when TanStack Query will retry the failure, and not at
+   * all for the last one. The failures recorded on the call's mutation are the
+   * attempt count TanStack Query will pass to `retry`. A call whose mutation
+   * left the cache, through `MutationCache.clear()`, counts from 0.
+   */
+  const waitBeforeRetry = (
+    call: SwitchVariables<TVariables>,
+    error: TError,
+  ) => {
+    const failureCount =
+      client
+        .getMutationCache()
+        .find({ predicate: (mutation) => mutation.state.variables === call })
+        ?.state.failureCount ?? 0
+
+    const delay = willRetry(failureCount, error)
+      ? getRetryDelay(retryOptions.current.retryDelay, failureCount, error)
+      : 0
+
+    return delay > 0 ? timer(delay) : of(0)
+  }
 
   return {
+    mutationFn: (call: SwitchVariables<TVariables>) => {
+      if (call.abort.aborted) {
+        throw new SwitchMutationCancelError()
+      }
+
+      /**
+       * `defaultIfEmpty` must sit on the source itself: the abort stream
+       * never completes, so the merged stream never completes either and
+       * a `defaultIfEmpty` placed after it would never fire — an empty
+       * source would leave the mutation pending forever.
+       */
+      return merge(
+        defer(() => resolveMutationFnSource(mutationFn, call.variables)).pipe(
+          defaultIfEmpty(null),
+          catchError((error: TError) =>
+            waitBeforeRetry(call, error).pipe(
+              switchMap(() => throwError(() => error)),
+            ),
+          ),
+        ),
+        fromEvent(call.abort, "abort").pipe(
+          tap(() => {
+            throw new SwitchMutationCancelError()
+          }),
+          ignoreElements(),
+        ),
+      ).pipe(first())
+    },
     onMutate:
       onMutate && (({ variables }, ...rest) => onMutate(variables, ...rest)),
     onSuccess:
@@ -91,17 +170,16 @@ function createSwitchOverrides<TData, TError, TVariables, TOnMutateResult>(
       onSettled &&
       ((data, error, { variables }, ...rest) =>
         onSettled(data, error, variables, ...rest)),
-    retry: (failureCount, error) =>
-      !(error instanceof SwitchMutationCancelError) &&
-      shouldRetry(retry, failureCount, error),
+    retry: willRetry,
+    retryDelay: 0,
   }
 }
 
 /**
  * Runs a mutation, and cancels the call still running when a new one starts.
- * A cancelled call fails with `SwitchMutationCancelError` and is not retried.
- * A call cancelled while TanStack waits to retry it settles once that wait
- * ends.
+ * A cancelled call fails with `SwitchMutationCancelError` and is not retried:
+ * at once while it runs or waits `retryDelay`, and on resuming when TanStack
+ * Query holds it, such as while the device is offline.
  *
  * The callbacks, the client's defaults included, receive the variables given
  * to `mutate`, and `result.variables` holds them. A `MutationCache` and
@@ -114,16 +192,24 @@ export function useSwitchMutation$<
   TVariables = void,
   TOnMutateResult = unknown,
 >(
-  {
-    mutationFn,
-    ...options
-  }: UseMutation$Options<TData | null, TError, TVariables, TOnMutateResult>,
+  options: UseMutation$Options<
+    TData | null,
+    TError,
+    TVariables,
+    TOnMutateResult
+  >,
   queryClient?: QueryClient,
 ) {
   const previousMutationCancelRef = useRefOnce(() => new AbortController())
   type TDataOrNull = TData | null
 
   const client = useQueryClient(queryClient)
+  const { mutationFn, ...callerOptions } = options
+  const defaultedOptions = client.defaultMutationOptions(callerOptions)
+  const retryOptions = useLiveRef<RetryOptions<TError>>({
+    retry: defaultedOptions.retry,
+    retryDelay: defaultedOptions.retryDelay,
+  })
 
   const { mutate, mutateAsync, ...rest } = useMutation$<
     TDataOrNull,
@@ -133,33 +219,11 @@ export function useSwitchMutation$<
   >(
     {
       ...options,
-      mutationFn: useCallback(
-        ({ variables, abort }: SwitchVariables<TVariables>) => {
-          if (abort.aborted) {
-            throw new SwitchMutationCancelError()
-          }
-
-          const source = resolveMutationFnSource(mutationFn, variables)
-
-          /**
-           * `defaultIfEmpty` must sit on the source itself: the abort stream
-           * never completes, so the merged stream never completes either and
-           * a `defaultIfEmpty` placed after it would never fire — an empty
-           * source would leave the mutation pending forever.
-           */
-          return merge(
-            source.pipe(defaultIfEmpty(null)),
-            fromEvent(abort, "abort").pipe(
-              tap(() => {
-                throw new SwitchMutationCancelError()
-              }),
-              ignoreElements(),
-            ),
-          ).pipe(first())
-        },
-        [mutationFn],
+      ...createSwitchOverrides(
+        client,
+        { ...defaultedOptions, mutationFn },
+        retryOptions,
       ),
-      ...createSwitchOverrides(client, options),
     },
     client,
   )
