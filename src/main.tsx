@@ -53,10 +53,7 @@ alternateSignal.update((state) => ({
   foo: "foo" as const,
 }))
 
-const virtualSignal1 = virtualSignal({
-  key: "foo",
-  default: { foo: 2 },
-})
+const virtualSignal1 = virtualSignal({ default: { foo: 2 } })
 
 const SubCom = memo(() => {
   const [bar, setBar] = useSignal(virtualSignal1)

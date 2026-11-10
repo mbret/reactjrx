@@ -1,18 +1,21 @@
 import {
   asyncScheduler,
   catchError,
+  defer,
   EMPTY,
   filter,
   finalize,
+  map,
   Observable,
   Subscription,
   switchMap,
   tap,
   throttleTime,
 } from "rxjs"
+import { SIGNAL_RESET } from "../constants"
 import type { Signal } from "../Signal"
 import type { Adapter } from "./adapters/Adapter"
-import { hydrateValueToSignal, persistValue } from "./helpers"
+import { persistValue, readStoredState } from "./helpers"
 import type { SignalPersistenceConfig } from "./types"
 
 // biome-ignore lint/suspicious/noExplicitAny: TODO
@@ -24,12 +27,12 @@ type Entry = SignalPersistenceConfig<AnySignal>
  * every 500 ms) until unsubscribed. On unsubscribe, a value still held by the
  * throttle is saved right away instead of being dropped.
  *
- * The signal replays the value it was hydrated with, and that replay is not
- * written back: the write would tag the value with this entry's version,
- * which can be older than the stored one, and a newer app would then discard
- * it. So a change made in place to the hydrated object before the
- * persistence subscribes, in `onHydrated` for example, is saved only once the
- * signal changes again.
+ * The signal replays the value it was hydrated with. That replay is written
+ * back only when `hydrate` migrated it from an older version. Otherwise the
+ * write would tag the value with this entry's version, which can be older
+ * than the stored one, and a newer app would then discard it. So a change
+ * made in place to the hydrated object before the persistence subscribes, in
+ * `onHydrated` for example, is saved only once the signal changes again.
  *
  * `entry.config` is read at every write, so a changed config (e.g. a new
  * `version`) applies to the next write.
@@ -47,22 +50,38 @@ const hydrateAndPersistEntry = ({
 }) => {
   const { signal } = entry.config
 
-  return hydrateValueToSignal({
-    adapter,
-    config: entry.config,
-    resetToDefault,
-  }).pipe(
+  return defer(() => adapter.getItem(signal.config.key)).pipe(
+    map((stored) => readStoredState(stored, entry.config)),
     catchError((error) => {
       console.error(`Unable to hydrate signal ${signal.config.key}`, error)
 
       return EMPTY
     }),
+    tap((storedState) => {
+      if (storedState.type === "current" || storedState.type === "migrated") {
+        signal.next(storedState.value)
+      } else if (resetToDefault) {
+        signal.update(SIGNAL_RESET)
+      }
+    }),
+    /**
+     * The value the adapter holds, as the signal sees it. A value `hydrate`
+     * threw on stays stored until the signal changes: the signal's value,
+     * read before `onHydrated` runs, counts as stored.
+     */
+    map((storedState) => {
+      if (storedState.type === "current") return { value: storedState.value }
+
+      if (storedState.type === "unreadable") return { value: signal.getValue() }
+
+      return undefined
+    }),
     tap(onHydrated),
-    switchMap((hydratedValue) => {
-      let lastPersistedValue = hydratedValue
+    switchMap((storedValue) => {
+      let lastPersisted = storedValue
 
       const persist = () => {
-        lastPersistedValue = signal.getValue()
+        lastPersisted = { value: signal.getValue() }
 
         return persistValue({ adapter, config: entry.config })
       }
@@ -71,10 +90,16 @@ const hydrateAndPersistEntry = ({
         throttleTime(500, asyncScheduler, {
           trailing: true,
         }),
-        filter((value, index) => index > 0 || !Object.is(value, hydratedValue)),
+        filter(
+          (value, index) =>
+            index > 0 || !storedValue || !Object.is(value, storedValue.value),
+        ),
         switchMap(persist),
         finalize(() => {
-          if (!Object.is(signal.getValue(), lastPersistedValue)) {
+          if (
+            !lastPersisted ||
+            !Object.is(signal.getValue(), lastPersisted.value)
+          ) {
             persist().subscribe()
           }
         }),
@@ -92,9 +117,9 @@ const hydrateAndPersistEntry = ({
  * - a removed signal stops being persisted, after its pending value is saved.
  *
  * Emits `{ type: "hydrated" }` once, the first time every entry added so far
- * has been hydrated (right away for an empty list). An entry that fails to
- * hydrate is logged and never persisted, and holds back that emission until
- * it is removed.
+ * has been hydrated (right away for an empty list). An entry whose adapter
+ * fails to read it is logged and never persisted, and holds back that
+ * emission until it is removed.
  */
 export function persistSignals({
   entries$,

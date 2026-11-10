@@ -18,11 +18,15 @@ export interface SignalPersistenceConfig<S extends Signal<any, string>> {
   version: number
   signal: S
   /**
-   * Called with the stored value when the signal is hydrated from it. The
-   * value is `undefined` when the signal was saved holding `undefined`.
+   * Turns a stored value into the signal's value, given the `version` it was
+   * stored with. It also runs for a value stored with an older version, to
+   * migrate it: the result is then saved with this entry's version. Without
+   * `hydrate`, a value stored with an older version is discarded.
+   *
+   * The value is `unknown`, since the storage can hold any shape, and it is
+   * `undefined` when the signal was saved holding `undefined`. If `hydrate`
+   * throws, the error is logged and the entry hydrates as if nothing usable
+   * were stored, but the storage keeps the value until the signal changes.
    */
-  hydrate?: (params: {
-    version: number
-    value: SignalValue<S>
-  }) => SignalValue<S>
+  hydrate?: (params: { version: number; value: unknown }) => SignalValue<S>
 }

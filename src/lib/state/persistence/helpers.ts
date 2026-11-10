@@ -1,21 +1,13 @@
-import { catchError, from, type Observable, of, switchMap } from "rxjs"
-import { SIGNAL_RESET } from "../constants"
+import { catchError, defer, of } from "rxjs"
 import type { Adapter } from "./adapters/Adapter"
-import { IDENTIFIER_PERSISTENCE_KEY, NOTHING_STORED } from "./constants"
+import { IDENTIFIER_PERSISTENCE_KEY } from "./constants"
 import type { PersistenceEntry, SignalPersistenceConfig } from "./types"
 
-const getNormalizedPersistanceValue = (unknownValue: unknown) => {
-  if (
-    typeof unknownValue === "object" &&
-    unknownValue !== null &&
-    IDENTIFIER_PERSISTENCE_KEY in unknownValue &&
-    unknownValue[IDENTIFIER_PERSISTENCE_KEY] === IDENTIFIER_PERSISTENCE_KEY
-  ) {
-    return unknownValue as PersistenceEntry
-  }
-
-  return undefined
-}
+const isPersistenceEntry = (value: unknown): value is PersistenceEntry =>
+  typeof value === "object" &&
+  value !== null &&
+  IDENTIFIER_PERSISTENCE_KEY in value &&
+  value[IDENTIFIER_PERSISTENCE_KEY] === IDENTIFIER_PERSISTENCE_KEY
 
 export const persistValue = ({
   adapter,
@@ -35,16 +27,7 @@ export const persistValue = ({
     migrationVersion: version,
   } satisfies PersistenceEntry
 
-  if (process.env.NODE_ENV === "development") {
-    console.log(
-      "[reactjrx][state][persistance]:",
-      "Persist value",
-      value,
-      `for signal ${signal.config.key}`,
-    )
-  }
-
-  return from(adapter.setItem(signal.config.key, value)).pipe(
+  return defer(() => adapter.setItem(signal.config.key, value)).pipe(
     catchError((e) => {
       console.error(e)
 
@@ -54,65 +37,47 @@ export const persistValue = ({
 }
 
 /**
- * Emits the value the signal was hydrated with, or `NOTHING_STORED` when
- * nothing usable is stored.
+ * What the adapter holds for an entry, as the signal's value:
+ * - `missing`: nothing usable, or a value of an older version that the entry
+ *   has no `hydrate` to migrate;
+ * - `unreadable`: a value that `hydrate` threw on;
+ * - `migrated`: a value of an older version, migrated by `hydrate`, which the
+ *   adapter does not hold yet;
+ * - `current`: a value of the entry's version or newer, through `hydrate`
+ *   when the entry has one.
  */
-export function hydrateValueToSignal({
-  adapter,
-  config,
-  resetToDefault = false,
-}: {
-  adapter: Adapter
+export type StoredState =
+  | { type: "missing" }
+  | { type: "unreadable" }
+  | { type: "migrated"; value: unknown }
+  | { type: "current"; value: unknown }
+
+export const readStoredState = (
+  stored: unknown,
   // biome-ignore lint/suspicious/noExplicitAny: TODO
-  config: SignalPersistenceConfig<any>
-  /**
-   * When nothing usable is stored, reset the signal to its default instead of
-   * leaving its current value in place.
-   */
-  resetToDefault?: boolean
-}): Observable<unknown> {
-  const { hydrate = ({ value }) => value, signal, version } = config
+  { hydrate, signal, version }: SignalPersistenceConfig<any>,
+): StoredState => {
+  if (!isPersistenceEntry(stored)) return { type: "missing" }
 
-  const withoutStoredValue = () => {
-    if (resetToDefault) signal.update(SIGNAL_RESET)
+  const { migrationVersion, value, isUndefined } = stored
+  const hasValue = value !== undefined || isUndefined
 
-    return of(NOTHING_STORED)
+  if (typeof migrationVersion !== "number" || !hasValue) {
+    return { type: "missing" }
   }
 
-  return from(adapter.getItem(signal.config.key)).pipe(
-    switchMap((value) => {
-      const normalizedValue = getNormalizedPersistanceValue(value)
+  const isStoredVersionOlder = migrationVersion < version
 
-      if (!normalizedValue) return withoutStoredValue()
+  if (isStoredVersionOlder && !hydrate) return { type: "missing" }
 
-      const storedVersionIsInvalid =
-        typeof normalizedValue.migrationVersion !== "number"
+  try {
+    return {
+      type: isStoredVersionOlder ? "migrated" : "current",
+      value: hydrate ? hydrate({ value, version: migrationVersion }) : value,
+    }
+  } catch (error) {
+    console.error(`Unable to hydrate signal ${signal.config.key}`, error)
 
-      const signalVersionIsSuperior =
-        normalizedValue.migrationVersion !== undefined &&
-        version > normalizedValue.migrationVersion
-
-      const hasValue =
-        normalizedValue.value !== undefined || normalizedValue.isUndefined
-
-      if (storedVersionIsInvalid || signalVersionIsSuperior || !hasValue) {
-        return withoutStoredValue()
-      }
-
-      if (process.env.NODE_ENV === "development") {
-        console.log(
-          "[reactjrx][state][persistance]:",
-          "Hydrate value",
-          normalizedValue,
-          `for signal ${signal.config.key}`,
-        )
-      }
-
-      const hydratedValue = hydrate({ value: normalizedValue.value, version })
-
-      signal.next(hydratedValue)
-
-      return of(hydratedValue)
-    }),
-  )
+    return { type: "unreadable" }
+  }
 }

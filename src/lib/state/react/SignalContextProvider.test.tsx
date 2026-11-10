@@ -5,16 +5,22 @@ import {
   renderHook,
   screen,
 } from "@testing-library/react"
-import { type FC, type PropsWithChildren, StrictMode, useEffect } from "react"
-import { afterEach, describe, expect, it, type MockInstance, vi } from "vitest"
+import {
+  Activity,
+  type FC,
+  type PropsWithChildren,
+  StrictMode,
+  useContext,
+  useEffect,
+} from "react"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { waitForTimeout } from "../../../tests/utils"
 import { virtualSignal } from "../Signal"
 import type { SignalContext } from "../SignalContext"
-import {
-  SignalContextProvider,
-  useMakeOrRetrieveSignal,
-  useSignalContext,
-} from "./SignalContextProvider"
+import { SignalContextProvider } from "./SignalContextProvider"
+import { SignalReactContext } from "./SignalReactContext"
+import { useSignal } from "./useSignal"
+import { useSignalReference } from "./useSignalReference"
 
 // Helper wrapper component for testing context
 const TestWrapper: FC<PropsWithChildren> = ({ children }) => {
@@ -32,7 +38,7 @@ describe("SignalContextProvider", () => {
     it("should provide a SignalContext instance to its children", () => {
       // Create a component that accesses the context
       const TestConsumer = () => {
-        const context = useSignalContext()
+        const context = useContext(SignalReactContext)
         return (
           <div data-testid="context-value">
             {context ? "Context Exists" : "No Context"}
@@ -54,12 +60,11 @@ describe("SignalContextProvider", () => {
     })
 
     it("should create a new context when the component is re-mounted", async () => {
-      // Spy on SignalContext constructor to track new instances
       let firstContext: SignalContext | undefined
       let secondContext: SignalContext | undefined
 
       const TestConsumerWithEffect = () => {
-        const context = useSignalContext()
+        const context = useContext(SignalReactContext)
 
         useEffect(() => {
           if (!firstContext) {
@@ -80,7 +85,6 @@ describe("SignalContextProvider", () => {
         </StrictMode>,
       )
 
-      // Unmount to trigger cleanup
       unmount()
 
       // Rerender to create a new context
@@ -109,7 +113,7 @@ describe("SignalContextProvider", () => {
       const testVirtualSignal = virtualSignal({ default: "test" })
 
       const { result, rerender } = renderHook(
-        () => useMakeOrRetrieveSignal(testVirtualSignal),
+        () => useSignalReference(testVirtualSignal),
         {
           wrapper: TestWrapper,
         },
@@ -128,76 +132,77 @@ describe("SignalContextProvider", () => {
       const testVirtualSignal2 = virtualSignal({ default: "test2" })
 
       const { result: result1 } = renderHook(
-        () => useMakeOrRetrieveSignal(testVirtualSignal1),
+        () => useSignalReference(testVirtualSignal1),
         {
           wrapper: TestWrapper,
         },
       )
 
       const { result: result2 } = renderHook(
-        () => useMakeOrRetrieveSignal(testVirtualSignal2),
+        () => useSignalReference(testVirtualSignal2),
         {
           wrapper: TestWrapper,
         },
       )
 
       expect(result1.current).not.toBe(result2.current)
-      expect(result1.current?.value).toBe("test1")
-      expect(result2.current?.value).toBe("test2")
-    })
-
-    it("should return undefined when no virtual signal is provided", () => {
-      const { result } = renderHook(() => useMakeOrRetrieveSignal(), {
-        wrapper: TestWrapper,
-      })
-
-      expect(result.current).toBe(undefined)
+      expect(result1.current.value).toBe("test1")
+      expect(result2.current.value).toBe("test2")
     })
   })
 
-  describe("Cleanup", () => {
-    it("should call destroy on the context when component unmounts", () => {
-      const spies: { context: SignalContext; spy: MockInstance }[] = []
+  describe("Given a virtual signal used without a provider", () => {
+    it("should throw", () => {
+      const counter = virtualSignal({ default: 0 })
+      vi.spyOn(console, "error").mockImplementation(() => {})
 
-      // Create a test component that gets the context
-      const TestComponent = () => {
-        const context = useSignalContext()
+      expect(() => renderHook(() => useSignal(counter))).toThrow(
+        "A virtual signal must be used within a SignalContextProvider",
+      )
+    })
+  })
 
-        // Spy on the destroy method
-        useEffect(() => {
-          if (spies.find((s) => s.context === context)) return
+  describe("Given a provider hidden, then shown, by <Activity>", () => {
+    it("should keep the values of its virtual signals", async () => {
+      const counter = virtualSignal({ default: 0 })
+      const Child = () => {
+        "use no memo"
+        const [value, setValue] = useSignal(counter)
 
-          spies.push({ context, spy: vi.spyOn(context, "destroy") })
-        }, [context])
+        return (
+          <button type="button" data-testid="btn" onClick={() => setValue(5)}>
+            {value}
+          </button>
+        )
+      }
+      const App = ({ mode }: { mode: "visible" | "hidden" }) => {
+        "use no memo"
 
-        return null
+        return (
+          <Activity mode={mode}>
+            <SignalContextProvider>
+              <Child />
+            </SignalContextProvider>
+          </Activity>
+        )
       }
 
-      const { unmount } = render(
-        <StrictMode>
-          <SignalContextProvider>
-            <TestComponent />
-          </SignalContextProvider>
-        </StrictMode>,
-      )
+      const { rerender } = render(<App mode="visible" />)
+      act(() => screen.getByTestId("btn").click())
+      await act(async () => rerender(<App mode="hidden" />))
+      await act(async () => rerender(<App mode="visible" />))
 
-      // Unmount to trigger cleanup
-      unmount()
-
-      // Check if destroy was called during cleanup
-      expect(spies.length).toBe(2)
-      expect(spies[0]?.spy).toHaveBeenCalled()
-      expect(spies[1]?.spy).toHaveBeenCalled()
+      expect(screen.getByTestId("btn").textContent).toBe("5")
     })
   })
 
   describe("Context Provider Value", () => {
     it("should provide the same context instance on re-renders", () => {
       // Create a component that tracks context instances
-      const instances: SignalContext[] = []
+      const instances: (SignalContext | undefined)[] = []
 
       const ContextTracker = () => {
-        const context = useSignalContext()
+        const context = useContext(SignalReactContext)
 
         useEffect(() => {
           instances.push(context)

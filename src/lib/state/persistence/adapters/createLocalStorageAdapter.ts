@@ -25,16 +25,6 @@ const writeStore = (key: string, store: Store) => {
  * between, so two calls that overlap do not lose a write.
  */
 const createSharedStoreAdapter = (key: string): Adapter => ({
-  clear: async () => {
-    localStorage.removeItem(key)
-  },
-
-  removeItem: async (keyToDelete) => {
-    const { [keyToDelete]: _removed, ...rest } = readStore(key)
-
-    writeStore(key, rest)
-  },
-
   getItem: async (itemKey: string) => {
     const store = readStore(key)
 
@@ -56,14 +46,6 @@ export const createLocalStorageAdapter = ({
   }
 
   return {
-    clear: async () => {
-      localStorage.clear()
-    },
-
-    removeItem: async (key) => {
-      localStorage.removeItem(key)
-    },
-
     getItem: async (key) => parseJson(localStorage.getItem(key)),
 
     setItem: async (key, value) => {

@@ -1,59 +1,21 @@
-import { createContext, memo, useContext, useEffect, useState } from "react"
-import { useRefOnce } from "../../utils/react/useRefOnce"
-import type { VirtualSignal } from "../Signal"
+import { memo, useState } from "react"
 import { SignalContext } from "../SignalContext"
+import { SignalReactContext } from "./SignalReactContext"
 
-export type SignalContextType = SignalContext
+/**
+ * Holds the signals of the virtual signals used under it, for as long as it
+ * is mounted. They never complete.
+ */
+export const SignalContextProvider = memo(function SignalContextProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const [signalContext] = useState(() => new SignalContext())
 
-export const SignalReactContext = createContext<SignalContextType>(
-  new SignalContext(),
-)
-
-export const SignalContextProvider = memo(
-  ({ children }: { children: React.ReactNode }) => {
-    const signalContextRef = useRefOnce<SignalContextType>(
-      () => new SignalContext(),
-    )
-    const signalContext = signalContextRef.current
-    const [isDestroyed, setIsDestroyed] = useState(false)
-
-    if (isDestroyed) {
-      signalContextRef.current = new SignalContext()
-      setIsDestroyed(false)
-    }
-
-    const value = signalContext
-
-    useEffect(() => {
-      return () => {
-        signalContextRef.current?.destroy()
-        // force re-render
-        setIsDestroyed(true)
-      }
-    }, [signalContextRef])
-
-    return (
-      <SignalReactContext.Provider value={value}>
-        {children}
-      </SignalReactContext.Provider>
-    )
-  },
-)
-
-export const useSignalContext = () => {
-  const value = useContext(SignalReactContext)
-
-  return value
-}
-
-export const useMakeOrRetrieveSignal = (
-  virtualSignal?: VirtualSignal<unknown>,
-) => {
-  const signalContext = useSignalContext()
-
-  const signal = virtualSignal
-    ? signalContext.getOrCreateSignal(virtualSignal)
-    : undefined
-
-  return signal
-}
+  return (
+    <SignalReactContext.Provider value={signalContext}>
+      {children}
+    </SignalReactContext.Provider>
+  )
+})

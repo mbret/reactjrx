@@ -1,38 +1,27 @@
-import { BehaviorSubject } from "rxjs"
 import { Signal, type VirtualSignal } from "./Signal"
 
 export class SignalContext {
   /**
-   * items only get added as they are created. The only time we should cleanup
-   * are on context destroy. This is to ensure later re-use of virtual signals
-   * return the same persisted state.
+   * Signals are only added, as they are created, so a virtual signal used
+   * again in the same context gets the same signal and its state.
    */
-  // biome-ignore lint/suspicious/noExplicitAny: TODO
-  signals = new BehaviorSubject(new Map<VirtualSignal<unknown>, Signal<any>>())
-
-  public isDestroyed = false
+  // biome-ignore lint/suspicious/noExplicitAny: each signal has the type of the virtual signal it is keyed by
+  private readonly signals = new Map<VirtualSignal<unknown>, Signal<any>>()
 
   getOrCreateSignal<T>(virtualSignal: VirtualSignal<T>): Signal<T> {
-    const existingSignal = this.signals.value.get(virtualSignal)
+    const existingSignal = this.signals.get(virtualSignal)
 
     if (existingSignal) {
-      return existingSignal as Signal<T>
+      return existingSignal
     }
 
-    const newSignal = new Signal<T>({ ...virtualSignal.config, key: undefined })
+    const newSignal = new Signal<T>({
+      default: virtualSignal.config.default,
+      key: undefined,
+    })
 
-    this.signals.value.set(virtualSignal, newSignal)
-    this.signals.next(this.signals.value)
+    this.signals.set(virtualSignal, newSignal)
 
     return newSignal
-  }
-
-  destroy() {
-    this.signals.value.forEach((signal) => {
-      signal.complete()
-    })
-    this.signals.value.clear()
-    this.signals.complete()
-    this.isDestroyed = true
   }
 }

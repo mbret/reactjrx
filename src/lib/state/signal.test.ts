@@ -3,7 +3,7 @@ import { act } from "react"
 import { describe, expect, expectTypeOf, it } from "vitest"
 import { SIGNAL_RESET } from "./constants"
 import { useSignalValue } from "./react/useSignalValue"
-import { type Signal, type SignalValue, signal } from "./Signal"
+import { type Signal, type SignalValue, signal, virtualSignal } from "./Signal"
 
 describe("signal", () => {
   it("should have correct types for various signal configurations", () => {
@@ -145,6 +145,13 @@ describe("signal", () => {
 
       // @ts-expect-error `extra` is not a key of the state
       settings.update((prev) => ({ ...prev, extra: true }))
+    })
+  })
+
+  describe("virtualSignal", () => {
+    it("should take no key", () => {
+      // @ts-expect-error each provider creates its own signal, so a key could not name it
+      virtualSignal({ key: "theme", default: "light" })
     })
   })
 })

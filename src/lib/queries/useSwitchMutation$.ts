@@ -31,6 +31,20 @@ type SwitchVariables<TVariables> = {
 }
 
 /**
+ * Each member of TanStack's result, with `variables` holding the variables
+ * given to `mutate` instead of the `{ variables, abort }` the hook runs with.
+ */
+type WithCallerVariables<TResult, TVariables> = TResult extends {
+  variables: infer TResultVariables
+}
+  ? Omit<TResult, "variables"> & {
+      variables: TResultVariables extends SwitchVariables<TVariables>
+        ? TVariables
+        : undefined
+    }
+  : never
+
+/**
  * Keyed as required, so that spreading them after the caller's options
  * replaces the caller's callbacks, which take the raw variables.
  */
@@ -90,8 +104,9 @@ function createSwitchOverrides<TData, TError, TVariables, TOnMutateResult>(
  * ends.
  *
  * The callbacks, the client's defaults included, receive the variables given
- * to `mutate`. A `MutationCache`, `result.variables` and `useMutationState`
- * see the `{ variables, abort }` the hook runs the mutation with.
+ * to `mutate`, and `result.variables` holds them. A `MutationCache` and
+ * `useMutationState` see the `{ variables, abort }` the hook runs the
+ * mutation with.
  */
 export function useSwitchMutation$<
   TData = unknown,
@@ -149,31 +164,38 @@ export function useSwitchMutation$<
     client,
   )
 
-  const mutateSwitch = useCallback(
-    (variables: TVariables) => {
+  const replaceRunningCall = useCallback(
+    (variables: TVariables): SwitchVariables<TVariables> => {
       previousMutationCancelRef.current.abort()
       previousMutationCancelRef.current = new AbortController()
 
-      return mutate({
-        variables,
-        abort: previousMutationCancelRef.current.signal,
-      })
+      return { variables, abort: previousMutationCancelRef.current.signal }
     },
-    [mutate, previousMutationCancelRef],
+    [previousMutationCancelRef],
+  )
+
+  const mutateSwitch = useCallback(
+    (variables: TVariables) => mutate(replaceRunningCall(variables)),
+    [mutate, replaceRunningCall],
   )
 
   const mutateAsyncSwitch = useCallback(
-    (variables: TVariables) => {
-      previousMutationCancelRef.current.abort()
-      previousMutationCancelRef.current = new AbortController()
-
-      return mutateAsync({
-        variables,
-        abort: previousMutationCancelRef.current.signal,
-      })
-    },
-    [mutateAsync, previousMutationCancelRef],
+    (variables: TVariables) => mutateAsync(replaceRunningCall(variables)),
+    [mutateAsync, replaceRunningCall],
   )
 
-  return { ...rest, mutate: mutateSwitch, mutateAsync: mutateAsyncSwitch }
+  /**
+   * TanStack's result is a union by status, and TypeScript cannot follow a
+   * swap of `variables` through each member. The swap keeps the member, so the
+   * conditional type holds.
+   */
+  return {
+    ...rest,
+    variables: rest.variables?.variables,
+    mutate: mutateSwitch,
+    mutateAsync: mutateAsyncSwitch,
+  } as WithCallerVariables<typeof rest, TVariables> & {
+    mutate: typeof mutateSwitch
+    mutateAsync: typeof mutateAsyncSwitch
+  }
 }
