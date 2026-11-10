@@ -13,7 +13,17 @@ import {
   waitFor,
 } from "@testing-library/react"
 import { act, useState } from "react"
-import { delay, EMPTY, finalize, map, NEVER, of, throwError, timer } from "rxjs"
+import {
+  delay,
+  EMPTY,
+  finalize,
+  map,
+  NEVER,
+  type Observable,
+  of,
+  throwError,
+  timer,
+} from "rxjs"
 import {
   afterEach,
   beforeEach,
@@ -609,6 +619,64 @@ describe("useSwitchMutation$", () => {
           expect(mutationFn).toHaveBeenCalledTimes(2)
         },
       )
+
+      it("should wait retryDelay when mutationFn throws", async () => {
+        const mutationFn = vi.fn((_value: number): Observable<string> => {
+          throw new Error("invalid")
+        })
+        const { result } = renderHook(
+          () => useSwitchMutation$({ retry: 1, retryDelay: 1000, mutationFn }),
+          { wrapper: createWrapper(new QueryClient()) },
+        )
+
+        act(() => result.current.mutate(1))
+        await act(() => vi.advanceTimersByTimeAsync(999))
+
+        expect(mutationFn).toHaveBeenCalledTimes(1)
+
+        await act(() => vi.advanceTimersByTimeAsync(10))
+
+        expect(mutationFn).toHaveBeenCalledTimes(2)
+      })
+
+      it("should follow a retry option changed while it waits", async () => {
+        const mutationFn = vi.fn((_value: number) =>
+          throwError(() => new Error("failed")),
+        )
+        const { result, rerender } = renderHook(
+          ({ retry }: { retry: boolean }) =>
+            useSwitchMutation$({ retry, retryDelay: 1000, mutationFn }),
+          {
+            wrapper: createWrapper(new QueryClient()),
+            initialProps: { retry: true },
+          },
+        )
+
+        act(() => result.current.mutate(1))
+        await act(() => vi.advanceTimersByTimeAsync(10))
+        rerender({ retry: false })
+        await act(() => vi.advanceTimersByTimeAsync(2000))
+
+        expect(mutationFn).toHaveBeenCalledTimes(1)
+        expect(result.current.status).toBe("error")
+      })
+
+      it("should fail at once when its source fails with SwitchMutationCancelError", async () => {
+        const mutationFn = vi.fn((_value: number) =>
+          throwError(() => new SwitchMutationCancelError()),
+        )
+        const { result } = renderHook(
+          () =>
+            useSwitchMutation$({ retry: 3, retryDelay: 10_000, mutationFn }),
+          { wrapper: createWrapper(new QueryClient()) },
+        )
+
+        act(() => result.current.mutate(1))
+        await act(() => vi.advanceTimersByTimeAsync(1))
+
+        expect(result.current.status).toBe("error")
+        expect(mutationFn).toHaveBeenCalledTimes(1)
+      })
 
       it("should give retryDelay the failure count and the error of the failure it retries", async () => {
         const errors = [new Error("first"), new Error("second")]

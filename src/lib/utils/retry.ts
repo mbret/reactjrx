@@ -27,7 +27,7 @@ export const shouldRetry = <TError>(
 /**
  * 1 s, doubled at each retry, up to 30 s.
  */
-export const defaultRetryDelay = (attempt: number) =>
+const defaultRetryDelay = (attempt: number) =>
   Math.min(1000 * 2 ** attempt, 30_000)
 
 /**

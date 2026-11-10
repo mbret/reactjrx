@@ -1,12 +1,14 @@
 import {
   type DefaultError,
   type QueryClient,
+  type UseMutationOptions,
   useQueryClient,
 } from "@tanstack/react-query"
-import { useCallback } from "react"
+import { type RefObject, useCallback } from "react"
 import {
   catchError,
   defaultIfEmpty,
+  defer,
   first,
   fromEvent,
   ignoreElements,
@@ -18,6 +20,7 @@ import {
   timer,
 } from "rxjs"
 import { useRefOnce } from "../utils"
+import { useLiveRef } from "../utils/react/useLiveRef"
 import { getRetryDelay, shouldRetry } from "../utils/retry"
 import { resolveMutationFnSource } from "./mutationOptions"
 import { type UseMutation$Options, useMutation$ } from "./useMutation$"
@@ -68,25 +71,40 @@ type SwitchOverrides<TData, TError, TVariables, TOnMutateResult> = {
   >[K]
 }
 
+type RetryOptions<TError> = Pick<
+  UseMutationOptions<unknown, TError>,
+  "retry" | "retryDelay"
+>
+
 /**
- * The options the hook passes over the caller's. They replace the client's
- * defaults, so they are built from the options merged with those defaults.
+ * The options the hook passes over the caller's, built from the caller's
+ * options merged with the client's defaults.
  *
  * TanStack Query waits between two attempts with a timer that nothing outside
  * it can stop. So it gets a `retryDelay` of 0, and a failed attempt waits the
  * delay before it hands its error over, where a cancel ends the wait. TanStack
  * Query then checks, as after its own wait, that the device is online and the
  * page visible before it retries.
+ *
+ * The wait and TanStack Query's `retry` must agree on whether a failure is
+ * retried. TanStack Query keeps the `retry` of the render that started the
+ * call, while each attempt runs the latest render's `mutationFn`, so both
+ * read `retryOptions`, the latest render's `retry` and `retryDelay`.
  */
 function createSwitchOverrides<TData, TError, TVariables, TOnMutateResult>(
   client: QueryClient,
   {
     mutationFn,
-    ...options
+    onMutate,
+    onSuccess,
+    onError,
+    onSettled,
   }: UseMutation$Options<TData | null, TError, TVariables, TOnMutateResult>,
+  retryOptions: RefObject<RetryOptions<TError>>,
 ): SwitchOverrides<TData, TError, TVariables, TOnMutateResult> {
-  const { onMutate, onSuccess, onError, onSettled, retry, retryDelay } =
-    client.defaultMutationOptions(options)
+  const willRetry = (failureCount: number, error: TError) =>
+    !(error instanceof SwitchMutationCancelError) &&
+    shouldRetry(retryOptions.current.retry, failureCount, error)
 
   /**
    * Waits `retryDelay` when TanStack Query will retry the failure, and not at
@@ -101,16 +119,11 @@ function createSwitchOverrides<TData, TError, TVariables, TOnMutateResult>(
     const failureCount =
       client
         .getMutationCache()
-        .find<
-          TData | null,
-          TError,
-          SwitchVariables<TVariables>,
-          TOnMutateResult
-        >({ predicate: (mutation) => mutation.state.variables === call })?.state
-        .failureCount ?? 0
+        .find({ predicate: (mutation) => mutation.state.variables === call })
+        ?.state.failureCount ?? 0
 
-    const delay = shouldRetry(retry, failureCount, error)
-      ? getRetryDelay(retryDelay, failureCount, error)
+    const delay = willRetry(failureCount, error)
+      ? getRetryDelay(retryOptions.current.retryDelay, failureCount, error)
       : 0
 
     return delay > 0 ? timer(delay) : of(0)
@@ -129,7 +142,7 @@ function createSwitchOverrides<TData, TError, TVariables, TOnMutateResult>(
        * source would leave the mutation pending forever.
        */
       return merge(
-        resolveMutationFnSource(mutationFn, call.variables).pipe(
+        defer(() => resolveMutationFnSource(mutationFn, call.variables)).pipe(
           defaultIfEmpty(null),
           catchError((error: TError) =>
             waitBeforeRetry(call, error).pipe(
@@ -157,9 +170,7 @@ function createSwitchOverrides<TData, TError, TVariables, TOnMutateResult>(
       onSettled &&
       ((data, error, { variables }, ...rest) =>
         onSettled(data, error, variables, ...rest)),
-    retry: (failureCount, error) =>
-      !(error instanceof SwitchMutationCancelError) &&
-      shouldRetry(retry, failureCount, error),
+    retry: willRetry,
     retryDelay: 0,
   }
 }
@@ -193,6 +204,12 @@ export function useSwitchMutation$<
   type TDataOrNull = TData | null
 
   const client = useQueryClient(queryClient)
+  const { mutationFn, ...callerOptions } = options
+  const defaultedOptions = client.defaultMutationOptions(callerOptions)
+  const retryOptions = useLiveRef<RetryOptions<TError>>({
+    retry: defaultedOptions.retry,
+    retryDelay: defaultedOptions.retryDelay,
+  })
 
   const { mutate, mutateAsync, ...rest } = useMutation$<
     TDataOrNull,
@@ -202,7 +219,11 @@ export function useSwitchMutation$<
   >(
     {
       ...options,
-      ...createSwitchOverrides(client, options),
+      ...createSwitchOverrides(
+        client,
+        { ...defaultedOptions, mutationFn },
+        retryOptions,
+      ),
     },
     client,
   )
