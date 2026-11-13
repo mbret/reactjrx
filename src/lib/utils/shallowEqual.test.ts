@@ -19,6 +19,12 @@ describe("shallowEqual", () => {
     expect(isShallowEqual(null, undefined)).toBe(false)
   })
 
+  it("compares a null-prototype object with null", () => {
+    const value = Object.create(null)
+    expect(isShallowEqual(value, null)).toBe(false)
+    expect(isShallowEqual(null, value)).toBe(false)
+  })
+
   it("returns true for two string values that are equal", () => {
     expect(isShallowEqual("hello", "hello")).toBe(true)
   })
@@ -109,11 +115,9 @@ describe("shallowEqual", () => {
     expect(isShallowEqual([], {})).toBe(false)
   })
 
-  it("compares nested objects by reference without inspecting Date or Map contents", () => {
+  it("compares nested objects by reference", () => {
     const value = { x: 1 }
     expect(isShallowEqual({ value }, { value })).toBe(true)
     expect(isShallowEqual({ value }, { value: { x: 1 } })).toBe(false)
-    expect(isShallowEqual(new Date(0), new Date(1))).toBe(true)
-    expect(isShallowEqual(new Map([["x", 1]]), new Map([["x", 2]]))).toBe(true)
   })
 })

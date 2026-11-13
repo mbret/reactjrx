@@ -1,5 +1,5 @@
 export function isShallowEqual<A, B>(objA: A, objB: B): boolean {
-  // Check if both objects are null or undefined
+  // Return early if either value is null or undefined
   if (
     objA === null ||
     objB === null ||
