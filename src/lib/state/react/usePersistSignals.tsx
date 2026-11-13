@@ -1,15 +1,24 @@
-import { map, merge, of, scan, switchMap } from "rxjs"
+import {
+  distinctUntilChanged,
+  map,
+  merge,
+  of,
+  scan,
+  skip,
+  startWith,
+  switchMap,
+} from "rxjs"
 import { useLiveBehaviorSubject } from "../../binding/useLiveBehaviorSubject"
 import { useObserve } from "../../binding/useObserve/useObserve"
 import { useLiveRef } from "../../utils/react/useLiveRef"
-import { isShallowEqual } from "../../utils/shallowEqual"
 import type { Adapter } from "../persistence/adapters/Adapter"
 import { persistSignals } from "../persistence/persistSignals"
 import type { SignalPersistenceConfig } from "../persistence/types"
 
 /**
  * Hydrates the signals of `entries` from `adapter`, then persists their
- * updates to it.
+ * updates to it. It starts once the component has mounted: a render that
+ * never commits, and a server render, read and write nothing.
  *
  * `isHydrated` becomes `true` once the entries have been hydrated for the
  * first time. Entries added later do not change it. It is reset when the
@@ -50,7 +59,7 @@ export function usePersistSignals({
   const adapterSubject = useLiveBehaviorSubject(adapter)
   const entriesSubject = useLiveBehaviorSubject(entries)
 
-  const result = useObserve(
+  const { data: isHydrated } = useObserve(
     () =>
       adapterSubject.pipe(
         /**
@@ -92,11 +101,15 @@ export function usePersistSignals({
             }),
           )
         }),
-        map((event) => ({ isHydrated: event.type === "hydrated" })),
+        map((event) => event.type === "hydrated"),
+        // Only changes from `false`, the value shown before the first one.
+        startWith(false),
+        distinctUntilChanged(),
+        skip(1),
       ),
-    { defaultValue: { isHydrated: false }, compareFn: isShallowEqual },
-    [adapterSubject, entriesSubject],
+    { defaultValue: false },
+    [adapterSubject, entriesSubject, onHydratedRef],
   )
 
-  return result.data
+  return { isHydrated }
 }
