@@ -10,8 +10,14 @@
   "module": "./dist/index.js",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     }
   },
   "types": "./dist/index.d.ts",
@@ -40,6 +46,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.4",
+    "@microsoft/api-extractor": "7.60.1",
     "@rolldown/plugin-babel": "^0.3.0",
     "@tanstack/react-query-persist-client": "^5.105.3",
     "@testing-library/jest-dom": "^7.0.0",
