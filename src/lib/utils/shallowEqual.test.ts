@@ -66,4 +66,54 @@ describe("shallowEqual", () => {
     const obj2 = "hello"
     expect(isShallowEqual(obj1, obj2)).toBe(false)
   })
+
+  it("compares null-prototype dictionaries by their own keys", () => {
+    const a = Object.assign(Object.create(null), { x: 1 })
+    const b = Object.assign(Object.create(null), { x: 1 })
+    expect(isShallowEqual(a, b)).toBe(true)
+    b.x = 2
+    expect(isShallowEqual(a, b)).toBe(false)
+  })
+
+  it("handles an own property named hasOwnProperty", () => {
+    expect(isShallowEqual({ hasOwnProperty: 1 }, { hasOwnProperty: 1 })).toBe(
+      true,
+    )
+    expect(isShallowEqual({ hasOwnProperty: 1 }, { hasOwnProperty: 2 })).toBe(
+      false,
+    )
+  })
+
+  it("does not mistake inherited keys for own keys", () => {
+    const b = Object.assign(Object.create({ x: 1 }), { y: 1 })
+    expect(isShallowEqual({ x: 1 }, b)).toBe(false)
+  })
+
+  it("considers NaN equal to itself and to another NaN property", () => {
+    expect(isShallowEqual(Number.NaN, Number.NaN)).toBe(true)
+    expect(isShallowEqual({ x: Number.NaN }, { x: Number.NaN })).toBe(true)
+    expect(
+      isShallowEqual({ constructor: Number.NaN }, { constructor: Number.NaN }),
+    ).toBe(true)
+  })
+
+  it("distinguishes positive and negative zero", () => {
+    expect(isShallowEqual(0, -0)).toBe(false)
+    expect(isShallowEqual(-0, 0)).toBe(false)
+    expect(isShallowEqual({ x: 0 }, { x: -0 })).toBe(false)
+    expect(isShallowEqual({ x: -0 }, { x: -0 })).toBe(true)
+  })
+
+  it("keeps different constructors distinct", () => {
+    expect(isShallowEqual(Object.create(null), {})).toBe(false)
+    expect(isShallowEqual([], {})).toBe(false)
+  })
+
+  it("compares nested objects by reference without inspecting Date or Map contents", () => {
+    const value = { x: 1 }
+    expect(isShallowEqual({ value }, { value })).toBe(true)
+    expect(isShallowEqual({ value }, { value: { x: 1 } })).toBe(false)
+    expect(isShallowEqual(new Date(0), new Date(1))).toBe(true)
+    expect(isShallowEqual(new Map([["x", 1]]), new Map([["x", 2]]))).toBe(true)
+  })
 })
