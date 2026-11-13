@@ -75,6 +75,62 @@ it("should not return new value when the hook re-render but the value is the sam
 })
 
 describe("given a custom compareFn", () => {
+  it("keeps null-prototype emissions live and only renders changed values", () => {
+    const initial = Object.assign(Object.create(null), { x: 1 })
+    const source$ = new BehaviorSubject<Record<string, number>>(initial)
+    const values: UseObserveResult<
+      Record<string, number>,
+      Record<string, number>
+    >[] = []
+    const { result } = renderHook(() => {
+      const value = useObserve(source$, { compareFn: isShallowEqual })
+      useEffect(() => {
+        values.push(value)
+      }, [value])
+      return value
+    })
+
+    act(() => {
+      source$.next(Object.assign(Object.create(null), { x: 1 }))
+    })
+    expect(values).toHaveLength(1)
+    expect(result.current.error).toBeUndefined()
+    expect(result.current.observableState).toBe("live")
+
+    act(() => {
+      source$.next(Object.assign(Object.create(null), { x: 2 }))
+    })
+    expect(values).toHaveLength(2)
+    expect(result.current.data?.x).toBe(2)
+    expect(result.current.error).toBeUndefined()
+  })
+
+  it("deduplicates NaN properties while delivering signed-zero changes", () => {
+    const source$ = new BehaviorSubject({ x: Number.NaN })
+    const values: Array<{ x: number } | undefined> = []
+    const { result } = renderHook(() => {
+      const value = useObserve(source$, { compareFn: isShallowEqual })
+      useEffect(() => {
+        values.push(value.data)
+      }, [value])
+      return value
+    })
+
+    act(() => {
+      source$.next({ x: Number.NaN })
+    })
+    expect(values).toHaveLength(1)
+
+    act(() => {
+      source$.next({ x: 0 })
+    })
+    act(() => {
+      source$.next({ x: -0 })
+    })
+    expect(values).toHaveLength(3)
+    expect(result.current.data?.x).toBe(-0)
+  })
+
   it("should re-render when the object is same but new reference", async () => {
     const values: Array<{ a: string } | undefined> = []
     const source$ = new BehaviorSubject({ a: "a" })
