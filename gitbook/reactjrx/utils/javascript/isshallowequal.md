@@ -17,7 +17,7 @@ Pass it as the `compareFn` of [useObserve](../../bindings/react/useobserve.md) t
 
 ### Comparison semantics
 
-`NaN` now compares equal to `NaN`, while positive and negative zero compare differently. Previously this helper used `===`, which did the opposite for these cases. If your application treats both zero signs as the same value, normalize them to `0` before comparison or pass a custom `compareFn` with your intended equality rule.
+`NaN` compares equal to `NaN`, and positive and negative zero compare as different values. If your application treats both zero signs as the same value, normalize them to `0` before comparison, or pass a custom `compareFn`.
 
 This is a shallow comparison of enumerable properties, not a comparison of built-in object contents. Two `Date` objects with different timestamps or two `Map` or `Set` objects with different entries can compare equal because they have the same constructor and no own enumerable string keys. Use a comparator that checks their contents when those differences matter.
 
