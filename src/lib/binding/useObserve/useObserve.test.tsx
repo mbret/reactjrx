@@ -1,6 +1,14 @@
 import { cleanup, render, renderHook } from "@testing-library/react"
 import React, { act, memo, useEffect, useState } from "react"
-import { BehaviorSubject, map, type Observable, of, Subject, timer } from "rxjs"
+import {
+  BehaviorSubject,
+  defer,
+  map,
+  type Observable,
+  of,
+  Subject,
+  timer,
+} from "rxjs"
 import { afterEach, describe, expect, expectTypeOf, it } from "vitest"
 import { waitForTimeout } from "../../../tests/utils"
 import { useConstant } from "../../utils/react/useConstant"
@@ -13,7 +21,7 @@ afterEach(() => {
 
 describe("useObserve", () => {
   describe("Given a non BehaviorSubject observable", () => {
-    it("should return `foo` as first render cycle due to internal optimization and should only have one render cycle", async () => {
+    it("should be pending on the first render, then return the value the source emits on subscription", async () => {
       const values: Array<UseObserveResult<string, undefined>> = []
       const source$ = of("foo")
 
@@ -21,9 +29,10 @@ describe("useObserve", () => {
         values.push(useObserve(source$))
       }, {})
 
-      expect(values[0]?.data).toBe("foo")
-
-      expect(values.length).toBe(1)
+      expect(values.map(({ status, data }) => [status, data])).toEqual([
+        ["pending", undefined],
+        ["success", "foo"],
+      ])
     })
   })
 
@@ -95,7 +104,7 @@ describe("useObserve", () => {
 
     expect(result.current).toEqual({
       data: 0,
-      status: "pending",
+      status: "success",
       observableState: "live",
       error: undefined,
     })
@@ -106,7 +115,7 @@ describe("useObserve", () => {
 
     expect(result.current).toEqual({
       data: 1,
-      status: "pending",
+      status: "success",
       observableState: "live",
       error: undefined,
     })
@@ -222,7 +231,7 @@ describe("useObserve", () => {
     expect(await findByText("10")).toBeDefined()
   })
 
-  it("does not re-render when observer complete", async () => {
+  it("re-renders when the source completes", async () => {
     const subject = new Subject<number>()
     let numberOfRenders = 0
 
@@ -262,6 +271,77 @@ describe("useObserve", () => {
     expect(numberOfRenders).toBe(3)
   })
 
+  describe("Given a status check", () => {
+    it("should type data as a value once status is success", () => {
+      const source$ = of(1)
+
+      renderHook(() => {
+        const result = useObserve(source$, { defaultValue: null })
+
+        if (result.status === "success") {
+          expectTypeOf(result.data).toEqualTypeOf<number>()
+        } else if (result.status === "pending") {
+          expectTypeOf(result.data).toEqualTypeOf<null>()
+        } else {
+          expectTypeOf(result.data).toEqualTypeOf<number | null>()
+        }
+      })
+    })
+  })
+
+  describe("Given a BehaviorSubject that already errored", () => {
+    it("should return the error without throwing", () => {
+      const error = new Error("boom")
+      const subject = new BehaviorSubject(1)
+      subject.error(error)
+
+      const { result } = renderHook(() => useObserve(subject))
+
+      expect(result.current).toEqual({
+        data: undefined,
+        status: "error",
+        observableState: "error",
+        error,
+      })
+    })
+  })
+
+  describe("Given a dependency that is NaN", () => {
+    it("should subscribe once across renders", () => {
+      let subscriptions = 0
+      const source$ = new BehaviorSubject(1)
+      const counted$ = defer(() => {
+        subscriptions++
+
+        return source$
+      })
+
+      const { rerender } = renderHook(() =>
+        useObserve(() => counted$, [Number.NaN]),
+      )
+
+      rerender()
+      rerender()
+
+      expect(subscriptions).toBe(1)
+    })
+  })
+
+  describe("Given a defaultValue that changes before the first value", () => {
+    it("should return the new defaultValue", () => {
+      const source$ = new Subject<string>()
+
+      const { result, rerender } = renderHook(
+        ({ fallback }) => useObserve(source$, { defaultValue: fallback }),
+        { initialProps: { fallback: "a" } },
+      )
+
+      rerender({ fallback: "b" })
+
+      expect(result.current.data).toBe("b")
+    })
+  })
+
   describe("Given a factory that may or may not return an observable", () => {
     it("should type return correctly", async () => {
       renderHook(() => {
@@ -285,7 +365,12 @@ describe("useObserve", () => {
           undefined,
         )
 
-        values.push(useObserve(() => res, [res]))
+        // committed renders only: a deps change runs the component twice
+        const result = useObserve(() => res, [res])
+
+        useEffect(() => {
+          values.push(result)
+        }, [result])
 
         useEffect(() => {
           setTimeout(() => {
@@ -301,14 +386,13 @@ describe("useObserve", () => {
       expect(values).toEqual([
         {
           data: undefined,
-          status: "success",
+          status: "pending",
           observableState: "complete",
           error: undefined,
         },
-        // still live because not completed
         {
           data: 1,
-          status: "pending",
+          status: "success",
           observableState: "live",
           error: undefined,
         },
@@ -318,21 +402,21 @@ describe("useObserve", () => {
 
   describe("Given a source that may or may not be an observable", () => {
     it("should type return correctly", async () => {
+      const source$ = of(1) as Observable<number> | undefined
+      const subject$ = new BehaviorSubject(1) as
+        | BehaviorSubject<number>
+        | undefined
+
       renderHook(() => {
-        const value = useObserve(of(1) as Observable<number> | undefined)
+        const value = useObserve(source$)
 
         expectTypeOf(value.data).toEqualTypeOf<number | undefined>()
 
-        const withDefaultValue = useObserve(
-          of(1) as Observable<number> | undefined,
-          { defaultValue: null },
-        )
+        const withDefaultValue = useObserve(source$, { defaultValue: null })
 
         expectTypeOf(withDefaultValue.data).toEqualTypeOf<number | null>()
 
-        const subject = useObserve(
-          new BehaviorSubject(1) as BehaviorSubject<number> | undefined,
-        )
+        const subject = useObserve(subject$)
 
         expectTypeOf(subject.data).toEqualTypeOf<number | undefined>()
       }, {})
@@ -361,7 +445,7 @@ describe("useObserve", () => {
 
       expect(result.current).toEqual({
         data: undefined,
-        status: "success",
+        status: "pending",
         observableState: "complete",
         error: undefined,
       })
@@ -391,7 +475,7 @@ describe("useObserve", () => {
 
       expect(result.current).toEqual({
         data: null,
-        status: "success",
+        status: "pending",
         observableState: "complete",
         error: undefined,
       })
@@ -406,7 +490,12 @@ describe("useObserve", () => {
           BehaviorSubject<number> | undefined
         >(undefined)
 
-        values.push(useObserve(source$))
+        // committed renders only: a deps change runs the component twice
+        const result = useObserve(source$)
+
+        useEffect(() => {
+          values.push(result)
+        }, [result])
 
         useEffect(() => {
           setTimeout(() => {
@@ -422,14 +511,13 @@ describe("useObserve", () => {
       expect(values).toEqual([
         {
           data: undefined,
-          status: "success",
+          status: "pending",
           observableState: "complete",
           error: undefined,
         },
-        // still live because not completed
         {
           data: 1,
-          status: "pending",
+          status: "success",
           observableState: "live",
           error: undefined,
         },

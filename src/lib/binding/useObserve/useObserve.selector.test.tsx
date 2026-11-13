@@ -20,8 +20,7 @@ it("should return the selected keys", async () => {
     values.push(value.data)
   }, {})
 
-  expect(values[0]).toEqual({ foo: "foo" })
-  expect(values.length).toBe(1)
+  expect(values).toEqual([undefined, { foo: "foo" }])
 })
 
 it("should not re-render when the selected keys don't change", async () => {
@@ -44,18 +43,20 @@ it("should not re-render when the selected keys don't change", async () => {
     }, [value])
   }, {})
 
-  expect(values[0]).toEqual({
+  expect(values.at(-1)).toEqual({
     data: { a: "a" },
     error: undefined,
-    status: "pending",
+    status: "success",
     observableState: "live",
   })
+
+  const renders = values.length
 
   act(() => {
     source$.next({ a: "a", b: "c" })
   })
 
-  expect(values.length).toBe(1)
+  expect(values.length).toBe(renders)
 })
 
 it("should re-render when the selected keys change", async () => {
@@ -78,12 +79,14 @@ it("should re-render when the selected keys change", async () => {
     }, [value])
   }, {})
 
-  expect(values[0]).toEqual({ a: "a" })
+  expect(values.at(-1)).toEqual({ a: "a" })
+
+  const renders = values.length
 
   act(() => {
     source$.next({ a: "b", b: "c" })
   })
 
-  expect(values[1]).toEqual({ a: "b" })
-  expect(values.length).toBe(2)
+  expect(values.at(-1)).toEqual({ a: "b" })
+  expect(values.length).toBe(renders + 1)
 })
