@@ -14,6 +14,18 @@ when they need to.
   to keep old call sites working. Remove or change the old API outright.
 - Don't hold back a fix or a refactor, or split it into a "safe" version,
   because it would break callers.
+- Never choose a design for the release type it gets. When a problem has a
+  clean fix that breaks callers and a weaker one that ships as a patch,
+  take the clean fix and release it as a major version. The release type
+  follows from the design, never the other way round.
+- When a problem has more than one fix, compare them on their merits and
+  take the cleanest, even when another keeps every caller working. Name the
+  options you rejected in the pull request, and say why.
+
+  Example: a first version of #291 kept `useObserve`'s subscription during
+  render and released it with a 10 s timer, so that it could ship as a
+  patch. The clean fix subscribes only after commit. It changes what the
+  first render shows, so it ships as a major version.
 - Judge a design on its merits for the general use case. Don't argue for or
   against it from how one app (oboku, for example) uses the library, and
   don't shape it around that app's code.

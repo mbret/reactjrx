@@ -21,7 +21,7 @@ it("should not re-render when the value is same reference", async () => {
   expect(values[0]).toEqual({
     data: undefined,
     error: undefined,
-    status: "pending",
+    status: "success",
     observableState: "live",
   })
 
@@ -253,4 +253,20 @@ describe("Given a forever true compareFn", () => {
       expect(result.current.data).toBe(2)
     })
   })
+})
+
+it("should return the same result across renders once the source changed to a BehaviorSubject", () => {
+  const first$ = new BehaviorSubject(1)
+  const second$ = new BehaviorSubject(2)
+
+  const { result, rerender } = renderHook(({ source }) => useObserve(source), {
+    initialProps: { source: first$ },
+  })
+
+  rerender({ source: second$ })
+  const resultAfterTheChange = result.current
+  rerender({ source: second$ })
+
+  expect(result.current.data).toBe(2)
+  expect(result.current).toBe(resultAfterTheChange)
 })

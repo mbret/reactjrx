@@ -1,5 +1,5 @@
-import { renderHook, waitFor } from "@testing-library/react"
-import { StrictMode } from "react"
+import { act, render, renderHook, waitFor } from "@testing-library/react"
+import { StrictMode, Suspense, use, useState } from "react"
 import { createRoot } from "react-dom/client"
 import { describe, expect, it, vi } from "vitest"
 import { waitForTimeout } from "../../../tests/utils"
@@ -347,8 +347,8 @@ describe("Given StrictMode", () => {
 
 describe("Given a mount with browser timing", () => {
   /**
-   * Outside `act`, effects run after pending promises resolve, as in a
-   * browser, so hydration can finish before the mount effects run.
+   * Outside `act`, React runs the effects as a browser does, after pending
+   * promises resolve.
    */
   it("should hydrate once and call onHydrated once", {
     timeout: 3000,
@@ -745,5 +745,144 @@ describe("Given an entry added later with nothing stored", () => {
     })
 
     expect(signalB.getValue()).toBe(3)
+  })
+})
+
+describe("Given a render that React throws away", () => {
+  it("should neither read the adapter for it nor save the signals after unmount", {
+    timeout: 3000,
+  }, async () => {
+    const signalA = signal({ default: 0, key: "a" })
+    const adapter = createMemoryAdapter({ a: storedValue(1) })
+    const entries: Entries = [{ signal: signalA, version: 0 }]
+    let resolve = () => {}
+    const promise = new Promise<void>((resolvePromise) => {
+      resolve = resolvePromise
+    })
+
+    function Suspends() {
+      "use no memo"
+      use(promise)
+
+      return null
+    }
+
+    function App() {
+      "use no memo"
+      usePersistSignals({ entries, adapter })
+
+      return <Suspends />
+    }
+
+    const { unmount } = await act(async () =>
+      render(
+        <Suspense fallback={null}>
+          <App />
+        </Suspense>,
+      ),
+    )
+
+    expect(adapter.calls.getItem).toBe(0)
+
+    await act(async () => {
+      resolve()
+      await promise
+    })
+    await waitFor(() => expect(signalA.getValue()).toBe(1))
+    await waitForTimeout(600)
+
+    expect(adapter.calls.getItem).toBe(1)
+
+    unmount()
+    adapter.calls.setItem = 0
+    signalA.update(42)
+    await waitForTimeout(700)
+
+    expect(adapter.calls.setItem).toBe(0)
+  })
+})
+
+describe("Given a Suspense boundary that suspends again after hydration", () => {
+  it("should keep a signal update made while its content is hidden, and call onHydrated once", {
+    timeout: 3000,
+  }, async () => {
+    const signalA = signal({ default: 0, key: "a" })
+    const adapter = createMemoryAdapter({ a: storedValue(1) })
+    const onHydrated = vi.fn()
+    const entries: Entries = [{ signal: signalA, version: 0 }]
+    let resolve = () => {}
+    const promise = new Promise<void>((resolvePromise) => {
+      resolve = resolvePromise
+    })
+    let suspend = (_shouldSuspend: boolean) => {}
+
+    function Suspends({ shouldSuspend }: { shouldSuspend: boolean }) {
+      "use no memo"
+      if (shouldSuspend) use(promise)
+
+      return null
+    }
+
+    function Persist() {
+      "use no memo"
+      usePersistSignals({ entries, adapter, onHydrated })
+
+      return null
+    }
+
+    function App() {
+      "use no memo"
+      const [shouldSuspend, setShouldSuspend] = useState(false)
+      suspend = setShouldSuspend
+
+      return (
+        <Suspense fallback={null}>
+          <Persist />
+          <Suspends shouldSuspend={shouldSuspend} />
+        </Suspense>
+      )
+    }
+
+    render(<App />)
+    await waitFor(() => expect(signalA.getValue()).toBe(1))
+    await waitForTimeout(600)
+
+    await act(async () => {
+      suspend(true)
+    })
+    signalA.update(42)
+    await waitForTimeout(600)
+    await act(async () => {
+      resolve()
+      await promise
+    })
+    await waitForTimeout(100)
+
+    expect(signalA.getValue()).toBe(42)
+    expect(onHydrated).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("Given a mount", () => {
+  it("should render its host once before hydration, and once after", async () => {
+    const signalA = signal({ default: 0, key: "a" })
+    const adapter = createMemoryAdapter({ a: storedValue(1) })
+    const isHydratedValues: boolean[] = []
+
+    function Persist() {
+      "use no memo"
+      const { isHydrated } = usePersistSignals({
+        entries: [{ signal: signalA, version: 0 }],
+        adapter,
+      })
+      isHydratedValues.push(isHydrated)
+
+      return null
+    }
+
+    render(<Persist />)
+    await waitFor(() => expect(isHydratedValues.at(-1)).toBe(true))
+
+    expect(isHydratedValues).toEqual([false, true])
   })
 })

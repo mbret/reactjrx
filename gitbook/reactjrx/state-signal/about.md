@@ -84,6 +84,8 @@ const App = () => {
 };
 ```
 
+Persistence starts once the component has mounted. A render that never commits, and a server render, read and write nothing, and `isHydrated` stays `false` until the stored values are read.
+
 When the shape of a persisted value changes, raise its entry's `version`. A value stored with an older version is discarded, unless the entry has a `hydrate` function.
 
 `hydrate` receives every stored value, older versions included, with the version it was stored with. It returns the signal's value: the stored one, a migration of it, or the signal's default, such as `settings.config.default` for the signal below, for a version it does not migrate. A value it migrates from an older version is saved again with the new version. `value` is typed `unknown`, since the storage can hold any shape: narrow it, or cast it for a version your app wrote. In reactjrx 4, `hydrate` received the entry's version, never saw an older value, and had `value` typed as the signal's value: a `hydrate` written for it now checks `version` before it reads `value`.
