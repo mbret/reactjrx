@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
 } from "react"
-import { BehaviorSubject, type Observable } from "rxjs"
+import { BehaviorSubject, filter, type Observable } from "rxjs"
 import { useLiveRef } from "../../utils/react/useLiveRef"
 import type { UseObserveOptions, UseObserveResult } from "./types"
 
@@ -254,12 +254,20 @@ export function useObserve<T, DefaultValue = T>(
         setState({ observation, sourceState: next })
       }
 
-      const subscription = source.subscribe({
-        next: (value) => {
+      /**
+       * The comparison runs in an operator, so a `compareFn` that throws
+       * errors the stream instead of being reported as unhandled.
+       */
+      const changedValue$ = source.pipe(
+        filter(function isChangedValue(value) {
           const isEqual = compareFnRef.current ?? isStrictlyEqual
 
-          if (latest.hasValue && isEqual(latest.value, value)) return
+          return !(latest.hasValue && isEqual(latest.value, value))
+        }),
+      )
 
+      const subscription = changedValue$.subscribe({
+        next: (value) => {
           commit({ observableState: "live", hasValue: true, value })
         },
         error: (error: unknown) => {

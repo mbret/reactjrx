@@ -99,3 +99,35 @@ describe("Given a source that errors after emitting", () => {
     })
   }
 })
+
+describe("Given a compareFn that throws", () => {
+  for (const { name, wrapper } of modes) {
+    it(`should keep the last value, return the error, not report it and unsubscribe${name}`, async () => {
+      const source$ = new BehaviorSubject(1)
+      const compareFn = (previous: number, next: number) => {
+        if (next === 2) throw error
+
+        return previous === next
+      }
+
+      const { result } = renderHook(() => useObserve(source$, { compareFn }), {
+        wrapper,
+      })
+
+      act(() => {
+        source$.next(2)
+      })
+
+      await waitForTimeout(10)
+
+      expect(result.current).toEqual({
+        data: 1,
+        status: "error",
+        observableState: "error",
+        error,
+      })
+      expect(onUnhandledError).not.toHaveBeenCalled()
+      expect(source$.observed).toBe(false)
+    })
+  }
+})

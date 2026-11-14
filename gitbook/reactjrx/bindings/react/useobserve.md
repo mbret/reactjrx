@@ -66,7 +66,7 @@ An object with:
 * A source that emits as soon as it is subscribed (`of(x)`, a piped signal, a `ReplaySubject` holding a value) has its value right after mount, in a second render. The first render, still `"pending"`, can reach the screen. A source that emits later stays `"pending"` until it does. To show part of a signal on the first render, in one render, use `useSignalValue(signal, selector)`.
 * An observable created during render, such as `source$.pipe(...)` written in the component, is a new observable on every render. Once the component renders again, React throws "Too many re-renders". Create it in a function with `deps`.
 * A new value that `compareFn` considers equal to the previous one doesn't re-render. By default that's strict equality, so a new object with the same content does re-render.
-* An error doesn't throw: the hook returns `status: "error"` with the `error`, keeps the last `data`, and doesn't report the error as unhandled.
+* An error doesn't throw: the hook returns `status: "error"` with the `error`, keeps the last `data`, and doesn't report the error as unhandled. A `compareFn` that throws errors the source the same way.
 * When React runs the effects again (`StrictMode` in development, an `<Activity>` shown again), the hook subscribes again to a live source: a cold one starts over, and values emitted while hidden are missed. A source that completed or errored is not subscribed again. A Suspense boundary that suspends again keeps the subscription. Pass a new source, or change `deps`, to start over.
 
 ## Usages
