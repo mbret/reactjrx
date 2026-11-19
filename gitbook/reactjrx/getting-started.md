@@ -8,6 +8,8 @@ You need to install the library together with `RxJS`. `RxJS` is most likely alre
 npm install reactjrx rxjs
 ```
 
+`reactjrx` is published as an ES module only. CommonJS code can load it with `require()` on Node.js 20.19 or later, or 22.12 or later. In TypeScript, a CommonJS file needs `"module": "nodenext"` and TypeScript 5.8 or later to import its types.
+
 ## React
 
 The queries (`useQuery$`, `useMutation$`...) run on [TanStack Query](https://tanstack.com/query/latest), version 5.85.1 or later. If you plan on using them, install it and wrap your app with its `QueryClientProvider`.
