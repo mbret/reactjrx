@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { createLocalforageAdapter } from "./createLocalforageAdapter"
+import { createLocalforageAdapter } from "./createLocalforageAdapter.ts"
 
 describe("createLocalforageAdapter", () => {
   it("should read a value that is not JSON as nothing stored", async () => {

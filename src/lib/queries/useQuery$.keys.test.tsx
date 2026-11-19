@@ -3,9 +3,9 @@ import { cleanup, render } from "@testing-library/react"
 import React, { act } from "react"
 import { Subject } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
-import { printQuery } from "../../tests/testUtils"
-import { waitForTimeout } from "../../tests/utils"
-import { useQuery$ } from "./useQuery$"
+import { printQuery } from "../../tests/testUtils.ts"
+import { waitForTimeout } from "../../tests/utils.tsx"
+import { useQuery$ } from "./useQuery$.ts"
 
 afterEach(() => {
   cleanup()

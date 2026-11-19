@@ -4,8 +4,8 @@ import { cleanup, render } from "@testing-library/react"
 import { act, StrictMode } from "react"
 import { EMPTY, finalize, timer } from "rxjs"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { waitForTimeout } from "../../tests/utils"
-import { useQuery$ } from "./useQuery$"
+import { waitForTimeout } from "../../tests/utils.tsx"
+import { useQuery$ } from "./useQuery$.ts"
 
 afterEach(() => {
   cleanup()

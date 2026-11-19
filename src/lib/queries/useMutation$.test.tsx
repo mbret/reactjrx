@@ -9,9 +9,9 @@ import {
 import React, { useEffect } from "react"
 import { finalize, ReplaySubject, Subject, takeUntil, timer } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
-import { createWrapper } from "../../tests/liveQuery"
-import { waitForTimeout } from "../../tests/utils"
-import { useMutation$ } from "./useMutation$"
+import { createWrapper } from "../../tests/liveQuery.tsx"
+import { waitForTimeout } from "../../tests/utils.tsx"
+import { useMutation$ } from "./useMutation$.ts"
 
 afterEach(() => {
   cleanup()

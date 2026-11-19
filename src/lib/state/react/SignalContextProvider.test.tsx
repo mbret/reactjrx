@@ -14,13 +14,13 @@ import {
   useEffect,
 } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { waitForTimeout } from "../../../tests/utils"
-import { virtualSignal } from "../Signal"
-import type { SignalContext } from "../SignalContext"
-import { SignalContextProvider } from "./SignalContextProvider"
-import { SignalReactContext } from "./SignalReactContext"
-import { useSignal } from "./useSignal"
-import { useSignalReference } from "./useSignalReference"
+import { waitForTimeout } from "../../../tests/utils.tsx"
+import { virtualSignal } from "../Signal.ts"
+import type { SignalContext } from "../SignalContext.ts"
+import { SignalContextProvider } from "./SignalContextProvider.tsx"
+import { SignalReactContext } from "./SignalReactContext.ts"
+import { useSignal } from "./useSignal.ts"
+import { useSignalReference } from "./useSignalReference.ts"
 
 // Helper wrapper component for testing context
 const TestWrapper: FC<PropsWithChildren> = ({ children }) => {

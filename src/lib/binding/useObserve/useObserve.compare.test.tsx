@@ -2,9 +2,9 @@ import { renderHook } from "@testing-library/react"
 import { act, useEffect, useState } from "react"
 import { BehaviorSubject, of } from "rxjs"
 import { describe, expect, it } from "vitest"
-import { isShallowEqual } from "../../utils/shallowEqual"
-import type { UseObserveResult } from "./types"
-import { useObserve } from "./useObserve"
+import { isShallowEqual } from "../../utils/shallowEqual.ts"
+import type { UseObserveResult } from "./types.ts"
+import { useObserve } from "./useObserve.ts"
 
 it("should not re-render when the value is same reference", async () => {
   const values: Array<UseObserveResult<undefined, undefined>> = []

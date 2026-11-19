@@ -33,12 +33,12 @@ import {
   it,
   vi,
 } from "vitest"
-import { createWrapper } from "../../tests/liveQuery"
-import { waitForTimeout } from "../../tests/utils"
+import { createWrapper } from "../../tests/liveQuery.tsx"
+import { waitForTimeout } from "../../tests/utils.tsx"
 import {
   SwitchMutationCancelError,
   useSwitchMutation$,
-} from "./useSwitchMutation$"
+} from "./useSwitchMutation$.ts"
 
 afterEach(() => {
   cleanup()

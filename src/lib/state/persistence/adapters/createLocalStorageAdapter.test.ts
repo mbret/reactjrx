@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { createLocalStorageAdapter } from "./createLocalStorageAdapter"
+import { createLocalStorageAdapter } from "./createLocalStorageAdapter.ts"
 
 afterEach(() => {
   localStorage.clear()

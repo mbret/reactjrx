@@ -12,7 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   type UseSubscribeEffectOptions,
   useSubscribeEffect,
-} from "./useSubscribeEffect"
+} from "./useSubscribeEffect.ts"
 
 let previousOnUnhandledError = config.onUnhandledError
 let onUnhandledError = vi.fn()

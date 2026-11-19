@@ -2,8 +2,8 @@ import type { DefaultError, QueryClient, QueryKey } from "@tanstack/react-query"
 import {
   type LockedLiveQueryOption,
   lockedLiveQueryOptions,
-} from "./lockedLiveQueryOptions"
-import { type UseQuery$Options, useQuery$ } from "./useQuery$"
+} from "./lockedLiveQueryOptions.ts"
+import { type UseQuery$Options, useQuery$ } from "./useQuery$.ts"
 
 /**
  * The options of `useLiveQuery$`: those of `useQuery$`, without the ones it

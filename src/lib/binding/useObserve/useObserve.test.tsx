@@ -10,10 +10,10 @@ import {
   timer,
 } from "rxjs"
 import { afterEach, describe, expect, expectTypeOf, it } from "vitest"
-import { waitForTimeout } from "../../../tests/utils"
-import { useConstant } from "../../utils/react/useConstant"
-import type { UseObserveResult } from "./types"
-import { useObserve } from "./useObserve"
+import { waitForTimeout } from "../../../tests/utils.tsx"
+import { useConstant } from "../../utils/react/useConstant.ts"
+import type { UseObserveResult } from "./types.ts"
+import { useObserve } from "./useObserve.ts"
 
 afterEach(() => {
   cleanup()

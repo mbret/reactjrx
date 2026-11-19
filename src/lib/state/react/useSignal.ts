@@ -1,7 +1,7 @@
-import type { Signal, VirtualSignal } from "../Signal"
-import { useSetSignal } from "./useSetSignal"
-import { useSignalReference } from "./useSignalReference"
-import { useSignalValue } from "./useSignalValue"
+import type { Signal, VirtualSignal } from "../Signal.ts"
+import { useSetSignal } from "./useSetSignal.ts"
+import { useSignalReference } from "./useSignalReference.ts"
+import { useSignalValue } from "./useSignalValue.ts"
 
 export function useSignal<T>(
   signal: VirtualSignal<T>,

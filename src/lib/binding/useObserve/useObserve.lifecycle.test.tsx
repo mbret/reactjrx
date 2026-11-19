@@ -21,8 +21,8 @@ import {
   Subject,
 } from "rxjs"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { countSubscriptions } from "../../../tests/liveQuery"
-import { useObserve } from "./useObserve"
+import { countSubscriptions } from "../../../tests/liveQuery.tsx"
+import { useObserve } from "./useObserve.ts"
 
 const createPendingPromise = () => {
   let resolve = () => {}

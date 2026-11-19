@@ -1,1 +1,1 @@
-export * from "./useObserve"
+export * from "./useObserve.ts"

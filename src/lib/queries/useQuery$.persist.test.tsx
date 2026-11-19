@@ -6,9 +6,9 @@ import {
 import { act, render, screen, waitFor } from "@testing-library/react"
 import { BehaviorSubject } from "rxjs"
 import { describe, expect, it } from "vitest"
-import { countSubscriptions } from "../../tests/liveQuery"
-import { waitForTimeout } from "../../tests/utils"
-import { useQuery$ } from "./useQuery$"
+import { countSubscriptions } from "../../tests/liveQuery.tsx"
+import { waitForTimeout } from "../../tests/utils.tsx"
+import { useQuery$ } from "./useQuery$.ts"
 
 const queryKey = ["live", "persisted"]
 

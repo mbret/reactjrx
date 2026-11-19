@@ -1,7 +1,7 @@
 import { render, renderHook } from "@testing-library/react"
 import { act, Suspense, startTransition, use, useState } from "react"
 import { describe, expect, it, vi } from "vitest"
-import { useUnmount } from "./useUnmount"
+import { useUnmount } from "./useUnmount.ts"
 
 describe("useUnmount", () => {
   it("should call the fn of the last render when the component unmounts", () => {

@@ -3,8 +3,8 @@ import { cleanup, render } from "@testing-library/react"
 import { act, StrictMode } from "react"
 import { of } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
-import { printQuery } from "../../tests/testUtils"
-import { useQuery$ } from "./useQuery$"
+import { printQuery } from "../../tests/testUtils.ts"
+import { useQuery$ } from "./useQuery$.ts"
 
 afterEach(() => {
   cleanup()

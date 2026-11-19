@@ -10,7 +10,7 @@ import {
 import {
   createObservableQueryFn,
   type ObservableQueryFn,
-} from "./createObservableQueryFn"
+} from "./createObservableQueryFn.ts"
 
 type MAXIMUM_DEPTH = 20
 

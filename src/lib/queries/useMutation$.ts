@@ -7,8 +7,8 @@ import {
 } from "@tanstack/react-query"
 import { useEffect } from "react"
 import { BehaviorSubject, type Observable, take } from "rxjs"
-import { useConstant } from "../utils/react/useConstant"
-import { resolveMutationFnSource } from "./mutationOptions"
+import { useConstant } from "../utils/react/useConstant.ts"
+import { resolveMutationFnSource } from "./mutationOptions.ts"
 
 export type UseMutation$Options<
   TData = unknown,

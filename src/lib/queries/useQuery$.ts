@@ -8,7 +8,7 @@ import {
 import {
   createObservableQueryFn,
   type ObservableQueryFn,
-} from "./createObservableQueryFn"
+} from "./createObservableQueryFn.ts"
 
 /**
  * TanStack's `UseQueryOptions`, with an Observable-based `queryFn` (see

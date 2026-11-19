@@ -1,7 +1,7 @@
 import { useCallback, useRef, useSyncExternalStore } from "react"
 import { skip } from "rxjs"
-import type { Signal, VirtualSignal } from "../Signal"
-import { useSignalReference } from "./useSignalReference"
+import type { Signal, VirtualSignal } from "../Signal.ts"
+import { useSignalReference } from "./useSignalReference.ts"
 
 export type EqualityFn<T> = (a: T, b: T) => boolean
 

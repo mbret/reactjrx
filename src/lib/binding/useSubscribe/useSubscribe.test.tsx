@@ -2,8 +2,8 @@ import { act, cleanup, renderHook } from "@testing-library/react"
 import { useCallback, useEffect, useState } from "react"
 import { type Observable, of, tap } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
-import { waitForTimeout } from "../../../tests/utils"
-import { useSubscribe } from "./useSubscribe"
+import { waitForTimeout } from "../../../tests/utils.tsx"
+import { useSubscribe } from "./useSubscribe.ts"
 
 afterEach(() => {
   cleanup()

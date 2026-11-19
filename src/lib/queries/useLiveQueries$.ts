@@ -2,12 +2,12 @@ import type { QueryClient } from "@tanstack/react-query"
 import {
   type LockedLiveQueryOption,
   lockedLiveQueryOptions,
-} from "./lockedLiveQueryOptions"
+} from "./lockedLiveQueryOptions.ts"
 import {
   type QueriesOptions$,
   type QueriesResults$,
   useQueries$,
-} from "./useQueries$"
+} from "./useQueries$.ts"
 
 /**
  * `useQueries$` for streams that stay open. Like `useLiveQuery$`, it locks

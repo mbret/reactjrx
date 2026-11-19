@@ -1,13 +1,13 @@
 import { firstValueFrom, of, type Subscription } from "rxjs"
 import { afterEach, describe, expect, it, onTestFinished, vi } from "vitest"
-import { waitForTimeout } from "../../../tests/utils"
-import { signal } from "../Signal"
-import type { Adapter } from "./adapters/Adapter"
-import { createLocalStorageAdapter } from "./adapters/createLocalStorageAdapter"
-import { MockAdapter } from "./adapters/MockAdapter"
-import { IDENTIFIER_PERSISTENCE_KEY } from "./constants"
-import { persistSignals } from "./persistSignals"
-import type { PersistenceEntry, SignalPersistenceConfig } from "./types"
+import { waitForTimeout } from "../../../tests/utils.tsx"
+import { signal } from "../Signal.ts"
+import type { Adapter } from "./adapters/Adapter.ts"
+import { createLocalStorageAdapter } from "./adapters/createLocalStorageAdapter.ts"
+import { MockAdapter } from "./adapters/MockAdapter.ts"
+import { IDENTIFIER_PERSISTENCE_KEY } from "./constants.ts"
+import { persistSignals } from "./persistSignals.ts"
+import type { PersistenceEntry, SignalPersistenceConfig } from "./types.ts"
 
 afterEach(() => {
   localStorage.clear()

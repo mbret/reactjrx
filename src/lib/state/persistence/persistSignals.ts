@@ -12,11 +12,11 @@ import {
   tap,
   throttleTime,
 } from "rxjs"
-import { SIGNAL_RESET } from "../constants"
-import type { Signal } from "../Signal"
-import type { Adapter } from "./adapters/Adapter"
-import { persistValue, readStoredState } from "./helpers"
-import type { SignalPersistenceConfig } from "./types"
+import { SIGNAL_RESET } from "../constants.ts"
+import type { Signal } from "../Signal.ts"
+import type { Adapter } from "./adapters/Adapter.ts"
+import { persistValue, readStoredState } from "./helpers.ts"
+import type { SignalPersistenceConfig } from "./types.ts"
 
 // biome-ignore lint/suspicious/noExplicitAny: TODO
 type AnySignal = Signal<any, string>

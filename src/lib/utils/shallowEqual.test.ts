@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import * as reactjrx from "../../index"
-import { isShallowEqual } from "./shallowEqual"
+import * as reactjrx from "../../index.ts"
+import { isShallowEqual } from "./shallowEqual.ts"
 
 describe("shallowEqual", () => {
   it("is exported by the package", () => {

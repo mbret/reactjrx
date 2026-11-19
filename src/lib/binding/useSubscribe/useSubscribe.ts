@@ -1,6 +1,6 @@
 import { useEffect } from "react"
-import { makeObservable } from "../../utils/makeObservable"
-import type { SubscribeSource } from "./types"
+import { makeObservable } from "../../utils/makeObservable.ts"
+import type { SubscribeSource } from "./types.ts"
 
 export function useSubscribe<T>(source: SubscribeSource<T>) {
   useEffect(() => {

@@ -6,9 +6,9 @@ import {
   createQueryClient,
   createWrapper,
   liveQueryOptions,
-} from "../../tests/liveQuery"
-import { waitForTimeout } from "../../tests/utils"
-import { useQueries$ } from "./useQueries$"
+} from "../../tests/liveQuery.tsx"
+import { waitForTimeout } from "../../tests/utils.tsx"
+import { useQueries$ } from "./useQueries$.ts"
 
 /**
  * Renders a component reading two live queries through one `useQueries$`.

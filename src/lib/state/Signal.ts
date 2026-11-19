@@ -1,5 +1,5 @@
 import { BehaviorSubject } from "rxjs"
-import { SIGNAL_RESET } from "./constants"
+import { SIGNAL_RESET } from "./constants.ts"
 
 /**
  * Distributive helper to validate the shape of the updater function

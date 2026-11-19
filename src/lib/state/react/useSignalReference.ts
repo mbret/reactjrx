@@ -1,6 +1,6 @@
 import { useContext } from "react"
-import { type Signal, VirtualSignal } from "../Signal"
-import { SignalReactContext } from "./SignalReactContext"
+import { type Signal, VirtualSignal } from "../Signal.ts"
+import { SignalReactContext } from "./SignalReactContext.ts"
 
 /**
  * The signal itself, or the signal that the SignalContextProvider above holds
