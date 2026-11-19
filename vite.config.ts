@@ -1,6 +1,7 @@
 /// <reference types="vitest/config" />
-import { builtinModules } from "node:module"
-import { resolve } from "node:path"
+import { copyFileSync } from "node:fs"
+import { builtinModules, createRequire } from "node:module"
+import { dirname, resolve } from "node:path"
 import babel from "@rolldown/plugin-babel"
 import react, { reactCompilerPreset } from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
@@ -35,7 +36,29 @@ export default defineConfig({
     }),
     dts({
       entryRoot: "src",
+      bundleTypes: {
+        invokeOptions: {
+          // `typescript` is the native port and ships no lib files that
+          // api-extractor can follow; give it the JS compiler instead.
+          typescriptCompilerFolder: dirname(
+            createRequire(import.meta.url).resolve(
+              "@typescript/old/package.json",
+            ),
+          ),
+        },
+      },
     }),
+    {
+      name: "cjs-types",
+      // The `require` condition resolves types next to `index.cjs`, so the
+      // bundled declarations are also emitted as `index.d.cts`.
+      closeBundle() {
+        copyFileSync(
+          resolve(import.meta.dirname, "dist/index.d.ts"),
+          resolve(import.meta.dirname, "dist/index.d.cts"),
+        )
+      },
+    },
   ],
   build: {
     minify: "terser",
