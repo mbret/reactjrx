@@ -35,6 +35,14 @@ export default defineConfig({
     }),
     dts({
       entryRoot: "src",
+      // One self-contained `index.d.ts`. Node's ES module resolution does
+      // not follow the extensionless paths of per-file declarations.
+      bundleTypes: {
+        // TypeScript 7 no longer ships lib typings in `typescript/lib`, which
+        // is where the plugin tells api-extractor to look. Unset it so
+        // api-extractor uses the libs of its own bundled compiler.
+        invokeOptions: { typescriptCompilerFolder: undefined },
+      },
     }),
   ],
   build: {
@@ -51,7 +59,7 @@ export default defineConfig({
       name: pkg.name,
       // the proper extensions will be added
       fileName: "index",
-      formats: ["es", "cjs"],
+      formats: ["es"],
     },
     rollupOptions: {
       external: isExternal,

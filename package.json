@@ -10,8 +10,8 @@
   "module": "./dist/index.js",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
   "types": "./dist/index.d.ts",
@@ -30,6 +30,7 @@
     "tsc": "tsc",
     "prepare": "husky && husky install",
     "check": "npx @biomejs/biome check .",
+    "check:package": "attw --pack . --profile esm-only",
     "format": "npx @biomejs/biome check . --write"
   },
   "peerDependencies": {
@@ -39,7 +40,9 @@
     "rxjs": "*"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@biomejs/biome": "2.6.4",
+    "@microsoft/api-extractor": "^7.60.1",
     "@rolldown/plugin-babel": "^0.3.0",
     "@tanstack/react-query-persist-client": "^5.105.3",
     "@testing-library/jest-dom": "^7.0.0",
