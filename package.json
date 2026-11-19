@@ -29,7 +29,7 @@
     "tsc": "tsc",
     "prepare": "husky && husky install",
     "check": "npx @biomejs/biome check .",
-    "check:package": "attw --pack . --profile esm-only",
+    "check:package": "node -e \"require('node:fs').accessSync(require('./package.json').types)\" && attw --pack . --profile esm-only",
     "format": "npx @biomejs/biome check . --write"
   },
   "peerDependencies": {
