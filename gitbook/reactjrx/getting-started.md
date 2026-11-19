@@ -8,7 +8,7 @@ You need to install the library together with `RxJS`. `RxJS` is most likely alre
 npm install reactjrx rxjs
 ```
 
-`reactjrx` is published as an ES module only. CommonJS code can load it with `require()` on Node.js 20.19 or later, or 22.12 or later. In TypeScript, a CommonJS file needs `"module": "nodenext"` and TypeScript 5.8 or later to import its types.
+`reactjrx` is published as an ES module only. CommonJS code can load it with `require()` on Node.js 20.19 or later, or 22.12 or later. Its types need TypeScript 5.0 or later. In TypeScript, a CommonJS file needs `"module": "nodenext"` and TypeScript 5.8 or later to import them.
 
 ## React
 

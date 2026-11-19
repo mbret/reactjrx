@@ -4,7 +4,6 @@ import { resolve } from "node:path"
 import babel from "@rolldown/plugin-babel"
 import react, { reactCompilerPreset } from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
-import dts from "vite-plugin-dts"
 import pkg from "./package.json" with { type: "json" }
 
 // Replicates the behaviour of the former rollup-plugin-node-externals
@@ -32,17 +31,6 @@ export default defineConfig({
     react(),
     babel({
       presets: [reactCompilerPreset()],
-    }),
-    dts({
-      entryRoot: "src",
-      // One self-contained `index.d.ts`. TypeScript's `nodenext` resolution does
-      // not follow the extensionless paths of per-file declarations.
-      bundleTypes: {
-        // TypeScript 7 no longer ships lib typings in `typescript/lib`, which
-        // is where the plugin tells api-extractor to look. Unset it so
-        // api-extractor uses the libs of its own bundled compiler.
-        invokeOptions: { typescriptCompilerFolder: undefined },
-      },
     }),
   ],
   build: {
