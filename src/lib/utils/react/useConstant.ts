@@ -1,4 +1,4 @@
-import { useRefOnce } from "./useRefOnce"
+import { useRefOnce } from "./useRefOnce.ts"
 
 export const useConstant = <T>(fn: () => T) => {
   const ref = useRefOnce(fn)

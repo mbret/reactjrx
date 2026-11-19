@@ -1,5 +1,5 @@
-import type { Signal, SignalValue } from "../Signal"
-import type { IDENTIFIER_PERSISTENCE_KEY } from "./constants"
+import type { Signal, SignalValue } from "../Signal.ts"
+import type { IDENTIFIER_PERSISTENCE_KEY } from "./constants.ts"
 
 export interface PersistenceEntry {
   value?: unknown

@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { act, render } from "@testing-library/react"
 import { Subject } from "rxjs"
 import { afterAll, expect, it } from "vitest"
-import { useQuery$ } from "../lib/queries/useQuery$"
+import { useQuery$ } from "../lib/queries/useQuery$.ts"
 
 /**
  * Guards the `afterEach` in test-setup.ts. This test ends while TanStack Query

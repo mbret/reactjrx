@@ -5,7 +5,7 @@ import {
   useSyncExternalStore,
 } from "react"
 import { BehaviorSubject, skip } from "rxjs"
-import { useConstant } from "../utils/react/useConstant"
+import { useConstant } from "../utils/react/useConstant.ts"
 
 export const useObservableState = <T>(
   defaultValue: T,

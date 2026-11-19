@@ -1,7 +1,7 @@
 import { catchError, defer, of } from "rxjs"
-import type { Adapter } from "./adapters/Adapter"
-import { IDENTIFIER_PERSISTENCE_KEY } from "./constants"
-import type { PersistenceEntry, SignalPersistenceConfig } from "./types"
+import type { Adapter } from "./adapters/Adapter.ts"
+import { IDENTIFIER_PERSISTENCE_KEY } from "./constants.ts"
+import type { PersistenceEntry, SignalPersistenceConfig } from "./types.ts"
 
 const isPersistenceEntry = (value: unknown): value is PersistenceEntry =>
   typeof value === "object" &&

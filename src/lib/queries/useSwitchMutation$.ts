@@ -19,11 +19,11 @@ import {
   throwError,
   timer,
 } from "rxjs"
-import { useRefOnce } from "../utils"
-import { useLiveRef } from "../utils/react/useLiveRef"
-import { getRetryDelay, shouldRetry } from "../utils/retry"
-import { resolveMutationFnSource } from "./mutationOptions"
-import { type UseMutation$Options, useMutation$ } from "./useMutation$"
+import { useRefOnce } from "../utils/index.ts"
+import { useLiveRef } from "../utils/react/useLiveRef.ts"
+import { getRetryDelay, shouldRetry } from "../utils/retry.ts"
+import { resolveMutationFnSource } from "./mutationOptions.ts"
+import { type UseMutation$Options, useMutation$ } from "./useMutation$.ts"
 
 export class SwitchMutationCancelError extends Error {
   constructor(message = "Mutation canceled") {

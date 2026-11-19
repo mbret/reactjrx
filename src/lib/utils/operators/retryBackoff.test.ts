@@ -10,7 +10,7 @@ import {
 } from "rxjs"
 import { TestScheduler } from "rxjs/testing"
 import { describe, expect, it } from "vitest"
-import { type RetryBackoffConfig, retryBackoff } from "./retryBackoff"
+import { type RetryBackoffConfig, retryBackoff } from "./retryBackoff.ts"
 
 /**
  * Subscribes to a source that always errors, piped through retryBackoff, and

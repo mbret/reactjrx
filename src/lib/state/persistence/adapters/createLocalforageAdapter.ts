@@ -1,5 +1,5 @@
-import type { Adapter } from "./Adapter"
-import { parseJson } from "./parseJson"
+import type { Adapter } from "./Adapter.ts"
+import { parseJson } from "./parseJson.ts"
 
 export const createLocalforageAdapter = (forage: {
   getItem: (key: string) => Promise<string | null>

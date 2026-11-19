@@ -8,7 +8,7 @@ import {
   useState,
 } from "react"
 import { describe, expect, test } from "vitest"
-import { useLiveRef } from "./useLiveRef"
+import { useLiveRef } from "./useLiveRef.ts"
 
 describe("useLiveRef", () => {
   test("should return a ref object with an initial value", () => {

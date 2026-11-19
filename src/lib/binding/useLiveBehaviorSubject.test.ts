@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react"
 import { StrictMode, useRef } from "react"
 import { describe, expect, it } from "vitest"
-import { useLiveBehaviorSubject } from "./useLiveBehaviorSubject"
+import { useLiveBehaviorSubject } from "./useLiveBehaviorSubject.ts"
 
 /**
  * Renders the hook and records every value its subject emits, subscribing

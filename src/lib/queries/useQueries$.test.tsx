@@ -3,8 +3,8 @@ import { cleanup, render, renderHook, waitFor } from "@testing-library/react"
 import React from "react"
 import { of } from "rxjs"
 import { afterEach, describe, expect, expectTypeOf, it } from "vitest"
-import { createWrapper } from "../../tests/liveQuery"
-import { useQueries$ } from "./useQueries$"
+import { createWrapper } from "../../tests/liveQuery.tsx"
+import { useQueries$ } from "./useQueries$.ts"
 
 afterEach(() => {
   cleanup()

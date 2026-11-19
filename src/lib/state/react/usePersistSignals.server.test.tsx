@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { renderToString } from "react-dom/server"
 import { describe, expect, it, vi } from "vitest"
-import { signal } from "../Signal"
-import { usePersistSignals } from "./usePersistSignals"
+import { signal } from "../Signal.ts"
+import { usePersistSignals } from "./usePersistSignals.tsx"
 
 describe("Given a server render", () => {
   it("should not read or write the adapter", () => {

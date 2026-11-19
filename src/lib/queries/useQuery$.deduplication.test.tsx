@@ -3,7 +3,7 @@ import { cleanup, render } from "@testing-library/react"
 import React, { act } from "react"
 import { interval, map, Subject, take, tap } from "rxjs"
 import { afterEach, describe, expect, it } from "vitest"
-import { useQuery$ } from "./useQuery$"
+import { useQuery$ } from "./useQuery$.ts"
 
 afterEach(() => {
   cleanup()

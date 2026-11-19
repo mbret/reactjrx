@@ -2,15 +2,15 @@ import { act, render, renderHook, waitFor } from "@testing-library/react"
 import { StrictMode, Suspense, use, useState } from "react"
 import { createRoot } from "react-dom/client"
 import { describe, expect, it, vi } from "vitest"
-import { waitForTimeout } from "../../../tests/utils"
-import type { Adapter } from "../persistence/adapters/Adapter"
-import { IDENTIFIER_PERSISTENCE_KEY } from "../persistence/constants"
+import { waitForTimeout } from "../../../tests/utils.tsx"
+import type { Adapter } from "../persistence/adapters/Adapter.ts"
+import { IDENTIFIER_PERSISTENCE_KEY } from "../persistence/constants.ts"
 import type {
   PersistenceEntry,
   SignalPersistenceConfig,
-} from "../persistence/types"
-import { signal } from "../Signal"
-import { usePersistSignals } from "./usePersistSignals"
+} from "../persistence/types.ts"
+import { signal } from "../Signal.ts"
+import { usePersistSignals } from "./usePersistSignals.tsx"
 
 // biome-ignore lint/suspicious/noExplicitAny: test
 type Entries = Array<SignalPersistenceConfig<any>>

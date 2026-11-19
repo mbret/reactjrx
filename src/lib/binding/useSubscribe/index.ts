@@ -1,1 +1,1 @@
-export * from "./useSubscribe"
+export * from "./useSubscribe.ts"

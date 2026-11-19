@@ -7,11 +7,10 @@
     "dist"
   ],
   "main": "./dist/index.js",
-  "module": "./dist/index.js",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
   "types": "./dist/index.d.ts",
@@ -20,8 +19,8 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
-    "watch": "vite build --watch",
+    "build": "tsc && vite build && tsc -p tsconfig.build.json",
+    "watch": "tsc -p tsconfig.build.json --watch --preserveWatchOutput & vite build --watch --emptyOutDir false",
     "preview": "vite preview",
     "prepublishOnly": "npm run build",
     "semantic-release": "semantic-release",
@@ -30,6 +29,7 @@
     "tsc": "tsc",
     "prepare": "husky && husky install",
     "check": "npx @biomejs/biome check .",
+    "check:package": "node -e \"require('node:fs').accessSync(require('./package.json').types)\" && attw --pack . --profile esm-only",
     "format": "npx @biomejs/biome check . --write"
   },
   "peerDependencies": {
@@ -39,6 +39,7 @@
     "rxjs": "*"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@biomejs/biome": "2.6.4",
     "@rolldown/plugin-babel": "^0.3.0",
     "@tanstack/react-query-persist-client": "^5.105.3",
@@ -47,7 +48,6 @@
     "@types/node": "^26.6.6",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
-    "@typescript/typescript6": "^6.0.2",
     "@vitejs/plugin-react": "^6.2.1",
     "babel-plugin-react-compiler": "^1.0.0",
     "husky": "^9.1.7",
@@ -60,7 +60,6 @@
     "terser": "^5.46.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
-    "vite-plugin-dts": "^5.0.1",
     "vitest": "^5.1.0"
   },
   "repository": {

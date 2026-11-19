@@ -1,4 +1,4 @@
-import type { Adapter } from "./Adapter"
+import type { Adapter } from "./Adapter.ts"
 
 export class MockAdapter implements Adapter {
   constructor(

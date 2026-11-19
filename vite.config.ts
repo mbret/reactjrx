@@ -4,7 +4,6 @@ import { resolve } from "node:path"
 import babel from "@rolldown/plugin-babel"
 import react, { reactCompilerPreset } from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
-import dts from "vite-plugin-dts"
 import pkg from "./package.json" with { type: "json" }
 
 // Replicates the behaviour of the former rollup-plugin-node-externals
@@ -33,9 +32,6 @@ export default defineConfig({
     babel({
       presets: [reactCompilerPreset()],
     }),
-    dts({
-      entryRoot: "src",
-    }),
   ],
   build: {
     minify: "terser",
@@ -51,7 +47,7 @@ export default defineConfig({
       name: pkg.name,
       // the proper extensions will be added
       fileName: "index",
-      formats: ["es", "cjs"],
+      formats: ["es"],
     },
     rollupOptions: {
       external: isExternal,

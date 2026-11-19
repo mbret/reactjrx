@@ -38,4 +38,5 @@ Run these before pushing; CI runs the same:
 
 - `npm run check` (biome lint and format)
 - `npm run build` (tsc and vite)
+- `npm run check:package` (the packed package's types, after the build)
 - `npm run test:ci` (vitest)

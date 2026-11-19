@@ -10,10 +10,10 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { memo, StrictMode, useState } from "react"
 import ReactDOM from "react-dom/client"
 import { interval } from "rxjs"
-import { useQuery$ } from "./lib/queries/useQuery$"
-import { SignalContextProvider } from "./lib/state/react/SignalContextProvider"
-import { useSignal } from "./lib/state/react/useSignal"
-import { signal, virtualSignal } from "./lib/state/Signal"
+import { useQuery$ } from "./lib/queries/useQuery$.ts"
+import { SignalContextProvider } from "./lib/state/react/SignalContextProvider.tsx"
+import { useSignal } from "./lib/state/react/useSignal.ts"
+import { signal, virtualSignal } from "./lib/state/Signal.ts"
 
 const PERSIST_KEY = "reactjrx-dev-query-cache"
 

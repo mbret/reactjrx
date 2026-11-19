@@ -2,10 +2,10 @@ import { renderHook } from "@testing-library/react"
 import { act, useEffect } from "react"
 import { BehaviorSubject, distinctUntilChanged, map, of } from "rxjs"
 import { expect, it } from "vitest"
-import { filterObjectByKey } from "../../utils/filterObjectByKey"
-import { isShallowEqual } from "../../utils/shallowEqual"
-import type { UseObserveResult } from "./types"
-import { useObserve } from "./useObserve"
+import { filterObjectByKey } from "../../utils/filterObjectByKey.ts"
+import { isShallowEqual } from "../../utils/shallowEqual.ts"
+import type { UseObserveResult } from "./types.ts"
+import { useObserve } from "./useObserve.ts"
 
 it("should return the selected keys", async () => {
   const values: Array<{ foo: string } | undefined> = []

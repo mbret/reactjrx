@@ -6,14 +6,14 @@ import {
   useState,
 } from "react"
 import { BehaviorSubject, filter, type Observable } from "rxjs"
-import { useLiveRef } from "../../utils/react/useLiveRef"
-import type { UseObserveOptions, UseObserveResult } from "./types"
+import { useLiveRef } from "../../utils/react/useLiveRef.ts"
+import type { UseObserveOptions, UseObserveResult } from "./types.ts"
 
 export type {
   ObservableState,
   UseObserveOptions,
   UseObserveResult,
-} from "./types"
+} from "./types.ts"
 
 type OptionsWithDefaultValue<T, DefaultValue> = UseObserveOptions<
   T,

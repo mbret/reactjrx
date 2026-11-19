@@ -8,9 +8,9 @@ import {
   createQueryClient,
   createWrapper,
   liveQueryOptions,
-} from "../../tests/liveQuery"
-import { waitForTimeout } from "../../tests/utils"
-import { useQuery$ } from "./useQuery$"
+} from "../../tests/liveQuery.tsx"
+import { waitForTimeout } from "../../tests/utils.tsx"
+import { useQuery$ } from "./useQuery$.ts"
 
 const settle = () => act(() => waitForTimeout(30))
 

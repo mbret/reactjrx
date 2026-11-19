@@ -9,10 +9,10 @@ import {
   createQueryClient,
   createWrapper,
   liveQueryOptions,
-} from "../../tests/liveQuery"
-import { waitForTimeout } from "../../tests/utils"
-import { useQueries$ } from "./useQueries$"
-import { useQuery$ } from "./useQuery$"
+} from "../../tests/liveQuery.tsx"
+import { waitForTimeout } from "../../tests/utils.tsx"
+import { useQueries$ } from "./useQueries$.ts"
+import { useQuery$ } from "./useQuery$.ts"
 
 function setup(queryKey: string[]) {
   const { liveQuery$, queryFn } = createLiveQuerySource(["a"])

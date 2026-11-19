@@ -1,4 +1,4 @@
-import { exponentialBackoffDelay, getDelay } from "./operators/retryBackoff"
+import { exponentialBackoffDelay, getDelay } from "./operators/retryBackoff.ts"
 
 /**
  * The retry options, read the way TanStack Query reads a mutation's, in

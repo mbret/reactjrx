@@ -2,6 +2,7 @@
   "compilerOptions": {
     "useDefineForClassFields": true,
     "jsx": "react-jsx",
+    "allowImportingTsExtensions": true,
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
     "allowUnreachableCode": false,

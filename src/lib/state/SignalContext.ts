@@ -1,4 +1,4 @@
-import { Signal, type VirtualSignal } from "./Signal"
+import { Signal, type VirtualSignal } from "./Signal.ts"
 
 export class SignalContext {
   /**

@@ -1,6 +1,6 @@
 import { memo, useState } from "react"
-import { SignalContext } from "../SignalContext"
-import { SignalReactContext } from "./SignalReactContext"
+import { SignalContext } from "../SignalContext.ts"
+import { SignalReactContext } from "./SignalReactContext.ts"
 
 /**
  * Holds the signals of the virtual signals used under it, for as long as it

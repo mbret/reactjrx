@@ -7,8 +7,8 @@ import { act, render, waitFor } from "@testing-library/react"
 import { useState } from "react"
 import { BehaviorSubject } from "rxjs"
 import { describe, expect, it } from "vitest"
-import { waitForTimeout } from "../../tests/utils"
-import { useQuery$ } from "./useQuery$"
+import { waitForTimeout } from "../../tests/utils.tsx"
+import { useQuery$ } from "./useQuery$.ts"
 
 /**
  * Renders one consumer of a live query (a stream that never completes) and

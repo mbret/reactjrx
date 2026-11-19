@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { isPromiseLike } from "./isPromiseLike"
-import { makeObservable } from "./makeObservable"
+import { isPromiseLike } from "./isPromiseLike.ts"
+import { makeObservable } from "./makeObservable.ts"
 
 const createThenable = (value: number) => ({
   // biome-ignore lint/suspicious/noThenProperty: intentionally building a non-native thenable

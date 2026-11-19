@@ -2,8 +2,8 @@ import { act, renderHook } from "@testing-library/react"
 import { StrictMode } from "react"
 import { BehaviorSubject, config, defer, throwError } from "rxjs"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { waitForTimeout } from "../../../tests/utils"
-import { useObserve } from "./useObserve"
+import { waitForTimeout } from "../../../tests/utils.tsx"
+import { useObserve } from "./useObserve.ts"
 
 let previousOnUnhandledError = config.onUnhandledError
 let onUnhandledError = vi.fn()

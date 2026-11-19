@@ -8,12 +8,12 @@ import {
   startWith,
   switchMap,
 } from "rxjs"
-import { useLiveBehaviorSubject } from "../../binding/useLiveBehaviorSubject"
-import { useObserve } from "../../binding/useObserve/useObserve"
-import { useLiveRef } from "../../utils/react/useLiveRef"
-import type { Adapter } from "../persistence/adapters/Adapter"
-import { persistSignals } from "../persistence/persistSignals"
-import type { SignalPersistenceConfig } from "../persistence/types"
+import { useLiveBehaviorSubject } from "../../binding/useLiveBehaviorSubject.ts"
+import { useObserve } from "../../binding/useObserve/useObserve.ts"
+import { useLiveRef } from "../../utils/react/useLiveRef.ts"
+import type { Adapter } from "../persistence/adapters/Adapter.ts"
+import { persistSignals } from "../persistence/persistSignals.ts"
+import type { SignalPersistenceConfig } from "../persistence/types.ts"
 
 /**
  * Hydrates the signals of `entries` from `adapter`, then persists their

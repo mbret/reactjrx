@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { arrayEqual } from "./arrayEqual"
+import { arrayEqual } from "./arrayEqual.ts"
 
 describe("arrayEqual", () => {
   it("should compare the items at each index", () => {

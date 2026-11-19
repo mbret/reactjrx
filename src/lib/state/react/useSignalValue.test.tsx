@@ -15,12 +15,12 @@ import {
   useState,
 } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { isShallowEqual } from "../../utils/shallowEqual"
-import { SIGNAL_RESET } from "../constants"
-import { type Signal, signal, virtualSignal } from "../Signal"
-import { SignalContextProvider } from "./SignalContextProvider"
-import { useSignalReference } from "./useSignalReference"
-import { useSignalValue } from "./useSignalValue"
+import { isShallowEqual } from "../../utils/shallowEqual.ts"
+import { SIGNAL_RESET } from "../constants.ts"
+import { type Signal, signal, virtualSignal } from "../Signal.ts"
+import { SignalContextProvider } from "./SignalContextProvider.tsx"
+import { useSignalReference } from "./useSignalReference.ts"
+import { useSignalValue } from "./useSignalValue.ts"
 
 afterEach(() => {
   cleanup()

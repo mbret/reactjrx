@@ -1,10 +1,10 @@
 import { useCallback } from "react"
 import { retry, tap, throwError, timer } from "rxjs"
-import { makeObservable } from "../utils/makeObservable"
-import { useLiveRef } from "../utils/react/useLiveRef"
-import { getRetryDelay, shouldRetry } from "../utils/retry"
-import type { SubscribeSource } from "./useSubscribe/types"
-import { useSubscribe } from "./useSubscribe/useSubscribe"
+import { makeObservable } from "../utils/makeObservable.ts"
+import { useLiveRef } from "../utils/react/useLiveRef.ts"
+import { getRetryDelay, shouldRetry } from "../utils/retry.ts"
+import type { SubscribeSource } from "./useSubscribe/types.ts"
+import { useSubscribe } from "./useSubscribe/useSubscribe.ts"
 
 export interface UseSubscribeEffectOptions {
   /**

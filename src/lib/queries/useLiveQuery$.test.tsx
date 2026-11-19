@@ -7,10 +7,10 @@ import {
   countSubscriptions,
   createQueryClient,
   createWrapper,
-} from "../../tests/liveQuery"
-import { waitForTimeout } from "../../tests/utils"
-import { useLiveQueries$ } from "./useLiveQueries$"
-import { type UseLiveQuery$Options, useLiveQuery$ } from "./useLiveQuery$"
+} from "../../tests/liveQuery.tsx"
+import { waitForTimeout } from "../../tests/utils.tsx"
+import { useLiveQueries$ } from "./useLiveQueries$.ts"
+import { type UseLiveQuery$Options, useLiveQuery$ } from "./useLiveQuery$.ts"
 
 const waitForData = (data: unknown) =>
   waitFor(() => {

@@ -2,8 +2,8 @@
 import { renderToString } from "react-dom/server"
 import { BehaviorSubject, concat, NEVER, of } from "rxjs"
 import { describe, expect, it } from "vitest"
-import { countSubscriptions } from "../../../tests/liveQuery"
-import { useObserve } from "./useObserve"
+import { countSubscriptions } from "../../../tests/liveQuery.tsx"
+import { useObserve } from "./useObserve.ts"
 
 describe("Given a server render", () => {
   it("renders the value of a BehaviorSubject without subscribing to it", () => {

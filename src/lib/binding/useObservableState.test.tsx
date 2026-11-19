@@ -1,6 +1,6 @@
 import { act, cleanup, renderHook } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
-import { useObservableState } from "./useObservableState"
+import { useObservableState } from "./useObservableState.ts"
 
 afterEach(() => {
   cleanup()

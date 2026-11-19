@@ -1,7 +1,7 @@
 import { render, renderHook } from "@testing-library/react"
 import { act, Suspense, startTransition, use, useState } from "react"
 import { describe, expect, it } from "vitest"
-import { useMemoCompare } from "./useMemoCompare"
+import { useMemoCompare } from "./useMemoCompare.ts"
 
 type Item = { id: number }
 

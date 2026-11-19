@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react"
-import { useLiveRef } from "./useLiveRef"
+import { useLiveRef } from "./useLiveRef.ts"
 
 /**
  * @param func Function to be debounced. The latest `func` runs when the delay ends.

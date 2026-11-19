@@ -1,5 +1,5 @@
-import type { Adapter } from "./Adapter"
-import { parseJson } from "./parseJson"
+import type { Adapter } from "./Adapter.ts"
+import { parseJson } from "./parseJson.ts"
 
 type Store = Record<string, unknown>
 
