@@ -5,10 +5,11 @@ export * from "./lib/binding/useObservableState.ts"
 export * from "./lib/binding/useObserve/index.ts"
 export * from "./lib/binding/useSubscribe/index.ts"
 export * from "./lib/binding/useSubscribeEffect.ts"
+// query
+export * from "./lib/queries/queryOptions$.ts"
 export * from "./lib/queries/useLiveQueries$.ts"
 export * from "./lib/queries/useLiveQuery$.ts"
 export * from "./lib/queries/useMutation$.ts"
-// query
 export * from "./lib/queries/useQueries$.ts"
 export * from "./lib/queries/useQuery$.ts"
 export * from "./lib/queries/useSwitchMutation$.ts"
