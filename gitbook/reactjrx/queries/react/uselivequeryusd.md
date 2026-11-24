@@ -22,6 +22,8 @@ So a component that needs the query always gets a live stream. With `useQuery$`,
 
 To wrap it in a hook of your own, type its options with `UseLiveQuery$Options`, which leaves both out.
 
+To share its options with the `QueryClient`, build them with [queryOptions$](usequeryusd.md#share-options-with-queryoptions), which types the query key.
+
 Everything else works as with `useQuery$`, as described in [Forever Query](../forever-query.md): the query stays fetching while the stream runs, automatic refetches join the stream, `refetch()` and invalidation restart it, and it stops when no component uses the query any more.
 
 As for any query, with the default `networkMode` (`"online"`), a fetch started offline waits for the network before it runs. For a source that doesn't need the network, such as a local database, set `networkMode: "always"` so its stream opens offline too.
